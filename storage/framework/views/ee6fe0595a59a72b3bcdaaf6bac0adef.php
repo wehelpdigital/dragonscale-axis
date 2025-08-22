@@ -1,0 +1,10 @@
+<footer class="footer">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-6">
+                <script>document.write(new Date().getFullYear())</script> © Dragon Scale Axis.
+            </div>
+        </div>
+    </div>
+</footer>
+<?php /**PATH C:\xampp\htdocs\btc-check\resources\views/layouts/footer.blade.php ENDPATH**/ ?>
