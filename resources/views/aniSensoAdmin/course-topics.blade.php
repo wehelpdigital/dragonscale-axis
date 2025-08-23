@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title') Course Contents - {{ $course->courseName }} @endsection
+@section('title') Course Topics - {{ $chapter->chapterTitle }} @endsection
 
 @section('css')
 <!-- DataTables -->
@@ -11,14 +11,14 @@
 <link href="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.css" rel="stylesheet" type="text/css" />
 
 <style>
-.chapters-table {
+.topics-table {
     background: white;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.chapter-row {
+.topic-row {
     display: flex;
     align-items: center;
     padding: 1rem;
@@ -28,20 +28,20 @@
     cursor: move;
 }
 
-.chapter-row:hover {
+.topic-row:hover {
     background: #f8f9fa;
 }
 
-.chapter-row:last-child {
+.topic-row:last-child {
     border-bottom: none;
 }
 
-.chapter-row.sortable-ghost {
+.topic-row.sortable-ghost {
     opacity: 0.5;
     background: #e3f2fd;
 }
 
-.chapter-row.sortable-chosen {
+.topic-row.sortable-chosen {
     background: #fff3e0;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
@@ -53,31 +53,29 @@
     font-size: 1.2rem;
 }
 
-.chapter-title {
+.topic-title {
     flex: 1;
     font-weight: 500;
     color: #495057;
 }
 
-.chapter-actions {
+.topic-actions {
     display: flex;
     gap: 0.5rem;
 }
 
-.chapter-actions .btn {
+.topic-actions .btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
-    margin-left: 0.25rem;
 }
 
-.chapter-actions .btn-outline-info {
+.topic-actions .btn-outline-info {
     color: #17a2b8;
     border-color: #17a2b8;
 }
 
-.chapter-actions .btn-outline-info:hover {
+.topic-actions .btn-outline-info:hover {
     background-color: #17a2b8;
-    border-color: #17a2b8;
     color: white;
 }
 
@@ -98,7 +96,9 @@
 @section('content')
 @component('components.breadcrumb')
 @slot('li_1') Ani-Senso @endslot
-@slot('title') Course Contents @endslot
+@slot('li_2') Courses @endslot
+@slot('li_3') {{ $course->courseName }} @endslot
+@slot('title') Chapter Topics @endslot
 @endcomponent
 
 <div class="row">
@@ -106,15 +106,16 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <h4 class="card-title">Course Contents - {{ $course->courseName }}</h4>
-                    <p class="card-title-desc">Manage the chapters for this course</p>
+                    <h4 class="card-title">Course Topics - {{ $chapter->chapterTitle }}</h4>
+                    <p class="card-title-desc">Manage topics for this chapter</p>
+                    <small class="text-muted">Course: {{ $course->courseName }}</small>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('anisenso-courses.chapters.add', ['id' => $course->id]) }}" class="btn btn-primary">
-                        <i class="bx bx-plus me-1"></i> Add Chapter
-                    </a>
-                    <a href="{{ route('anisenso-courses') }}" class="btn btn-secondary">
-                        <i class="bx bx-arrow-back me-1"></i> Back to Courses
+                    <button type="button" class="btn btn-primary" onclick="addTopic()">
+                        <i class="bx bx-plus me-1"></i> Add Topic
+                    </button>
+                    <a href="{{ route('anisenso-courses.contents', ['id' => $course->id]) }}" class="btn btn-secondary">
+                        <i class="bx bx-arrow-back me-1"></i> Back to Chapters
                     </a>
                 </div>
             </div>
@@ -127,25 +128,25 @@
                 </div>
                 @endif
 
-                @if($chapters->count() > 0)
-                    <div class="chapters-table">
-                        <div id="chapters-list">
-                            @foreach($chapters as $chapter)
-                            <div class="chapter-row" data-id="{{ $chapter->id }}">
+                @if($topics->count() > 0)
+                    <div class="topics-table">
+                        <div id="topics-list">
+                            @foreach($topics as $topic)
+                            <div class="topic-row" data-id="{{ $topic->id }}">
                                 <div class="drag-handle">
                                     <i class="bx bx-menu"></i>
                                 </div>
-                                <div class="chapter-title">
-                                    {{ $chapter->chapterTitle }}
+                                <div class="topic-title">
+                                    {{ $topic->topicTitle }}
                                 </div>
-                                <div class="chapter-actions">
-                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="viewTopics({{ $chapter->id }})">
-                                        <i class="bx bx-list-ul me-1"></i> Topics
+                                <div class="topic-actions">
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="downloadableResources({{ $topic->id }})">
+                                        <i class="bx bx-download"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="editChapter({{ $chapter->id }})">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="editTopic({{ $topic->id }})">
                                         <i class="bx bx-edit"></i>
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteChapter({{ $chapter->id }})">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTopic({{ $topic->id }})">
                                         <i class="bx bx-trash"></i>
                                     </button>
                                 </div>
@@ -155,9 +156,9 @@
                     </div>
                 @else
                     <div class="empty-state">
-                        <i class="bx bx-book-open"></i>
-                        <h4>No Chapters Found</h4>
-                        <p>Start by adding your first chapter to this course.</p>
+                        <i class="bx bx-list-ul"></i>
+                        <h4>No Topics Found</h4>
+                        <p>Start by adding your first topic to this chapter.</p>
                     </div>
                 @endif
             </div>
@@ -177,41 +178,43 @@
 
 <script>
 $(document).ready(function() {
-    console.log('Course contents page loaded for: {{ $course->courseName }}');
+    console.log('Course topics page loaded');
+    console.log('Course ID:', {{ $course->id }});
+    console.log('Chapter ID:', {{ $chapter->id }});
 
     // Initialize drag and drop functionality
     initializeSortable();
 });
 
 function initializeSortable() {
-    const chaptersList = document.getElementById('chapters-list');
-    if (chaptersList) {
-        new Sortable(chaptersList, {
+    const topicsList = document.getElementById('topics-list');
+    if (topicsList) {
+        new Sortable(topicsList, {
             animation: 150,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             onEnd: function(evt) {
-                updateChapterOrder();
+                updateTopicOrder();
             }
         });
     }
 }
 
-function updateChapterOrder() {
-    const chapters = [];
-    $('#chapters-list .chapter-row').each(function(index) {
-        chapters.push({
+function updateTopicOrder() {
+    const topics = [];
+    $('#topics-list .topic-row').each(function(index) {
+        topics.push({
             id: $(this).data('id'),
             order: index + 1
         });
     });
 
     $.ajax({
-        url: '{{ route("anisenso-courses.chapters.order") }}',
+        url: '{{ route("anisenso-topics.order") }}',
         method: 'PUT',
         data: {
             _token: '{{ csrf_token() }}',
-            chapters: chapters
+            topics: topics
         },
         success: function(response) {
             if (response.success) {
@@ -226,14 +229,14 @@ function updateChapterOrder() {
 
                 toast.fire({
                     icon: 'success',
-                    title: 'Chapter order updated'
+                    title: 'Topic order updated'
                 });
             }
         },
         error: function() {
             Swal.fire({
                 title: 'Error!',
-                text: 'Failed to update chapter order',
+                text: 'Failed to update topic order',
                 icon: 'error',
                 confirmButtonText: 'OK'
             });
@@ -241,25 +244,30 @@ function updateChapterOrder() {
     });
 }
 
-function viewTopics(chapterId) {
-    // Redirect to topics page for this chapter
-    window.location.href = `/anisenso-courses-topics?id={{ $course->id }}&chap=${chapterId}`;
+function addTopic() {
+    // Redirect to add topic page
+    window.location.href = `/anisenso-courses-topics-add?id={{ $course->id }}&chap={{ $chapter->id }}`;
 }
 
-function editChapter(chapterId) {
-    // Redirect to edit chapter page
-    window.location.href = `/anisenso-courses-contents-edit?chapid=${chapterId}`;
+function editTopic(topicId) {
+    // Redirect to edit topic page
+    window.location.href = `/anisenso-courses-topics-edit?topid=${topicId}`;
 }
 
-function deleteChapter(chapterId) {
+function downloadableResources(topicId) {
+    // Redirect to downloadable resources page
+    window.location.href = `/anisenso-courses-topics-resources?topid=${topicId}`;
+}
+
+function deleteTopic(topicId) {
     // Show delete confirmation modal
-    $('#deleteChapterModal').modal('show');
-    $('#confirmDeleteBtn').data('chapter-id', chapterId);
+    $('#deleteTopicModal').modal('show');
+    $('#confirmDeleteBtn').data('topic-id', topicId);
 }
 
 // Handle delete confirmation
 $(document).on('click', '#confirmDeleteBtn', function() {
-    const chapterId = $(this).data('chapter-id');
+    const topicId = $(this).data('topic-id');
     const $btn = $(this);
     const $spinner = $btn.find('.spinner-border');
     const $btnText = $btn.contents().filter(function() { return this.nodeType === 3; }).first();
@@ -271,29 +279,29 @@ $(document).on('click', '#confirmDeleteBtn', function() {
 
     // Perform delete request
     $.ajax({
-        url: `/anisenso-courses-chapters/${chapterId}`,
+        url: `/anisenso-courses-topics/${topicId}`,
         method: 'DELETE',
         data: {
             _token: '{{ csrf_token() }}'
         },
         success: function(response) {
             // Hide modal
-            $('#deleteChapterModal').modal('hide');
+            $('#deleteTopicModal').modal('hide');
 
-            // Remove the chapter row from the table
-            $(`.chapter-row[data-id="${chapterId}"]`).fadeOut(300, function() {
+            // Remove the topic row from the table
+            $(`.topic-row[data-id="${topicId}"]`).fadeOut(300, function() {
                 $(this).remove();
 
-                // Check if no chapters left
-                if ($('#chapters-list .chapter-row').length === 0) {
-                    $('#chapters-list').html('<div class="text-center py-4"><p class="text-muted">No chapters found</p></div>');
+                // Check if no topics left
+                if ($('#topics-list .topic-row').length === 0) {
+                    $('#topics-list').html('<div class="text-center py-4"><p class="text-muted">No topics found</p></div>');
                 }
             });
 
             // Show success message
             Swal.fire({
                 title: 'Deleted!',
-                text: 'Chapter has been deleted successfully.',
+                text: 'Topic has been deleted successfully.',
                 icon: 'success',
                 confirmButtonText: 'OK'
             });
@@ -302,10 +310,10 @@ $(document).on('click', '#confirmDeleteBtn', function() {
             // Reset button state
             $btn.prop('disabled', false);
             $spinner.hide();
-            $btnText.replaceWith(' Delete Chapter');
+            $btnText.replaceWith(' Delete Topic');
 
             // Show error message
-            let errorMessage = 'Failed to delete chapter.';
+            let errorMessage = 'Failed to delete topic.';
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMessage = xhr.responseJSON.message;
             }
@@ -321,22 +329,22 @@ $(document).on('click', '#confirmDeleteBtn', function() {
 });
 </script>
 
-<!-- Delete Chapter Confirmation Modal -->
-<div class="modal fade" id="deleteChapterModal" tabindex="-1" aria-labelledby="deleteChapterModalLabel" aria-hidden="true">
+<!-- Delete Topic Confirmation Modal -->
+<div class="modal fade" id="deleteTopicModal" tabindex="-1" aria-labelledby="deleteTopicModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteChapterModalLabel">Delete Chapter</h5>
+                <h5 class="modal-title" id="deleteTopicModalLabel">Delete Topic</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete this chapter? This action cannot be undone.</p>
+                <p>Are you sure you want to delete this topic? This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
-                    Delete Chapter
+                    Delete Topic
                 </button>
             </div>
         </div>

@@ -26,4 +26,9 @@ class AsCourseChapter extends Model
     {
         return $this->belongsTo(AsCourse::class, 'asCoursesId', 'id');
     }
+
+    public function topics()
+    {
+        return $this->hasMany(AsTopic::class, 'chapterId', 'id');
+    }
 }

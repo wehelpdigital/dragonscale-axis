@@ -71,6 +71,8 @@
     transition: all 0.2s ease;
     border: none;
     color: white;
+    min-width: 80px;
+    white-space: nowrap;
 }
 
 .course-actions .btn:hover {
@@ -108,10 +110,38 @@
     color: white;
 }
 
+.course-actions .btn-outline-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.course-actions .btn-outline-info:hover {
+    background-color: #138496;
+    color: white;
+}
+
+.course-actions .btn-outline-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.course-actions .btn-outline-success:hover {
+    background-color: #1e7e34;
+    color: white;
+}
+
 .card-body {
     padding: 1.5rem !important;
     border: 1px solid #dedede;
     border-radius: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .course-image, .course-placeholder {
+        width: 140px !important;
+        height: 140px !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -127,6 +157,88 @@
     .course-price {
         font-size: 1.25rem;
     }
+
+    .course-actions .btn {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .course-actions .btn i {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .course-image, .course-placeholder {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    .course-title {
+        font-size: 1rem;
+    }
+
+    .course-price {
+        font-size: 1.1rem;
+    }
+
+    .course-description {
+        font-size: 0.8rem;
+    }
+
+    .course-actions .btn {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.4rem;
+    }
+
+    .course-actions .btn i {
+        font-size: 0.75rem;
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .course-actions .btn {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.35rem;
+    }
+
+    .course-actions .btn i {
+        font-size: 0.7rem;
+    }
+}
+
+/* Delete Modal Styles */
+#deleteCourseModal .modal-header {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+#deleteCourseModal .modal-title {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+#deleteCourseModal .modal-body {
+    padding: 1.5rem;
+}
+
+#deleteCourseModal .btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+#deleteCourseModal .btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+#deleteCourseModal .btn-danger:disabled {
+    background-color: #6c757d;
+    border-color: #6c757d;
 }
 </style>
 <?php $__env->stopSection(); ?>
@@ -149,10 +261,10 @@
 <div class="row">
     <div class="col-12">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
                 <div>
-                    <h4 class="card-title">Ani-Senso Courses</h4>
-                    <p class="card-title-desc">Manage your courses</p>
+                    <h4 class="card-title mb-1">Ani-Senso Courses</h4>
+                    <p class="card-title-desc mb-0">Manage your courses</p>
                 </div>
                 <a href="<?php echo e(route('anisenso-courses-add')); ?>" class="btn btn-primary">
                     <i class="bx bx-plus"></i> Add New Course
@@ -162,7 +274,7 @@
                 <?php if($courses->count() > 0): ?>
                     <div class="row">
                         <?php $__currentLoopData = $courses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $course): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                        <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
                             <div class="card course-card h-100 shadow-sm border-0">
                                 <div class="card-body p-4">
                                     <div class="text-center mb-4">
@@ -187,22 +299,22 @@
                                         <?php endif; ?>
 
                                         <div class="course-actions">
-                                            <div class="row g-2">
-                                                <div class="col-4">
-                                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="viewCourse(<?php echo e($course->id); ?>)">
-                                                        <i class="bx bx-book-open me-1"></i> Contents
-                                                    </button>
-                                                </div>
-                                                <div class="col-4">
-                                                    <button type="button" class="btn btn-outline-warning btn-sm w-100" onclick="editCourse(<?php echo e($course->id); ?>)">
-                                                        <i class="bx bx-edit me-1"></i> Edit
-                                                    </button>
-                                                </div>
-                                                <div class="col-4">
-                                                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="deleteCourse(<?php echo e($course->id); ?>)">
-                                                        <i class="bx bx-trash me-1"></i> Delete
-                                                    </button>
-                                                </div>
+                                            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="viewCourse(<?php echo e($course->id); ?>)">
+                                                    <i class="bx bx-book-open me-1"></i> Contents
+                                                </button>
+                                                <button type="button" class="btn btn-outline-info btn-sm" onclick="viewComments(<?php echo e($course->id); ?>)">
+                                                    <i class="bx bx-message-square-dots me-1"></i> Comments
+                                                </button>
+                                                <button type="button" class="btn btn-outline-success btn-sm" onclick="viewQuestions(<?php echo e($course->id); ?>)">
+                                                    <i class="bx bx-help-circle me-1"></i> Questions
+                                                </button>
+                                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="editCourse(<?php echo e($course->id); ?>)">
+                                                    <i class="bx bx-edit me-1"></i> Edit
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteCourse(<?php echo e($course->id); ?>)">
+                                                    <i class="bx bx-trash me-1"></i> Delete
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -226,50 +338,34 @@
     </div>
 </div>
 
-<!-- Edit Course Modal -->
-<div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+
+
+<!-- Delete Course Confirmation Modal -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editCourseForm" method="POST" enctype="multipart/form-data">
-                <?php echo csrf_field(); ?>
-                <?php echo method_field('PUT'); ?>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editCourseModalLabel">Edit Course</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="editCourseName" class="form-label">Course Name</label>
-                                <input type="text" class="form-control" id="editCourseName" name="courseName" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="editCoursePrice" class="form-label">Course Price</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">₱</span>
-                                    <input type="number" class="form-control" id="editCoursePrice" name="coursePrice" step="0.01" min="0" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editCourseDescription" class="form-label">Course Description</label>
-                        <textarea class="form-control" id="editCourseDescription" name="courseDescription" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editCourseImage" class="form-label">Course Image</label>
-                        <input type="file" class="form-control" id="editCourseImage" name="courseImage" accept="image/*">
-                        <small class="text-muted">Upload a new image to replace the current one (optional)</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Course</button>
-                </div>
-            </form>
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCourseModalLabel">
+                    <i class="bx bx-trash text-danger me-2"></i>Confirm Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    <strong>Are you sure you want to delete this course?</strong>
+                </p>
+                <p class="text-muted small mt-2">
+                    This action will hide the course from the list but can be restored later if needed.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bx bx-x me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bx bx-trash me-1"></i> Yes, Delete Course
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -293,65 +389,74 @@ function viewCourse(courseId) {
 }
 
 function editCourse(courseId) {
-    // Fetch course data and populate the edit modal
-    $.ajax({
-        url: `/anisenso-courses/${courseId}/edit`,
-        method: 'GET',
-        success: function(response) {
-            $('#editCourseName').val(response.courseName);
-            $('#editCoursePrice').val(response.coursePrice);
-            $('#editCourseDescription').val(response.courseDescription);
-            $('#editCourseForm').attr('action', `/anisenso-courses/${courseId}`);
-            $('#editCourseModal').modal('show');
-        },
-        error: function() {
-            Swal.fire({
-                title: 'Error',
-                text: 'Failed to load course data',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-        }
-    });
+    // Redirect to the edit page
+    window.location.href = `/anisenso-courses-edit?id=${courseId}`;
 }
 
 function deleteCourse(courseId) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: `/anisenso-courses/${courseId}`,
-                method: 'DELETE',
-                data: {
-                    _token: '<?php echo e(csrf_token()); ?>'
-                },
-                success: function() {
-                    Swal.fire(
-                        'Deleted!',
-                        'Course has been deleted.',
-                        'success'
-                    ).then(() => {
-                        location.reload();
-                    });
-                },
-                error: function() {
-                    Swal.fire(
-                        'Error!',
-                        'Failed to delete course.',
-                        'error'
-                    );
-                }
+    // Show delete confirmation modal
+    $('#deleteCourseModal').modal('show');
+    $('#confirmDeleteBtn').data('course-id', courseId);
+}
+
+function viewComments(courseId) {
+    // Redirect to the comments page
+    window.location.href = `/anisenso-courses-comments?id=${courseId}`;
+}
+
+function viewQuestions(courseId) {
+    // Redirect to the questions page
+    window.location.href = `/anisenso-courses-questions?id=${courseId}`;
+}
+
+// Handle delete confirmation
+$('#confirmDeleteBtn').on('click', function() {
+    var courseId = $(this).data('course-id');
+    var $modal = $('#deleteCourseModal');
+    var $btn = $(this);
+
+    // Disable button and show loading state
+    $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Deleting...');
+
+    $.ajax({
+        url: `/anisenso-courses/${courseId}`,
+        method: 'DELETE',
+        data: {
+            _token: '<?php echo e(csrf_token()); ?>'
+        },
+        success: function(response) {
+            // Close modal
+            $modal.modal('hide');
+
+            // Show success message
+            Swal.fire({
+                title: 'Deleted!',
+                text: 'Course has been successfully deleted.',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // Reload the page to reflect changes
+                location.reload();
             });
+        },
+        error: function(xhr) {
+            // Close modal
+            $modal.modal('hide');
+
+            // Show error message
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to delete course. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        },
+        complete: function() {
+            // Reset button state
+            $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Yes, Delete Course');
         }
     });
-}
+});
 </script>
 <?php $__env->stopSection(); ?>
 
