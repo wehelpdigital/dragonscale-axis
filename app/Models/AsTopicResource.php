@@ -24,3 +24,6 @@ class AsTopicResource extends Model
         return $this->belongsTo(AsTopic::class, 'asTopicsId');
     }
 }
+
+
+

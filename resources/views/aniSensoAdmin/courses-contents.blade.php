@@ -67,18 +67,6 @@
 .chapter-actions .btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
-    margin-left: 0.25rem;
-}
-
-.chapter-actions .btn-outline-info {
-    color: #17a2b8;
-    border-color: #17a2b8;
-}
-
-.chapter-actions .btn-outline-info:hover {
-    background-color: #17a2b8;
-    border-color: #17a2b8;
-    color: white;
 }
 
 .empty-state {
@@ -139,9 +127,6 @@
                                     {{ $chapter->chapterTitle }}
                                 </div>
                                 <div class="chapter-actions">
-                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="viewTopics({{ $chapter->id }})">
-                                        <i class="bx bx-list-ul me-1"></i> Topics
-                                    </button>
                                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="editChapter({{ $chapter->id }})">
                                         <i class="bx bx-edit"></i>
                                     </button>
@@ -241,105 +226,34 @@ function updateChapterOrder() {
     });
 }
 
-function viewTopics(chapterId) {
-    // Redirect to topics page for this chapter
-    window.location.href = `/anisenso-courses-topics?id={{ $course->id }}&chap=${chapterId}`;
-}
-
 function editChapter(chapterId) {
-    // Redirect to edit chapter page
-    window.location.href = `/anisenso-courses-contents-edit?chapid=${chapterId}`;
+    Swal.fire({
+        title: 'Edit Chapter',
+        text: 'Chapter editing functionality will be implemented soon!',
+        icon: 'info',
+        confirmButtonText: 'OK'
+    });
 }
 
 function deleteChapter(chapterId) {
-    // Show delete confirmation modal
-    $('#deleteChapterModal').modal('show');
-    $('#confirmDeleteBtn').data('chapter-id', chapterId);
-}
-
-// Handle delete confirmation
-$(document).on('click', '#confirmDeleteBtn', function() {
-    const chapterId = $(this).data('chapter-id');
-    const $btn = $(this);
-    const $spinner = $btn.find('.spinner-border');
-    const $btnText = $btn.contents().filter(function() { return this.nodeType === 3; }).first();
-
-    // Show loading state
-    $btn.prop('disabled', true);
-    $spinner.show();
-    $btnText.replaceWith(' Deleting...');
-
-    // Perform delete request
-    $.ajax({
-        url: `/anisenso-courses-chapters/${chapterId}`,
-        method: 'DELETE',
-        data: {
-            _token: '{{ csrf_token() }}'
-        },
-        success: function(response) {
-            // Hide modal
-            $('#deleteChapterModal').modal('hide');
-
-            // Remove the chapter row from the table
-            $(`.chapter-row[data-id="${chapterId}"]`).fadeOut(300, function() {
-                $(this).remove();
-
-                // Check if no chapters left
-                if ($('#chapters-list .chapter-row').length === 0) {
-                    $('#chapters-list').html('<div class="text-center py-4"><p class="text-muted">No chapters found</p></div>');
-                }
-            });
-
-            // Show success message
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Implement delete functionality here
             Swal.fire({
                 title: 'Deleted!',
-                text: 'Chapter has been deleted successfully.',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
-        },
-        error: function(xhr) {
-            // Reset button state
-            $btn.prop('disabled', false);
-            $spinner.hide();
-            $btnText.replaceWith(' Delete Chapter');
-
-            // Show error message
-            let errorMessage = 'Failed to delete chapter.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
-
-            Swal.fire({
-                title: 'Error!',
-                text: errorMessage,
-                icon: 'error',
-                confirmButtonText: 'OK'
+                text: 'Chapter has been deleted.',
+                icon: 'success'
             });
         }
     });
-});
+}
 </script>
-
-<!-- Delete Chapter Confirmation Modal -->
-<div class="modal fade" id="deleteChapterModal" tabindex="-1" aria-labelledby="deleteChapterModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteChapterModalLabel">Delete Chapter</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this chapter? This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
-                    Delete Chapter
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection

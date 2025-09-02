@@ -411,4 +411,5 @@ $(document).ready(function() {
 </script>
 <?php $__env->stopSection(); ?>
 
+
 <?php echo $__env->make('layouts.master', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\btc-check\resources\views/aniSensoAdmin/courses-edit.blade.php ENDPATH**/ ?>

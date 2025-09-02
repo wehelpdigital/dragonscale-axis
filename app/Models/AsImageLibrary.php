@@ -12,3 +12,4 @@ class AsImageLibrary extends Model
         'imageUrl'
     ];
 }
+

@@ -101,14 +101,6 @@
                     </a>
                 </li>
 
-                <!-- Ani-Senso E-com Navigation -->
-                <li>
-                    <a href="javascript: void(0);" class="waves-effect">
-                        <i class="bx bx-store"></i>
-                        <span key="t-ani-senso-ecom">Ani-Senso E-com</span>
-                    </a>
-                </li>
-
                 <!-- Ani-Senso Clients Navigation -->
                 <li>
                     <a href="javascript: void(0);" class="waves-effect">
@@ -120,11 +112,36 @@
                 <!-- Divider -->
                 <li class="menu-title">─</li>
 
-                <!-- Users Navigation -->
+                <!-- E-commerce Navigation -->
+                <li>
+                    <a href="javascript: void(0);" class="has-arrow waves-effect">
+                        <i class="bx bx-shopping-bag"></i>
+                        <span key="t-ecommerce">E-commerce</span>
+                    </a>
+                    <ul class="sub-menu" aria-expanded="false">
+                        <li>
+                            <a href="<?php echo e(route('ecom-products')); ?>" class="waves-effect">
+                                <i class="bx bx-package"></i>
+                                <span key="t-products">Products</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-package"></i>
+                                <span key="t-orders">Orders</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
+                <!-- Admin Users Navigation -->
                 <li>
                     <a href="<?php echo e(route('users.index')); ?>" class="waves-effect">
                         <i class="bx bx-user"></i>
-                        <span key="t-users">Users</span>
+                        <span key="t-users">Admin Users</span>
                     </a>
                 </li>
 
