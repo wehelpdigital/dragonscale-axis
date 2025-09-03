@@ -127,6 +127,9 @@
                                     {{ $chapter->chapterTitle }}
                                 </div>
                                 <div class="chapter-actions">
+                                    <a href="{{ route('anisenso-courses-topics', ['id' => $course->id, 'chap' => $chapter->id]) }}" class="btn btn-outline-info btn-sm" title="View Topics">
+                                        <i class="bx bx-list-ul"></i>
+                                    </a>
                                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="editChapter({{ $chapter->id }})">
                                         <i class="bx bx-edit"></i>
                                     </button>

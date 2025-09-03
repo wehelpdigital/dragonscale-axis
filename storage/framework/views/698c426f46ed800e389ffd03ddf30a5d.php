@@ -88,36 +88,6 @@
     color: white !important;
 }
 
-.btn-outline-info.badge-style {
-    color: #50a5f1 !important;
-    border-color: #50a5f1 !important;
-}
-
-.btn-outline-info.badge-style:hover {
-    background-color: #50a5f1 !important;
-    color: white !important;
-}
-
-.btn-outline-warning.badge-style {
-    color: #f1b44c !important;
-    border-color: #f1b44c !important;
-}
-
-.btn-outline-warning.badge-style:hover {
-    background-color: #f1b44c !important;
-    color: white !important;
-}
-
-.btn-outline-primary.badge-style {
-    color: #556ee6 !important;
-    border-color: #556ee6 !important;
-}
-
-.btn-outline-primary.badge-style:hover {
-    background-color: #556ee6 !important;
-    color: white !important;
-}
-
 /* Toastr positioning override */
 #toast-container {
     position: fixed !important;
@@ -238,24 +208,6 @@
                                                class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                                 <i class="bx bx-edit me-1"></i>Edit
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-info badge-style variant-triggers-btn"
-                                                    title="Triggers"
-                                                    data-variant-id="<?php echo e($variant->id); ?>"
-                                                    data-variant-name="<?php echo e($variant->ecomVariantName); ?>">
-                                                <i class="bx bx-bell me-1"></i>Triggers
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-warning badge-style variant-shipping-btn"
-                                                    title="Shipping"
-                                                    data-variant-id="<?php echo e($variant->id); ?>"
-                                                    data-variant-name="<?php echo e($variant->ecomVariantName); ?>">
-                                                <i class="bx bx-ship me-1"></i>Shipping
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-primary badge-style variant-discounts-btn"
-                                                    title="Discounts"
-                                                    data-variant-id="<?php echo e($variant->id); ?>"
-                                                    data-variant-name="<?php echo e($variant->ecomVariantName); ?>">
-                                                <i class="bx bx-percentage me-1"></i>Discounts
-                                            </button>
                                             <button type="button" class="btn btn-sm btn-outline-danger badge-style delete-variant-btn"
                                                     title="Delete"
                                                     data-variant-id="<?php echo e($variant->id); ?>"
@@ -341,33 +293,6 @@
                 </button>
                 <button type="button" class="btn btn-primary" id="confirmVariantStocksUpdate">
                     <i class="bx bx-save me-1"></i>Save Changes
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Variant Confirmation Modal -->
-<div class="modal fade" id="deleteVariantModal" tabindex="-1" aria-labelledby="deleteVariantModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteVariantModalLabel">
-                    <i class="bx bx-trash text-danger me-2"></i>Confirm Delete
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this variant?</p>
-                <p class="text-muted mb-3"><strong>Variant:</strong> <span id="deleteVariantName"></span></p>
-                <p class="text-danger mb-0"><i class="bx bx-error-circle me-1"></i>This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bx bx-x me-1"></i>Cancel
-                </button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteVariantBtn">
-                    <i class="bx bx-trash me-1"></i>Delete Variant
                 </button>
             </div>
         </div>
@@ -639,142 +564,6 @@ $(document).ready(function() {
     // Reset variantToUpdateStocks when modal is hidden
     $('#variantStocksModal').on('hidden.bs.modal', function() {
         variantToUpdateStocks = null;
-    });
-
-    // Variant delete functionality
-    let variantToDelete = null;
-
-    // Handle delete variant button clicks
-    $('.delete-variant-btn').on('click', function() {
-        const variantId = $(this).data('variant-id');
-        const variantName = $(this).data('variant-name');
-
-        variantToDelete = {
-            id: variantId,
-            name: variantName,
-            row: $(this).closest('tr')
-        };
-
-        $('#deleteVariantName').text(variantName);
-        $('#deleteVariantModal').modal('show');
-    });
-
-    // Handle confirm delete button
-    $('#confirmDeleteVariantBtn').on('click', function() {
-        if (!variantToDelete) return;
-
-        const $btn = $(this);
-        const originalText = $btn.html();
-
-        // Show loading state
-        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
-
-        $.ajax({
-            url: '/ecom-products-variants/' + variantToDelete.id,
-            type: 'DELETE',
-            data: {
-                _token: '<?php echo e(csrf_token()); ?>'
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Hide modal
-                    $('#deleteVariantModal').modal('hide');
-
-                    // Show success toastr notification
-                    toastr.success(response.message, 'Success!', {
-                        closeButton: true,
-                        progressBar: true,
-                        timeOut: 3000
-                    });
-
-                    // Remove the row from the table with fade effect
-                    variantToDelete.row.fadeOut(300, function() {
-                        $(this).remove();
-
-                        // Check if no variants left
-                        if ($('tbody tr').length === 0) {
-                            location.reload(); // Reload to show no variants message
-                        }
-                    });
-                } else {
-                    toastr.error(response.message, 'Error!', {
-                        closeButton: true,
-                        progressBar: true,
-                        timeOut: 5000
-                    });
-                }
-            },
-            error: function(xhr) {
-                let errorMessage = 'An error occurred while deleting the variant.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-
-                toastr.error(errorMessage, 'Error!', {
-                    closeButton: true,
-                    progressBar: true,
-                    timeOut: 5000
-                });
-            },
-            complete: function() {
-                // Reset button state
-                $btn.prop('disabled', false).html(originalText);
-                variantToDelete = null;
-            }
-        });
-    });
-
-    // Reset variantToDelete when modal is hidden
-    $('#deleteVariantModal').on('hidden.bs.modal', function() {
-        variantToDelete = null;
-    });
-
-    // Handle Triggers button clicks
-    $('.variant-triggers-btn').on('click', function() {
-        const variantId = $(this).data('variant-id');
-        const variantName = $(this).data('variant-name');
-
-        // For now, show a placeholder message
-        toastr.info(`Triggers functionality for "${variantName}" will be implemented soon!`, 'Coming Soon!', {
-            closeButton: true,
-            progressBar: true,
-            timeOut: 4000
-        });
-
-        // TODO: Implement triggers functionality
-        console.log('Triggers clicked for variant:', variantId, variantName);
-    });
-
-    // Handle Shipping button clicks
-    $('.variant-shipping-btn').on('click', function() {
-        const variantId = $(this).data('variant-id');
-        const variantName = $(this).data('variant-name');
-
-        // For now, show a placeholder message
-        toastr.info(`Shipping functionality for "${variantName}" will be implemented soon!`, 'Coming Soon!', {
-            closeButton: true,
-            progressBar: true,
-            timeOut: 4000
-        });
-
-        // TODO: Implement shipping functionality
-        console.log('Shipping clicked for variant:', variantId, variantName);
-    });
-
-    // Handle Discounts button clicks
-    $('.variant-discounts-btn').on('click', function() {
-        const variantId = $(this).data('variant-id');
-        const variantName = $(this).data('variant-name');
-
-        // For now, show a placeholder message
-        toastr.info(`Discounts functionality for "${variantName}" will be implemented soon!`, 'Coming Soon!', {
-            closeButton: true,
-            progressBar: true,
-            timeOut: 4000
-        });
-
-        // TODO: Implement discounts functionality
-        console.log('Discounts clicked for variant:', variantId, variantName);
     });
 });
 </script>

@@ -60,7 +60,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
                     <h4 class="card-title">Edit Topic</h4>
-                    <p class="card-title-desc">Update topic information</p>
+                    <p class="card-title-desc">Update the topic information</p>
                     <small class="text-muted">Course: <?php echo e($course->courseName); ?> | Chapter: <?php echo e($chapter->chapterTitle); ?></small>
                 </div>
                 <a href="<?php echo e(route('anisenso-courses-topics', ['id' => $course->id, 'chap' => $chapter->id])); ?>" class="btn btn-secondary">
@@ -87,8 +87,7 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>"
-                                   id="topicTitle" name="topicTitle"
-                                   value="<?php echo e(old('topicTitle', $topic->topicTitle)); ?>"
+                                   id="topicTitle" name="topicTitle" value="<?php echo e(old('topicTitle', $topic->topicTitle)); ?>"
                                    placeholder="Enter topic title">
                             <?php $__errorArgs = ['topicTitle'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -141,6 +140,7 @@ endif;
 unset($__errorArgs, $__bag); ?>"
                                       id="topicContent" name="topicContent" rows="10"
                                       placeholder="Enter the topic content"><?php echo e(old('topicContent', $topic->topicContent)); ?></textarea>
+                            <small class="text-muted">You can upload images and embed YouTube videos using the toolbar above.</small>
                             <?php $__errorArgs = ['topicContent'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
@@ -151,11 +151,10 @@ $message = $__bag->first($__errorArgs[0]); ?>
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>
-                            <small class="text-muted">You can upload images and embed YouTube videos using the toolbar above.</small>
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
+                    <!-- Form Actions -->
                     <div class="form-section">
                         <div class="d-flex justify-content-end gap-2">
                             <a href="<?php echo e(route('anisenso-courses-topics', ['id' => $course->id, 'chap' => $chapter->id])); ?>" class="btn btn-secondary">
@@ -177,9 +176,7 @@ unset($__errorArgs, $__bag); ?>
 <?php $__env->startSection('script'); ?>
 <script>
 $(document).ready(function() {
-    console.log('Edit topic page loaded for: <?php echo e($topic->topicTitle); ?>');
-
-    // Initialize TinyMCE for topic content
+    // Initialize TinyMCE
     tinymce.init({
         selector: '#topicContent',
         height: 400,
@@ -188,164 +185,57 @@ $(document).ready(function() {
             'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
             'insertdatetime', 'media', 'table', 'help', 'wordcount'
         ],
-        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image media | removeformat | help',
+        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
         content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
-
-        // Image upload configuration
-        images_upload_handler: function (blobInfo, progress, failure) {
-            return new Promise(function(resolve, reject) {
-                // Check file size before upload (10MB limit)
-                var maxSize = 10 * 1024 * 1024; // 10MB in bytes
-                if (blobInfo.blob().size > maxSize) {
-                    reject('Image size must be less than 10MB. Current size: ' + (blobInfo.blob().size / 1024 / 1024).toFixed(2) + 'MB');
-                    return;
+        setup: function(editor) {
+            // Add custom validation
+            editor.on('change', function() {
+                if (editor.getContent().trim() === '') {
+                    editor.getElement().classList.add('is-invalid');
+                } else {
+                    editor.getElement().classList.remove('is-invalid');
                 }
-
-                var xhr, formData;
-                xhr = new XMLHttpRequest();
-                xhr.withCredentials = false;
-                xhr.open('POST', '/upload-image');
-                xhr.setRequestHeader('X-CSRF-TOKEN', '<?php echo e(csrf_token()); ?>');
-                xhr.setRequestHeader('Accept', 'application/json');
-
-                xhr.onload = function() {
-                    var json;
-                    if (xhr.status != 200) {
-                        console.error('Upload failed with status:', xhr.status);
-                        console.error('Response:', xhr.responseText);
-
-                        // Try to parse error response
-                        try {
-                            var errorJson = JSON.parse(xhr.responseText);
-                            if (errorJson.error) {
-                                reject(errorJson.error);
-                                return;
-                            }
-                        } catch (e) {
-                            // If not JSON, use generic error
-                        }
-
-                        reject('Upload failed with status: ' + xhr.status);
-                        return;
-                    }
-
-                    // Check if response is HTML (likely a redirect to login)
-                    if (xhr.responseText.trim().startsWith('<!DOCTYPE html>') || xhr.responseText.includes('<html')) {
-                        reject('Server returned HTML instead of JSON. Please check authentication.');
-                        return;
-                    }
-
-                    try {
-                        json = JSON.parse(xhr.responseText);
-                    } catch (e) {
-                        console.error('JSON parse error:', e);
-                        console.error('Response text:', xhr.responseText);
-                        reject('Invalid JSON response from server');
-                        return;
-                    }
-
-                    if (!json || typeof json.location != 'string') {
-                        reject('Invalid response format from server');
-                        return;
-                    }
-                    resolve(json.location);
-                };
-
-                xhr.onerror = function() {
-                    reject('Image upload failed due to a network error');
-                };
-
-                formData = new FormData();
-                formData.append('file', blobInfo.blob(), blobInfo.filename());
-                xhr.send(formData);
             });
-        },
-
-        // YouTube embed configuration
-        media_live_embeds: true,
-        media_alt_source: false,
-        media_poster: false,
-        media_dimensions: false
+        }
     });
 
-    // Dynamic validation function
-    function validateField(field, rules) {
-        var value = field.val().trim();
-        var isValid = true;
-        var errorMessage = '';
-
-        // Remove existing error
-        field.removeClass('is-invalid');
-        field.siblings('.invalid-feedback').remove();
-
-        // Required validation
-        if (rules.required && !value) {
-            isValid = false;
-            errorMessage = 'This field is required.';
-        }
-
-        // Min length validation
-        if (rules.minLength && value.length < rules.minLength) {
-            isValid = false;
-            errorMessage = 'Minimum ' + rules.minLength + ' characters required.';
-        }
-
-        // Max length validation
-        if (rules.maxLength && value.length > rules.maxLength) {
-            isValid = false;
-            errorMessage = 'Maximum ' + rules.maxLength + ' characters allowed.';
-        }
-
-        // Show error if invalid
-        if (!isValid) {
-            field.addClass('is-invalid');
-            field.after('<div class="invalid-feedback">' + errorMessage + '</div>');
-        }
-
-        return isValid;
-    }
-
-    // Real-time validation on input
-    $('#topicTitle').on('input blur', function() {
-        validateField($(this), { required: true, maxLength: 255 });
-    });
-
-    $('#topicDescription').on('input blur', function() {
-        validateField($(this), { required: true, maxLength: 1000 });
-    });
-
-    // Form submission validation
+    // Form validation
     $('#topicForm').on('submit', function(e) {
-        var isValid = true;
+        let isValid = true;
 
-        // Validate all fields
-        isValid = validateField($('#topicTitle'), { required: true, maxLength: 255 }) && isValid;
-        isValid = validateField($('#topicDescription'), { required: true, maxLength: 1000 }) && isValid;
-
-        // Validate TinyMCE content
-        var content = tinymce.get('topicContent').getContent();
-        if (!content || content.trim() === '') {
-            $('#topicContent').addClass('is-invalid');
-            if (!$('#topicContent').siblings('.invalid-feedback').length) {
-                $('#topicContent').after('<div class="invalid-feedback">Topic content is required.</div>');
-            }
+        // Validate title
+        if ($('#topicTitle').val().trim() === '') {
+            $('#topicTitle').addClass('is-invalid');
             isValid = false;
         } else {
-            $('#topicContent').removeClass('is-invalid');
-            $('#topicContent').siblings('.invalid-feedback').remove();
+            $('#topicTitle').removeClass('is-invalid');
+        }
+
+        // Validate description
+        if ($('#topicDescription').val().trim() === '') {
+            $('#topicDescription').addClass('is-invalid');
+            isValid = false;
+        } else {
+            $('#topicDescription').removeClass('is-invalid');
+        }
+
+        // Validate content
+        if (tinymce.get('topicContent').getContent().trim() === '') {
+            tinymce.get('topicContent').getElement().classList.add('is-invalid');
+            isValid = false;
+        } else {
+            tinymce.get('topicContent').getElement().classList.remove('is-invalid');
         }
 
         if (!isValid) {
             e.preventDefault();
-            // Scroll to first error
-            $('html, body').animate({
-                scrollTop: $('.is-invalid').first().offset().top - 100
-            }, 500);
-            return false;
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please fill in all required fields.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
         }
-
-        // If validation passes, allow form submission
-        return true;
     });
 });
 </script>

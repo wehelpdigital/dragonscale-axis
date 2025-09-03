@@ -57,6 +57,13 @@
     color: #495057;
 }
 
+.topic-description {
+    flex: 2;
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-right: 1rem;
+}
+
 .topic-actions {
     display: flex;
     gap: 0.5rem;
@@ -65,16 +72,6 @@
 .topic-actions .btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.8rem;
-}
-
-.topic-actions .btn-outline-info {
-    color: #17a2b8;
-    border-color: #17a2b8;
-}
-
-.topic-actions .btn-outline-info:hover {
-    background-color: #17a2b8;
-    color: white;
 }
 
 .empty-state {
@@ -96,7 +93,8 @@
 <?php $__env->slot('li_1'); ?> Ani-Senso <?php $__env->endSlot(); ?>
 <?php $__env->slot('li_2'); ?> Courses <?php $__env->endSlot(); ?>
 <?php $__env->slot('li_3'); ?> <?php echo e($course->courseName); ?> <?php $__env->endSlot(); ?>
-<?php $__env->slot('title'); ?> Chapter Topics <?php $__env->endSlot(); ?>
+<?php $__env->slot('li_4'); ?> <?php echo e($chapter->chapterTitle); ?> <?php $__env->endSlot(); ?>
+<?php $__env->slot('title'); ?> Course Topics <?php $__env->endSlot(); ?>
 <?php echo $__env->renderComponent(); ?>
 
 <div class="row">
@@ -109,9 +107,9 @@
                     <small class="text-muted">Course: <?php echo e($course->courseName); ?></small>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary" onclick="addTopic()">
+                    <a href="<?php echo e(route('anisenso-courses-topics-add', ['id' => $course->id, 'chap' => $chapter->id])); ?>" class="btn btn-primary">
                         <i class="bx bx-plus me-1"></i> Add Topic
-                    </button>
+                    </a>
                     <a href="<?php echo e(route('anisenso-courses.contents', ['id' => $course->id])); ?>" class="btn btn-secondary">
                         <i class="bx bx-arrow-back me-1"></i> Back to Chapters
                     </a>
@@ -139,10 +137,14 @@
                                     <?php echo e($topic->topicTitle); ?>
 
                                 </div>
+                                <div class="topic-description">
+                                    <?php echo e(Str::limit($topic->topicDescription, 100)); ?>
+
+                                </div>
                                 <div class="topic-actions">
-                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="downloadableResources(<?php echo e($topic->id); ?>)">
-                                        <i class="bx bx-download"></i>
-                                    </button>
+                                    <a href="<?php echo e(route('anisenso-courses-topics-resources', ['topid' => $topic->id])); ?>" class="btn btn-outline-info btn-sm" title="Manage Resources">
+                                        <i class="bx bx-folder"></i>
+                                    </a>
                                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="editTopic(<?php echo e($topic->id); ?>)">
                                         <i class="bx bx-edit"></i>
                                     </button>
@@ -178,9 +180,7 @@
 
 <script>
 $(document).ready(function() {
-    console.log('Course topics page loaded');
-    console.log('Course ID:', <?php echo e($course->id); ?>);
-    console.log('Chapter ID:', <?php echo e($chapter->id); ?>);
+    console.log('Course topics page loaded for chapter: <?php echo e($chapter->chapterTitle); ?>');
 
     // Initialize drag and drop functionality
     initializeSortable();
@@ -244,112 +244,51 @@ function updateTopicOrder() {
     });
 }
 
-function addTopic() {
-    // Redirect to add topic page
-    window.location.href = `/anisenso-courses-topics-add?id=<?php echo e($course->id); ?>&chap=<?php echo e($chapter->id); ?>`;
-}
-
 function editTopic(topicId) {
-    // Redirect to edit topic page
-    window.location.href = `/anisenso-courses-topics-edit?topid=${topicId}`;
-}
-
-function downloadableResources(topicId) {
-    // Redirect to downloadable resources page
-    window.location.href = `/anisenso-courses-topics-resources?topid=${topicId}`;
+    window.location.href = `<?php echo e(route('anisenso-courses-topics-edit')); ?>?topid=${topicId}`;
 }
 
 function deleteTopic(topicId) {
-    // Show delete confirmation modal
-    $('#deleteTopicModal').modal('show');
-    $('#confirmDeleteBtn').data('topic-id', topicId);
-}
-
-// Handle delete confirmation
-$(document).on('click', '#confirmDeleteBtn', function() {
-    const topicId = $(this).data('topic-id');
-    const $btn = $(this);
-    const $spinner = $btn.find('.spinner-border');
-    const $btnText = $btn.contents().filter(function() { return this.nodeType === 3; }).first();
-
-    // Show loading state
-    $btn.prop('disabled', true);
-    $spinner.show();
-    $btnText.replaceWith(' Deleting...');
-
-    // Perform delete request
-    $.ajax({
-        url: `/anisenso-courses-topics/${topicId}`,
-        method: 'DELETE',
-        data: {
-            _token: '<?php echo e(csrf_token()); ?>'
-        },
-        success: function(response) {
-            // Hide modal
-            $('#deleteTopicModal').modal('hide');
-
-            // Remove the topic row from the table
-            $(`.topic-row[data-id="${topicId}"]`).fadeOut(300, function() {
-                $(this).remove();
-
-                // Check if no topics left
-                if ($('#topics-list .topic-row').length === 0) {
-                    $('#topics-list').html('<div class="text-center py-4"><p class="text-muted">No topics found</p></div>');
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: `/anisenso-courses-topics/${topicId}`,
+                method: 'DELETE',
+                data: {
+                    _token: '<?php echo e(csrf_token()); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Topic has been deleted.',
+                            icon: 'success'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to delete topic.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
                 }
-            });
-
-            // Show success message
-            Swal.fire({
-                title: 'Deleted!',
-                text: 'Topic has been deleted successfully.',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
-        },
-        error: function(xhr) {
-            // Reset button state
-            $btn.prop('disabled', false);
-            $spinner.hide();
-            $btnText.replaceWith(' Delete Topic');
-
-            // Show error message
-            let errorMessage = 'Failed to delete topic.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
-
-            Swal.fire({
-                title: 'Error!',
-                text: errorMessage,
-                icon: 'error',
-                confirmButtonText: 'OK'
             });
         }
     });
-});
+}
 </script>
-
-<!-- Delete Topic Confirmation Modal -->
-<div class="modal fade" id="deleteTopicModal" tabindex="-1" aria-labelledby="deleteTopicModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteTopicModalLabel">Delete Topic</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this topic? This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;"></span>
-                    Delete Topic
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.master', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\btc-check\resources\views/aniSensoAdmin/course-topics.blade.php ENDPATH**/ ?>
