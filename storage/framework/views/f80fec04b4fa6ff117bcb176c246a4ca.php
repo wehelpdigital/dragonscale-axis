@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title'); ?> Edit Course <?php $__env->stopSection(); ?>
 
 <?php $__env->startSection('css'); ?>
@@ -122,34 +120,7 @@ endif;
 unset($__errorArgs, $__bag); ?>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="coursePrice" class="form-label">Course Price <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">₱</span>
-                                        <input type="number" class="form-control <?php $__errorArgs = ['coursePrice'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>"
-                                               id="coursePrice" name="coursePrice" value="<?php echo e(old('coursePrice', $course->coursePrice)); ?>"
-                                               step="0.01" min="0" placeholder="0.00">
-                                    </div>
-                                    <?php $__errorArgs = ['coursePrice'];
-$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
-if ($__bag->has($__errorArgs[0])) :
-if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?>
-                                        <div class="invalid-feedback"><?php echo e($message); ?></div>
-                                    <?php unset($message);
-if (isset($__messageOriginal)) { $message = $__messageOriginal; }
-endif;
-unset($__errorArgs, $__bag); ?>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
 

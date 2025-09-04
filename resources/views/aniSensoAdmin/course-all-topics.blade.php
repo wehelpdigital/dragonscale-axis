@@ -1,10 +1,12 @@
-<?php $__env->startSection('title'); ?> Course Topics - <?php echo e($course->courseName); ?> <?php $__env->stopSection(); ?>
+@extends('layouts.master')
 
-<?php $__env->startSection('css'); ?>
+@section('title') Course Topics - {{ $course->courseName }} @endsection
+
+@section('css')
 <!-- DataTables -->
-<link href="<?php echo e(URL::asset('/build/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css')); ?>" rel="stylesheet" type="text/css" />
+<link href="{{ URL::asset('/build/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
 <!-- Sweet Alert -->
-<link href="<?php echo e(URL::asset('/build/libs/sweetalert2/sweetalert2.min.css')); ?>" rel="stylesheet" type="text/css" />
+<link href="{{ URL::asset('/build/libs/sweetalert2/sweetalert2.min.css') }}" rel="stylesheet" type="text/css" />
 
 <style>
 .topics-container {
@@ -88,94 +90,92 @@
     opacity: 0.5;
 }
 </style>
-<?php $__env->stopSection(); ?>
+@endsection
 
-<?php $__env->startSection('content'); ?>
-<?php $__env->startComponent('components.breadcrumb'); ?>
-<?php $__env->slot('li_1'); ?> Ani-Senso <?php $__env->endSlot(); ?>
-<?php $__env->slot('li_2'); ?> Courses <?php $__env->endSlot(); ?>
-<?php $__env->slot('li_3'); ?> <?php echo e($course->courseName); ?> <?php $__env->endSlot(); ?>
-<?php $__env->slot('title'); ?> Course Topics <?php $__env->endSlot(); ?>
-<?php echo $__env->renderComponent(); ?>
+@section('content')
+@component('components.breadcrumb')
+@slot('li_1') Ani-Senso @endslot
+@slot('li_2') Courses @endslot
+@slot('li_3') {{ $course->courseName }} @endslot
+@slot('title') Course Topics @endslot
+@endcomponent
 
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <h4 class="card-title">Course Topics - <?php echo e($course->courseName); ?></h4>
+                    <h4 class="card-title">Course Topics - {{ $course->courseName }}</h4>
                     <p class="card-title-desc">View all topics across all chapters for this course</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="<?php echo e(route('anisenso-courses.contents', ['id' => $course->id])); ?>" class="btn btn-secondary">
+                    <a href="{{ route('anisenso-courses.contents', ['id' => $course->id]) }}" class="btn btn-secondary">
                         <i class="bx bx-arrow-back me-1"></i> Back to Contents
                     </a>
-                    <a href="<?php echo e(route('anisenso-courses')); ?>" class="btn btn-outline-secondary">
+                    <a href="{{ route('anisenso-courses') }}" class="btn btn-outline-secondary">
                         <i class="bx bx-book me-1"></i> All Courses
                     </a>
                 </div>
             </div>
             <div class="card-body">
-                <?php if($chapters->count() > 0): ?>
+                @if($chapters->count() > 0)
                     <div class="topics-container">
-                        <?php $__currentLoopData = $chapters; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $chapter): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <?php if($chapter->topics->count() > 0): ?>
+                        @foreach($chapters as $chapter)
+                            @if($chapter->topics->count() > 0)
                                 <div class="chapter-section">
                                     <div class="chapter-header">
-                                        <h5 class="chapter-title"><?php echo e($chapter->chapterTitle); ?></h5>
+                                        <h5 class="chapter-title">{{ $chapter->chapterTitle }}</h5>
                                     </div>
                                     <div class="topics-list">
-                                        <?php $__currentLoopData = $chapter->topics; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $topic): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        @foreach($chapter->topics as $topic)
                                             <div class="topic-row">
                                                 <div class="topic-title">
-                                                    <?php echo e($topic->topicTitle); ?>
-
+                                                    {{ $topic->topicTitle }}
                                                 </div>
                                                 <div class="topic-description">
-                                                    <?php echo e(Str::limit($topic->topicDescription, 100)); ?>
-
+                                                    {{ Str::limit($topic->topicDescription, 100) }}
                                                 </div>
                                                 <div class="topic-actions">
-                                                    <a href="<?php echo e(route('anisenso-courses-topics-edit', ['topid' => $topic->id])); ?>" class="btn btn-outline-primary btn-sm">
+                                                    <a href="{{ route('anisenso-courses-topics-edit', ['topid' => $topic->id]) }}" class="btn btn-outline-primary btn-sm">
                                                         <i class="bx bx-edit"></i>
                                                     </a>
-                                                    <a href="<?php echo e(route('anisenso-courses-topics-resources', ['topid' => $topic->id])); ?>" class="btn btn-outline-info btn-sm">
+                                                    <a href="{{ route('anisenso-courses-topics-resources', ['topid' => $topic->id]) }}" class="btn btn-outline-info btn-sm">
                                                         <i class="bx bx-file"></i>
                                                     </a>
-                                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTopic(<?php echo e($topic->id); ?>)">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTopic({{ $topic->id }})">
                                                         <i class="bx bx-trash"></i>
                                                     </button>
                                                 </div>
                                             </div>
-                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                        @endforeach
                                     </div>
                                 </div>
-                            <?php endif; ?>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            @endif
+                        @endforeach
                     </div>
-                <?php else: ?>
+                @else
                     <div class="empty-state">
                         <i class="bx bx-list-ul"></i>
                         <h4>No Topics Found</h4>
                         <p>This course doesn't have any topics yet. Start by adding chapters and topics to your course.</p>
                     </div>
-                <?php endif; ?>
+                @endif
             </div>
         </div>
     </div>
 </div>
 
-<?php $__env->stopSection(); ?>
+@endsection
 
-<?php $__env->startSection('script'); ?>
+@section('script')
 <!-- Required datatable js -->
-<script src="<?php echo e(URL::asset('/build/libs/datatables.net/js/jquery.dataTables.min.js')); ?>"></script>
+<script src="{{ URL::asset('/build/libs/datatables.net/js/jquery.dataTables.min.js') }}"></script>
 <!-- Sweet Alert -->
-<script src="<?php echo e(URL::asset('/build/libs/sweetalert2/sweetalert2.min.js')); ?>"></script>
+<script src="{{ URL::asset('/build/libs/sweetalert2/sweetalert2.min.js') }}"></script>
 
 <script>
 $(document).ready(function() {
-    console.log('Course all topics page loaded for: <?php echo e($course->courseName); ?>');
+    console.log('Course all topics page loaded for: {{ $course->courseName }}');
 });
 
 function deleteTopic(topicId) {
@@ -190,10 +190,10 @@ function deleteTopic(topicId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `<?php echo e(route('anisenso-courses-topics.destroy', '')); ?>/${topicId}`,
+                url: `{{ route('anisenso-courses-topics.destroy', '') }}/${topicId}`,
                 method: 'DELETE',
                 data: {
-                    _token: '<?php echo e(csrf_token()); ?>'
+                    _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
                     if (response.success) {
@@ -224,6 +224,4 @@ function deleteTopic(topicId) {
     });
 }
 </script>
-<?php $__env->stopSection(); ?>
-
-<?php echo $__env->make('layouts.master', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\btc-check\resources\views/aniSensoAdmin/course-all-topics.blade.php ENDPATH**/ ?>
+@endsection

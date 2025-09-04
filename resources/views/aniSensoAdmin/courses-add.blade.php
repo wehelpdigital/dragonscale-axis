@@ -107,20 +107,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="coursePrice" class="form-label">Course Price <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">₱</span>
-                                        <input type="number" class="form-control @error('coursePrice') is-invalid @enderror"
-                                               id="coursePrice" name="coursePrice" value="{{ old('coursePrice') }}"
-                                               step="0.01" min="0" placeholder="0.00">
-                                    </div>
-                                    @error('coursePrice')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
+
                         </div>
                     </div>
 
@@ -293,9 +280,7 @@ $(document).ready(function() {
         validateField($(this), { required: true, maxLength: 255 });
     });
 
-    $('#coursePrice').on('input blur', function() {
-        validateField($(this), { required: true });
-    });
+
 
     $('#courseSmallDescription').on('input blur', function() {
         validateField($(this), { required: true, maxLength: 500 });
@@ -307,7 +292,6 @@ $(document).ready(function() {
 
         // Validate all fields
         isValid = validateField($('#courseName'), { required: true, maxLength: 255 }) && isValid;
-        isValid = validateField($('#coursePrice'), { required: true }) && isValid;
         isValid = validateField($('#courseSmallDescription'), { required: true, maxLength: 500 }) && isValid;
 
         // Validate TinyMCE content

@@ -42,7 +42,6 @@ class AniSensoCourseController extends Controller
             'courseName' => 'required|string|max:255',
             'courseSmallDescription' => 'required|string|max:500',
             'courseBigDescription' => 'required|string',
-            'coursePrice' => 'required|numeric|min:0',
             'courseImage' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120'
         ]);
 
@@ -50,7 +49,6 @@ class AniSensoCourseController extends Controller
         $course->courseName = $request->courseName;
         $course->courseSmallDescription = $request->courseSmallDescription;
         $course->courseBigDescription = $request->courseBigDescription;
-        $course->coursePrice = $request->coursePrice;
         $course->isActive = true;
         $course->deleteStatus = true;
 
@@ -75,7 +73,6 @@ class AniSensoCourseController extends Controller
             'courseName' => 'required|string|max:255',
             'courseSmallDescription' => 'required|string|max:500',
             'courseBigDescription' => 'required|string',
-            'coursePrice' => 'required|numeric|min:0',
             'courseImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120'
         ]);
 
@@ -83,7 +80,6 @@ class AniSensoCourseController extends Controller
         $course->courseName = $request->courseName;
         $course->courseSmallDescription = $request->courseSmallDescription;
         $course->courseBigDescription = $request->courseBigDescription;
-        $course->coursePrice = $request->coursePrice;
 
         if ($request->hasFile('courseImage')) {
             // Delete old image if exists
@@ -310,6 +306,27 @@ class AniSensoCourseController extends Controller
                         ->get();
 
         return view('aniSensoAdmin.course-topics', compact('course', 'chapter', 'topics'));
+    }
+
+    /**
+     * Display all topics across all chapters for a course
+     */
+    public function courseAllTopics(Request $request)
+    {
+        $courseId = $request->query('id');
+        $course = AsCourse::findOrFail($courseId);
+
+        // Get all chapters for this course with their topics
+        $chapters = AsCourseChapter::where('asCoursesId', $courseId)
+                                  ->where('deleteStatus', 1)
+                                  ->orderBy('chapterOrder', 'ASC')
+                                  ->with(['topics' => function($query) {
+                                      $query->where('deleteStatus', 1)
+                                            ->orderBy('topicsOrder', 'ASC');
+                                  }])
+                                  ->get();
+
+        return view('aniSensoAdmin.course-all-topics', compact('course', 'chapters'));
     }
 
         /**

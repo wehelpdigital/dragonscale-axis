@@ -136,7 +136,7 @@
 @section('script')
 <script>
 $(document).ready(function() {
-    // Initialize TinyMCE
+    // Initialize TinyMCE for topic content
     tinymce.init({
         selector: '#topicContent',
         height: 400,
@@ -145,8 +145,93 @@ $(document).ready(function() {
             'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
             'insertdatetime', 'media', 'table', 'help', 'wordcount'
         ],
-        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image media | fullscreen | removeformat | help',
         content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+
+        // Image upload configuration
+        images_upload_handler: function (blobInfo, progress, failure) {
+            return new Promise(function(resolve, reject) {
+                // Check file size before upload (10MB limit)
+                var maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                if (blobInfo.blob().size > maxSize) {
+                    reject('Image size must be less than 10MB. Current size: ' + (blobInfo.blob().size / 1024 / 1024).toFixed(2) + 'MB');
+                    return;
+                }
+
+                var xhr, formData;
+                xhr = new XMLHttpRequest();
+                xhr.withCredentials = false;
+                xhr.open('POST', '/upload-image');
+                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+                xhr.setRequestHeader('Accept', 'application/json');
+
+                xhr.onload = function() {
+                    var json;
+                    if (xhr.status != 200) {
+                        console.error('Upload failed with status:', xhr.status);
+                        console.error('Response:', xhr.responseText);
+
+                        // Try to parse error response
+                        try {
+                            var errorJson = JSON.parse(xhr.responseText);
+                            if (errorJson.error) {
+                                reject(errorJson.error);
+                                return;
+                            }
+                        } catch (e) {
+                            // If not JSON, use generic error
+                        }
+
+                        reject('Upload failed with status: ' + xhr.status);
+                        return;
+                    }
+
+                    // Check if response is HTML (likely a redirect to login)
+                    if (xhr.responseText.trim().startsWith('<!DOCTYPE html>') || xhr.responseText.includes('<html')) {
+                        reject('Server returned HTML instead of JSON. Please check authentication.');
+                        return;
+                    }
+
+                    try {
+                        json = JSON.parse(xhr.responseText);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                        console.error('Response text:', xhr.responseText);
+                        reject('Invalid JSON response from server');
+                        return;
+                    }
+
+                    if (!json || typeof json.location != 'string') {
+                        reject('Invalid response format from server');
+                        return;
+                    }
+                    resolve(json.location);
+                };
+
+                xhr.onerror = function() {
+                    console.error('Network error during upload');
+                    reject('Network error during image upload');
+                };
+
+                formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+                xhr.send(formData);
+            });
+        },
+
+        // Media embed configuration
+        media_live_embeds: true,
+        media_url_resolver: function (data, resolve, reject) {
+            if (data.url.indexOf('youtube.com') !== -1 || data.url.indexOf('youtu.be') !== -1) {
+                var embedUrl = data.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+                resolve({
+                    html: '<iframe src="' + embedUrl + '" width="560" height="315" frameborder="0" allowfullscreen></iframe>'
+                });
+            } else {
+                reject('Unsupported media URL');
+            }
+        },
+
         setup: function(editor) {
             // Add custom validation
             editor.on('change', function() {

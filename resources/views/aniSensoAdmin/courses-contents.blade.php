@@ -127,7 +127,7 @@
                                     {{ $chapter->chapterTitle }}
                                 </div>
                                 <div class="chapter-actions">
-                                    <a href="{{ route('anisenso-courses-topics', ['id' => $course->id, 'chap' => $chapter->id]) }}" class="btn btn-outline-info btn-sm" title="View Topics">
+                                    <a href="{{ route('anisenso-courses-topics', ['id' => $course->id, 'chap' => $chapter->id]) }}" class="btn btn-outline-info btn-sm" title="Manage Topics">
                                         <i class="bx bx-list-ul"></i>
                                     </a>
                                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="editChapter({{ $chapter->id }})">
@@ -230,12 +230,7 @@ function updateChapterOrder() {
 }
 
 function editChapter(chapterId) {
-    Swal.fire({
-        title: 'Edit Chapter',
-        text: 'Chapter editing functionality will be implemented soon!',
-        icon: 'info',
-        confirmButtonText: 'OK'
-    });
+    window.location.href = `{{ route('anisenso-courses.chapters.edit') }}?chapid=${chapterId}`;
 }
 
 function deleteChapter(chapterId) {
@@ -249,11 +244,36 @@ function deleteChapter(chapterId) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Implement delete functionality here
-            Swal.fire({
-                title: 'Deleted!',
-                text: 'Chapter has been deleted.',
-                icon: 'success'
+            $.ajax({
+                url: `{{ route('anisenso-courses.chapters.destroy', ['id' => 'PLACEHOLDER_ID']) }}`.replace('PLACEHOLDER_ID', chapterId),
+                method: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: response.message,
+                            icon: 'success'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to delete chapter. Please try again.',
+                        icon: 'error'
+                    });
+                }
             });
         }
     });

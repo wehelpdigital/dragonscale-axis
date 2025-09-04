@@ -12,7 +12,6 @@ class AsCourse extends Model
         'courseName',
         'courseSmallDescription',
         'courseBigDescription',
-        'coursePrice',
         'courseImage',
         'isActive',
         'deleteStatus'
@@ -20,8 +19,7 @@ class AsCourse extends Model
 
     protected $casts = [
         'isActive' => 'boolean',
-        'deleteStatus' => 'boolean',
-        'coursePrice' => 'decimal:2'
+        'deleteStatus' => 'boolean'
     ];
 
     public function chapters()

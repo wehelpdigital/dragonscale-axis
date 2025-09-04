@@ -130,6 +130,16 @@
     color: white;
 }
 
+.course-actions .btn-outline-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.course-actions .btn-outline-secondary:hover {
+    background-color: #5a6268;
+    color: white;
+}
+
 .card-body {
     padding: 1.5rem !important;
     border: 1px solid #dedede;
@@ -289,10 +299,6 @@
 
                                     <div class="text-center">
                                         <h4 class="course-title mb-2"><?php echo e($course->courseName); ?></h4>
-                                        <div class="course-price mb-3">
-                                            <span class="price-currency">₱</span>
-                                            <span class="price-amount"><?php echo e(number_format($course->coursePrice, 2)); ?></span>
-                                        </div>
 
                                         <?php if($course->courseSmallDescription): ?>
                                             <p class="course-description text-muted mb-4"><?php echo e(Str::limit($course->courseSmallDescription, 100)); ?></p>
@@ -308,6 +314,9 @@
                                                 </button>
                                                 <button type="button" class="btn btn-outline-success btn-sm" onclick="viewQuestions(<?php echo e($course->id); ?>)">
                                                     <i class="bx bx-help-circle me-1"></i> Questions
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="viewAccessTags(<?php echo e($course->id); ?>)">
+                                                    <i class="bx bx-tag me-1"></i> Access Tags
                                                 </button>
                                                 <button type="button" class="btn btn-outline-warning btn-sm" onclick="editCourse(<?php echo e($course->id); ?>)">
                                                     <i class="bx bx-edit me-1"></i> Edit
@@ -407,6 +416,11 @@ function viewComments(courseId) {
 function viewQuestions(courseId) {
     // Redirect to the questions page
     window.location.href = `/anisenso-courses-questions?id=${courseId}`;
+}
+
+function viewAccessTags(courseId) {
+    // Redirect to the access tags page
+    window.location.href = `/anisenso-courses-tags?id=${courseId}`;
 }
 
 // Handle delete confirmation

@@ -54,12 +54,12 @@
 }
 
 .btn-outline-warning.badge-style {
-    color: #f1b44c !important;
-    border-color: #f1b44c !important;
+    color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
 }
 
 .btn-outline-warning.badge-style:hover {
-    background-color: #f1b44c !important;
+    background-color: #6f42c1 !important;
     color: white !important;
 }
 
@@ -74,12 +74,12 @@
 }
 
 .btn-outline-success.badge-style {
-    color: #34c38f !important;
-    border-color: #34c38f !important;
+    color: #198754 !important;
+    border-color: #198754 !important;
 }
 
 .btn-outline-success.badge-style:hover {
-    background-color: #34c38f !important;
+    background-color: #198754 !important;
     color: white !important;
 }
 
@@ -206,15 +206,20 @@
                                                title="Variants">
                                                 <i class="bx bx-list-ul me-1"></i>Variants
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary badge-style" title="Content">
-                                                <i class="bx bx-file me-1"></i>Content
-                                            </button>
+
                                             <button type="button" class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                                 <i class="bx bx-edit me-1"></i>Edit
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-outline-dark badge-style" title="Discounts">
-                                                <i class="bx bx-discount me-1"></i>Discounts
-                                            </button>
+                                            <a href="<?php echo e(route('ecom-products.discounts', ['id' => $product->id])); ?>"
+                                               class="btn btn-sm btn-outline-dark badge-style"
+                                               title="Discounts">
+                                                <i class="bx bx-tag me-1"></i>Discounts
+                                            </a>
+                                            <a href="<?php echo e(route('ecom-products.triggers', ['id' => $product->id])); ?>"
+                                               class="btn btn-sm btn-outline-warning badge-style"
+                                               title="Triggers">
+                                                <i class="bx bx-bulb me-1"></i>Triggers
+                                            </a>
                                             <button type="button" class="btn btn-sm btn-outline-primary badge-style status-btn" title="Status"
                                                     data-product-id="<?php echo e($product->id); ?>"
                                                     data-product-name="<?php echo e($product->productName); ?>"

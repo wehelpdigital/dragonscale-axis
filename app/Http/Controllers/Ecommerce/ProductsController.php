@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EcomProduct;
 use App\Models\EcomProductVariant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductsController extends Controller
 {
@@ -766,6 +767,185 @@ class ProductsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while updating the variant stocks. Please try again.'
+            ], 500);
+        }
+    }
+
+        /**
+     * Display the product triggers page.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function triggers(Request $request)
+    {
+        $productId = $request->query('id');
+
+        // Get the product details
+        $product = EcomProduct::active()->find($productId);
+
+        // Get product tags from ecom_products_tags table where ecomProductsId matches the current product id
+        // and deleteStatus is 1, then join with axis_tags to get tagName and expirationLength
+        $productTags = DB::table('ecom_products_tags')
+            ->join('axis_tags', 'ecom_products_tags.axisTagId', '=', 'axis_tags.id')
+            ->where('ecom_products_tags.ecomProductsId', $productId)
+            ->where('ecom_products_tags.deleteStatus', 1)
+            ->select(
+                'ecom_products_tags.id',
+                'axis_tags.tagName',
+                'axis_tags.expirationLength',
+                'ecom_products_tags.ecomProductsId'
+            )
+            ->get();
+
+        return view('ecommerce.products.triggers', compact('product', 'productTags'));
+    }
+
+    /**
+     * Display the product discounts page.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function discounts(Request $request)
+    {
+        $productId = $request->query('id');
+
+        // Get the product details
+        $product = EcomProduct::active()->find($productId);
+
+        if (!$product) {
+            abort(404, 'Product not found');
+        }
+
+        return view('ecommerce.products.discounts', compact('product'));
+    }
+
+    /**
+     * Get available tags that can be added to the product.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAvailableTags(Request $request)
+    {
+        $productId = $request->query('id');
+
+        // Get available tags from axis_tags that are not yet in ecom_products_tags for this product
+        $availableTags = DB::table('axis_tags')
+            ->leftJoin('ecom_products_tags', function($join) use ($productId) {
+                $join->on('axis_tags.id', '=', 'ecom_products_tags.axisTagId')
+                     ->where('ecom_products_tags.ecomProductsId', '=', $productId)
+                     ->where('ecom_products_tags.deleteStatus', '=', 1);
+            })
+            ->leftJoin('as_courses', function($join) {
+                $join->on('axis_tags.targetId', '=', 'as_courses.id')
+                     ->where('axis_tags.tagType', '=', 'course');
+            })
+            ->where('axis_tags.deleteStatus', 1)
+            ->whereNull('ecom_products_tags.id') // Only tags not yet assigned to this product
+            ->select(
+                'axis_tags.id',
+                'axis_tags.tagName',
+                'axis_tags.expirationLength',
+                'axis_tags.tagType',
+                'as_courses.courseName'
+            )
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'tags' => $availableTags
+        ]);
+    }
+
+    /**
+     * Save selected tags to ecom_products_tags table.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveTags(Request $request)
+    {
+        try {
+            // Validate the request
+            $request->validate([
+                'productId' => 'required|integer|exists:ecom_products,id',
+                'tagIds' => 'required|array',
+                'tagIds.*' => 'integer|exists:axis_tags,id'
+            ], [
+                'productId.required' => 'Product ID is required.',
+                'productId.integer' => 'Product ID must be an integer.',
+                'productId.exists' => 'Product not found.',
+                'tagIds.required' => 'Tag IDs are required.',
+                'tagIds.array' => 'Tag IDs must be an array.',
+                'tagIds.*.integer' => 'Tag ID must be an integer.',
+                'tagIds.*.exists' => 'Tag not found.'
+            ]);
+
+            $productId = $request->productId;
+            $tagIds = $request->tagIds;
+
+            // Insert tags into ecom_products_tags table
+            $insertData = [];
+            foreach ($tagIds as $tagId) {
+                $insertData[] = [
+                    'ecomProductsId' => $productId,
+                    'axisTagId' => $tagId,
+                    'deleteStatus' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            DB::table('ecom_products_tags')->insert($insertData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tags have been successfully added to the product!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while saving the tags: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a tag from ecom_products_tags table.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteTag($id)
+    {
+        try {
+            // Find the tag in ecom_products_tags table
+            $tag = DB::table('ecom_products_tags')->where('id', $id)->first();
+
+            if (!$tag) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tag not found.'
+                ], 404);
+            }
+
+            // Soft delete by setting deleteStatus to 0
+            DB::table('ecom_products_tags')
+                ->where('id', $id)
+                ->update(['deleteStatus' => 0]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tag has been successfully removed from the product!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the tag: ' . $e->getMessage()
             ], 500);
         }
     }
