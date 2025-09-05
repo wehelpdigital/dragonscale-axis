@@ -210,11 +210,11 @@
 
     <script>
         $(document).ready(function() {
-            // Set default dates (last 7 days)
+            // Set default dates (last 1 day)
             const today = new Date();
-            const sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+            const oneDayAgo = new Date(today.getTime() - (1 * 24 * 60 * 60 * 1000));
 
-            $('#dateFrom').val(sevenDaysAgo.toISOString().split('T')[0]);
+            $('#dateFrom').val(oneDayAgo.toISOString().split('T')[0]);
             $('#dateTo').val(today.toISOString().split('T')[0]);
 
             // Task type change handler

@@ -159,55 +159,17 @@
                                     <th>Difference from Previous</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @forelse($historicalPrices as $index => $price)
-                                    @php
-                                        $currentPrice = $price->valueInPhp;
-                                        $previousPrice = $index > 0 ? $historicalPrices[$index - 1]->valueInPhp : null;
-
-                                        if ($previousPrice) {
-                                            $difference = $currentPrice - $previousPrice;
-                                            $percentageChange = ($difference / $previousPrice) * 100;
-                                        } else {
-                                            $difference = 0;
-                                            $percentageChange = 0;
-                                        }
-                                    @endphp
-                                    <tr>
-                                        <td><strong>₱{{ number_format($price->valueInPhp, 2) }}</strong></td>
-                                        <td>{{ $price->created_at->setTimezone('Asia/Manila')->format('F j, Y') }}</td>
-                                        <td>{{ $price->created_at->setTimezone('Asia/Manila')->format('g:iA') }}</td>
-                                        <td>
-                                            @if($index > 0)
-                                                <span class="badge {{ $percentageChange >= 0 ? 'bg-success text-dark' : 'bg-danger' }}">
-                                                    {{ $percentageChange >= 0 ? '+' : '' }}{{ number_format($percentageChange, 2) }}%
-                                                </span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($index > 0)
-                                                <span class="badge {{ $difference >= 0 ? 'bg-success text-dark' : 'bg-danger' }}">
-                                                    {{ $difference >= 0 ? '+' : '' }}₱{{ number_format($difference, 2) }}
-                                                </span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center">No historical price data found.</td>
-                                    </tr>
-                                @endforelse
+                            <tbody id="historical-data-tbody">
+                                <!-- Data will be loaded here via AJAX -->
                             </tbody>
                         </table>
                     </div>
 
                     <!-- Pagination -->
                     <div class="d-flex justify-content-center">
-                        {{ $historicalPrices->appends(request()->query())->links() }}
+                        <div id="pagination-container">
+                            <!-- Pagination will be loaded here via AJAX -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -229,6 +191,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('priceChart').innerHTML = '<div class="text-center p-4"><p class="text-muted">No data available for the selected filters.</p></div>';
         return;
     }
+
+    // Initialize data loading
+    loadHistoricalData(1);
 
     // Drawing functionality variables (moved to top to avoid reference issues)
     let isDrawingMode = false;
@@ -277,6 +242,156 @@ document.addEventListener('DOMContentLoaded', function() {
             difference: difference
         };
     }
+
+    // Load historical data via AJAX
+    function loadHistoricalData(page = 1) {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        const coinType = document.getElementById('coin_type').value;
+
+        // Show loading state
+        document.getElementById('historical-data-tbody').innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (coinType) params.append('coin_type', coinType);
+        params.append('page', page);
+
+        // Make AJAX request
+        fetch(`{{ route('crypto-history.data') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderHistoricalData(data.data);
+                renderPagination(data.pagination);
+            } else {
+                document.getElementById('historical-data-tbody').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading data: ' + data.message + '</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('historical-data-tbody').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading data. Please try again.</td></tr>';
+        });
+    }
+
+    // Render historical data in table
+    function renderHistoricalData(data) {
+        const tbody = document.getElementById('historical-data-tbody');
+
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No historical price data found.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        data.forEach((price, index) => {
+            let percentageChange = '-';
+            let difference = '-';
+            let percentageClass = '';
+            let differenceClass = '';
+
+            if (index > 0) {
+                const currentValue = parseFloat(price.raw_value);
+                const previousValue = parseFloat(data[index - 1].raw_value);
+                const diff = currentValue - previousValue;
+                const percentage = (diff / previousValue) * 100;
+
+                percentageChange = `${diff >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+                difference = `${diff >= 0 ? '+' : ''}₱${diff.toFixed(2)}`;
+                percentageClass = diff >= 0 ? 'bg-success text-dark' : 'bg-danger';
+                differenceClass = diff >= 0 ? 'bg-success text-dark' : 'bg-danger';
+            }
+
+            html += `
+                <tr>
+                    <td><strong>₱${price.valueInPhp}</strong></td>
+                    <td>${price.date_formatted}</td>
+                    <td>${price.time_formatted}</td>
+                    <td>
+                        ${index > 0 ? `<span class="badge ${percentageClass}">${percentageChange}</span>` : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${index > 0 ? `<span class="badge ${differenceClass}">${difference}</span>` : '<span class="text-muted">-</span>'}
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Render pagination controls
+    function renderPagination(pagination) {
+        const container = document.getElementById('pagination-container');
+
+        if (pagination.last_page <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '<nav><ul class="pagination">';
+
+        // Previous button
+        if (pagination.has_previous_pages) {
+            html += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.current_page - 1}">‹</a></li>`;
+        } else {
+            html += '<li class="page-item disabled"><span class="page-link">‹</span></li>';
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, pagination.current_page - 2);
+        const endPage = Math.min(pagination.last_page, pagination.current_page + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === pagination.current_page) {
+                html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else {
+                html += `<li class="page-item"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+            }
+        }
+
+        // Next button
+        if (pagination.has_more_pages) {
+            html += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.current_page + 1}">›</a></li>`;
+        } else {
+            html += '<li class="page-item disabled"><span class="page-link">›</span></li>';
+        }
+
+        html += '</ul></nav>';
+
+        // Add page info
+        html += `<div class="text-center mt-2"><small class="text-muted">Showing ${pagination.from} to ${pagination.to} of ${pagination.total} results</small></div>`;
+
+        container.innerHTML = html;
+
+            // Add click event listeners to pagination links
+    container.querySelectorAll('.page-link[data-page]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            loadHistoricalData(parseInt(this.dataset.page));
+        });
+    });
+}
+
+    // Add event listeners for filter changes
+    document.getElementById('start_date').addEventListener('change', function() {
+        loadHistoricalData(1);
+    });
+
+    document.getElementById('end_date').addEventListener('change', function() {
+        loadHistoricalData(1);
+    });
+
+    document.getElementById('coin_type').addEventListener('change', function() {
+        loadHistoricalData(1);
+    });
 
     // Initialize ApexCharts
     const options = {
@@ -1049,11 +1164,42 @@ document.addEventListener('DOMContentLoaded', function() {
 .page-link {
     color: #556ee6;
     border-color: #dee2e6;
+    font-size: 14px;
+    padding: 8px 12px;
+    min-width: 40px;
+    text-align: center;
 }
 
 .page-item.active .page-link {
     background-color: #556ee6;
     border-color: #556ee6;
+}
+
+/* Fix pagination arrow sizes */
+.page-link:first-child,
+.page-link:last-child {
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Custom pagination styling */
+.pagination .page-item .page-link {
+    border-radius: 4px;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.pagination .page-item .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #495057;
+}
+
+.pagination .page-item.active .page-link:hover {
+    background-color: #556ee6;
+    border-color: #556ee6;
+    color: white;
 }
 
 /* Drawing Canvas Styling */

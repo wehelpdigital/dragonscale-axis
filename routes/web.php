@@ -55,9 +55,11 @@ Route::get('/crypto-notification-history', [App\Http\Controllers\CryptoNotificat
 
 // crypto history route
 Route::get('/crypto-history', [App\Http\Controllers\CryptoHistoryController::class, 'index'])->name('crypto-history')->middleware('auth');
+Route::get('/crypto-history/data', [App\Http\Controllers\CryptoHistoryController::class, 'getData'])->name('crypto-history.data')->middleware('auth');
 
 // crypto pricing history route
 Route::get('/crypto-pricing-history', [App\Http\Controllers\CryptoPricingHistoryController::class, 'index'])->name('crypto-pricing-history')->middleware('auth');
+Route::get('/crypto-pricing-history/data', [App\Http\Controllers\CryptoPricingHistoryController::class, 'getData'])->name('crypto-pricing-history.data')->middleware('auth');
 
 // crypto income logger routes
 Route::get('/crypto-income-logger', [App\Http\Controllers\CryptoIncomeLoggerController::class, 'index'])->name('crypto-income-logger')->middleware('auth');
@@ -75,7 +77,9 @@ Route::get('/crypto-difference-analysis/current-task', [App\Http\Controllers\Cry
 
 // crypto difference history routes
 Route::get('/crypto-difference-history-to-buy', [App\Http\Controllers\CryptoDifferenceHistoryToBuyController::class, 'index'])->name('crypto-difference-history-to-buy')->middleware('auth');
+Route::get('/crypto-difference-history-to-buy/data', [App\Http\Controllers\CryptoDifferenceHistoryToBuyController::class, 'getData'])->name('crypto-difference-history-to-buy.data')->middleware('auth');
 Route::get('/crypto-difference-history-to-sell', [App\Http\Controllers\CryptoDifferenceHistoryToSellController::class, 'index'])->name('crypto-difference-history-to-sell')->middleware('auth');
+Route::get('/crypto-difference-history-to-sell/data', [App\Http\Controllers\CryptoDifferenceHistoryToSellController::class, 'getData'])->name('crypto-difference-history-to-sell.data')->middleware('auth');
 
 // crypto difference calculation route
 Route::post('/crypto-difference-calculation', [App\Http\Controllers\CryptoPricingHistoryController::class, 'calculateDifference'])->name('crypto-difference-calculation')->middleware('auth');
@@ -162,14 +166,23 @@ Route::patch('/ecom-products-variants/{id}/status', [App\Http\Controllers\Ecomme
 Route::patch('/ecom-products-variants/{id}/stocks', [App\Http\Controllers\Ecommerce\ProductsController::class, 'updateVariantStocks'])->name('ecom-products.variants.update-stocks')->middleware('auth');
 Route::delete('/ecom-products-variants/{id}', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteVariant'])->name('ecom-products.variants.delete')->middleware('auth');
 
-// E-commerce product triggers route
-Route::get('/ecom-products-triggers', [App\Http\Controllers\Ecommerce\ProductsController::class, 'triggers'])->name('ecom-products.triggers')->middleware('auth');
-Route::get('/ecom-products-triggers/available-tags', [App\Http\Controllers\Ecommerce\ProductsController::class, 'getAvailableTags'])->name('ecom-products.triggers.available-tags')->middleware('auth');
-Route::post('/ecom-products-triggers/save-tags', [App\Http\Controllers\Ecommerce\ProductsController::class, 'saveTags'])->name('ecom-products.triggers.save-tags')->middleware('auth');
-Route::delete('/ecom-products-triggers/delete-tag/{id}', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteTag'])->name('ecom-products.triggers.delete-tag')->middleware('auth');
+// E-commerce product variant triggers route
+Route::get('/ecom-products-variants-triggers', [App\Http\Controllers\Ecommerce\ProductsController::class, 'variantTriggers'])->name('ecom-products.variants.triggers')->middleware('auth');
+Route::get('/ecom-products-variants-triggers/available-tags', [App\Http\Controllers\Ecommerce\ProductsController::class, 'getAvailableVariantTags'])->name('ecom-products.variants.triggers.available-tags')->middleware('auth');
+Route::post('/ecom-products-variants-triggers/save-tags', [App\Http\Controllers\Ecommerce\ProductsController::class, 'saveVariantTags'])->name('ecom-products.variants.triggers.save-tags')->middleware('auth');
+Route::delete('/ecom-products-variants-triggers/delete-tag/{id}', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteVariantTag'])->name('ecom-products.variants.triggers.delete-tag')->middleware('auth');
 
-// E-commerce product discounts route
+// E-commerce product edit route
+Route::get('/ecom-products-edit', [App\Http\Controllers\Ecommerce\ProductsController::class, 'edit'])->name('ecom-products.edit')->middleware('auth');
+Route::put('/ecom-products/{id}', [App\Http\Controllers\Ecommerce\ProductsController::class, 'update'])->name('ecom-products.update')->middleware('auth');
+
+// E-commerce product discounts routes
 Route::get('/ecom-products-discounts', [App\Http\Controllers\Ecommerce\ProductsController::class, 'discounts'])->name('ecom-products.discounts')->middleware('auth');
+Route::get('/ecom-products-discounts-create', [App\Http\Controllers\Ecommerce\ProductsController::class, 'createDiscount'])->name('ecom-products.discounts.create')->middleware('auth');
+Route::post('/ecom-products-discounts-create', [App\Http\Controllers\Ecommerce\ProductsController::class, 'storeDiscount'])->name('ecom-products.discounts.store')->middleware('auth');
+Route::get('/ecom-products-discounts-edit', [App\Http\Controllers\Ecommerce\ProductsController::class, 'editDiscount'])->name('ecom-products.discounts.edit')->middleware('auth');
+Route::put('/ecom-products-discounts-update', [App\Http\Controllers\Ecommerce\ProductsController::class, 'updateDiscount'])->name('ecom-products.discounts.update')->middleware('auth');
+Route::delete('/ecom-products-discounts-delete', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteDiscount'])->name('ecom-products.discounts.delete')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

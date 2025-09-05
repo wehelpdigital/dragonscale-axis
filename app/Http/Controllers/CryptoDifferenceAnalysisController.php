@@ -46,8 +46,8 @@ class CryptoDifferenceAnalysisController extends Controller
                 $query->whereDate('created_at', '>=', $dateFrom)
                       ->whereDate('created_at', '<=', $dateTo);
             } else {
-                // If no date range, show last 3 days
-                $query->where('created_at', '>=', Carbon::now()->subDays(3));
+                // If no date range, show last 1 day
+                $query->where('created_at', '>=', Carbon::now()->subDays(1));
             }
 
             $historicalPrices = $query->orderBy('created_at', 'asc')->get();

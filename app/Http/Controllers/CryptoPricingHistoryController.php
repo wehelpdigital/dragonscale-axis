@@ -45,6 +45,82 @@ class CryptoPricingHistoryController extends Controller
     }
 
     /**
+     * Get historical price data for AJAX pagination
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getData(Request $request)
+    {
+        try {
+            // Build query for historical prices
+            $query = HistoricalPrice::orderBy('created_at', 'desc');
+
+            // Apply date range filter
+            if ($request->filled('start_date')) {
+                $query->whereDate('created_at', '>=', $request->start_date);
+            } else {
+                // Default to last 24 hours if no date filter
+                $query->where('created_at', '>=', Carbon::now()->subHours(24));
+            }
+
+            if ($request->filled('end_date')) {
+                $query->whereDate('created_at', '<=', $request->end_date);
+            }
+
+            // Apply coin type filter (default to btc)
+            $coinType = $request->get('coin_type', 'btc');
+            $query->where('coinType', $coinType);
+
+            // Get paginated results (100 per page)
+            $historicalPrices = $query->paginate(100);
+
+            // Get current price for percentage calculations
+            $currentPrice = $historicalPrices->first() ? $historicalPrices->first()->valueInPhp : 0;
+
+            // Prepare data for response
+            $data = [];
+            foreach ($historicalPrices as $price) {
+                $pctChange = $currentPrice > 0 ? (($price->valueInPhp - $currentPrice) / $currentPrice) * 100 : 0;
+
+                $data[] = [
+                    'id' => $price->id,
+                    'coinType' => strtoupper($price->coinType),
+                    'valueInPhp' => number_format($price->valueInPhp, 2),
+                    'valueInUsd' => number_format($price->valueInUsd, 2),
+                    'created_at' => $price->created_at->format('M j, Y g:i A'),
+                    'date_formatted' => $price->created_at->setTimezone('Asia/Manila')->format('F j, Y'),
+                    'time_formatted' => $price->created_at->setTimezone('Asia/Manila')->format('g:iA'),
+                    'raw_value' => $price->valueInPhp,
+                    'percentage_change' => $pctChange,
+                    'percentage_change_formatted' => number_format($pctChange, 2)
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $historicalPrices->currentPage(),
+                    'last_page' => $historicalPrices->lastPage(),
+                    'per_page' => $historicalPrices->perPage(),
+                    'total' => $historicalPrices->total(),
+                    'from' => $historicalPrices->firstItem(),
+                    'to' => $historicalPrices->lastItem(),
+                    'has_more_pages' => $historicalPrices->hasMorePages(),
+                    'has_previous_pages' => $historicalPrices->onFirstPage() ? false : true
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get ladder data for the chart
      *
      * @param Request $request

@@ -207,18 +207,14 @@
                                                 <i class="bx bx-list-ul me-1"></i>Variants
                                             </a>
 
-                                            <button type="button" class="btn btn-sm btn-outline-success badge-style" title="Edit">
+                                            <a href="<?php echo e(route('ecom-products.edit', ['id' => $product->id])); ?>"
+                                               class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                                 <i class="bx bx-edit me-1"></i>Edit
-                                            </button>
+                                            </a>
                                             <a href="<?php echo e(route('ecom-products.discounts', ['id' => $product->id])); ?>"
                                                class="btn btn-sm btn-outline-dark badge-style"
                                                title="Discounts">
                                                 <i class="bx bx-tag me-1"></i>Discounts
-                                            </a>
-                                            <a href="<?php echo e(route('ecom-products.triggers', ['id' => $product->id])); ?>"
-                                               class="btn btn-sm btn-outline-warning badge-style"
-                                               title="Triggers">
-                                                <i class="bx bx-bulb me-1"></i>Triggers
                                             </a>
                                             <button type="button" class="btn btn-sm btn-outline-primary badge-style status-btn" title="Status"
                                                     data-product-id="<?php echo e($product->id); ?>"

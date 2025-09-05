@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ecommerce;
 use App\Http\Controllers\Controller;
 use App\Models\EcomProduct;
 use App\Models\EcomProductVariant;
+use App\Models\EcomProductDiscount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -802,6 +803,68 @@ class ProductsController extends Controller
     }
 
     /**
+     * Display the product edit page.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function edit(Request $request)
+    {
+        $productId = $request->query('id');
+
+        // Get the product details
+        $product = EcomProduct::active()->find($productId);
+
+        if (!$product) {
+            return redirect()->route('ecom-products')
+                ->with('error', 'Product not found.');
+        }
+
+        return view('ecommerce.products.edit', compact('product'));
+    }
+
+    /**
+     * Update the specified product in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(Request $request, $id)
+    {
+        // Validate the request
+        $request->validate([
+            'productName' => 'required|string|max:255',
+            'productStore' => 'required|string|max:255',
+            'productDescription' => 'required|string',
+        ], [
+            'productName.required' => 'Product name is required.',
+            'productStore.required' => 'Product store is required.',
+            'productDescription.required' => 'Product description is required.',
+        ]);
+
+        try {
+            // Find the product
+            $product = EcomProduct::active()->findOrFail($id);
+
+            // Update the product
+            $product->update([
+                'productName' => $request->productName,
+                'productStore' => $request->productStore,
+                'productDescription' => $request->productDescription,
+            ]);
+
+            return redirect()->route('ecom-products')
+                ->with('success', 'Product has been updated successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'An error occurred while updating the product. Please try again.');
+        }
+    }
+
+    /**
      * Display the product discounts page.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -818,7 +881,398 @@ class ProductsController extends Controller
             abort(404, 'Product not found');
         }
 
-        return view('ecommerce.products.discounts', compact('product'));
+        // Get discounts for this product
+        $discounts = EcomProductDiscount::active()
+            ->where('ecomProductsId', $productId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('ecommerce.products.discounts', compact('product', 'discounts'));
+    }
+
+    /**
+     * Show the form for creating a new discount.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function createDiscount(Request $request)
+    {
+        $productId = $request->query('id');
+
+        // Get the product details
+        $product = EcomProduct::active()->find($productId);
+
+        if (!$product) {
+            abort(404, 'Product not found');
+        }
+
+        return view('ecommerce.products.discounts.create', compact('product'));
+    }
+
+    /**
+     * Store a newly created discount in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function storeDiscount(Request $request)
+    {
+        // Validate the request
+        $request->validate([
+            'ecomProductsId' => 'required|integer|exists:ecom_products,id',
+            'discountName' => 'required|string|max:255',
+            'discountType' => 'required|string|in:discount code,auto apply',
+            'discountCode' => 'nullable|string|max:255',
+            'timerType' => 'required|string|in:cookie countdown,date and time,slots remaining',
+            'discountValueType' => 'required|string|in:percentage,discount amount,price change',
+            'countdownValueDays' => 'nullable|integer|min:0',
+            'countdownValueMinutes' => 'nullable|integer|min:0',
+            'scheduledEnding' => 'nullable|date|after:now',
+            'slotsRemainingValue' => 'nullable|integer|min:0',
+            'discountValuePercentage' => 'nullable|numeric|min:0|max:100',
+            'discountValueChange' => 'nullable|numeric|min:0',
+            'newDiscountedPrice' => 'nullable|numeric|min:0',
+            'discountValueMax' => 'required|numeric|min:0',
+            'discountPriceMax' => 'required|numeric|min:0',
+        ], [
+            'ecomProductsId.required' => 'Product ID is required.',
+            'discountName.required' => 'Discount name is required.',
+            'discountType.required' => 'Discount type is required.',
+            'discountCode.string' => 'Discount code must be a valid text.',
+            'discountCode.max' => 'Discount code cannot exceed 255 characters.',
+            'timerType.required' => 'Timer type is required.',
+            'discountValueType.required' => 'Discount value type is required.',
+            'countdownValueDays.integer' => 'Countdown days must be a whole number.',
+            'countdownValueMinutes.integer' => 'Countdown minutes must be a whole number.',
+            'scheduledEnding.date' => 'Scheduled ending must be a valid date.',
+            'scheduledEnding.after' => 'Scheduled ending must be in the future.',
+            'slotsRemainingValue.integer' => 'Slots remaining must be a whole number.',
+            'discountValuePercentage.numeric' => 'Discount percentage must be a valid number.',
+            'discountValuePercentage.max' => 'Discount percentage cannot exceed 100%.',
+            'discountValueChange.numeric' => 'Discount amount must be a valid number.',
+            'newDiscountedPrice.numeric' => 'New discounted price must be a valid number.',
+            'discountValueMax.required' => 'Discount value max ceiling is required.',
+            'discountValueMax.numeric' => 'Discount value max ceiling must be a valid number.',
+            'discountPriceMax.required' => 'Discount price max ceiling is required.',
+            'discountPriceMax.numeric' => 'Discount price max ceiling must be a valid number.',
+        ]);
+
+        // Additional conditional validation
+        $discountType = $request->discountType;
+        $timerType = $request->timerType;
+        $discountValueType = $request->discountValueType;
+
+        // Validate discount code field if discount type is discount code
+        if ($discountType === 'discount code') {
+            $request->validate([
+                'discountCode' => 'required|string|min:2|max:255',
+            ], [
+                'discountCode.required' => 'Discount code is required when discount type is discount code.',
+                'discountCode.min' => 'Discount code must be at least 2 characters long.',
+            ]);
+        }
+
+        // Validate timer type specific fields
+        if ($timerType === 'cookie countdown') {
+            $request->validate([
+                'countdownValueDays' => 'required|integer|min:0',
+                'countdownValueMinutes' => 'required|integer|min:0',
+            ], [
+                'countdownValueDays.required' => 'Countdown days is required for cookie countdown.',
+                'countdownValueMinutes.required' => 'Countdown minutes is required for cookie countdown.',
+            ]);
+        } elseif ($timerType === 'date and time') {
+            $request->validate([
+                'scheduledEnding' => 'required|date|after:now',
+            ], [
+                'scheduledEnding.required' => 'Promo ends schedule is required for date and time timer.',
+            ]);
+        } elseif ($timerType === 'slots remaining') {
+            $request->validate([
+                'slotsRemainingValue' => 'required|integer|min:0',
+            ], [
+                'slotsRemainingValue.required' => 'How many slots is required for slots remaining timer.',
+            ]);
+        }
+
+        // Validate discount value type specific fields
+        if ($discountValueType === 'percentage') {
+            $request->validate([
+                'discountValuePercentage' => 'required|numeric|min:0|max:100',
+            ], [
+                'discountValuePercentage.required' => 'Discount percentage is required for percentage discount.',
+            ]);
+        } elseif ($discountValueType === 'discount amount') {
+            $request->validate([
+                'discountValueChange' => 'required|numeric|min:0',
+            ], [
+                'discountValueChange.required' => 'Discount amount is required for discount amount type.',
+            ]);
+        } elseif ($discountValueType === 'price change') {
+            $request->validate([
+                'newDiscountedPrice' => 'required|numeric|min:0',
+            ], [
+                'newDiscountedPrice.required' => 'New discounted price is required for price change type.',
+            ]);
+        }
+
+        try {
+            // Prepare data for creation
+            $discountData = [
+                'ecomProductsId' => $request->ecomProductsId,
+                'discountName' => $request->discountName,
+                'discountType' => $request->discountType,
+                'discountCode' => $request->discountCode ?? null,
+                'timerType' => $request->timerType,
+                'discountValueType' => $request->discountValueType,
+                'countdownValueDays' => $request->countdownValueDays ?? 0,
+                'countdownValueMinutes' => $request->countdownValueMinutes ?? 0,
+                'scheduledEnding' => $request->scheduledEnding ?? now()->addDays(30),
+                'slotsRemainingValue' => $request->slotsRemainingValue ?? 0,
+                'discountValuePercentage' => $request->discountValuePercentage ?? 0,
+                'discountValueAmount' => 0, // Will be set based on discount value type
+                'discountValueChange' => 0, // Will be set based on discount value type
+                'discountValueMax' => $request->discountValueMax,
+                'discountPriceMax' => $request->discountPriceMax,
+                'isActive' => 1,
+                'deleteStatus' => 1,
+            ];
+
+            // Handle discount value based on type
+            if ($discountValueType === 'discount amount' && $request->discountValueChange) {
+                $discountData['discountValueAmount'] = $request->discountValueChange;
+            } elseif ($discountValueType === 'price change' && $request->newDiscountedPrice) {
+                $discountData['discountValueChange'] = $request->newDiscountedPrice;
+            }
+
+            // Create the discount
+            EcomProductDiscount::create($discountData);
+
+            // Check if this is an AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Discount has been created successfully!',
+                    'redirect' => route('ecom-products.discounts', ['id' => $request->ecomProductsId])
+                ]);
+            }
+
+            return redirect()->route('ecom-products.discounts', ['id' => $request->ecomProductsId]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please check the form for errors and try again.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            // Check if this is an AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while saving the discount. Please try again.',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'An error occurred while saving the discount. Please try again.');
+        }
+    }
+
+    /**
+     * Show the form for editing a discount.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function editDiscount(Request $request)
+    {
+        $discountId = $request->query('id');
+
+        // Get the discount details
+        $discount = EcomProductDiscount::active()->find($discountId);
+
+        if (!$discount) {
+            abort(404, 'Discount not found');
+        }
+
+        // Get the product details
+        $product = $discount->product;
+
+        if (!$product) {
+            abort(404, 'Product not found');
+        }
+
+        return view('ecommerce.products.discounts.edit', compact('discount', 'product'));
+    }
+
+    /**
+     * Update the specified discount.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function updateDiscount(Request $request)
+    {
+        try {
+            $discountId = $request->query('id');
+
+            // Get the discount
+            $discount = EcomProductDiscount::active()->find($discountId);
+
+            if (!$discount) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Discount not found'
+                    ], 404);
+                }
+                abort(404, 'Discount not found');
+            }
+
+            // Validation rules
+            $rules = [
+                'discountName' => 'required|string|min:2|max:255',
+                'discountType' => 'required|in:discount code,auto apply',
+                'discountCode' => 'nullable|string|min:2|max:255',
+                'timerType' => 'required|in:cookie countdown,date and time,slots remaining',
+                'discountValueType' => 'required|in:percentage,discount amount,price change',
+                'countdownValueDays' => 'nullable|integer|min:0',
+                'countdownValueMinutes' => 'nullable|integer|min:0',
+                'scheduledEnding' => 'nullable|date|after:now',
+                'slotsRemainingValue' => 'nullable|integer|min:0',
+                'discountValuePercentage' => 'nullable|numeric|min:0|max:100',
+                'discountValueChange' => 'nullable|numeric|min:0',
+                'newDiscountedPrice' => 'nullable|numeric|min:0',
+                'discountValueMax' => 'required|numeric|min:0',
+                'discountPriceMax' => 'required|numeric|min:0',
+            ];
+
+            // Conditional validation for discount code
+            if ($request->discountType === 'discount code') {
+                $rules['discountCode'] = 'required|string|min:2|max:255';
+            }
+
+            // Conditional validation for timer type specific fields
+            if ($request->timerType === 'cookie countdown') {
+                $rules['countdownValueDays'] = 'required|integer|min:0';
+                $rules['countdownValueMinutes'] = 'required|integer|min:0';
+            } elseif ($request->timerType === 'date and time') {
+                $rules['scheduledEnding'] = 'required|date|after:now';
+            } elseif ($request->timerType === 'slots remaining') {
+                $rules['slotsRemainingValue'] = 'required|integer|min:0';
+            }
+
+            // Conditional validation for discount value type specific fields
+            if ($request->discountValueType === 'percentage') {
+                $rules['discountValuePercentage'] = 'required|numeric|min:0|max:100';
+            } elseif ($request->discountValueType === 'discount amount') {
+                $rules['discountValueChange'] = 'required|numeric|min:0';
+            } elseif ($request->discountValueType === 'price change') {
+                $rules['newDiscountedPrice'] = 'required|numeric|min:0';
+            }
+
+            $validatedData = $request->validate($rules);
+
+            // Prepare discount data for database
+            $discountData = [
+                'discountName' => $validatedData['discountName'],
+                'discountType' => $validatedData['discountType'],
+                'discountCode' => $validatedData['discountCode'] ?? null,
+                'timerType' => $validatedData['timerType'],
+                'discountValueType' => $validatedData['discountValueType'],
+                'countdownValueDays' => $validatedData['countdownValueDays'] ?? 0,
+                'countdownValueMinutes' => $validatedData['countdownValueMinutes'] ?? 0,
+                'scheduledEnding' => $validatedData['scheduledEnding'] ?? null,
+                'slotsRemainingValue' => $validatedData['slotsRemainingValue'] ?? 0,
+                'discountValuePercentage' => $validatedData['discountValuePercentage'] ?? 0,
+                'discountValueAmount' => $validatedData['discountValueChange'] ?? 0,
+                'discountValueChange' => $validatedData['newDiscountedPrice'] ?? 0,
+                'discountValueMax' => $validatedData['discountValueMax'],
+                'discountPriceMax' => $validatedData['discountPriceMax'],
+            ];
+
+            // Update the discount
+            $discount->update($discountData);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Discount updated successfully',
+                    'redirect' => route('ecom-products.discounts', ['id' => $discount->ecomProductsId])
+                ]);
+            }
+
+            return redirect()->route('ecom-products.discounts', ['id' => $discount->ecomProductsId]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while updating the discount. Please try again.'
+                ], 500);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'An error occurred while updating the discount. Please try again.');
+        }
+    }
+
+    /**
+     * Delete the specified discount (soft delete by setting deleteStatus to 0).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteDiscount(Request $request)
+    {
+        try {
+            $discountId = $request->query('id');
+
+            // Get the discount
+            $discount = EcomProductDiscount::active()->find($discountId);
+
+            if (!$discount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Discount not found'
+                ], 404);
+            }
+
+            // Soft delete by setting deleteStatus to 0
+            $discount->update(['deleteStatus' => 0]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount has been deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the discount. Please try again.'
+            ], 500);
+        }
     }
 
     /**
@@ -940,6 +1394,184 @@ class ProductsController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Tag has been successfully removed from the product!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while deleting the tag: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the variant triggers page.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function variantTriggers(Request $request)
+    {
+        $variantId = $request->query('id');
+
+        // Get the variant details
+        $variant = EcomProductVariant::active()->find($variantId);
+
+        if (!$variant) {
+            return redirect()->route('ecom-products')
+                ->with('error', 'Variant not found.');
+        }
+
+        // Get the product details
+        $product = EcomProduct::active()->find($variant->ecomProductsId);
+
+        if (!$product) {
+            return redirect()->route('ecom-products')
+                ->with('error', 'Product not found.');
+        }
+
+        // Get variant tags from ecom_products_variants_tags table where ecomVariantsId matches the current variant id
+        // and deleteStatus is 1, then join with axis_tags to get tagName and expirationLength
+        $variantTags = DB::table('ecom_products_variants_tags')
+            ->join('axis_tags', 'ecom_products_variants_tags.axisTagId', '=', 'axis_tags.id')
+            ->where('ecom_products_variants_tags.ecomVariantsId', $variantId)
+            ->where('ecom_products_variants_tags.deleteStatus', 1)
+            ->select(
+                'ecom_products_variants_tags.id',
+                'axis_tags.tagName',
+                'axis_tags.expirationLength',
+                'ecom_products_variants_tags.ecomVariantsId'
+            )
+            ->get();
+
+        // If this is an AJAX refresh request, return only the table HTML
+        if ($request->has('refresh') && $request->ajax()) {
+            return view('ecommerce.products.variants.triggers', compact('variant', 'product', 'variantTags'))
+                ->render();
+        }
+
+        return view('ecommerce.products.variants.triggers', compact('variant', 'product', 'variantTags'));
+    }
+
+    /**
+     * Get available tags that can be added to the variant.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAvailableVariantTags(Request $request)
+    {
+        $variantId = $request->query('id');
+
+        // Get available tags from axis_tags that are not yet in ecom_products_variants_tags for this variant
+        $availableTags = DB::table('axis_tags')
+            ->leftJoin('ecom_products_variants_tags', function($join) use ($variantId) {
+                $join->on('axis_tags.id', '=', 'ecom_products_variants_tags.axisTagId')
+                     ->where('ecom_products_variants_tags.ecomVariantsId', '=', $variantId)
+                     ->where('ecom_products_variants_tags.deleteStatus', '=', 1);
+            })
+            ->leftJoin('as_courses', function($join) {
+                $join->on('axis_tags.targetId', '=', 'as_courses.id')
+                     ->where('axis_tags.tagType', '=', 'course');
+            })
+            ->where('axis_tags.deleteStatus', 1)
+            ->whereNull('ecom_products_variants_tags.id') // Only tags not yet assigned to this variant
+            ->select(
+                'axis_tags.id',
+                'axis_tags.tagName',
+                'axis_tags.expirationLength',
+                'axis_tags.tagType',
+                'as_courses.courseName'
+            )
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'tags' => $availableTags
+        ]);
+    }
+
+    /**
+     * Save selected tags to ecom_products_variants_tags table.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveVariantTags(Request $request)
+    {
+        try {
+            // Validate the request
+            $request->validate([
+                'variantId' => 'required|integer|exists:ecom_products_variants,id',
+                'tagIds' => 'required|array',
+                'tagIds.*' => 'integer|exists:axis_tags,id'
+            ], [
+                'variantId.required' => 'Variant ID is required.',
+                'variantId.integer' => 'Variant ID must be an integer.',
+                'variantId.exists' => 'Variant not found.',
+                'tagIds.required' => 'Tag IDs are required.',
+                'tagIds.array' => 'Tag IDs must be an array.',
+                'tagIds.*.integer' => 'Tag ID must be an integer.',
+                'tagIds.*.exists' => 'Tag not found.'
+            ]);
+
+            $variantId = $request->variantId;
+            $tagIds = $request->tagIds;
+
+            // Insert tags into ecom_products_variants_tags table
+            $insertData = [];
+            foreach ($tagIds as $tagId) {
+                $insertData[] = [
+                    'ecomVariantsId' => $variantId,
+                    'axisTagId' => $tagId,
+                    'deleteStatus' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            DB::table('ecom_products_variants_tags')->insert($insertData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tags have been successfully added to the variant!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while saving the tags: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a tag from ecom_products_variants_tags table.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteVariantTag($id)
+    {
+        try {
+            // Find the tag in ecom_products_variants_tags table
+            $tag = DB::table('ecom_products_variants_tags')->where('id', $id)->first();
+
+            if (!$tag) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tag not found.'
+                ], 404);
+            }
+
+            // Soft delete by setting deleteStatus to 0
+            DB::table('ecom_products_variants_tags')
+                ->where('id', $id)
+                ->update(['deleteStatus' => 0]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tag has been successfully removed from the variant!'
             ]);
 
         } catch (\Exception $e) {

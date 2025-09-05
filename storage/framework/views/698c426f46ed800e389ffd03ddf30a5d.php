@@ -88,6 +88,16 @@
     color: white !important;
 }
 
+.btn-outline-purple.badge-style {
+    color: #6f42c1 !important;
+    border-color: #6f42c1 !important;
+}
+
+.btn-outline-purple.badge-style:hover {
+    background-color: #6f42c1 !important;
+    color: white !important;
+}
+
 /* Toastr positioning override */
 #toast-container {
     position: fixed !important;
@@ -207,6 +217,10 @@
                                             <a href="<?php echo e(route('ecom-products.variants.edit', ['id' => $variant->id])); ?>"
                                                class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                                 <i class="bx bx-edit me-1"></i>Edit
+                                            </a>
+                                            <a href="<?php echo e(route('ecom-products.variants.triggers', ['id' => $variant->id])); ?>"
+                                               class="btn btn-sm btn-outline-purple badge-style" title="Triggers">
+                                                <i class="bx bx-bulb me-1"></i>Triggers
                                             </a>
                                             <button type="button" class="btn btn-sm btn-outline-danger badge-style delete-variant-btn"
                                                     title="Delete"
