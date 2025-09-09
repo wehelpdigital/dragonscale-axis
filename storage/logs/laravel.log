@@ -8566,3 +8566,4 @@
 #19 {main}
 "} 
 [2025-09-05 10:16:30] local.INFO: Login attempt {"email":"wehelp.digital@gmail.com","user_found":true,"delete_status":"active","password_check":true} 
+[2025-09-05 22:54:46] local.INFO: Login attempt {"email":"wehelp.digital@gmail.com","user_found":true,"delete_status":"active","password_check":true} 

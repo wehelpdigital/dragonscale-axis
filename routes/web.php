@@ -182,6 +182,7 @@ Route::get('/ecom-products-discounts-create', [App\Http\Controllers\Ecommerce\Pr
 Route::post('/ecom-products-discounts-create', [App\Http\Controllers\Ecommerce\ProductsController::class, 'storeDiscount'])->name('ecom-products.discounts.store')->middleware('auth');
 Route::get('/ecom-products-discounts-edit', [App\Http\Controllers\Ecommerce\ProductsController::class, 'editDiscount'])->name('ecom-products.discounts.edit')->middleware('auth');
 Route::put('/ecom-products-discounts-update', [App\Http\Controllers\Ecommerce\ProductsController::class, 'updateDiscount'])->name('ecom-products.discounts.update')->middleware('auth');
+Route::get('/ecom-products-discounts-view', [App\Http\Controllers\Ecommerce\ProductsController::class, 'viewDiscount'])->name('ecom-products.discounts.view')->middleware('auth');
 Route::delete('/ecom-products-discounts-delete', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteDiscount'])->name('ecom-products.discounts.delete')->middleware('auth');
 
 // Catch-all route - must be last

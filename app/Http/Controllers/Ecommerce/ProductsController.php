@@ -1239,6 +1239,40 @@ class ProductsController extends Controller
     }
 
     /**
+     * Get discount details for viewing.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function viewDiscount(Request $request)
+    {
+        try {
+            $discountId = $request->query('id');
+
+            // Get the discount with all details
+            $discount = EcomProductDiscount::active()->find($discountId);
+
+            if (!$discount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Discount not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'discount' => $discount
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching discount details.'
+            ], 500);
+        }
+    }
+
+    /**
      * Delete the specified discount (soft delete by setting deleteStatus to 0).
      *
      * @param  \Illuminate\Http\Request  $request

@@ -120,6 +120,24 @@
                     </a>
                     <ul class="sub-menu" aria-expanded="false">
                         <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-store"></i>
+                                <span key="t-stores">Stores</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-receipt"></i>
+                                <span key="t-reports">Reports</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-undo"></i>
+                                <span key="t-refunds">Refunds</span>
+                            </a>
+                        </li>
+                        <li>
                             <a href="<?php echo e(route('ecom-products')); ?>" class="waves-effect">
                                 <i class="bx bx-package"></i>
                                 <span key="t-products">Products</span>
@@ -127,7 +145,7 @@
                         </li>
                         <li>
                             <a href="javascript: void(0);" class="waves-effect">
-                                <i class="bx bx-package"></i>
+                                <i class="bx bx-cart"></i>
                                 <span key="t-orders">Orders</span>
                             </a>
                         </li>
