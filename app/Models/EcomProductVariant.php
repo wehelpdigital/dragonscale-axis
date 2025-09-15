@@ -27,6 +27,7 @@ class EcomProductVariant extends Model
         'ecomVariantDescription',
         'stocksAvailable',
         'ecomVariantPrice',
+        'maxOrderPerTransaction',
         'isActive',
         'deleteStatus',
         // Add other fields as needed

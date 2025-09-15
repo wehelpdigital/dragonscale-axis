@@ -175,6 +175,7 @@ class ProductsController extends Controller
             'ecomVariantDescription' => 'required|string|max:1000',
             'ecomVariantPrice' => 'required|numeric|min:0',
             'stocksAvailable' => 'required|integer|min:0',
+            'maxOrderPerTransaction' => 'required|integer|min:1',
         ], [
             'ecomProductsId.required' => 'Product ID is required.',
             'ecomProductsId.exists' => 'Selected product does not exist.',
@@ -186,6 +187,9 @@ class ProductsController extends Controller
             'stocksAvailable.required' => 'Stocks available is required.',
             'stocksAvailable.integer' => 'Stocks available must be a whole number.',
             'stocksAvailable.min' => 'Stocks available must be greater than or equal to 0.',
+            'maxOrderPerTransaction.required' => 'Maximum order per transaction is required.',
+            'maxOrderPerTransaction.integer' => 'Maximum order per transaction must be a whole number.',
+            'maxOrderPerTransaction.min' => 'Maximum order per transaction must be at least 1.',
         ]);
 
         try {
@@ -196,6 +200,7 @@ class ProductsController extends Controller
                 'ecomVariantDescription' => $request->ecomVariantDescription,
                 'ecomVariantPrice' => $request->ecomVariantPrice,
                 'stocksAvailable' => $request->stocksAvailable,
+                'maxOrderPerTransaction' => $request->maxOrderPerTransaction,
                 'isActive' => 0,
                 'deleteStatus' => 1,
             ]);
@@ -254,6 +259,7 @@ class ProductsController extends Controller
             'ecomVariantDescription' => 'required|string|max:1000',
             'ecomVariantPrice' => 'required|numeric|min:0',
             'stocksAvailable' => 'required|integer|min:0',
+            'maxOrderPerTransaction' => 'required|integer|min:1',
         ], [
             'variantId.required' => 'Variant ID is required.',
             'variantId.exists' => 'Selected variant does not exist.',
@@ -265,6 +271,9 @@ class ProductsController extends Controller
             'stocksAvailable.required' => 'Stocks available is required.',
             'stocksAvailable.integer' => 'Stocks available must be a whole number.',
             'stocksAvailable.min' => 'Stocks available must be greater than or equal to 0.',
+            'maxOrderPerTransaction.required' => 'Maximum order per transaction is required.',
+            'maxOrderPerTransaction.integer' => 'Maximum order per transaction must be a whole number.',
+            'maxOrderPerTransaction.min' => 'Maximum order per transaction must be at least 1.',
         ]);
 
         try {
@@ -277,6 +286,7 @@ class ProductsController extends Controller
                 'ecomVariantDescription' => $request->ecomVariantDescription,
                 'ecomVariantPrice' => $request->ecomVariantPrice,
                 'stocksAvailable' => $request->stocksAvailable,
+                'maxOrderPerTransaction' => $request->maxOrderPerTransaction,
             ]);
 
             return redirect()->route('ecom-products.variants', ['id' => $variant->ecomProductsId])

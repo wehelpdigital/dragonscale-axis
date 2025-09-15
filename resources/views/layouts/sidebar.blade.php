@@ -144,7 +144,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="javascript: void(0);" class="waves-effect">
+                            <a href="{{ route('ecom-orders') }}" class="waves-effect">
                                 <i class="bx bx-cart"></i>
                                 <span key="t-orders">Orders</span>
                             </a>

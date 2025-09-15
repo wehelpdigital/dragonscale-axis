@@ -109,6 +109,23 @@
                     <div class="row">
                         <div class="col-12">
                             <div class="mb-3">
+                                <label for="maxOrderPerTransaction" class="form-label">Maximum Number of Order per Transaction <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('maxOrderPerTransaction') is-invalid @enderror"
+                                       id="maxOrderPerTransaction" name="maxOrderPerTransaction"
+                                       value="{{ old('maxOrderPerTransaction', 1) }}"
+                                       min="1" placeholder="1">
+                                <div class="invalid-feedback" id="maxOrderPerTransaction-error"></div>
+                                <div class="valid-feedback" id="maxOrderPerTransaction-success">Looks good!</div>
+                                @error('maxOrderPerTransaction')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
                                 <label for="ecomVariantDescription" class="form-label">Variant Description <span class="text-danger">*</span></label>
                                 <textarea class="form-control @error('ecomVariantDescription') is-invalid @enderror"
                                           id="ecomVariantDescription" name="ecomVariantDescription"
@@ -149,6 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const variantNameInput = document.getElementById('ecomVariantName');
     const variantPriceInput = document.getElementById('ecomVariantPrice');
     const stocksAvailableInput = document.getElementById('stocksAvailable');
+    const maxOrderPerTransactionInput = document.getElementById('maxOrderPerTransaction');
     const variantDescriptionInput = document.getElementById('ecomVariantDescription');
 
     // Validation functions
@@ -224,6 +242,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function validateMaxOrderPerTransaction() {
+        const value = maxOrderPerTransactionInput.value.trim();
+        if (value === '') {
+            showError(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'Maximum order per transaction is required.');
+            return false;
+        }
+
+        const maxOrder = parseInt(value);
+
+        if (isNaN(maxOrder)) {
+            showError(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'Please enter a valid number.');
+            return false;
+        } else if (maxOrder < 1) {
+            showError(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'Maximum order per transaction must be at least 1.');
+            return false;
+        } else if (!Number.isInteger(maxOrder)) {
+            showError(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'Maximum order per transaction must be a whole number.');
+            return false;
+        } else {
+            showSuccess(maxOrderPerTransactionInput, 'maxOrderPerTransaction-success');
+            return true;
+        }
+    }
+
     function validateVariantDescription() {
         const value = variantDescriptionInput.value.trim();
         if (value === '') {
@@ -275,6 +317,11 @@ document.addEventListener('DOMContentLoaded', function() {
         clearValidation(stocksAvailableInput, 'stocksAvailable-error', 'stocksAvailable-success');
     });
 
+    maxOrderPerTransactionInput.addEventListener('blur', validateMaxOrderPerTransaction);
+    maxOrderPerTransactionInput.addEventListener('input', function() {
+        clearValidation(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'maxOrderPerTransaction-success');
+    });
+
     variantDescriptionInput.addEventListener('blur', validateVariantDescription);
     variantDescriptionInput.addEventListener('input', function() {
         clearValidation(variantDescriptionInput, 'ecomVariantDescription-error', 'ecomVariantDescription-success');
@@ -287,9 +334,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const isVariantNameValid = validateVariantName();
         const isVariantPriceValid = validateVariantPrice();
         const isStocksAvailableValid = validateStocksAvailable();
+        const isMaxOrderPerTransactionValid = validateMaxOrderPerTransaction();
         const isVariantDescriptionValid = validateVariantDescription();
 
-        if (isVariantNameValid && isVariantPriceValid && isStocksAvailableValid && isVariantDescriptionValid) {
+        if (isVariantNameValid && isVariantPriceValid && isStocksAvailableValid && isMaxOrderPerTransactionValid && isVariantDescriptionValid) {
             // Clean up the values before submission
             const cleanPrice = variantPriceInput.value.replace(/[₱,\s]/g, '');
             const cleanStocks = stocksAvailableInput.value.replace(/[,]/g, '');
@@ -321,6 +369,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 variantPriceInput.focus();
             } else if (!isStocksAvailableValid) {
                 stocksAvailableInput.focus();
+            } else if (!isMaxOrderPerTransactionValid) {
+                maxOrderPerTransactionInput.focus();
             } else if (!isVariantDescriptionValid) {
                 variantDescriptionInput.focus();
             }
