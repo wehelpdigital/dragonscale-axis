@@ -29,13 +29,20 @@ class ProductsController extends Controller
             $query->filterByStore($request->store);
         }
 
+        if ($request->filled('productType')) {
+            $query->filterByProductType($request->productType);
+        }
+
         // Get paginated results
         $products = $query->orderBy('created_at', 'desc')->paginate(10);
 
         // Get unique stores for filter dropdown
         $stores = EcomProduct::active()->distinct()->pluck('productStore')->filter();
 
-        return view('ecommerce.products.index', compact('products', 'stores'));
+        // Get unique product types for filter dropdown
+        $productTypes = EcomProduct::active()->distinct()->pluck('productType')->filter();
+
+        return view('ecommerce.products.index', compact('products', 'stores', 'productTypes'));
     }
 
     /**
@@ -60,10 +67,13 @@ class ProductsController extends Controller
         $request->validate([
             'productName' => 'required|string|max:255',
             'productStore' => 'required|string|max:255',
+            'productType' => 'required|string|in:access,ship',
             'productDescription' => 'required|string',
         ], [
             'productName.required' => 'Product name is required.',
             'productStore.required' => 'Product store is required.',
+            'productType.required' => 'Product type is required.',
+            'productType.in' => 'Product type must be either access or ship.',
             'productDescription.required' => 'Product description is required.',
         ]);
 
@@ -72,6 +82,7 @@ class ProductsController extends Controller
             EcomProduct::create([
                 'productName' => $request->productName,
                 'productStore' => $request->productStore,
+                'productType' => $request->productType,
                 'productDescription' => $request->productDescription,
                 'isActive' => 1,
                 'deleteStatus' => 1,
@@ -846,10 +857,13 @@ class ProductsController extends Controller
         $request->validate([
             'productName' => 'required|string|max:255',
             'productStore' => 'required|string|max:255',
+            'productType' => 'required|string|in:access,ship',
             'productDescription' => 'required|string',
         ], [
             'productName.required' => 'Product name is required.',
             'productStore.required' => 'Product store is required.',
+            'productType.required' => 'Product type is required.',
+            'productType.in' => 'Product type must be either access or ship.',
             'productDescription.required' => 'Product description is required.',
         ]);
 
@@ -861,6 +875,7 @@ class ProductsController extends Controller
             $product->update([
                 'productName' => $request->productName,
                 'productStore' => $request->productStore,
+                'productType' => $request->productType,
                 'productDescription' => $request->productDescription,
             ]);
 

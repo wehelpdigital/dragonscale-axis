@@ -73,6 +73,28 @@ unset($__errorArgs, $__bag); ?>"
                             </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productType" class="form-label">Product Type <span class="text-danger">*</span></label>
+                                    <select class="form-select <?php $__errorArgs = ['productType'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                            id="productType" name="productType">
+                                        <option value="">Select product type</option>
+                                        <option value="access" <?php echo e(old('productType', $product->productType) == 'access' ? 'selected' : ''); ?>>Access</option>
+                                        <option value="ship" <?php echo e(old('productType', $product->productType) == 'ship' ? 'selected' : ''); ?>>Ship</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="productTypeError"></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="productDescription" class="form-label">Product Description <span class="text-danger">*</span></label>
                             <textarea class="form-control <?php $__errorArgs = ['productDescription'];
@@ -147,6 +169,15 @@ $(document).ready(function() {
             $('#productStoreError').text('Product store is required.');
             isValid = false;
             errors.productStore = 'Product store is required.';
+        }
+
+        // Validate Product Type
+        const productType = $('#productType').val();
+        if (!productType) {
+            $('#productType').addClass('is-invalid');
+            $('#productTypeError').text('Product type is required.');
+            isValid = false;
+            errors.productType = 'Product type is required.';
         }
 
         // Validate Product Description

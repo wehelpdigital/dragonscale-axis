@@ -25,6 +25,7 @@ class EcomProduct extends Model
         'productName',
         'productStore',
         'productDescription',
+        'productType',
         'isActive',
         'deleteStatus',
         // Add other fields as needed
@@ -70,5 +71,24 @@ class EcomProduct extends Model
             return $query->where('productStore', 'LIKE', "%{$store}%");
         }
         return $query;
+    }
+
+    /**
+     * Scope to filter by product type
+     */
+    public function scopeFilterByProductType($query, $productType)
+    {
+        if ($productType) {
+            return $query->where('productType', 'LIKE', "%{$productType}%");
+        }
+        return $query;
+    }
+
+    /**
+     * Get the variants for the product.
+     */
+    public function variants()
+    {
+        return $this->hasMany(EcomProductVariant::class, 'ecomProductsId', 'id');
     }
 }

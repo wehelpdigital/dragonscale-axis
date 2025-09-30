@@ -61,6 +61,21 @@
                             </div>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productType" class="form-label">Product Type <span class="text-danger">*</span></label>
+                                    <select class="form-select @error('productType') is-invalid @enderror"
+                                            id="productType" name="productType">
+                                        <option value="">Select product type</option>
+                                        <option value="access" {{ old('productType', $product->productType) == 'access' ? 'selected' : '' }}>Access</option>
+                                        <option value="ship" {{ old('productType', $product->productType) == 'ship' ? 'selected' : '' }}>Ship</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="productTypeError"></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
                             <label for="productDescription" class="form-label">Product Description <span class="text-danger">*</span></label>
                             <textarea class="form-control @error('productDescription') is-invalid @enderror"
@@ -128,6 +143,15 @@ $(document).ready(function() {
             $('#productStoreError').text('Product store is required.');
             isValid = false;
             errors.productStore = 'Product store is required.';
+        }
+
+        // Validate Product Type
+        const productType = $('#productType').val();
+        if (!productType) {
+            $('#productType').addClass('is-invalid');
+            $('#productTypeError').text('Product type is required.');
+            isValid = false;
+            errors.productType = 'Product type is required.';
         }
 
         // Validate Product Description

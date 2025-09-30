@@ -104,6 +104,45 @@
     background-color: #f46a6a !important;
     color: white !important;
 }
+
+/* Loading Overlay Styles */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+}
+
+.loading-spinner {
+    text-align: center;
+    background: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.loading-text {
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Disable interactions during loading */
+.loading-overlay.active {
+    pointer-events: all;
+}
+
+.loading-overlay.active ~ * {
+    pointer-events: none;
+    opacity: 0.6;
+}
 </style>
 @endsection
 
@@ -143,7 +182,7 @@
 
                 <!-- Filters -->
                 <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <form method="GET" action="{{ route('ecom-products') }}" class="d-flex">
                             <input type="text" name="name" class="form-control me-2" placeholder="Search by product name..." value="{{ request('name') }}">
                             <button type="submit" class="btn btn-outline-secondary">
@@ -151,7 +190,7 @@
                             </button>
                         </form>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <form method="GET" action="{{ route('ecom-products') }}" class="d-flex">
                             <select name="store" class="form-select me-2">
                                 <option value="">All Stores</option>
@@ -166,8 +205,23 @@
                             </button>
                         </form>
                     </div>
-                    <div class="col-md-4 text-end">
-                        @if(request('name') || request('store'))
+                    <div class="col-md-3">
+                        <form method="GET" action="{{ route('ecom-products') }}" class="d-flex">
+                            <select name="productType" class="form-select me-2">
+                                <option value="">All Product Types</option>
+                                @foreach($productTypes as $productType)
+                                    <option value="{{ $productType }}" {{ request('productType') == $productType ? 'selected' : '' }}>
+                                        {{ $productType }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="bx bx-filter"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        @if(request('name') || request('store') || request('productType'))
                             <a href="{{ route('ecom-products') }}" class="btn btn-outline-danger">
                                 <i class="bx bx-x"></i> Clear Filters
                             </a>
@@ -176,12 +230,23 @@
                 </div>
 
                 <!-- Products Table -->
-                <div class="table-responsive">
+                <div class="table-responsive position-relative">
+                    <!-- Loading Overlay -->
+                    <div id="tableLoadingOverlay" class="loading-overlay" style="display: none;">
+                        <div class="loading-spinner">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="loading-text mt-2">Loading products...</div>
+                        </div>
+                    </div>
+
                     <table class="table table-bordered table-striped">
                         <thead class="table-light">
                             <tr>
                                 <th>Product Name</th>
                                 <th>Product Store</th>
+                                <th>Product Type</th>
                                 <th>Active</th>
                                 <th class="text-center">Actions</th>
                             </tr>
@@ -191,6 +256,7 @@
                                 <tr>
                                     <td>{{ $product->productName }}</td>
                                     <td>{{ $product->productStore }}</td>
+                                    <td>{{ $product->productType ?? 'N/A' }}</td>
                                     <td>
                                         @if($product->isActive)
                                             <span class="badge bg-success">Yes</span>
@@ -232,7 +298,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">
+                                    <td colspan="5" class="text-center text-muted">
                                         <i class="bx bx-package display-4"></i>
                                         <p class="mt-2">No products found</p>
                                     </td>
@@ -351,9 +417,47 @@ toastr.options = {
 };
 
 $(document).ready(function() {
+    // Show loading overlay
+    function showLoading() {
+        $('#tableLoadingOverlay').show();
+    }
+
+    // Hide loading overlay
+    function hideLoading() {
+        $('#tableLoadingOverlay').hide();
+    }
+
+    // Show loading on page load for better UX
+    showLoading();
+    setTimeout(function() {
+        hideLoading();
+    }, 300);
+
     // Auto-submit store filter when changed
     $('select[name="store"]').change(function() {
+        showLoading();
         $(this).closest('form').submit();
+    });
+
+    // Auto-submit product type filter when changed
+    $('select[name="productType"]').change(function() {
+        showLoading();
+        $(this).closest('form').submit();
+    });
+
+    // Show loading on name search form submission
+    $('form input[name="name"]').closest('form').on('submit', function() {
+        showLoading();
+    });
+
+    // Show loading on pagination links
+    $('.pagination a').on('click', function() {
+        showLoading();
+    });
+
+    // Show loading on clear filters link
+    $('a[href="{{ route("ecom-products") }}"]').on('click', function() {
+        showLoading();
     });
 
     // Delete functionality
@@ -383,6 +487,7 @@ $(document).ready(function() {
 
         // Show loading state
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
+        showLoading();
 
         $.ajax({
             url: '/ecom-products/' + productToDelete.id,
@@ -410,7 +515,7 @@ $(document).ready(function() {
                         if ($('tbody tr').length === 0) {
                             $('tbody').html(`
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">
+                                    <td colspan="5" class="text-center text-muted">
                                         <i class="bx bx-package display-4"></i>
                                         <p class="mt-2">No products found</p>
                                     </td>
@@ -442,6 +547,7 @@ $(document).ready(function() {
                 // Reset button state
                 $btn.prop('disabled', false).html(originalText);
                 productToDelete = null;
+                hideLoading();
             }
         });
     });
@@ -498,6 +604,7 @@ $(document).ready(function() {
 
         // Show loading state
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Updating...');
+        showLoading();
 
         $.ajax({
             url: '/ecom-products/' + productToUpdateStatus.id + '/status',
@@ -519,7 +626,7 @@ $(document).ready(function() {
                     });
 
                     // Update the status badge in the table
-                    const statusCell = productToUpdateStatus.row.find('td:nth-child(3)');
+                    const statusCell = productToUpdateStatus.row.find('td:nth-child(4)');
                     if (newStatus == 1) {
                         statusCell.html('<span class="badge bg-success">Yes</span>');
                     } else {
@@ -552,6 +659,7 @@ $(document).ready(function() {
                 // Reset button state
                 $btn.prop('disabled', false).html(originalText);
                 productToUpdateStatus = null;
+                hideLoading();
             }
         });
     });

@@ -185,6 +185,8 @@ Route::post('/ecom-orders-custom-add/validate-step', [App\Http\Controllers\Ecomm
 Route::get('/ecom-orders-custom-add/products', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getProducts'])->name('ecom-orders-custom-add.products')->middleware('auth');
 Route::get('/ecom-orders-custom-add/variants', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getProductVariants'])->name('ecom-orders-custom-add.variants')->middleware('auth');
 Route::get('/ecom-orders-custom-add/variant-details', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getVariantDetails'])->name('ecom-orders-custom-add.variant-details')->middleware('auth');
+Route::get('/ecom-orders-custom-add/stores', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getStores'])->name('ecom-orders-custom-add.stores')->middleware('auth');
+Route::get('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getClients'])->name('ecom-orders-custom-add.clients')->middleware('auth');
 
 // E-commerce product discounts routes
 Route::get('/ecom-products-discounts', [App\Http\Controllers\Ecommerce\ProductsController::class, 'discounts'])->name('ecom-products.discounts')->middleware('auth');
