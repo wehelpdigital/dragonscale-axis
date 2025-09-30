@@ -187,6 +187,9 @@ Route::get('/ecom-orders-custom-add/variants', [App\Http\Controllers\Ecommerce\O
 Route::get('/ecom-orders-custom-add/variant-details', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getVariantDetails'])->name('ecom-orders-custom-add.variant-details')->middleware('auth');
 Route::get('/ecom-orders-custom-add/stores', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getStores'])->name('ecom-orders-custom-add.stores')->middleware('auth');
 Route::get('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getClients'])->name('ecom-orders-custom-add.clients')->middleware('auth');
+Route::post('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'storeClient'])->name('ecom-orders-custom-add.clients.store')->middleware('auth');
+Route::get('/ecom-orders-custom-add/clients/check-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkPhoneNumber'])->name('ecom-orders-custom-add.clients.check-phone')->middleware('auth');
+Route::get('/ecom-orders-custom-add/access-clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getAccessClients'])->name('ecom-orders-custom-add.access-clients')->middleware('auth');
 
 // E-commerce product discounts routes
 Route::get('/ecom-products-discounts', [App\Http\Controllers\Ecommerce\ProductsController::class, 'discounts'])->name('ecom-products.discounts')->middleware('auth');

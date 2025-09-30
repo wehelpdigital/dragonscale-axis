@@ -12,6 +12,7 @@ use App\Models\EcomProductStore;
 use App\Models\ClientAllDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class OrdersCustomAddController extends Controller
 {
@@ -398,6 +399,168 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching variant details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if phone number already exists.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkPhoneNumber(Request $request)
+    {
+        $phoneNumber = $request->get('phone_number');
+
+        if (!$phoneNumber) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Phone number is required'
+            ], 400);
+        }
+
+        try {
+            $exists = ClientAllDatabase::where('clientPhoneNumber', $phoneNumber)->exists();
+
+            return response()->json([
+                'success' => true,
+                'exists' => $exists,
+                'message' => $exists ? 'Phone number already exists' : 'Phone number is available'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking phone number: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get access clients by store.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAccessClients(Request $request)
+    {
+        $productStore = $request->get('productStore');
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 20);
+        $search = $request->get('search', '');
+
+        if (!$productStore) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product store is required'
+            ], 400);
+        }
+
+        try {
+            $query = DB::table('clients_access_login')
+                ->where('productStore', $productStore)
+                ->where('isActive', 1)
+                ->where('deleteStatus', 1);
+
+            // Add search functionality
+            if (!empty($search)) {
+                $query->where(function($q) use ($search) {
+                    $q->where('clientFirstName', 'like', '%' . $search . '%')
+                      ->orWhere('clientMiddleName', 'like', '%' . $search . '%')
+                      ->orWhere('clientLastName', 'like', '%' . $search . '%')
+                      ->orWhere('clientPhoneNumber', 'like', '%' . $search . '%')
+                      ->orWhere('clientEmailAddress', 'like', '%' . $search . '%');
+                });
+            }
+
+            // Get total count for pagination
+            $total = $query->count();
+
+            // Apply pagination
+            $clients = $query->select('id', 'clientFirstName', 'clientMiddleName', 'clientLastName', 'clientPhoneNumber', 'clientEmailAddress')
+                ->orderBy('clientFirstName', 'asc')
+                ->skip(($page - 1) * $perPage)
+                ->take($perPage)
+                ->get();
+
+            $lastPage = ceil($total / $perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $clients,
+                'current_page' => (int)$page,
+                'last_page' => $lastPage,
+                'per_page' => (int)$perPage,
+                'total' => $total
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching access clients: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new client.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeClient(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'clientFirstName' => 'required|string|max:255',
+            'clientMiddleName' => 'required|string|max:255',
+            'clientLastName' => 'required|string|max:255',
+            'clientPhoneNumber' => 'required|string|unique:clients_all_database,clientPhoneNumber',
+            'clientEmailAddress' => 'required|email|max:255|unique:clients_all_database,clientEmailAddress',
+        ], [
+            'clientPhoneNumber.unique' => 'This phone number already exists and cannot be added.',
+        ]);
+
+        // Custom phone number validation
+        $validator->after(function ($validator) use ($request) {
+            $phoneNumber = $request->clientPhoneNumber;
+            if ($phoneNumber && !preg_match('/^(09\d{9}|\+63\d{9})$/', $phoneNumber)) {
+                $validator->errors()->add('clientPhoneNumber', 'Phone number must start with 09 or +63 followed by 9 digits.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $client = ClientAllDatabase::create([
+                'clientFirstName' => $request->clientFirstName,
+                'clientMiddleName' => $request->clientMiddleName,
+                'clientLastName' => $request->clientLastName,
+                'clientPhoneNumber' => $request->clientPhoneNumber,
+                'clientEmailAddress' => $request->clientEmailAddress,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Client created successfully',
+                'client' => [
+                    'id' => $client->id,
+                    'fullName' => $client->fullName,
+                    'clientFirstName' => $client->clientFirstName,
+                    'clientMiddleName' => $client->clientMiddleName,
+                    'clientLastName' => $client->clientLastName,
+                    'clientPhoneNumber' => $client->clientPhoneNumber,
+                    'clientEmailAddress' => $client->clientEmailAddress,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create client: ' . $e->getMessage()
             ], 500);
         }
     }

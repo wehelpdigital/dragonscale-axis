@@ -2,6 +2,7 @@
     Add New Order
 <?php $__env->stopSection(); ?>
 
+
 <?php $__env->startSection('content'); ?>
     <?php $__env->startComponent('components.breadcrumb'); ?>
         <?php $__env->slot('li_1'); ?>
@@ -31,7 +32,7 @@
                             <div class="d-flex justify-content-between mt-2">
                                 <small class="text-muted">Step 1: Product Selection</small>
                                 <small class="text-muted">Step 2: Client Details</small>
-                                <small class="text-muted">Step 3: Status & Finalization</small>
+                                <small class="text-muted">Step 3: Client Logins</small>
                             </div>
                         </div>
                     </div>
@@ -155,6 +156,17 @@
                                     </div>
                                 </div>
 
+                                <!-- Notification Area -->
+                                <div class="row mb-3" id="client-notification-area" style="display: none;">
+                                    <div class="col-12">
+                                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                            <i class="mdi mdi-check-circle me-2"></i>
+                                            <span id="client-notification-message"></span>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Client Search Row -->
                                 <div class="row mb-4">
                                     <div class="col-12">
@@ -261,79 +273,126 @@
                                 <!-- Hidden input for selected client -->
                                 <input type="hidden" id="selectedClient" name="selectedClient" value="">
 
-                            <!-- Step 3: Status & Finalization -->
-                            <div class="wizard-step d-none" id="step-3">
-                                <h5 class="mb-3">Status & Finalization</h5>
-                                <div class="row">
-                                    <div class="col-12">
-                                        <div class="card border-secondary">
-                                            <div class="card-header bg-secondary text-white">
-                                                <h6 class="card-title mb-0">
-                                                    <i class="mdi mdi-check-circle me-2"></i>Order Status & Finalization
-                                                </h6>
-                                            </div>
-                                            <div class="card-body">
+                            </div>
+
+                            <!-- Add New Client Modal -->
+                            <div class="modal fade" id="addNewClientModal" tabindex="-1" aria-labelledby="addNewClientModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title" id="addNewClientModalLabel">
+                                                <i class="mdi mdi-account-plus me-2"></i>Add New Client
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form id="addNewClientForm">
                                                 <div class="row">
-                                                    <div class="col-md-6">
+                                                    <div class="col-12">
                                                         <div class="mb-3">
-                                                            <label for="paymentStatus" class="form-label">Payment Status <span class="text-danger">*</span></label>
-                                                            <select class="form-select" id="paymentStatus" name="paymentStatus" required>
-                                                                <option value="">Select Payment Status</option>
-                                                                <option value="pending">Pending</option>
-                                                                <option value="paid">Paid</option>
-                                                                <option value="refunded">Refunded</option>
-                                                                <option value="partial">Partial</option>
-                                                            </select>
-                                                            <div class="invalid-feedback"></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="mb-3">
-                                                            <label for="shippingStatus" class="form-label">Shipping Status <span class="text-danger">*</span></label>
-                                                            <select class="form-select" id="shippingStatus" name="shippingStatus" required>
-                                                                <option value="">Select Shipping Status</option>
-                                                                <option value="pending">Pending</option>
-                                                                <option value="shipped">Shipped</option>
-                                                                <option value="delivered">Delivered</option>
-                                                                <option value="returned">Returned</option>
-                                                            </select>
+                                                            <label for="newClientFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" id="newClientFirstName" name="clientFirstName" required>
                                                             <div class="invalid-feedback"></div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="row">
-                                                    <div class="col-md-12">
+                                                    <div class="col-12">
                                                         <div class="mb-3">
-                                                            <label for="handledBy" class="form-label">Handled By</label>
-                                                            <input type="text" class="form-control" id="handledBy" name="handledBy" placeholder="Enter handler name">
+                                                            <label for="newClientMiddleName" class="form-label">Middle Name <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" id="newClientMiddleName" name="clientMiddleName" required>
                                                             <div class="invalid-feedback"></div>
                                                         </div>
                                                     </div>
                                                 </div>
-                        </div>
-                    </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="mb-3">
+                                                            <label for="newClientLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" id="newClientLastName" name="clientLastName" required>
+                                                            <div class="invalid-feedback"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="mb-3">
+                                                            <label for="newClientPhoneNumber" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                                            <input type="tel" class="form-control" id="newClientPhoneNumber" name="clientPhoneNumber" placeholder="09XXXXXXXXX or +63XXXXXXXXX" required>
+                                                            <div class="invalid-feedback"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <div class="mb-3">
+                                                            <label for="newClientEmailAddress" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                                            <input type="email" class="form-control" id="newClientEmailAddress" name="clientEmailAddress" required>
+                                                            <div class="invalid-feedback"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <i class="mdi mdi-close me-1"></i>Cancel
+                                            </button>
+                                            <button type="button" class="btn btn-primary" id="saveNewClientBtn">
+                                                <i class="mdi mdi-content-save me-1"></i>Save Client
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+        <!-- Step 3: Client Logins -->
+        <div class="wizard-step d-none" id="step-3">
+            <h5 class="mb-3">Client Logins</h5>
+
+            <!-- Access Products Stores -->
+            <div id="access-stores-container">
+                <!-- Stores will be dynamically loaded here -->
+            </div>
+
+            <!-- No Access Products Message -->
+            <div id="no-access-products" class="text-center py-5" style="display: none;">
+                <i class="mdi mdi-account-key display-4 text-muted mb-3"></i>
+                <h6 class="text-muted">No Access Products Selected</h6>
+                <p class="text-muted">No access-type products were selected in step 1. No login accounts are needed.</p>
+            </div>
+
+        </div>
+
+        <!-- Step 4: Final Step -->
+        <div class="wizard-step d-none" id="step-4">
+            <h5 class="mb-3">Final Step</h5>
+            <div class="text-center py-5">
+                <i class="mdi mdi-check-circle display-4 text-success mb-3"></i>
+                <h6 class="text-muted">Step 4 Content</h6>
+                <p class="text-muted">This step will be implemented later.</p>
+            </div>
+        </div>
+    </div>
+
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
-                        <!-- Navigation Buttons -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <button type="button" class="btn btn-secondary" id="prev-btn" style="display: none;">
-                                <i class="mdi mdi-arrow-left me-1"></i> Previous
-                            </button>
-                            <div class="ms-auto">
-                                <button type="button" class="btn btn-primary" id="next-btn">
-                                    Next <i class="mdi mdi-arrow-right ms-1"></i>
-                                </button>
-                                <button type="submit" class="btn btn-success d-none" id="submit-btn">
-                                    <i class="mdi mdi-check me-1"></i> Create Order
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <!-- General Navigation Buttons -->
+    <div class="d-flex justify-content-between mb-5">
+        <button type="button" class="btn btn-secondary" id="prev-btn" style="display: none;">
+            <i class="mdi mdi-arrow-left me-1"></i> Previous
+        </button>
+        <div class="ms-auto">
+            <button type="button" class="btn btn-primary" id="next-btn">
+                Next <i class="mdi mdi-arrow-right ms-1"></i>
+            </button>
+            <button type="submit" class="btn btn-success d-none" id="submit-btn">
+                <i class="mdi mdi-check me-1"></i> Create Order
+            </button>
         </div>
     </div>
 
@@ -517,10 +576,134 @@
         transition: all 0.3s ease;
     }
 
+    /* Step transition effects */
+    .wizard-step {
+        transition: all 0.4s ease-in-out;
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    .wizard-step.d-none {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    .wizard-step:not(.d-none) {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
     /* Custom client row styling */
-    .client-row.table-primary {
+    .client-row.table-primary, .access-client-row.table-primary {
         background-color: #f6b93b !important; /* Orange background */
         color: #fff !important;
+        --bs-table-hover-bg: #f6b93b !important;
+        --bs-table-bg: #f6b93b !important;
+    }
+
+    /* Fix padding and alignment for selected rows */
+    .client-row.table-primary td, .access-client-row.table-primary td {
+        padding: 0.75rem !important;
+        vertical-align: middle !important;
+        border-color: #f6b93b !important;
+    }
+
+    /* Ensure consistent row height */
+    .client-row, .access-client-row {
+        height: auto !important;
+    }
+
+    .client-row td, .access-client-row td {
+        padding: 0.75rem !important;
+        vertical-align: middle !important;
+    }
+
+    /* Store color coding for step 3 */
+    .store-card-primary {
+        border-color: #0d6efd !important;
+    }
+    .store-card-primary .card-header {
+        background-color: #0d6efd !important;
+    }
+    .store-card-primary .card-header .card-title {
+        color: #ffffff !important;
+    }
+    .store-card-primary .access-client-row.table-primary {
+        background-color: #0d6efd !important;
+    }
+    .store-card-primary .access-client-row.table-primary td {
+        border-color: none !important;
+    }
+
+    .store-card-success {
+        border-color: #198754 !important;
+    }
+    .store-card-success .card-header {
+        background-color: #198754 !important;
+    }
+    .store-card-success .card-header .card-title {
+        color: #ffffff !important;
+    }
+    .store-card-success .access-client-row.table-primary {
+        background-color: #198754 !important;
+    }
+    .store-card-success .access-client-row.table-primary td {
+        border-color: #198754 !important;
+    }
+
+    .store-card-warning {
+        border-color: #fd7e14 !important;
+    }
+    .store-card-warning .card-header {
+        background-color: #fd7e14 !important;
+    }
+    .store-card-warning .access-client-row.table-primary {
+        background-color: #fd7e14 !important;
+    }
+    .store-card-warning .access-client-row.table-primary td {
+        border-color: #fd7e14 !important;
+    }
+
+    .store-card-danger {
+        border-color: #dc3545 !important;
+    }
+    .store-card-danger .card-header {
+        background-color: #dc3545 !important;
+    }
+    .store-card-danger .card-header .card-title {
+        color: #ffffff !important;
+    }
+    .store-card-danger .access-client-row.table-primary {
+        background-color: #dc3545 !important;
+    }
+    .store-card-danger .access-client-row.table-primary td {
+        border-color: #dc3545 !important;
+    }
+
+    .store-card-info {
+        border-color: #0dcaf0 !important;
+    }
+    .store-card-info .card-header {
+        background-color: #0dcaf0 !important;
+    }
+    .store-card-info .access-client-row.table-primary {
+        background-color: #0dcaf0 !important;
+    }
+    .store-card-info .access-client-row.table-primary td {
+        border-color: #0dcaf0 !important;
+    }
+
+    .store-card-secondary {
+        border-color: #6c757d !important;
+    }
+    .store-card-secondary .card-header {
+        background-color: #6c757d !important;
+    }
+    .store-card-secondary .access-client-row.table-primary {
+        background-color: #6c757d !important;
+    }
+    .store-card-secondary .access-client-row.table-primary td {
+        border-color: #6c757d !important;
     }
 
     .table .bg-secondary, .table .bg-info {
@@ -547,7 +730,7 @@
         vertical-align: middle !important;
     }
 
-    .client-row.table-primary td .fw-bold {
+    .access-client-row.table-primary td .fw-bold, .client-row.table-primary td .fw-bold {
         color: #000 !important;
     }
 
@@ -777,7 +960,7 @@
 <script>
 $(document).ready(function() {
     let currentStep = 1;
-    const totalSteps = 3;
+    const totalSteps = 4;
     let selectedProducts = [];
     let currentProductsPage = 1;
     let currentStoreSearch = '';
@@ -790,6 +973,9 @@ $(document).ready(function() {
     let selectedClient = null;
     let currentClientsPage = 1;
     let clientSearchTimeout;
+
+    // Access clients selection variables
+    let selectedAccessClients = {}; // Object to store selected access clients by store
     let currentClientSearch = {
         firstName: '',
         middleName: '',
@@ -1061,15 +1247,6 @@ $(document).ready(function() {
 
         $(`#variants-${productId}`).html(html);
 
-        // Animate variant rows
-        setTimeout(() => {
-            $(`#variants-table-${productId} tbody tr`).each(function(index) {
-                $(this).css('opacity', '0').css('transform', 'translateY(10px)');
-                setTimeout(() => {
-                    $(this).css('transition', 'all 0.3s ease').css('opacity', '1').css('transform', 'translateY(0)');
-                }, index * 50);
-            });
-        }, 100);
 
         // Bind variant search functionality
         $(`#variant-search-${productId}`).on('input', function() {
@@ -1158,10 +1335,11 @@ $(document).ready(function() {
                                     variantName: variant.ecomVariantName,
                                     price: variant.ecomVariantPrice,
                                     productId: productId,
-                                    productName: variant.productName,
-                                    productStore: variant.product ? variant.product.productStore : 'Unknown Store',
-                                    quantity: 1,
-                                    maxOrderPerTransaction: variant.maxOrderPerTransaction || 1,
+            productName: variant.productName,
+            productStore: variant.product ? variant.product.productStore : 'Unknown Store',
+            productType: variant.product ? variant.product.productType : 'Unknown',
+            quantity: 1,
+            maxOrderPerTransaction: variant.maxOrderPerTransaction || 1,
                                     stocksAvailable: variant.stocksAvailable || 0
                                 });
 
@@ -1489,6 +1667,10 @@ $(document).ready(function() {
 
     // Handle quantity modal confirmation
     $('#confirmQuantityBtn').click(function() {
+        if (!currentVariantForModal || !currentVariantForModal.variant) {
+            return;
+        }
+
         const quantity = parseInt($('#quantityInput').val());
         const maxOrderPerTransaction = parseInt(currentVariantForModal.variant.maxOrderPerTransaction) || 1;
 
@@ -1521,6 +1703,7 @@ $(document).ready(function() {
             productId: currentVariantForModal.productId,
             productName: currentVariantForModal.variant.productName,
             productStore: currentVariantForModal.variant.product ? currentVariantForModal.variant.product.productStore : 'Unknown Store',
+            productType: currentVariantForModal.variant.product ? currentVariantForModal.variant.product.productType : 'Unknown',
             quantity: quantity,
             maxOrderPerTransaction: currentVariantForModal.variant.maxOrderPerTransaction || 1,
             stocksAvailable: currentVariantForModal.variant.stocksAvailable || 0
@@ -1541,6 +1724,11 @@ $(document).ready(function() {
     $('#quantityInput').on('input', function() {
         const quantity = parseInt($(this).val());
         const maxOrderPerTransaction = parseInt(currentVariantForModal?.variant?.maxOrderPerTransaction) || 1;
+
+        // Check if currentVariantForModal is valid
+        if (!currentVariantForModal || !currentVariantForModal.variant) {
+            return;
+        }
 
         $(this).removeClass('is-invalid');
         $('#quantityError').text('').hide();
@@ -1960,8 +2148,13 @@ $(document).ready(function() {
 
     // Show step
     function showStep(step) {
+        // Hide all steps first
         $('.wizard-step').addClass('d-none');
-        $(`#step-${step}`).removeClass('d-none');
+
+        // Show target step with slight delay for smooth transition
+        setTimeout(() => {
+            $(`#step-${step}`).removeClass('d-none');
+        }, 50);
 
         // Update progress bar
         const progress = (step / totalSteps) * 100;
@@ -1978,6 +2171,11 @@ $(document).ready(function() {
         if (step === 2) {
             showClientsLoading();
             loadClients(1, currentClientSearch);
+        }
+
+        // Load access products when step 3 is shown
+        if (step === 3) {
+            loadAccessProductsStores();
         }
     }
 
@@ -2027,6 +2225,11 @@ $(document).ready(function() {
         return isValid;
     }
 
+    // Previous button click
+    $('#prev-btn').click(function() {
+        showStep(currentStep - 1);
+    });
+
     // Next button click
     $('#next-btn').click(function() {
         if (validateStep(currentStep)) {
@@ -2034,10 +2237,6 @@ $(document).ready(function() {
         }
     });
 
-    // Previous button click
-    $('#prev-btn').click(function() {
-        showStep(currentStep - 1);
-    });
 
     // Form submission
     $('#order-wizard-form').submit(function(e) {
@@ -2333,12 +2532,608 @@ $(document).ready(function() {
 
     // ===== END CLIENT SEARCH FUNCTIONS =====
 
+    // Add New Client Modal functionality
+    $('#add-new-client-btn').on('click', function() {
+        $('#addNewClientModal').modal('show');
+        // Clear form
+        const form = $('#addNewClientForm')[0];
+        if (form) {
+            form.reset();
+        }
+        // Remove validation classes
+        $('#addNewClientForm .form-control').removeClass('is-valid is-invalid');
+        $('#addNewClientForm .invalid-feedback').text('');
+    });
+
+    // Dynamic phone number validation
+    let phoneValidationTimeout;
+    $('#newClientPhoneNumber').on('input', function() {
+        const phoneNumber = $(this).val().trim();
+
+        // Clear previous timeout
+        clearTimeout(phoneValidationTimeout);
+
+        // Remove previous validation classes
+        $(this).removeClass('is-valid is-invalid');
+        $(this).siblings('.invalid-feedback').text('');
+
+        // Only validate if phone number is not empty and has correct format
+        if (phoneNumber && isValidPhoneNumber(phoneNumber)) {
+            // Set timeout to avoid too many AJAX calls
+            phoneValidationTimeout = setTimeout(function() {
+                checkPhoneNumberUniqueness(phoneNumber);
+            }, 500);
+        }
+    });
+
+    // Save new client
+    $('#saveNewClientBtn').on('click', async function() {
+        const form = $('#addNewClientForm');
+        const formData = {
+            clientFirstName: $('#newClientFirstName').val().trim(),
+            clientMiddleName: $('#newClientMiddleName').val().trim(),
+            clientLastName: $('#newClientLastName').val().trim(),
+            clientPhoneNumber: $('#newClientPhoneNumber').val().trim(),
+            clientEmailAddress: $('#newClientEmailAddress').val().trim()
+        };
+
+        // Dynamic validation - all fields are required
+        let isValid = true;
+        const allFields = ['clientFirstName', 'clientMiddleName', 'clientLastName', 'clientPhoneNumber', 'clientEmailAddress'];
+
+        // Clear previous validation
+        form.find('.form-control').removeClass('is-valid is-invalid');
+        form.find('.invalid-feedback').text('');
+
+        // Validate all fields are required
+        allFields.forEach(function(field) {
+            const input = $(`#newClient${field.charAt(0).toUpperCase() + field.slice(1)}`);
+            if (!formData[field]) {
+                input.addClass('is-invalid');
+                input.siblings('.invalid-feedback').text('This field is required.');
+                isValid = false;
+            }
+        });
+
+        // Validate phone number format (09XXXXXXXXX or +63XXXXXXXXX)
+        if (formData.clientPhoneNumber && !isValidPhoneNumber(formData.clientPhoneNumber)) {
+            $('#newClientPhoneNumber').addClass('is-invalid');
+            $('#newClientPhoneNumber').siblings('.invalid-feedback').text('Phone number must start with 09 or +63 followed by 9 digits.');
+            isValid = false;
+        }
+
+        // Check phone number uniqueness (this will be handled by backend validation as well)
+        if (formData.clientPhoneNumber && isValidPhoneNumber(formData.clientPhoneNumber)) {
+            // Check if phone number already exists
+            const phoneCheckResult = await checkPhoneNumberUniquenessSync(formData.clientPhoneNumber);
+            if (phoneCheckResult && phoneCheckResult.exists) {
+                $('#newClientPhoneNumber').addClass('is-invalid');
+                $('#newClientPhoneNumber').siblings('.invalid-feedback').text('This phone number already exists and cannot be added.');
+                isValid = false;
+            }
+        }
+
+        // Validate email format
+        if (formData.clientEmailAddress && !isValidEmail(formData.clientEmailAddress)) {
+            $('#newClientEmailAddress').addClass('is-invalid');
+            $('#newClientEmailAddress').siblings('.invalid-feedback').text('Please enter a valid email address.');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            return;
+        }
+
+        // Show loading state with dynamic loader
+        const saveBtn = $('#saveNewClientBtn');
+        const originalText = saveBtn.html();
+        saveBtn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Saving...');
+
+        // Add loading overlay to modal
+        const modalBody = $('#addNewClientModal .modal-body');
+        const loadingOverlay = $(`
+            <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center"
+                 style="top: 0; left: 0; background: rgba(255,255,255,0.8); z-index: 1050;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="text-muted">Saving client...</div>
+                </div>
+            </div>
+        `);
+        modalBody.css('position', 'relative').append(loadingOverlay);
+
+        // Send AJAX request
+        $.ajax({
+            url: '<?php echo e(route("ecom-orders-custom-add.clients.store")); ?>',
+            type: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Show success notification
+                    showClientNotification('Client added successfully!');
+
+                    // Clear form
+                    const form = $('#addNewClientForm')[0];
+                    if (form) {
+                        form.reset();
+                    }
+                    // Remove validation classes
+                    $('#addNewClientForm .form-control').removeClass('is-valid is-invalid');
+                    $('#addNewClientForm .invalid-feedback').text('');
+
+                    // Close modal
+                    $('#addNewClientModal').modal('hide');
+
+                    // Refresh clients list
+                    loadClients(1, {});
+
+                    // Auto-select the new client
+                    setTimeout(function() {
+                        selectClient(response.client.id, response.client.fullName, response.client.clientPhoneNumber, response.client.clientEmailAddress);
+                    }, 500);
+                } else {
+                    showClientNotification('Error: ' + (response.message || 'Failed to add client'), 'error');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to add client';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    // Handle validation errors
+                    const errors = xhr.responseJSON.errors;
+                    Object.keys(errors).forEach(function(field) {
+                        const input = $(`#newClient${field.charAt(0).toUpperCase() + field.slice(1)}`);
+                        input.addClass('is-invalid');
+                        input.siblings('.invalid-feedback').text(errors[field][0]);
+                    });
+                    return; // Don't show notification for validation errors
+                }
+                showClientNotification('Error: ' + errorMessage, 'error');
+            },
+            complete: function() {
+                // Remove loading overlay
+                modalBody.find('.position-absolute').remove();
+                modalBody.css('position', '');
+
+                // Restore button state
+                saveBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // Email validation helper
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Phone number validation helper (09XXXXXXXXX or +63XXXXXXXXX)
+    function isValidPhoneNumber(phone) {
+        // Remove any spaces or dashes
+        const cleanPhone = phone.replace(/[\s-]/g, '');
+
+        // Check if it starts with 09 followed by 9 digits (total 11 digits)
+        const format09 = /^09\d{9}$/;
+
+        // Check if it starts with +63 followed by 9 digits (total 13 characters)
+        const formatPlus63 = /^\+63\d{9}$/;
+
+        return format09.test(cleanPhone) || formatPlus63.test(cleanPhone);
+    }
+
+    // Check phone number uniqueness (async for real-time validation)
+    function checkPhoneNumberUniqueness(phoneNumber) {
+        $.ajax({
+            url: '<?php echo e(route("ecom-orders-custom-add.clients.check-phone")); ?>',
+            type: 'GET',
+            data: { phone_number: phoneNumber },
+            success: function(response) {
+                if (response.success) {
+                    const phoneInput = $('#newClientPhoneNumber');
+                    if (response.exists) {
+                        phoneInput.addClass('is-invalid');
+                        phoneInput.siblings('.invalid-feedback').text('This phone number already exists and cannot be added.');
+                    } else {
+                        phoneInput.addClass('is-valid');
+                        phoneInput.siblings('.invalid-feedback').text('');
+                    }
+                }
+            },
+            error: function() {
+                // Don't show error for uniqueness check failures
+                console.log('Phone number uniqueness check failed');
+            }
+        });
+    }
+
+    // Check phone number uniqueness (sync for form submission)
+    function checkPhoneNumberUniquenessSync(phoneNumber) {
+        return new Promise(function(resolve, reject) {
+            $.ajax({
+                url: '<?php echo e(route("ecom-orders-custom-add.clients.check-phone")); ?>',
+                type: 'GET',
+                data: { phone_number: phoneNumber },
+                success: function(response) {
+                    resolve(response);
+                },
+                error: function() {
+                    resolve({ success: false, exists: false });
+                }
+            });
+        });
+    }
+
+
+    // Show client notification function
+    function showClientNotification(message, type = 'success') {
+        const notificationArea = $('#client-notification-area');
+        const notificationMessage = $('#client-notification-message');
+        const alertDiv = notificationArea.find('.alert');
+
+        // Set message
+        notificationMessage.text(message);
+
+        // Set alert type
+        alertDiv.removeClass('alert-success alert-danger alert-warning alert-info');
+        if (type === 'error') {
+            alertDiv.addClass('alert-danger');
+            alertDiv.find('i').removeClass('mdi-check-circle').addClass('mdi-alert-circle');
+        } else {
+            alertDiv.addClass('alert-success');
+            alertDiv.find('i').removeClass('mdi-alert-circle').addClass('mdi-check-circle');
+        }
+
+        // Show notification
+        notificationArea.show();
+
+        // Auto-hide after 5 seconds for success messages
+        if (type === 'success') {
+            setTimeout(function() {
+                notificationArea.fadeOut();
+            }, 5000);
+        }
+    }
+
+    // Load access clients by store for step 3
+    function loadAccessProductsStores() {
+        const accessProducts = selectedProducts.filter(product => {
+            // Check if product type is 'access' - you may need to adjust this based on your data structure
+            return product.productType === 'access' || product.productType === 'Access';
+        });
+
+        if (accessProducts.length === 0) {
+            $('#no-access-products').show();
+            $('#access-stores-container').hide();
+            return;
+        }
+
+        // Get unique stores from access products
+        const uniqueStores = [...new Set(accessProducts.map(product => product.productStore || 'Unknown Store'))];
+
+        // Display stores and load clients for each store
+        let storesHtml = '';
+        const colorClasses = ['store-card-primary', 'store-card-success', 'store-card-warning', 'store-card-danger', 'store-card-info', 'store-card-secondary'];
+
+        uniqueStores.forEach((store, index) => {
+            const colorClass = colorClasses[index % colorClasses.length];
+            const storeId = store.replace(/\s+/g, '-').toLowerCase();
+            storesHtml += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card ${colorClass}">
+                            <div class="card-header text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="mdi mdi-store me-2"></i>${store}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Store Actions -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="create-access-${storeId}">
+                                            <i class="mdi mdi-account-plus me-1"></i>Create New Access
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">
+                                                <i class="mdi mdi-magnify"></i>
+                                            </span>
+                                            <input type="text" class="form-control" id="search-${storeId}" placeholder="Search by name, phone, or email...">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Access Clients Table -->
+                                <div class="mb-3">
+                                    <label class="form-label">Access Clients for ${store}</label>
+                                    <div id="access-clients-${storeId}" class="table-responsive">
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p class="mt-2 text-muted">Loading access clients...</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div id="pagination-${storeId}" class="d-flex justify-content-between align-items-center">
+                                    <!-- Pagination will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        $('#access-stores-container').html(storesHtml);
+        $('#no-access-products').hide();
+        $('#access-stores-container').show();
+
+        // Load access clients for each store
+        uniqueStores.forEach(store => {
+            loadAccessClientsForStore(store);
+        });
+
+        // Add event listeners for search and create access buttons
+        uniqueStores.forEach(store => {
+            const storeId = store.replace(/\s+/g, '-').toLowerCase();
+
+            // Search functionality
+            $(`#search-${storeId}`).on('input', function() {
+                const searchTerm = $(this).val();
+                clearTimeout(window[`searchTimeout_${storeId}`]);
+                window[`searchTimeout_${storeId}`] = setTimeout(() => {
+                    loadAccessClientsForStore(store, 1, searchTerm);
+                }, 500);
+            });
+
+            // Create access button
+            $(`#create-access-${storeId}`).on('click', function() {
+                // TODO: Implement create access functionality
+                alert(`Create New Access for ${store} - This functionality will be implemented later.`);
+            });
+        });
+    }
+
+    // Store pagination and search data
+    let storeData = {}; // Store data for each store
+
+    // Load access clients for a specific store
+    function loadAccessClientsForStore(store, page = 1, search = '') {
+        const storeId = store.replace(/\s+/g, '-').toLowerCase();
+        const containerId = `#access-clients-${storeId}`;
+        const paginationId = `#pagination-${storeId}`;
+
+        // Show loading state
+        showStoreLoading(containerId);
+
+        $.ajax({
+            url: '<?php echo e(route("ecom-orders-custom-add.access-clients")); ?>',
+            type: 'GET',
+            data: {
+                productStore: store,
+                page: page,
+                per_page: 20,
+                search: search
+            },
+            success: function(response) {
+                if (response.success && response.data) {
+                    // Store the data for this store
+                    storeData[storeId] = {
+                        clients: response.data,
+                        currentPage: page,
+                        totalPages: response.last_page || 1,
+                        search: search,
+                        total: response.total || response.data.length
+                    };
+
+                    displayAccessClients(containerId, response.data, store);
+                    displayPagination(paginationId, storeId, page, response.last_page || 1);
+                } else {
+                    $(containerId).html(`
+                        <div class="text-center py-3">
+                            <i class="mdi mdi-account-off text-muted" style="font-size: 2rem;"></i>
+                            <p class="text-muted mt-2">No access clients found for ${store}</p>
+                        </div>
+                    `);
+                    $(paginationId).html('');
+                }
+            },
+            error: function() {
+                $(containerId).html(`
+                    <div class="text-center py-3">
+                        <i class="mdi mdi-alert-circle text-danger" style="font-size: 2rem;"></i>
+                        <p class="text-danger mt-2">Error loading access clients</p>
+                    </div>
+                `);
+                $(paginationId).html('');
+            }
+        });
+    }
+
+    // Show loading state for store
+    function showStoreLoading(containerId) {
+        $(containerId).html(`
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading access clients...</p>
+            </div>
+        `);
+    }
+
+    // Display pagination
+    function displayPagination(containerId, storeId, currentPage, totalPages) {
+        if (totalPages <= 1) {
+            $(containerId).html('');
+            return;
+        }
+
+        let paginationHtml = `
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    Page ${currentPage} of ${totalPages}
+                </small>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+        `;
+
+        // Previous button
+        if (currentPage > 1) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changeStorePage('${storeId}', ${currentPage - 1})">
+                        <i class="mdi mdi-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changeStorePage('${storeId}', ${i})">${i}</a>
+                </li>
+            `;
+        }
+
+        // Next button
+        if (currentPage < totalPages) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changeStorePage('${storeId}', ${currentPage + 1})">
+                        <i class="mdi mdi-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+        }
+
+        paginationHtml += `
+                    </ul>
+                </nav>
+            </div>
+        `;
+
+        $(containerId).html(paginationHtml);
+    }
+
+    // Change store page
+    window.changeStorePage = function(storeId, page) {
+        const store = storeId.replace(/-/g, ' ');
+        const searchTerm = storeData[storeId] ? storeData[storeId].search : '';
+        loadAccessClientsForStore(store, page, searchTerm);
+    }
+
+
+    // Display access clients in a table
+    function displayAccessClients(containerId, clients, store) {
+        if (clients.length === 0) {
+            $(containerId).html('<div class="text-center py-3 text-muted">No access clients available for this store</div>');
+            return;
+        }
+
+        let html = `
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        clients.forEach(function(client) {
+            const fullName = `${client.clientFirstName || ''} ${client.clientMiddleName || ''} ${client.clientLastName || ''}`.trim();
+            const isSelected = selectedAccessClients && selectedAccessClients[store] && selectedAccessClients[store].id === client.id;
+
+            html += `
+                <tr class="access-client-row ${isSelected ? 'table-primary' : ''}" data-client-id="${client.id}" data-store="${store}">
+                    <td>
+                        <div class="fw-bold">${fullName}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">${client.clientPhoneNumber || 'N/A'}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">${client.clientEmailAddress || 'N/A'}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-outline-primary'}"
+                                onclick="selectAccessClient(${client.id}, '${fullName.replace(/'/g, "\\'")}', '${client.clientPhoneNumber || ''}', '${client.clientEmailAddress || ''}', '${store}')"
+                                title="${isSelected ? 'Selected' : 'Select Access Client'}">
+                            <i class="mdi ${isSelected ? 'mdi-check' : 'mdi-account-plus'}"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        $(containerId).html(html);
+    }
+
+    // Select access client function
+    window.selectAccessClient = function(clientId, fullName, phone, email, store) {
+        const selectedRow = $(`.access-client-row[data-client-id="${clientId}"][data-store="${store}"]`);
+        const isCurrentlySelected = selectedAccessClients[store] && selectedAccessClients[store].id === clientId;
+
+        if (isCurrentlySelected) {
+            // Deselect client
+            selectedRow.removeClass('table-primary');
+            selectedRow.find('button').removeClass('btn-success').addClass('btn-outline-primary');
+            selectedRow.find('button i').removeClass('mdi-check').addClass('mdi-account-plus');
+            selectedRow.find('button').attr('title', 'Select Access Client');
+
+            // Remove from selected access clients
+            delete selectedAccessClients[store];
+        } else {
+            // Remove previous selection for this store
+            $(`.access-client-row[data-store="${store}"]`).removeClass('table-primary');
+            $(`.access-client-row[data-store="${store}"] button`).removeClass('btn-success').addClass('btn-outline-primary');
+            $(`.access-client-row[data-store="${store}"] button i`).removeClass('mdi-check').addClass('mdi-account-plus');
+            $(`.access-client-row[data-store="${store}"] button`).attr('title', 'Select Access Client');
+
+            // Select new client
+            selectedRow.addClass('table-primary');
+            selectedRow.find('button').removeClass('btn-outline-primary').addClass('btn-success');
+            selectedRow.find('button i').removeClass('mdi-account-plus').addClass('mdi-check');
+            selectedRow.find('button').attr('title', 'Selected');
+
+            // Store selected access client
+            selectedAccessClients[store] = {
+                id: clientId,
+                fullName: fullName,
+                phone: phone,
+                email: email,
+                store: store
+            };
+        }
+    };
+
     // Initialize
     showStep(1);
     showProductsLoading(); // Show loading indicator
     loadProducts(); // Load products on page load
 });
 </script>
+
 <?php $__env->stopSection(); ?>
 
 
