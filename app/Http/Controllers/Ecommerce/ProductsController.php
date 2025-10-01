@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EcomProduct;
 use App\Models\EcomProductVariant;
 use App\Models\EcomProductDiscount;
+use App\Models\EcomProductStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -52,7 +53,10 @@ class ProductsController extends Controller
      */
     public function create()
     {
-        return view('ecommerce.products.create');
+        // Get active stores for the dropdown
+        $stores = EcomProductStore::active()->orderBy('storeName')->get();
+
+        return view('ecommerce.products.create', compact('stores'));
     }
 
     /**
@@ -841,7 +845,10 @@ class ProductsController extends Controller
                 ->with('error', 'Product not found.');
         }
 
-        return view('ecommerce.products.edit', compact('product'));
+        // Get active stores for the dropdown
+        $stores = EcomProductStore::active()->orderBy('storeName')->get();
+
+        return view('ecommerce.products.edit', compact('product', 'stores'));
     }
 
     /**

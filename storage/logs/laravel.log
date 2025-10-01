@@ -10065,3 +10065,4 @@ Stack trace:
 #18 C:\\xampp\\htdocs\\btc-check\\public\\index.php(55): Illuminate\\Foundation\\Http\\Kernel->terminate(Object(Illuminate\\Http\\Request), Object(Illuminate\\Http\\JsonResponse))
 #19 {main}
 "} 
+[2025-10-01 22:28:12] local.INFO: Login attempt {"email":"wehelp.digital@gmail.com","user_found":true,"delete_status":"active","password_check":true} 

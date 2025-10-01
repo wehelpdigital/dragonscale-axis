@@ -149,6 +149,12 @@
                                 <span key="t-orders">Orders</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="{{ route('ecom-shipping') }}" class="waves-effect">
+                                <i class="bx bx-car"></i>
+                                <span key="t-shipping">Shipping</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 

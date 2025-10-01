@@ -49,15 +49,17 @@
                             </div>
 
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="productStore" class="form-label">Product Store <span class="text-danger">*</span></label>
-                                    <select class="form-select @error('productStore') is-invalid @enderror"
-                                            id="productStore" name="productStore">
-                                        <option value="">Select a store</option>
-                                        <option value="Ani-Senso" {{ old('productStore', $product->productStore) == 'Ani-Senso' ? 'selected' : '' }}>Ani-Senso</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="productStoreError"></div>
-                                </div>
+                            <div class="mb-3">
+                                <label for="productStore" class="form-label">Product Store <span class="text-danger">*</span></label>
+                                <select class="form-select @error('productStore') is-invalid @enderror"
+                                        id="productStore" name="productStore">
+                                    <option value="">Select a store</option>
+                                    @foreach($stores as $store)
+                                        <option value="{{ $store->storeName }}" {{ old('productStore', $product->productStore) == $store->storeName ? 'selected' : '' }}>{{ $store->storeName }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback" id="productStoreError"></div>
+                            </div>
                             </div>
                         </div>
 

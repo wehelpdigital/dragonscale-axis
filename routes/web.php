@@ -190,6 +190,8 @@ Route::get('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\Or
 Route::post('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'storeClient'])->name('ecom-orders-custom-add.clients.store')->middleware('auth');
 Route::get('/ecom-orders-custom-add/clients/check-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkPhoneNumber'])->name('ecom-orders-custom-add.clients.check-phone')->middleware('auth');
 Route::get('/ecom-orders-custom-add/access-clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getAccessClients'])->name('ecom-orders-custom-add.access-clients')->middleware('auth');
+Route::get('/ecom-orders-custom-add/check-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkAccessPhone'])->name('ecom-orders-custom-add.check-phone')->middleware('auth');
+Route::post('/ecom-orders-custom-add/save-access', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'saveAccess'])->name('ecom-orders-custom-add.save-access')->middleware('auth');
 
 // E-commerce product discounts routes
 Route::get('/ecom-products-discounts', [App\Http\Controllers\Ecommerce\ProductsController::class, 'discounts'])->name('ecom-products.discounts')->middleware('auth');
@@ -199,6 +201,9 @@ Route::get('/ecom-products-discounts-edit', [App\Http\Controllers\Ecommerce\Prod
 Route::put('/ecom-products-discounts-update', [App\Http\Controllers\Ecommerce\ProductsController::class, 'updateDiscount'])->name('ecom-products.discounts.update')->middleware('auth');
 Route::get('/ecom-products-discounts-view', [App\Http\Controllers\Ecommerce\ProductsController::class, 'viewDiscount'])->name('ecom-products.discounts.view')->middleware('auth');
 Route::delete('/ecom-products-discounts-delete', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteDiscount'])->name('ecom-products.discounts.delete')->middleware('auth');
+
+// E-commerce shipping routes
+Route::get('/ecom-shipping', [App\Http\Controllers\Ecommerce\ShippingController::class, 'index'])->name('ecom-shipping')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

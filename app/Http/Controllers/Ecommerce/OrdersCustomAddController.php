@@ -214,9 +214,15 @@ class OrdersCustomAddController extends Controller
 
         $products = $query->paginate($perPage, ['*'], 'page', $page);
 
+        // Transform products to include productType
+        $transformedProducts = $products->items();
+        foreach ($transformedProducts as $product) {
+            $product->productType = $product->productType ?? 'N/A';
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $products->items(),
+            'data' => $transformedProducts,
             'pagination' => [
                 'current_page' => $products->currentPage(),
                 'last_page' => $products->lastPage(),
@@ -561,6 +567,190 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create client: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if phone number already exists in clients_access_login table
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkAccessPhone(Request $request)
+    {
+        $phone = $request->get('phone');
+        $store = $request->get('store');
+
+        if (empty($phone) || empty($store)) {
+            return response()->json([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Phone number and store are required'
+            ]);
+        }
+
+        try {
+            // Normalize the input phone number
+            $normalizedPhone = $this->normalizePhoneNumber($phone);
+
+            // Generate all possible formats to check against database
+            $possibleFormats = $this->generatePhoneFormats($normalizedPhone);
+
+            // Check if any of the possible formats exist in the database
+            $exists = DB::table('clients_access_login')
+                ->where('deleteStatus', 1)
+                ->where('productStore', $store)
+                ->whereIn('clientPhoneNumber', $possibleFormats)
+                ->exists();
+
+            return response()->json([
+                'success' => true,
+                'exists' => $exists,
+                'message' => $exists ? 'Phone number already exists for this store' : 'Phone number is available'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Error checking phone number: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Normalize phone number to standard format (09661123355)
+     *
+     * @param string $phoneNumber
+     * @return string
+     */
+    private function normalizePhoneNumber($phoneNumber)
+    {
+        if (empty($phoneNumber)) return '';
+
+        // Remove all non-digit characters except +
+        $cleaned = preg_replace('/[^\d+]/', '', $phoneNumber);
+
+        // Handle different formats and convert to 09 format
+        if (str_starts_with($cleaned, '+63')) {
+            // +639661123355 -> 09661123355
+            return '0' . substr($cleaned, 3);
+        } elseif (str_starts_with($cleaned, '63') && strlen($cleaned) === 12) {
+            // 639661123355 -> 09661123355
+            return '0' . substr($cleaned, 2);
+        } elseif (str_starts_with($cleaned, '09') && strlen($cleaned) === 11) {
+            // 09661123355 -> 09661123355 (already correct)
+            return $cleaned;
+        } elseif (str_starts_with($cleaned, '9') && strlen($cleaned) === 10) {
+            // 9661123355 -> 09661123355
+            return '0' . $cleaned;
+        }
+
+        return $cleaned;
+    }
+
+    /**
+     * Generate all possible phone number formats for database comparison
+     *
+     * @param string $normalizedPhone (format: 09661123355)
+     * @return array
+     */
+    private function generatePhoneFormats($normalizedPhone)
+    {
+        if (empty($normalizedPhone) || strlen($normalizedPhone) !== 11 || !str_starts_with($normalizedPhone, '09')) {
+            return [];
+        }
+
+        $last10Digits = substr($normalizedPhone, 1); // Remove '0' prefix to get 9661123355
+
+        return [
+            $normalizedPhone,                    // 09661123355
+            '63' . $last10Digits,                // 639661123355
+            '+' . '63' . $last10Digits,          // +639661123355
+            $last10Digits,                       // 9661123355
+        ];
+    }
+
+    /**
+     * Save access client to clients_access_login table
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveAccess(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phoneNumber' => 'required|string|max:20',
+            'email' => 'required|email|max:255',
+            'firstName' => 'required|string|max:255',
+            'middleName' => 'required|string|max:255',
+            'lastName' => 'required|string|max:255',
+            'password' => 'required|string|min:8',
+            'store' => 'required|string|max:255'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Generate all possible phone formats for storage
+            $normalizedPhone = $this->normalizePhoneNumber($request->phoneNumber);
+            $possibleFormats = $this->generatePhoneFormats($normalizedPhone);
+
+            // Check if phone already exists (double check)
+            $exists = DB::table('clients_access_login')
+                ->where('deleteStatus', 1)
+                ->where('productStore', $request->store)
+                ->whereIn('clientPhoneNumber', $possibleFormats)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phone number already exists for this store'
+                ], 409);
+            }
+
+            // Create the access client record
+            DB::table('clients_access_login')->insert([
+                'clientPhoneNumber' => $normalizedPhone, // Store in normalized format
+                'clientEmailAddress' => $request->email,
+                'clientFirstName' => $request->firstName,
+                'clientMiddleName' => $request->middleName,
+                'clientLastName' => $request->lastName,
+                'clientPassword' => bcrypt($request->password), // Hash the password
+                'productStore' => $request->store,
+                'deleteStatus' => 1, // Active status
+                'isActive' => 1, // Active status
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Get the last inserted ID
+            $accessClientId = DB::getPdo()->lastInsertId();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Access client created successfully',
+                'data' => [
+                    'id' => $accessClientId,
+                    'phoneNumber' => $normalizedPhone,
+                    'email' => $request->email,
+                    'fullName' => trim($request->firstName . ' ' . $request->middleName . ' ' . $request->lastName),
+                    'store' => $request->store
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create access client: ' . $e->getMessage()
             ], 500);
         }
     }

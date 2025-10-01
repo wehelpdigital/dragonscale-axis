@@ -63,7 +63,9 @@ endif;
 unset($__errorArgs, $__bag); ?>"
                                         id="productStore" name="productStore">
                                     <option value="">Select a store</option>
-                                    <option value="Ani-Senso" <?php echo e(old('productStore') == 'Ani-Senso' ? 'selected' : ''); ?>>Ani-Senso</option>
+                                    <?php $__currentLoopData = $stores; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $store): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($store->storeName); ?>" <?php echo e(old('productStore') == $store->storeName ? 'selected' : ''); ?>><?php echo e($store->storeName); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </select>
                                 <div class="invalid-feedback" id="productStoreError"></div>
                             </div>

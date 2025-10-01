@@ -51,7 +51,9 @@
                                 <select class="form-select @error('productStore') is-invalid @enderror"
                                         id="productStore" name="productStore">
                                     <option value="">Select a store</option>
-                                    <option value="Ani-Senso" {{ old('productStore') == 'Ani-Senso' ? 'selected' : '' }}>Ani-Senso</option>
+                                    @foreach($stores as $store)
+                                        <option value="{{ $store->storeName }}" {{ old('productStore') == $store->storeName ? 'selected' : '' }}>{{ $store->storeName }}</option>
+                                    @endforeach
                                 </select>
                                 <div class="invalid-feedback" id="productStoreError"></div>
                             </div>

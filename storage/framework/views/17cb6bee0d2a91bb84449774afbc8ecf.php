@@ -33,6 +33,8 @@
                                 <small class="text-muted">Step 1: Product Selection</small>
                                 <small class="text-muted">Step 2: Client Details</small>
                                 <small class="text-muted">Step 3: Client Logins</small>
+                                <small class="text-muted">Step 4: Shipping</small>
+                                <small class="text-muted">Step 5: Final Step</small>
                             </div>
                         </div>
                     </div>
@@ -102,7 +104,7 @@
                                     <div class="col-12">
                                         <div class="card border-success">
                                             <div class="card-header bg-success text-white rounded-top">
-                                                <h6 class="card-title mb-0" style="color: #fff !important;">
+                                                <h6 class="card-title mb-0" style="color: #000 !important;">
                                                     <i class="mdi mdi-cart me-2"></i>Selected Products
                                                 </h6>
                                             </div>
@@ -357,19 +359,29 @@
 
             <!-- No Access Products Message -->
             <div id="no-access-products" class="text-center py-5" style="display: none;">
-                <i class="mdi mdi-account-key display-4 text-muted mb-3"></i>
+                <i class="mdi mdi-skip-next display-4 text-muted mb-3"></i>
                 <h6 class="text-muted">No Access Products Selected</h6>
-                <p class="text-muted">No access-type products were selected in step 1. No login accounts are needed.</p>
+                <p class="text-muted">You are not buying any access type products, so skip this test.</p>
             </div>
 
         </div>
 
-        <!-- Step 4: Final Step -->
+        <!-- Step 4: Shipping -->
         <div class="wizard-step d-none" id="step-4">
+            <h5 class="mb-3">Shipping</h5>
+            <div class="text-center py-5">
+                <i class="mdi mdi-truck display-4 text-info mb-3"></i>
+                <h6 class="text-muted">Shipping Information</h6>
+                <p class="text-muted">This step will be implemented later.</p>
+            </div>
+        </div>
+
+        <!-- Step 5: Final Step -->
+        <div class="wizard-step d-none" id="step-5">
             <h5 class="mb-3">Final Step</h5>
             <div class="text-center py-5">
                 <i class="mdi mdi-check-circle display-4 text-success mb-3"></i>
-                <h6 class="text-muted">Step 4 Content</h6>
+                <h6 class="text-muted">Step 5 Content</h6>
                 <p class="text-muted">This step will be implemented later.</p>
             </div>
         </div>
@@ -540,6 +552,114 @@
                 <div class="modal-footer">
                     <a href="<?php echo e(route('ecom-orders')); ?>" class="btn btn-primary">View Orders</a>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store Products Modal -->
+    <div class="modal fade" id="storeProductsModal" tabindex="-1" aria-labelledby="storeProductsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="storeProductsModalLabel">Products for Store</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="storeProductsContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading products...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert Modal -->
+    <div class="modal fade" id="errorAlertModal" tabindex="-1" aria-labelledby="errorAlertModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="errorAlertModalLabel">
+                        <i class="mdi mdi-alert-circle me-2"></i>Validation Error
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="mdi mdi-alert-circle text-danger" style="font-size: 3rem;"></i>
+                        <h6 class="mt-3" id="errorAlertMessage">Please check your input and try again.</h6>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                        <i class="mdi mdi-check me-1"></i>OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Access Modal -->
+    <div class="modal fade" id="createAccessModal" tabindex="-1" aria-labelledby="createAccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createAccessModalLabel">Create New Access</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createAccessForm">
+                        <div class="mb-3">
+                            <label for="accessPhoneNumber" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="accessPhoneNumber" name="phoneNumber" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessEmail" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="accessEmail" name="email" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessFirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="accessFirstName" name="firstName" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessMiddleName" class="form-label">Middle Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="accessMiddleName" name="middleName" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessLastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="accessLastName" name="lastName" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="accessPassword" name="password" required>
+                            <div class="invalid-feedback"></div>
+                            <div class="form-text">
+                                <small class="text-muted">Password must be at least 8 characters with uppercase, lowercase, number, and special character</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="accessConfirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="accessConfirmPassword" name="confirmPassword" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveAccessBtn">Save Access</button>
                 </div>
             </div>
         </div>
@@ -960,7 +1080,7 @@
 <script>
 $(document).ready(function() {
     let currentStep = 1;
-    const totalSteps = 4;
+    const totalSteps = 5;
     let selectedProducts = [];
     let currentProductsPage = 1;
     let currentStoreSearch = '';
@@ -1105,7 +1225,10 @@ $(document).ready(function() {
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-1">${product.productName}</h6>
-                                <small class="text-muted">${product.productStore}</small>
+                                <div class="d-flex align-items-center gap-2">
+                                    <small class="text-muted">${product.productStore}</small>
+                                    <span class="badge bg-info text-white">${product.productType || 'N/A'}</span>
+                                </div>
                             </div>
                             <button class="btn btn-sm btn-outline-primary" onclick="toggleProductVariants(${product.id})">
                                 <i class="mdi mdi-chevron-down" id="chevron-${product.id}"></i>
@@ -1438,9 +1561,12 @@ $(document).ready(function() {
                         <div>
                             <small class="fw-bold text-primary">${item.productName || 'Unknown Product'}</small><br>
                             <small class="fw-bold">${item.variantName}</small><br>
-                            <small class="text-muted">
-                                <i class="mdi mdi-store me-1"></i>${item.productStore || 'Unknown Store'}
-                            </small><br>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <small class="text-muted">
+                                    <i class="mdi mdi-store me-1"></i>${item.productStore || 'Unknown Store'}
+                                </small>
+                                <span class="badge bg-info text-white" style="font-size: 0.7em;">${item.productType || 'N/A'}</span>
+                            </div>
                             <small class="text-success fw-bold">₱${parseFloat(item.price).toFixed(2)}</small>
                             <br><small class="text-info" title="Maximum quantity allowed for this product">Max: ${maxOrderPerTransaction}</small>
                         </div>
@@ -2209,7 +2335,7 @@ $(document).ready(function() {
         // Special validation for step 1 - check if products are selected
         if (step === 1) {
             if (selectedProducts.length === 0) {
-                showAlert('error', 'Please select at least one product before proceeding.');
+                showErrorAlertModal('Please select at least one product before proceeding.');
                 isValid = false;
             }
         }
@@ -2217,8 +2343,35 @@ $(document).ready(function() {
         // Special validation for step 2 - check if client is selected
         if (step === 2) {
             if (!selectedClient) {
-                showAlert('error', 'Please select a client before proceeding.');
+                showErrorAlertModal('Please select a client before proceeding.');
                 isValid = false;
+            }
+        }
+
+        // Special validation for step 3 - check if access clients are selected for each store
+        if (step === 3) {
+            // Get access products (products with type 'access')
+            const accessProducts = selectedProducts.filter(product =>
+                product.productType === 'access' || product.productType === 'Access'
+            );
+
+            if (accessProducts.length > 0) {
+                // Get unique stores from access products
+                const uniqueStores = [...new Set(accessProducts.map(product => product.productStore))];
+
+                // Check if each store has a selected access client
+                const storesWithoutClients = [];
+                uniqueStores.forEach(store => {
+                    if (!selectedAccessClients[store]) {
+                        storesWithoutClients.push(store);
+                    }
+                });
+
+                if (storesWithoutClients.length > 0) {
+                    const storeList = storesWithoutClients.join(', ');
+                    showErrorAlertModal(`Please select access clients for the following stores: ${storeList}`);
+                    isValid = false;
+                }
             }
         }
 
@@ -2270,7 +2423,7 @@ $(document).ready(function() {
                     $('#order-wizard-form')[0].reset();
                     showStep(1);
                 } else {
-                    showAlert('error', response.message || 'Failed to create order');
+                    showErrorAlertModal(response.message || 'Failed to create order');
                 }
             },
             error: function(xhr) {
@@ -2282,9 +2435,9 @@ $(document).ready(function() {
                         $field.addClass('is-invalid');
                         $field.siblings('.invalid-feedback').text(response.errors[field][0]);
                     });
-                    showAlert('error', 'Please fix the validation errors');
+                    showErrorAlertModal('Please fix the validation errors');
                 } else {
-                    showAlert('error', response?.message || 'An error occurred while creating the order');
+                    showErrorAlertModal(response?.message || 'An error occurred while creating the order');
                 }
             },
             complete: function() {
@@ -2836,9 +2989,14 @@ $(document).ready(function() {
                                 <!-- Store Actions -->
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        <button type="button" class="btn btn-outline-primary btn-sm" id="create-access-${storeId}">
-                                            <i class="mdi mdi-account-plus me-1"></i>Create New Access
-                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="create-access-${storeId}">
+                                                <i class="mdi mdi-account-plus me-1"></i>Create New Access
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info btn-sm" id="view-products-${storeId}" title="View Products for this Store">
+                                                <i class="mdi mdi-package-variant me-1"></i>View Products
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="input-group input-group-sm">
@@ -2898,8 +3056,12 @@ $(document).ready(function() {
 
             // Create access button
             $(`#create-access-${storeId}`).on('click', function() {
-                // TODO: Implement create access functionality
-                alert(`Create New Access for ${store} - This functionality will be implemented later.`);
+                showCreateAccessModal(store);
+            });
+
+            // View products button
+            $(`#view-products-${storeId}`).on('click', function() {
+                showStoreProductsModal(store);
             });
         });
     }
@@ -2908,7 +3070,7 @@ $(document).ready(function() {
     let storeData = {}; // Store data for each store
 
     // Load access clients for a specific store
-    function loadAccessClientsForStore(store, page = 1, search = '') {
+    function loadAccessClientsForStore(store, page = 1, search = '', autoSelectId = null) {
         const storeId = store.replace(/\s+/g, '-').toLowerCase();
         const containerId = `#access-clients-${storeId}`;
         const paginationId = `#pagination-${storeId}`;
@@ -2936,7 +3098,7 @@ $(document).ready(function() {
                         total: response.total || response.data.length
                     };
 
-                    displayAccessClients(containerId, response.data, store);
+                    displayAccessClients(containerId, response.data, store, autoSelectId);
                     displayPagination(paginationId, storeId, page, response.last_page || 1);
                 } else {
                     $(containerId).html(`
@@ -3040,7 +3202,7 @@ $(document).ready(function() {
 
 
     // Display access clients in a table
-    function displayAccessClients(containerId, clients, store) {
+    function displayAccessClients(containerId, clients, store, autoSelectId = null) {
         if (clients.length === 0) {
             $(containerId).html('<div class="text-center py-3 text-muted">No access clients available for this store</div>');
             return;
@@ -3087,6 +3249,15 @@ $(document).ready(function() {
 
         html += '</tbody></table>';
         $(containerId).html(html);
+
+        // Auto-select the newly added client if autoSelectId is provided
+        if (autoSelectId) {
+            const targetClient = clients.find(client => client.id == autoSelectId);
+            if (targetClient) {
+                const fullName = `${targetClient.clientFirstName || ''} ${targetClient.clientMiddleName || ''} ${targetClient.clientLastName || ''}`.trim();
+                selectAccessClient(autoSelectId, fullName, targetClient.clientPhoneNumber || '', targetClient.clientEmailAddress || '', store);
+            }
+        }
     }
 
     // Select access client function
@@ -3126,6 +3297,431 @@ $(document).ready(function() {
             };
         }
     };
+
+    // Show store products modal
+    function showStoreProductsModal(storeName) {
+        // Update modal title
+        $('#storeProductsModalLabel').text(`Products for ${storeName}`);
+
+        // Show loading state
+        $('#storeProductsContent').html(`
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading products...</p>
+            </div>
+        `);
+
+        // Show modal
+        $('#storeProductsModal').modal('show');
+
+        // Filter products for this store
+        const storeProducts = selectedProducts.filter(product =>
+            product.productStore === storeName
+        );
+
+        if (storeProducts.length === 0) {
+            $('#storeProductsContent').html(`
+                <div class="text-center py-4">
+                    <i class="mdi mdi-package-variant-closed text-muted" style="font-size: 3rem;"></i>
+                    <h6 class="text-muted mt-3">No Products Selected</h6>
+                    <p class="text-muted">No products have been selected for ${storeName} in step 1.</p>
+                </div>
+            `);
+            return;
+        }
+
+        // Generate products HTML
+        let productsHtml = `
+            <div class="mb-3">
+                <h6>Selected Products (${storeProducts.length})</h6>
+            </div>
+        `;
+
+        storeProducts.forEach((product, index) => {
+            const totalPrice = (parseFloat(product.price) * product.quantity).toFixed(2);
+
+            // Color coding similar to step 1
+            const colorClasses = [
+                'border-primary bg-light',
+                'border-success bg-light',
+                'border-warning bg-light',
+                'border-danger bg-light',
+                'border-info bg-light',
+                'border-secondary bg-light'
+            ];
+            const badgeClasses = [
+                'bg-primary',
+                'bg-success',
+                'bg-warning',
+                'bg-danger',
+                'bg-info',
+                'bg-secondary'
+            ];
+
+            const colorIndex = index % colorClasses.length;
+            const borderClass = colorClasses[colorIndex];
+            const badgeClass = badgeClasses[colorIndex];
+
+            productsHtml += `
+                <div class="border rounded p-3 mb-3 ${borderClass}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">${product.productName}</h6>
+                        <span class="badge ${badgeClass} text-white">${product.productType}</span>
+                    </div>
+                    <p class="text-muted mb-2">${product.variantName}</p>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <span class="text-muted">Qty: </span><strong>${product.quantity}</strong>
+                            <span class="text-muted ms-3">Price: </span><strong>₱${product.price}</strong>
+                        </div>
+                        <div class="text-success fw-bold">₱${totalPrice}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        productsHtml += `
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="mdi mdi-information me-2"></i>
+                        <strong>Total Products:</strong> ${storeProducts.length} |
+                        <strong>Total Amount:</strong> ₱${storeProducts.reduce((sum, product) => sum + (parseFloat(product.price) * product.quantity), 0).toFixed(2)}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        $('#storeProductsContent').html(productsHtml);
+    }
+
+    // Show create access modal
+    function showCreateAccessModal(storeName) {
+        // Update modal title
+        $('#createAccessModalLabel').text(`Create New Access for ${storeName}`);
+
+        // Store the current store name for validation
+        $('#createAccessModal').data('store-name', storeName);
+
+        // Clear form
+        $('#createAccessForm')[0].reset();
+
+        // Remove any validation classes
+        $('#createAccessForm .form-control').removeClass('is-invalid is-valid');
+        $('#createAccessForm .invalid-feedback').text('').hide();
+
+        // Show modal
+        $('#createAccessModal').modal('show');
+    }
+
+    // Validate email format
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Validate password strength
+    function validatePasswordStrength(password) {
+        const minLength = 8;
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumbers = /\d/.test(password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        return {
+            isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar,
+            minLength: password.length >= minLength,
+            hasUpperCase,
+            hasLowerCase,
+            hasNumbers,
+            hasSpecialChar
+        };
+    }
+
+    // Normalize phone number to standard format (09661123355)
+    function normalizePhoneNumber(phoneNumber) {
+        if (!phoneNumber) return '';
+
+        // Remove all non-digit characters except +
+        let cleaned = phoneNumber.replace(/[^\d+]/g, '');
+
+        // Handle different formats and convert to 09 format
+        if (cleaned.startsWith('+63')) {
+            // +639661123355 -> 09661123355
+            return '0' + cleaned.substring(3);
+        } else if (cleaned.startsWith('63') && cleaned.length === 12) {
+            // 639661123355 -> 09661123355
+            return '0' + cleaned.substring(2);
+        } else if (cleaned.startsWith('09') && cleaned.length === 11) {
+            // 09661123355 -> 09661123355 (already correct)
+            return cleaned;
+        } else if (cleaned.startsWith('9') && cleaned.length === 10) {
+            // 9661123355 -> 09661123355
+            return '0' + cleaned;
+        }
+
+        return cleaned;
+    }
+
+    // Check if phone number already exists
+    function checkPhoneExists(phoneNumber, storeName) {
+        const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+        return new Promise((resolve) => {
+            $.ajax({
+                url: '<?php echo e(route("ecom-orders-custom-add.check-phone")); ?>',
+                type: 'GET',
+                data: {
+                    phone: normalizedPhone,
+                    store: storeName
+                },
+                success: function(response) {
+                    resolve(response.exists || false);
+                },
+                error: function() {
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    // Validate form field
+    function validateField(fieldName, value, storeName) {
+        const field = $(`#access${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}`);
+        const feedback = field.siblings('.invalid-feedback');
+
+        let isValid = true;
+        let errorMessage = '';
+
+        switch(fieldName) {
+            case 'phoneNumber':
+                if (!value.trim()) {
+                    errorMessage = 'Phone number is required';
+                    isValid = false;
+                } else {
+                    const normalizedPhone = normalizePhoneNumber(value.trim());
+                    // Check if normalized phone is valid (should be 11 digits starting with 09)
+                    if (normalizedPhone.length !== 11 || !normalizedPhone.startsWith('09')) {
+                        errorMessage = 'Please enter a valid phone number (e.g., +639661123355, 639661123355, 09661123355)';
+                        isValid = false;
+                    }
+                }
+                break;
+
+            case 'email':
+                if (!value.trim()) {
+                    errorMessage = 'Email address is required';
+                    isValid = false;
+                } else if (!isValidEmail(value.trim())) {
+                    errorMessage = 'Please enter a valid email address';
+                    isValid = false;
+                }
+                break;
+
+            case 'firstName':
+            case 'middleName':
+            case 'lastName':
+                if (!value.trim()) {
+                    errorMessage = `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} is required`;
+                    isValid = false;
+                } else if (value.trim().length < 2) {
+                    errorMessage = `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} must be at least 2 characters`;
+                    isValid = false;
+                }
+                break;
+
+            case 'password':
+                const passwordValidation = validatePasswordStrength(value);
+                if (!value.trim()) {
+                    errorMessage = 'Password is required';
+                    isValid = false;
+                } else if (!passwordValidation.isValid) {
+                    errorMessage = 'Password must be at least 8 characters with uppercase, lowercase, number, and special character';
+                    isValid = false;
+                }
+                break;
+
+            case 'confirmPassword':
+                const password = $('#accessPassword').val();
+                if (!value.trim()) {
+                    errorMessage = 'Confirm password is required';
+                    isValid = false;
+                } else if (value !== password) {
+                    errorMessage = 'Passwords do not match';
+                    isValid = false;
+                }
+                break;
+        }
+
+        // Show/hide validation
+        if (isValid) {
+            field.removeClass('is-invalid').addClass('is-valid');
+            feedback.text('').hide();
+        } else {
+            field.removeClass('is-valid').addClass('is-invalid');
+            feedback.text(errorMessage).show();
+        }
+
+        return isValid;
+    }
+
+    // Real-time validation for phone number
+    $('#accessPhoneNumber').on('blur', async function() {
+        const phoneNumber = $(this).val();
+        const storeName = $('#createAccessModal').data('store-name');
+
+        if (phoneNumber.trim()) {
+            const exists = await checkPhoneExists(phoneNumber, storeName);
+            if (exists) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Phone number already exists for this store').show();
+            } else {
+                validateField('phoneNumber', phoneNumber, storeName);
+            }
+        }
+    });
+
+    // Real-time validation for other fields
+    $('#accessEmail, #accessFirstName, #accessMiddleName, #accessLastName, #accessPassword, #accessConfirmPassword').on('blur', function() {
+        const fieldName = $(this).attr('name');
+        const value = $(this).val();
+        const storeName = $('#createAccessModal').data('store-name');
+
+        validateField(fieldName, value, storeName);
+    });
+
+    // Real-time validation for confirm password
+    $('#accessConfirmPassword').on('input', function() {
+        const confirmPassword = $(this).val();
+        const password = $('#accessPassword').val();
+        const storeName = $('#createAccessModal').data('store-name');
+
+        validateField('confirmPassword', confirmPassword, storeName);
+    });
+
+    // Form submission validation
+    $('#saveAccessBtn').on('click', async function() {
+        const storeName = $('#createAccessModal').data('store-name');
+        let isFormValid = true;
+
+        // Validate all fields
+        const fields = ['phoneNumber', 'email', 'firstName', 'middleName', 'lastName', 'password', 'confirmPassword'];
+
+        for (const field of fields) {
+            const value = $(`#access${field.charAt(0).toUpperCase() + field.slice(1)}`).val();
+            const isValid = validateField(field, value, storeName);
+            if (!isValid) isFormValid = false;
+        }
+
+        // Check phone number existence
+        const phoneNumber = $('#accessPhoneNumber').val();
+        if (phoneNumber.trim()) {
+            const exists = await checkPhoneExists(phoneNumber, storeName);
+            if (exists) {
+                $('#accessPhoneNumber').removeClass('is-valid').addClass('is-invalid');
+                $('#accessPhoneNumber').siblings('.invalid-feedback').text('Phone number already exists for this store').show();
+                isFormValid = false;
+            }
+        }
+
+        if (isFormValid) {
+            // Show loading state
+            $(this).prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Saving...');
+
+            // Prepare form data
+            const formData = {
+                phoneNumber: normalizePhoneNumber($('#accessPhoneNumber').val()),
+                email: $('#accessEmail').val(),
+                firstName: $('#accessFirstName').val(),
+                middleName: $('#accessMiddleName').val(),
+                lastName: $('#accessLastName').val(),
+                password: $('#accessPassword').val(),
+                store: storeName
+            };
+
+            // Save access client
+            try {
+                const response = await $.ajax({
+                    url: '<?php echo e(route("ecom-orders-custom-add.save-access")); ?>',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    }
+                });
+
+                if (response.success) {
+                    // Show success notification
+                    showSuccessNotification('Access client added successfully!');
+
+                    // Close modal
+                    $('#createAccessModal').modal('hide');
+
+                    // Reload the access clients table for this store and auto-select the new user
+                    const storeId = storeName.replace(/\s+/g, '-').toLowerCase();
+                    loadAccessClientsForStore(storeName, 1, '', response.data.id);
+                } else {
+                    showErrorNotification(response.message || 'Failed to save access client');
+                }
+            } catch (error) {
+                console.error('Error saving access client:', error);
+                showErrorNotification('An error occurred while saving the access client');
+            } finally {
+                // Reset button state
+                $(this).prop('disabled', false).html('Save Access');
+            }
+        }
+    });
+
+    // Show success notification
+    function showSuccessNotification(message) {
+        // Create notification element
+        const notification = $(`
+            <div class="alert alert-success alert-dismissible fade show position-fixed"
+                 style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                <i class="mdi mdi-check-circle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `);
+
+        // Add to body
+        $('body').append(notification);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.alert('close');
+        }, 3000);
+    }
+
+    // Show error notification
+    function showErrorNotification(message) {
+        // Create notification element
+        const notification = $(`
+            <div class="alert alert-danger alert-dismissible fade show position-fixed"
+                 style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                <i class="mdi mdi-alert-circle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `);
+
+        // Add to body
+        $('body').append(notification);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.alert('close');
+        }, 5000);
+    }
+
+    // Show error alert modal
+    function showErrorAlertModal(message) {
+        $('#errorAlertMessage').text(message);
+        $('#errorAlertModal').modal('show');
+    }
 
     // Initialize
     showStep(1);

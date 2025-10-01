@@ -54,9 +54,9 @@ unset($__errorArgs, $__bag); ?>"
                             </div>
 
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="productStore" class="form-label">Product Store <span class="text-danger">*</span></label>
-                                    <select class="form-select <?php $__errorArgs = ['productStore'];
+                            <div class="mb-3">
+                                <label for="productStore" class="form-label">Product Store <span class="text-danger">*</span></label>
+                                <select class="form-select <?php $__errorArgs = ['productStore'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
@@ -64,12 +64,14 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>"
-                                            id="productStore" name="productStore">
-                                        <option value="">Select a store</option>
-                                        <option value="Ani-Senso" <?php echo e(old('productStore', $product->productStore) == 'Ani-Senso' ? 'selected' : ''); ?>>Ani-Senso</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="productStoreError"></div>
-                                </div>
+                                        id="productStore" name="productStore">
+                                    <option value="">Select a store</option>
+                                    <?php $__currentLoopData = $stores; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $store): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($store->storeName); ?>" <?php echo e(old('productStore', $product->productStore) == $store->storeName ? 'selected' : ''); ?>><?php echo e($store->storeName); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                </select>
+                                <div class="invalid-feedback" id="productStoreError"></div>
+                            </div>
                             </div>
                         </div>
 

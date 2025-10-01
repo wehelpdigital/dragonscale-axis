@@ -222,6 +222,13 @@
                                                class="btn btn-sm btn-outline-purple badge-style" title="Triggers">
                                                 <i class="bx bx-bulb me-1"></i>Triggers
                                             </a>
+                                            <?php if($product->productType === 'ship'): ?>
+                                                <button type="button" class="btn btn-sm btn-outline-info badge-style shipping-btn" title="Shipping"
+                                                        data-variant-id="<?php echo e($variant->id); ?>"
+                                                        data-variant-name="<?php echo e($variant->ecomVariantName); ?>">
+                                                    <i class="bx bx-package me-1"></i>Shipping
+                                                </button>
+                                            <?php endif; ?>
                                             <button type="button" class="btn btn-sm btn-outline-danger badge-style delete-variant-btn"
                                                     title="Delete"
                                                     data-variant-id="<?php echo e($variant->id); ?>"
@@ -578,6 +585,19 @@ $(document).ready(function() {
     // Reset variantToUpdateStocks when modal is hidden
     $('#variantStocksModal').on('hidden.bs.modal', function() {
         variantToUpdateStocks = null;
+    });
+
+    // Shipping button functionality
+    $('.shipping-btn').on('click', function() {
+        const variantId = $(this).data('variant-id');
+        const variantName = $(this).data('variant-name');
+
+        // For now, just show an alert - functionality will be implemented later
+        toastr.info('Shipping functionality will be implemented soon for: ' + variantName, 'Coming Soon!', {
+            closeButton: true,
+            progressBar: true,
+            timeOut: 4000
+        });
     });
 });
 </script>
