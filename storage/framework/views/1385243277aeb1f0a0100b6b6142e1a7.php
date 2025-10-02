@@ -1,13 +1,11 @@
-@extends('layouts.master')
-
-@section('title')
+<?php $__env->startSection('title'); ?>
     Product Discounts
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('css')
+<?php $__env->startSection('css'); ?>
     <!-- Add any specific CSS for discounts page here -->
     <!-- Toastr -->
-    <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
+    <link href="<?php echo e(URL::asset('build/libs/toastr/build/toastr.min.css')); ?>" rel="stylesheet" type="text/css" />
     <style>
     .badge-style {
         border-radius: 20px !important;
@@ -106,23 +104,23 @@
         color: #6f42c1 !important;
     }
     </style>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('content')
-    @component('components.breadcrumb')
-        @slot('li_1')
+<?php $__env->startSection('content'); ?>
+    <?php $__env->startComponent('components.breadcrumb'); ?>
+        <?php $__env->slot('li_1'); ?>
             E-commerce
-        @endslot
-        @slot('li_2')
+        <?php $__env->endSlot(); ?>
+        <?php $__env->slot('li_2'); ?>
             Products
-        @endslot
-        @slot('li_3')
+        <?php $__env->endSlot(); ?>
+        <?php $__env->slot('li_3'); ?>
             Discounts
-        @endslot
-        @slot('title')
+        <?php $__env->endSlot(); ?>
+        <?php $__env->slot('title'); ?>
             Product Discounts
-        @endslot
-    @endcomponent
+        <?php $__env->endSlot(); ?>
+    <?php echo $__env->renderComponent(); ?>
 
     <div class="row">
         <div class="col-12">
@@ -131,13 +129,13 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <h4 class="card-title">Product Discounts</h4>
-                            <p class="card-title-desc">Manage discounts for: <strong>{{ $product->productName }}</strong></p>
+                            <p class="card-title-desc">Manage discounts for: <strong><?php echo e($product->productName); ?></strong></p>
                         </div>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('ecom-products.discounts.create', ['id' => $product->id]) }}" class="btn btn-primary">
+                            <a href="<?php echo e(route('ecom-products.discounts.create', ['id' => $product->id])); ?>" class="btn btn-primary">
                                 <i class="bx bx-plus me-1"></i>Add New Discount
                             </a>
-                            <a href="{{ route('ecom-products') }}" class="btn btn-secondary">
+                            <a href="<?php echo e(route('ecom-products')); ?>" class="btn btn-secondary">
                                 <i class="bx bx-arrow-back me-1"></i>Back to Products
                             </a>
                         </div>
@@ -158,44 +156,45 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($discounts as $discount)
+                                <?php $__empty_1 = true; $__currentLoopData = $discounts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $discount): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                     <tr>
-                                        <td>{{ $discount->discountName }}</td>
+                                        <td><?php echo e($discount->discountName); ?></td>
                                         <td>
-                                            <span class="badge {{ $discount->discountType === 'discount code' ? 'bg-primary' : 'bg-success' }}">
-                                                {{ $discount->discountType === 'discount code' ? 'Discount Code' : 'Auto Apply' }}
+                                            <span class="badge <?php echo e($discount->discountType === 'discount code' ? 'bg-primary' : 'bg-success'); ?>">
+                                                <?php echo e($discount->discountType === 'discount code' ? 'Discount Code' : 'Auto Apply'); ?>
+
                                             </span>
                                         </td>
-                                        <td>{{ $discount->timerType }}</td>
-                                        <td>{{ $discount->discountValueType }}</td>
+                                        <td><?php echo e($discount->timerType); ?></td>
+                                        <td><?php echo e($discount->discountValueType); ?></td>
                                         <td>
-                                            @if($discount->isActive)
+                                            <?php if($discount->isActive): ?>
                                                 <span class="badge bg-success">Yes</span>
-                                            @else
+                                            <?php else: ?>
                                                 <span class="badge bg-danger">No</span>
-                                            @endif
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex flex-wrap gap-1 justify-content-center">
                                                 <button type="button" class="btn btn-sm btn-outline-primary badge-style"
-                                                        onclick="viewDiscount({{ $discount->id }})"
+                                                        onclick="viewDiscount(<?php echo e($discount->id); ?>)"
                                                         title="View Details">
                                                     <i class="bx bx-show me-1"></i>View
                                                 </button>
-                                                <a href="{{ route('ecom-products.discounts.edit', ['id' => $discount->id]) }}"
+                                                <a href="<?php echo e(route('ecom-products.discounts.edit', ['id' => $discount->id])); ?>"
                                                    class="btn btn-sm btn-outline-warning badge-style"
                                                    title="Edit">
                                                     <i class="bx bx-edit me-1"></i>Edit
                                                 </a>
                                                 <button type="button" class="btn btn-sm btn-outline-danger badge-style"
-                                                        onclick="deleteDiscount({{ $discount->id }}, '{{ addslashes($discount->discountName) }}')"
+                                                        onclick="deleteDiscount(<?php echo e($discount->id); ?>, '<?php echo e(addslashes($discount->discountName)); ?>')"
                                                         title="Delete">
                                                     <i class="bx bx-trash me-1"></i>Delete
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="6" class="text-center py-4">
                                             <i class="bx bx-tag display-4 text-muted"></i>
@@ -203,7 +202,7 @@
                                             <p class="text-muted">No discounts have been created for this product yet.</p>
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -463,12 +462,12 @@
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('script')
+<?php $__env->startSection('script'); ?>
     <!-- Add any specific JavaScript for discounts page here -->
     <!-- Toastr -->
-    <script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
+    <script src="<?php echo e(URL::asset('build/libs/toastr/build/toastr.min.js')); ?>"></script>
     <script>
         // Toastr configuration
         toastr.options = {
@@ -732,4 +731,6 @@
         });
 
     </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.master', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\btc-check\resources\views/ecommerce/products/discounts.blade.php ENDPATH**/ ?>

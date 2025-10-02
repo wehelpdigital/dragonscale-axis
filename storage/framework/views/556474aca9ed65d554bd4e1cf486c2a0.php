@@ -117,6 +117,71 @@ unset($__errorArgs, $__bag); ?>
                     </div>
 
                     <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="costPrice" class="form-label">Cost Price <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="text" class="form-control <?php $__errorArgs = ['costPrice'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                           id="costPrice" name="costPrice"
+                                           value="<?php echo e(old('costPrice', number_format($variant->costPrice ?? 0, 2))); ?>"
+                                           placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback" id="costPrice-error"></div>
+                                <div class="valid-feedback" id="costPrice-success">Looks good!</div>
+                                <?php $__errorArgs = ['costPrice'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="affiliatePrice" class="form-label">Affiliate Price <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="text" class="form-control <?php $__errorArgs = ['affiliatePrice'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                           id="affiliatePrice" name="affiliatePrice"
+                                           value="<?php echo e(old('affiliatePrice', number_format($variant->affiliatePrice ?? 0, 2))); ?>"
+                                           placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback" id="affiliatePrice-error"></div>
+                                <div class="valid-feedback" id="affiliatePrice-success">Looks good!</div>
+                                <?php $__errorArgs = ['affiliatePrice'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <div class="invalid-feedback"><?php echo e($message); ?></div>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
                         <div class="col-12">
                             <div class="mb-3">
                                 <label for="stocksAvailable" class="form-label">Stocks Available <span class="text-danger">*</span></label>
@@ -234,6 +299,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('variantForm');
     const variantNameInput = document.getElementById('ecomVariantName');
     const variantPriceInput = document.getElementById('ecomVariantPrice');
+    const costPriceInput = document.getElementById('costPrice');
+    const affiliatePriceInput = document.getElementById('affiliatePrice');
     const stocksAvailableInput = document.getElementById('stocksAvailable');
     const maxOrderPerTransactionInput = document.getElementById('maxOrderPerTransaction');
     const variantDescriptionInput = document.getElementById('ecomVariantDescription');
@@ -272,6 +339,52 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         } else {
             showSuccess(variantPriceInput, 'ecomVariantPrice-success');
+            return true;
+        }
+    }
+
+    function validateCostPrice() {
+        const value = costPriceInput.value.trim();
+        if (value === '') {
+            showError(costPriceInput, 'costPrice-error', 'Cost price is required.');
+            return false;
+        }
+
+        // Remove peso symbol and commas, then validate as number
+        const cleanValue = value.replace(/[₱,\s]/g, '');
+        const price = parseFloat(cleanValue);
+
+        if (isNaN(price)) {
+            showError(costPriceInput, 'costPrice-error', 'Please enter a valid price.');
+            return false;
+        } else if (price < 0) {
+            showError(costPriceInput, 'costPrice-error', 'Cost price must be greater than or equal to 0.');
+            return false;
+        } else {
+            showSuccess(costPriceInput, 'costPrice-success');
+            return true;
+        }
+    }
+
+    function validateAffiliatePrice() {
+        const value = affiliatePriceInput.value.trim();
+        if (value === '') {
+            showError(affiliatePriceInput, 'affiliatePrice-error', 'Affiliate price is required.');
+            return false;
+        }
+
+        // Remove peso symbol and commas, then validate as number
+        const cleanValue = value.replace(/[₱,\s]/g, '');
+        const price = parseFloat(cleanValue);
+
+        if (isNaN(price)) {
+            showError(affiliatePriceInput, 'affiliatePrice-error', 'Please enter a valid price.');
+            return false;
+        } else if (price < 0) {
+            showError(affiliatePriceInput, 'affiliatePrice-error', 'Affiliate price must be greater than or equal to 0.');
+            return false;
+        } else {
+            showSuccess(affiliatePriceInput, 'affiliatePrice-success');
             return true;
         }
     }
@@ -369,6 +482,16 @@ document.addEventListener('DOMContentLoaded', function() {
         clearValidation(variantPriceInput, 'ecomVariantPrice-error', 'ecomVariantPrice-success');
     });
 
+    costPriceInput.addEventListener('blur', validateCostPrice);
+    costPriceInput.addEventListener('input', function() {
+        clearValidation(costPriceInput, 'costPrice-error', 'costPrice-success');
+    });
+
+    affiliatePriceInput.addEventListener('blur', validateAffiliatePrice);
+    affiliatePriceInput.addEventListener('input', function() {
+        clearValidation(affiliatePriceInput, 'affiliatePrice-error', 'affiliatePrice-success');
+    });
+
     stocksAvailableInput.addEventListener('blur', validateStocksAvailable);
     stocksAvailableInput.addEventListener('input', function() {
         clearValidation(stocksAvailableInput, 'stocksAvailable-error', 'stocksAvailable-success');
@@ -390,17 +513,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const isVariantNameValid = validateVariantName();
         const isVariantPriceValid = validateVariantPrice();
+        const isCostPriceValid = validateCostPrice();
+        const isAffiliatePriceValid = validateAffiliatePrice();
         const isStocksAvailableValid = validateStocksAvailable();
         const isMaxOrderPerTransactionValid = validateMaxOrderPerTransaction();
         const isVariantDescriptionValid = validateVariantDescription();
 
-        if (isVariantNameValid && isVariantPriceValid && isStocksAvailableValid && isMaxOrderPerTransactionValid && isVariantDescriptionValid) {
+        if (isVariantNameValid && isVariantPriceValid && isCostPriceValid && isAffiliatePriceValid && isStocksAvailableValid && isMaxOrderPerTransactionValid && isVariantDescriptionValid) {
             // Clean up the values before submission
             const cleanPrice = variantPriceInput.value.replace(/[₱,\s]/g, '');
+            const cleanCostPrice = costPriceInput.value.replace(/[₱,\s]/g, '');
+            const cleanAffiliatePrice = affiliatePriceInput.value.replace(/[₱,\s]/g, '');
             const cleanStocks = stocksAvailableInput.value.replace(/[,]/g, '');
 
             // Set the cleaned values directly to the inputs
             variantPriceInput.value = cleanPrice;
+            costPriceInput.value = cleanCostPrice;
+            affiliatePriceInput.value = cleanAffiliatePrice;
             stocksAvailableInput.value = cleanStocks;
 
             // Submit the form
@@ -411,6 +540,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 variantNameInput.focus();
             } else if (!isVariantPriceValid) {
                 variantPriceInput.focus();
+            } else if (!isCostPriceValid) {
+                costPriceInput.focus();
+            } else if (!isAffiliatePriceValid) {
+                affiliatePriceInput.focus();
             } else if (!isStocksAvailableValid) {
                 stocksAvailableInput.focus();
             } else if (!isMaxOrderPerTransactionValid) {

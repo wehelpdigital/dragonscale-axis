@@ -155,6 +155,24 @@
                                 <span key="t-shipping">Shipping</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-tag"></i>
+                                <span key="t-discounts">Discounts</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-group"></i>
+                                <span key="t-affiliates">Affiliates</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);" class="waves-effect">
+                                <i class="bx bx-key"></i>
+                                <span key="t-triggers">Triggers</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 

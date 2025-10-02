@@ -10066,3 +10066,6 @@ Stack trace:
 #19 {main}
 "} 
 [2025-10-01 22:28:12] local.INFO: Login attempt {"email":"wehelp.digital@gmail.com","user_found":true,"delete_status":"active","password_check":true} 
+[2025-10-02 04:21:15] local.INFO: User ID: 20  
+[2025-10-02 04:21:15] local.INFO: Notification History Count: 0  
+[2025-10-02 04:21:15] local.INFO: Task Types: to sell  

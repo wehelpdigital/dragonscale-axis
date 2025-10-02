@@ -278,11 +278,6 @@
                                                class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                                 <i class="bx bx-edit me-1"></i>Edit
                                             </a>
-                                            <a href="<?php echo e(route('ecom-products.discounts', ['id' => $product->id])); ?>"
-                                               class="btn btn-sm btn-outline-dark badge-style"
-                                               title="Discounts">
-                                                <i class="bx bx-tag me-1"></i>Discounts
-                                            </a>
                                             <button type="button" class="btn btn-sm btn-outline-primary badge-style status-btn" title="Status"
                                                     data-product-id="<?php echo e($product->id); ?>"
                                                     data-product-name="<?php echo e($product->productName); ?>"
