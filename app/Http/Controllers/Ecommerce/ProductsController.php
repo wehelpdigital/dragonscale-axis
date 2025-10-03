@@ -67,29 +67,48 @@ class ProductsController extends Controller
     public function store(Request $request)
     {
         // Validate the request
-        $request->validate([
+        $validationRules = [
             'productName' => 'required|string|max:255',
             'productStore' => 'required|string|max:255',
             'productType' => 'required|string|in:access,ship',
             'productDescription' => 'required|string',
-        ], [
+        ];
+
+        // Only validate shipCoverage if productType is 'ship'
+        if ($request->productType === 'ship') {
+            $validationRules['shipCoverage'] = 'required|string|in:Town,Province,Region,National';
+        }
+
+        $request->validate($validationRules, [
             'productName.required' => 'Product name is required.',
             'productStore.required' => 'Product store is required.',
             'productType.required' => 'Product type is required.',
             'productType.in' => 'Product type must be either access or ship.',
             'productDescription.required' => 'Product description is required.',
+            'shipCoverage.required' => 'Shipping coverage is required for ship products.',
+            'shipCoverage.in' => 'Shipping coverage must be one of: Town, Province, Region, National.',
         ]);
 
         try {
-            // Create the product
-            EcomProduct::create([
+            // Prepare data for creation
+            $productData = [
                 'productName' => $request->productName,
                 'productStore' => $request->productStore,
                 'productType' => $request->productType,
                 'productDescription' => $request->productDescription,
                 'isActive' => 1,
                 'deleteStatus' => 1,
-            ]);
+            ];
+
+            // Add shipCoverage only if product type is 'ship', otherwise set to 'n/a'
+            if ($request->productType === 'ship') {
+                $productData['shipCoverage'] = $request->shipCoverage;
+            } else {
+                $productData['shipCoverage'] = 'n/a';
+            }
+
+            // Create the product
+            EcomProduct::create($productData);
 
             return redirect()->route('ecom-products')
                 ->with('success', 'Product has been added successfully!');
@@ -880,30 +899,49 @@ class ProductsController extends Controller
     public function update(Request $request, $id)
     {
         // Validate the request
-        $request->validate([
+        $validationRules = [
             'productName' => 'required|string|max:255',
             'productStore' => 'required|string|max:255',
             'productType' => 'required|string|in:access,ship',
             'productDescription' => 'required|string',
-        ], [
+        ];
+
+        // Only validate shipCoverage if productType is 'ship'
+        if ($request->productType === 'ship') {
+            $validationRules['shipCoverage'] = 'required|string|in:Town,Province,Region,National';
+        }
+
+        $request->validate($validationRules, [
             'productName.required' => 'Product name is required.',
             'productStore.required' => 'Product store is required.',
             'productType.required' => 'Product type is required.',
             'productType.in' => 'Product type must be either access or ship.',
             'productDescription.required' => 'Product description is required.',
+            'shipCoverage.required' => 'Shipping coverage is required for ship products.',
+            'shipCoverage.in' => 'Shipping coverage must be one of: Town, Province, Region, National.',
         ]);
 
         try {
             // Find the product
             $product = EcomProduct::active()->findOrFail($id);
 
-            // Update the product
-            $product->update([
+            // Prepare data for update
+            $productData = [
                 'productName' => $request->productName,
                 'productStore' => $request->productStore,
                 'productType' => $request->productType,
                 'productDescription' => $request->productDescription,
-            ]);
+            ];
+
+            // Add shipCoverage only if product type is 'ship', otherwise set to 'n/a'
+            if ($request->productType === 'ship') {
+                $productData['shipCoverage'] = $request->shipCoverage;
+            } else {
+                $productData['shipCoverage'] = 'n/a';
+            }
+
+            // Update the product
+            $product->update($productData);
 
             return redirect()->route('ecom-products')
                 ->with('success', 'Product has been updated successfully!');

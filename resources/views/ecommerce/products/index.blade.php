@@ -247,6 +247,7 @@
                                 <th>Product Name</th>
                                 <th>Product Store</th>
                                 <th>Product Type</th>
+                                <th>Ship Coverage</th>
                                 <th>Active</th>
                                 <th class="text-center">Actions</th>
                             </tr>
@@ -257,6 +258,13 @@
                                     <td>{{ $product->productName }}</td>
                                     <td>{{ $product->productStore }}</td>
                                     <td>{{ $product->productType ?? 'N/A' }}</td>
+                                    <td>
+                                        @if($product->productType === 'ship')
+                                            <span class="badge bg-info">{{ $product->shipCoverage ?? 'N/A' }}</span>
+                                        @else
+                                            <span class="badge bg-secondary">N/A</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($product->isActive)
                                             <span class="badge bg-success">Yes</span>

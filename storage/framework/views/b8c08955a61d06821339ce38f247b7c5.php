@@ -249,6 +249,7 @@
                                 <th>Product Name</th>
                                 <th>Product Store</th>
                                 <th>Product Type</th>
+                                <th>Ship Coverage</th>
                                 <th>Active</th>
                                 <th class="text-center">Actions</th>
                             </tr>
@@ -259,6 +260,13 @@
                                     <td><?php echo e($product->productName); ?></td>
                                     <td><?php echo e($product->productStore); ?></td>
                                     <td><?php echo e($product->productType ?? 'N/A'); ?></td>
+                                    <td>
+                                        <?php if($product->productType === 'ship'): ?>
+                                            <span class="badge bg-info"><?php echo e($product->shipCoverage ?? 'N/A'); ?></span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">N/A</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?php if($product->isActive): ?>
                                             <span class="badge bg-success">Yes</span>

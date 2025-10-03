@@ -196,6 +196,19 @@ Route::post('/ecom-orders-custom-add/save-access', [App\Http\Controllers\Ecommer
 
 // E-commerce shipping routes
 Route::get('/ecom-shipping', [App\Http\Controllers\Ecommerce\ShippingController::class, 'index'])->name('ecom-shipping')->middleware('auth');
+Route::get('/ecom-shipping/data', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getData'])->name('ecom-shipping.data')->middleware('auth');
+Route::post('/ecom-shipping', [App\Http\Controllers\Ecommerce\ShippingController::class, 'store'])->name('ecom-shipping.store')->middleware('auth');
+Route::delete('/ecom-shipping/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'destroy'])->name('ecom-shipping.destroy')->middleware('auth');
+Route::get('/ecom-shipping/{id}/edit', [App\Http\Controllers\Ecommerce\ShippingController::class, 'edit'])->name('ecom-shipping.edit')->middleware('auth');
+Route::put('/ecom-shipping/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'update'])->name('ecom-shipping.update')->middleware('auth');
+Route::get('/ecom-shipping-settings', [App\Http\Controllers\Ecommerce\ShippingController::class, 'settings'])->name('ecom-shipping.settings')->middleware('auth');
+Route::get('/ecom-shipping-options/data', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getShippingOptionsData'])->name('ecom-shipping-options.data')->middleware('auth');
+Route::get('/ecom-shipping-options/available-provinces', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getAvailableProvinces'])->name('ecom-shipping-options.available-provinces')->middleware('auth');
+Route::get('/ecom-shipping-options/{id}/edit', [App\Http\Controllers\Ecommerce\ShippingController::class, 'editShippingOption'])->name('ecom-shipping-options.edit')->middleware('auth');
+Route::post('/ecom-shipping-options', [App\Http\Controllers\Ecommerce\ShippingController::class, 'storeShippingOption'])->name('ecom-shipping-options.store')->middleware('auth');
+Route::put('/ecom-shipping-options/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'updateShippingOption'])->name('ecom-shipping-options.update')->middleware('auth');
+Route::put('/ecom-shipping-options/{id}/status', [App\Http\Controllers\Ecommerce\ShippingController::class, 'updateShippingOptionStatus'])->name('ecom-shipping-options.status')->middleware('auth');
+Route::delete('/ecom-shipping-options/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'deleteShippingOption'])->name('ecom-shipping-options.delete')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

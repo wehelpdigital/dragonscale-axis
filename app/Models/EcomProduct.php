@@ -26,6 +26,7 @@ class EcomProduct extends Model
         'productStore',
         'productDescription',
         'productType',
+        'shipCoverage',
         'isActive',
         'deleteStatus',
         // Add other fields as needed

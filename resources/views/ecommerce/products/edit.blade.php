@@ -76,6 +76,21 @@
                                     <div class="invalid-feedback" id="productTypeError"></div>
                                 </div>
                             </div>
+
+                            <div class="col-md-6" id="shippingCoverageField" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="shipCoverage" class="form-label">Shipping Coverage <span class="text-danger">*</span></label>
+                                    <select class="form-select @error('shipCoverage') is-invalid @enderror"
+                                            id="shipCoverage" name="shipCoverage">
+                                        <option value="">Select shipping coverage</option>
+                                        <option value="Town" {{ old('shipCoverage', $product->shipCoverage) == 'Town' ? 'selected' : '' }}>Town</option>
+                                        <option value="Province" {{ old('shipCoverage', $product->shipCoverage) == 'Province' ? 'selected' : '' }}>Province</option>
+                                        <option value="Region" {{ old('shipCoverage', $product->shipCoverage) == 'Region' ? 'selected' : '' }}>Region</option>
+                                        <option value="National" {{ old('shipCoverage', $product->shipCoverage) == 'National' ? 'selected' : '' }}>National</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="shipCoverageError"></div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -112,6 +127,30 @@
 @section('script')
 <script>
 $(document).ready(function() {
+    // Show/hide shipping coverage field based on product type
+    function toggleShippingCoverage() {
+        const productType = $('#productType').val();
+        const shippingCoverageField = $('#shippingCoverageField');
+        const shipCoverageSelect = $('#shipCoverage');
+
+        if (productType === 'ship') {
+            shippingCoverageField.show();
+            shipCoverageSelect.prop('required', true);
+        } else {
+            shippingCoverageField.hide();
+            shipCoverageSelect.prop('required', false);
+            shipCoverageSelect.val(''); // Clear the value when hidden
+        }
+    }
+
+    // Initialize on page load
+    toggleShippingCoverage();
+
+    // Handle product type change
+    $('#productType').on('change', function() {
+        toggleShippingCoverage();
+    });
+
     // Remove validation classes on input
     $('input, select, textarea').on('input change', function() {
         $(this).removeClass('is-invalid');
@@ -154,6 +193,17 @@ $(document).ready(function() {
             $('#productTypeError').text('Product type is required.');
             isValid = false;
             errors.productType = 'Product type is required.';
+        }
+
+        // Validate Shipping Coverage (only if product type is 'ship')
+        if (productType === 'ship') {
+            const shipCoverage = $('#shipCoverage').val();
+            if (!shipCoverage) {
+                $('#shipCoverage').addClass('is-invalid');
+                $('#shipCoverageError').text('Shipping coverage is required for ship products.');
+                isValid = false;
+                errors.shipCoverage = 'Shipping coverage is required for ship products.';
+            }
         }
 
         // Validate Product Description

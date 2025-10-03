@@ -92,6 +92,28 @@ unset($__errorArgs, $__bag); ?>"
                                 <div class="invalid-feedback" id="productTypeError"></div>
                             </div>
                         </div>
+
+                        <div class="col-md-6" id="shippingCoverageField" style="display: none;">
+                            <div class="mb-3">
+                                <label for="shipCoverage" class="form-label">Shipping Coverage <span class="text-danger">*</span></label>
+                                <select class="form-select <?php $__errorArgs = ['shipCoverage'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>"
+                                        id="shipCoverage" name="shipCoverage">
+                                    <option value="">Select shipping coverage</option>
+                                    <option value="Town" <?php echo e(old('shipCoverage') == 'Town' ? 'selected' : ''); ?>>Town</option>
+                                    <option value="Province" <?php echo e(old('shipCoverage') == 'Province' ? 'selected' : ''); ?>>Province</option>
+                                    <option value="Region" <?php echo e(old('shipCoverage') == 'Region' ? 'selected' : ''); ?>>Region</option>
+                                    <option value="National" <?php echo e(old('shipCoverage') == 'National' ? 'selected' : ''); ?>>National</option>
+                                </select>
+                                <div class="invalid-feedback" id="shipCoverageError"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -129,6 +151,30 @@ unset($__errorArgs, $__bag); ?>"
 <?php $__env->startSection('script'); ?>
 <script>
 $(document).ready(function() {
+    // Show/hide shipping coverage field based on product type
+    function toggleShippingCoverage() {
+        const productType = $('#productType').val();
+        const shippingCoverageField = $('#shippingCoverageField');
+        const shipCoverageSelect = $('#shipCoverage');
+
+        if (productType === 'ship') {
+            shippingCoverageField.show();
+            shipCoverageSelect.prop('required', true);
+        } else {
+            shippingCoverageField.hide();
+            shipCoverageSelect.prop('required', false);
+            shipCoverageSelect.val(''); // Clear the value when hidden
+        }
+    }
+
+    // Initialize on page load
+    toggleShippingCoverage();
+
+    // Handle product type change
+    $('#productType').on('change', function() {
+        toggleShippingCoverage();
+    });
+
     // Remove validation classes on input
     $('input, select, textarea').on('input change', function() {
         $(this).removeClass('is-invalid');
@@ -171,6 +217,17 @@ $(document).ready(function() {
             $('#productTypeError').text('Product type is required.');
             isValid = false;
             errors.productType = 'Product type is required.';
+        }
+
+        // Validate Shipping Coverage (only if product type is 'ship')
+        if (productType === 'ship') {
+            const shipCoverage = $('#shipCoverage').val();
+            if (!shipCoverage) {
+                $('#shipCoverage').addClass('is-invalid');
+                $('#shipCoverageError').text('Shipping coverage is required for ship products.');
+                isValid = false;
+                errors.shipCoverage = 'Shipping coverage is required for ship products.';
+            }
         }
 
         // Validate Product Description
