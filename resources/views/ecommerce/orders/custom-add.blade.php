@@ -322,7 +322,7 @@
                                                     <div class="col-12">
                                                         <div class="mb-3">
                                                             <label for="newClientPhoneNumber" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                                            <input type="tel" class="form-control" id="newClientPhoneNumber" name="clientPhoneNumber" placeholder="09XXXXXXXXX or +63XXXXXXXXX" required>
+                                                            <input type="text" class="form-control" id="newClientPhoneNumber" name="clientPhoneNumber" placeholder="09XXXXXXXXX or +63XXXXXXXXX or 63XXXXXXXXX" required>
                                                             <div class="invalid-feedback"></div>
                                                         </div>
                                                     </div>
@@ -344,6 +344,30 @@
                                             </button>
                                             <button type="button" class="btn btn-primary" id="saveNewClientBtn">
                                                 <i class="mdi mdi-content-save me-1"></i>Save Client
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Success Notification Modal -->
+                            <div class="modal fade" id="clientSuccessModal" tabindex="-1" aria-labelledby="clientSuccessModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title" id="clientSuccessModalLabel">
+                                                <i class="mdi mdi-check-circle me-2"></i>Success
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <i class="mdi mdi-check-circle display-4 text-success mb-3"></i>
+                                            <h6>Client Added Successfully!</h6>
+                                            <p class="text-muted mb-0">The new client has been added to the database.</p>
+                                        </div>
+                                        <div class="modal-footer justify-content-center">
+                                            <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                                                <i class="mdi mdi-check me-1"></i>OK
                                             </button>
                                         </div>
                                     </div>
@@ -1232,7 +1256,7 @@ $(document).ready(function() {
                                     <span class="badge bg-info text-white">${product.productType || 'N/A'}</span>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-outline-primary" onclick="toggleProductVariants(${product.id})">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleProductVariants(${product.id})">
                                 <i class="mdi mdi-chevron-down" id="chevron-${product.id}"></i>
                             </button>
                         </div>
@@ -1347,10 +1371,10 @@ $(document).ready(function() {
                         </span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-info me-1" onclick="viewVariant(${variant.id})">
+                        <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="viewVariant(${variant.id})">
                             <i class="mdi mdi-eye"></i>
                         </button>
-                        <button class="btn btn-sm ${isInCart ? 'btn-success' : 'btn-primary'} variant-action-btn"
+                        <button type="button" class="btn btn-sm ${isInCart ? 'btn-success' : 'btn-primary'} variant-action-btn"
                                 data-variant-id="${variant.id}"
                                 data-product-id="${productId}"
                                 onclick="toggleVariantInCart(${variant.id}, ${productId})"
@@ -1578,7 +1602,7 @@ $(document).ready(function() {
                                 <input type="number" class="form-control text-center" value="${item.quantity}" min="1" max="${maxOrderPerTransaction}" onchange="updateQuantity(${index}, 0, this.value)" oninput="validateQuantityInput(this, ${maxOrderPerTransaction})">
                                 <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(${index}, 1)" ${isAtMaxLimit ? 'disabled' : ''}>+</button>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger remove-item-btn" data-item-index="${index}" onclick="removeFromCart(${index})">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" data-item-index="${index}" onclick="removeFromCart(${index})">
                                 <i class="mdi mdi-delete"></i>
                             </button>
                         </div>
@@ -2386,16 +2410,267 @@ $(document).ready(function() {
     });
 
     // Next button click
-    $('#next-btn').click(function() {
+    $('#next-btn').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        console.log('Next button clicked, current step:', currentStep);
+
         if (validateStep(currentStep)) {
             showStep(currentStep + 1);
         }
+
+        return false;
     });
 
+    // Add New Client button click
+    $('#add-new-client-btn').click(function() {
+        $('#addNewClientModal').modal('show');
+        // Clear form and validation when modal opens
+        clearNewClientForm();
+    });
+
+    // Clear new client form
+    function clearNewClientForm() {
+        try {
+            const form = $('#addNewClientForm')[0];
+            if (form) {
+                form.reset();
+            }
+            $('#addNewClientForm .form-control').removeClass('is-valid is-invalid');
+            $('#addNewClientForm .invalid-feedback').text('');
+        } catch (error) {
+            console.log('Error clearing form:', error);
+            // Fallback: manually clear all form fields
+            $('#newClientFirstName, #newClientMiddleName, #newClientLastName, #newClientPhoneNumber, #newClientEmailAddress').val('');
+            $('#addNewClientForm .form-control').removeClass('is-valid is-invalid');
+            $('#addNewClientForm .invalid-feedback').text('');
+        }
+    }
+
+    // Phone number validation function
+    function isValidPhoneNumber(phone) {
+        // Remove any spaces or dashes
+        const cleanPhone = phone.replace(/[\s-]/g, '');
+
+        // Check for 09XXXXXXXXX format (11 digits starting with 09)
+        const format09 = /^09\d{9}$/;
+
+        // Check for +63XXXXXXXXX format (13 characters starting with +63)
+        const formatPlus63 = /^\+63\d{9}$/;
+
+        // Check for 63XXXXXXXXX format (12 characters starting with 63)
+        const format63 = /^63\d{9}$/;
+
+        return format09.test(cleanPhone) || formatPlus63.test(cleanPhone) || format63.test(cleanPhone);
+    }
+
+    // Email validation function
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Check phone number uniqueness
+    function checkPhoneNumberUniqueness(phoneNumber) {
+        return new Promise(function(resolve, reject) {
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.check-client-phone") }}',
+                type: 'GET',
+                data: { phone_number: phoneNumber },
+                success: function(response) {
+                    resolve(response);
+                },
+                error: function() {
+                    resolve({ success: false, exists: false });
+                }
+            });
+        });
+    }
+
+    // Validate individual field
+    async function validateNewClientField(fieldId, value, fieldName) {
+        const field = $(`#${fieldId}`);
+        const feedback = field.siblings('.invalid-feedback');
+
+        // Clear previous validation
+        field.removeClass('is-valid is-invalid');
+        feedback.text('');
+
+        // Required field validation
+        if (!value.trim()) {
+            field.addClass('is-invalid');
+            feedback.text(`${fieldName} is required.`);
+            return false;
+        }
+
+        // Specific field validations
+        if (fieldId === 'newClientPhoneNumber') {
+            if (!isValidPhoneNumber(value)) {
+                field.addClass('is-invalid');
+                feedback.text('Phone number must be in format: 09XXXXXXXXX, +63XXXXXXXXX, or 63XXXXXXXXX');
+                return false;
+            } else {
+                // Check phone number uniqueness
+                const uniquenessResult = await checkPhoneNumberUniqueness(value);
+                if (uniquenessResult.success && uniquenessResult.exists) {
+                    field.addClass('is-invalid');
+                    feedback.text('This phone number already exists in the database.');
+                    return false;
+                }
+            }
+        }
+
+        if (fieldId === 'newClientEmailAddress') {
+            if (!isValidEmail(value)) {
+                field.addClass('is-invalid');
+                feedback.text('Please enter a valid email address.');
+                return false;
+            }
+        }
+
+        // If we get here, field is valid
+        field.addClass('is-valid');
+        return true;
+    }
+
+    // Real-time validation for all new client form fields
+    $('#newClientFirstName').on('input', function() {
+        validateNewClientField('newClientFirstName', $(this).val(), 'First Name');
+    });
+
+    $('#newClientMiddleName').on('input', function() {
+        validateNewClientField('newClientMiddleName', $(this).val(), 'Middle Name');
+    });
+
+    $('#newClientLastName').on('input', function() {
+        validateNewClientField('newClientLastName', $(this).val(), 'Last Name');
+    });
+
+    $('#newClientPhoneNumber').on('input', function() {
+        validateNewClientField('newClientPhoneNumber', $(this).val(), 'Phone Number');
+    });
+
+    $('#newClientEmailAddress').on('input', function() {
+        validateNewClientField('newClientEmailAddress', $(this).val(), 'Email Address');
+    });
+
+    // Save New Client button click
+    $('#saveNewClientBtn').click(async function() {
+        const saveBtn = $(this);
+        const originalText = saveBtn.html();
+
+        // Disable button and show loading
+        saveBtn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Saving...');
+
+        // Validate all fields
+        let isFormValid = true;
+        const fields = [
+            { id: 'newClientFirstName', name: 'First Name' },
+            { id: 'newClientMiddleName', name: 'Middle Name' },
+            { id: 'newClientLastName', name: 'Last Name' },
+            { id: 'newClientPhoneNumber', name: 'Phone Number' },
+            { id: 'newClientEmailAddress', name: 'Email Address' }
+        ];
+
+        // Validate each field
+        for (const field of fields) {
+            const value = $(`#${field.id}`).val();
+            const isValid = await validateNewClientField(field.id, value, field.name);
+            if (!isValid) {
+                isFormValid = false;
+            }
+        }
+
+        // If form is valid, proceed with save
+        if (isFormValid) {
+            const formData = {
+                clientFirstName: $('#newClientFirstName').val().trim(),
+                clientMiddleName: $('#newClientMiddleName').val().trim(),
+                clientLastName: $('#newClientLastName').val().trim(),
+                clientPhoneNumber: $('#newClientPhoneNumber').val().trim(),
+                clientEmailAddress: $('#newClientEmailAddress').val().trim()
+            };
+
+            // Send AJAX request to save client
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.save-client") }}',
+                type: 'POST',
+                data: formData,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                beforeSend: function() {
+                    console.log('Sending AJAX request to save client:', formData);
+                },
+                success: function(response) {
+                    console.log('AJAX success response:', response);
+                    if (response.success) {
+                        // Clear form and close modal
+                        clearNewClientForm();
+                        $('#addNewClientModal').modal('hide');
+
+                        // Show success notification
+                        $('#clientSuccessModal').modal('show');
+
+                        // Refresh clients list and auto-select the new client
+                        setTimeout(function() {
+                            loadClients(1, {});
+                            // Auto-select the new client after a short delay
+                            setTimeout(function() {
+                                selectClient(response.client.id, response.client.fullName, response.client.clientPhoneNumber, response.client.clientEmailAddress);
+                            }, 1000);
+                        }, 500);
+                    } else {
+                        // Handle validation errors from server
+                        if (response.errors) {
+                            Object.keys(response.errors).forEach(function(field) {
+                                const input = $(`#newClient${field.charAt(0).toUpperCase() + field.slice(1)}`);
+                                input.addClass('is-invalid');
+                                input.siblings('.invalid-feedback').text(response.errors[field][0]);
+                            });
+                        } else {
+                            alert('Error: ' + (response.message || 'Failed to save client'));
+                        }
+                    }
+                },
+                error: function(xhr) {
+                    console.log('AJAX error:', xhr);
+                    let errorMessage = 'Failed to save client';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        // Handle validation errors
+                        const errors = xhr.responseJSON.errors;
+                        Object.keys(errors).forEach(function(field) {
+                            const input = $(`#newClient${field.charAt(0).toUpperCase() + field.slice(1)}`);
+                            input.addClass('is-invalid');
+                            input.siblings('.invalid-feedback').text(errors[field][0]);
+                        });
+                        return; // Don't show alert for validation errors
+                    }
+                    alert('Error: ' + errorMessage);
+                },
+                complete: function() {
+                    // Restore button state
+                    saveBtn.prop('disabled', false).html(originalText);
+                }
+            });
+        } else {
+            // Restore button state if validation failed
+            saveBtn.prop('disabled', false).html(originalText);
+        }
+    });
 
     // Form submission
     $('#order-wizard-form').submit(function(e) {
         e.preventDefault();
+
+        // Only allow form submission on the final step
+        if (currentStep !== totalSteps) {
+            console.log('Form submission prevented - not on final step');
+            return false;
+        }
 
         if (!validateStep(currentStep)) {
             return;
@@ -2687,242 +2962,9 @@ $(document).ready(function() {
 
     // ===== END CLIENT SEARCH FUNCTIONS =====
 
-    // Add New Client Modal functionality
-    $('#add-new-client-btn').on('click', function() {
-        $('#addNewClientModal').modal('show');
-        // Clear form
-        const form = $('#addNewClientForm')[0];
-        if (form) {
-            form.reset();
-        }
-        // Remove validation classes
-        $('#addNewClientForm .form-control').removeClass('is-valid is-invalid');
-        $('#addNewClientForm .invalid-feedback').text('');
-    });
 
-    // Dynamic phone number validation
-    let phoneValidationTimeout;
-    $('#newClientPhoneNumber').on('input', function() {
-        const phoneNumber = $(this).val().trim();
 
-        // Clear previous timeout
-        clearTimeout(phoneValidationTimeout);
 
-        // Remove previous validation classes
-        $(this).removeClass('is-valid is-invalid');
-        $(this).siblings('.invalid-feedback').text('');
-
-        // Only validate if phone number is not empty and has correct format
-        if (phoneNumber && isValidPhoneNumber(phoneNumber)) {
-            // Set timeout to avoid too many AJAX calls
-            phoneValidationTimeout = setTimeout(function() {
-                checkPhoneNumberUniqueness(phoneNumber);
-            }, 500);
-        }
-    });
-
-    // Save new client
-    $('#saveNewClientBtn').on('click', async function() {
-        const form = $('#addNewClientForm');
-        const formData = {
-            clientFirstName: $('#newClientFirstName').val().trim(),
-            clientMiddleName: $('#newClientMiddleName').val().trim(),
-            clientLastName: $('#newClientLastName').val().trim(),
-            clientPhoneNumber: $('#newClientPhoneNumber').val().trim(),
-            clientEmailAddress: $('#newClientEmailAddress').val().trim()
-        };
-
-        // Dynamic validation - all fields are required
-        let isValid = true;
-        const allFields = ['clientFirstName', 'clientMiddleName', 'clientLastName', 'clientPhoneNumber', 'clientEmailAddress'];
-
-        // Clear previous validation
-        form.find('.form-control').removeClass('is-valid is-invalid');
-        form.find('.invalid-feedback').text('');
-
-        // Validate all fields are required
-        allFields.forEach(function(field) {
-            const input = $(`#newClient${field.charAt(0).toUpperCase() + field.slice(1)}`);
-            if (!formData[field]) {
-                input.addClass('is-invalid');
-                input.siblings('.invalid-feedback').text('This field is required.');
-                isValid = false;
-            }
-        });
-
-        // Validate phone number format (09XXXXXXXXX or +63XXXXXXXXX)
-        if (formData.clientPhoneNumber && !isValidPhoneNumber(formData.clientPhoneNumber)) {
-            $('#newClientPhoneNumber').addClass('is-invalid');
-            $('#newClientPhoneNumber').siblings('.invalid-feedback').text('Phone number must start with 09 or +63 followed by 9 digits.');
-            isValid = false;
-        }
-
-        // Check phone number uniqueness (this will be handled by backend validation as well)
-        if (formData.clientPhoneNumber && isValidPhoneNumber(formData.clientPhoneNumber)) {
-            // Check if phone number already exists
-            const phoneCheckResult = await checkPhoneNumberUniquenessSync(formData.clientPhoneNumber);
-            if (phoneCheckResult && phoneCheckResult.exists) {
-                $('#newClientPhoneNumber').addClass('is-invalid');
-                $('#newClientPhoneNumber').siblings('.invalid-feedback').text('This phone number already exists and cannot be added.');
-                isValid = false;
-            }
-        }
-
-        // Validate email format
-        if (formData.clientEmailAddress && !isValidEmail(formData.clientEmailAddress)) {
-            $('#newClientEmailAddress').addClass('is-invalid');
-            $('#newClientEmailAddress').siblings('.invalid-feedback').text('Please enter a valid email address.');
-            isValid = false;
-        }
-
-        if (!isValid) {
-            return;
-        }
-
-        // Show loading state with dynamic loader
-        const saveBtn = $('#saveNewClientBtn');
-        const originalText = saveBtn.html();
-        saveBtn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Saving...');
-
-        // Add loading overlay to modal
-        const modalBody = $('#addNewClientModal .modal-body');
-        const loadingOverlay = $(`
-            <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center"
-                 style="top: 0; left: 0; background: rgba(255,255,255,0.8); z-index: 1050;">
-                <div class="text-center">
-                    <div class="spinner-border text-primary mb-2" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <div class="text-muted">Saving client...</div>
-                </div>
-            </div>
-        `);
-        modalBody.css('position', 'relative').append(loadingOverlay);
-
-        // Send AJAX request
-        $.ajax({
-            url: '{{ route("ecom-orders-custom-add.clients.store") }}',
-            type: 'POST',
-            data: formData,
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(response) {
-                if (response.success) {
-                    // Show success notification
-                    showClientNotification('Client added successfully!');
-
-                    // Clear form
-                    const form = $('#addNewClientForm')[0];
-                    if (form) {
-                        form.reset();
-                    }
-                    // Remove validation classes
-                    $('#addNewClientForm .form-control').removeClass('is-valid is-invalid');
-                    $('#addNewClientForm .invalid-feedback').text('');
-
-                    // Close modal
-                    $('#addNewClientModal').modal('hide');
-
-                    // Refresh clients list
-                    loadClients(1, {});
-
-                    // Auto-select the new client
-                    setTimeout(function() {
-                        selectClient(response.client.id, response.client.fullName, response.client.clientPhoneNumber, response.client.clientEmailAddress);
-                    }, 500);
-                } else {
-                    showClientNotification('Error: ' + (response.message || 'Failed to add client'), 'error');
-                }
-            },
-            error: function(xhr) {
-                let errorMessage = 'Failed to add client';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    // Handle validation errors
-                    const errors = xhr.responseJSON.errors;
-                    Object.keys(errors).forEach(function(field) {
-                        const input = $(`#newClient${field.charAt(0).toUpperCase() + field.slice(1)}`);
-                        input.addClass('is-invalid');
-                        input.siblings('.invalid-feedback').text(errors[field][0]);
-                    });
-                    return; // Don't show notification for validation errors
-                }
-                showClientNotification('Error: ' + errorMessage, 'error');
-            },
-            complete: function() {
-                // Remove loading overlay
-                modalBody.find('.position-absolute').remove();
-                modalBody.css('position', '');
-
-                // Restore button state
-                saveBtn.prop('disabled', false).html(originalText);
-            }
-        });
-    });
-
-    // Email validation helper
-    function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-
-    // Phone number validation helper (09XXXXXXXXX or +63XXXXXXXXX)
-    function isValidPhoneNumber(phone) {
-        // Remove any spaces or dashes
-        const cleanPhone = phone.replace(/[\s-]/g, '');
-
-        // Check if it starts with 09 followed by 9 digits (total 11 digits)
-        const format09 = /^09\d{9}$/;
-
-        // Check if it starts with +63 followed by 9 digits (total 13 characters)
-        const formatPlus63 = /^\+63\d{9}$/;
-
-        return format09.test(cleanPhone) || formatPlus63.test(cleanPhone);
-    }
-
-    // Check phone number uniqueness (async for real-time validation)
-    function checkPhoneNumberUniqueness(phoneNumber) {
-        $.ajax({
-            url: '{{ route("ecom-orders-custom-add.clients.check-phone") }}',
-            type: 'GET',
-            data: { phone_number: phoneNumber },
-            success: function(response) {
-                if (response.success) {
-                    const phoneInput = $('#newClientPhoneNumber');
-                    if (response.exists) {
-                        phoneInput.addClass('is-invalid');
-                        phoneInput.siblings('.invalid-feedback').text('This phone number already exists and cannot be added.');
-                    } else {
-                        phoneInput.addClass('is-valid');
-                        phoneInput.siblings('.invalid-feedback').text('');
-                    }
-                }
-            },
-            error: function() {
-                // Don't show error for uniqueness check failures
-                console.log('Phone number uniqueness check failed');
-            }
-        });
-    }
-
-    // Check phone number uniqueness (sync for form submission)
-    function checkPhoneNumberUniquenessSync(phoneNumber) {
-        return new Promise(function(resolve, reject) {
-            $.ajax({
-                url: '{{ route("ecom-orders-custom-add.clients.check-phone") }}',
-                type: 'GET',
-                data: { phone_number: phoneNumber },
-                success: function(response) {
-                    resolve(response);
-                },
-                error: function() {
-                    resolve({ success: false, exists: false });
-                }
-            });
-        });
-    }
 
 
     // Show client notification function

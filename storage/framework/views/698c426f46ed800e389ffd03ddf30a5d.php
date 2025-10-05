@@ -592,12 +592,8 @@ $(document).ready(function() {
         const variantId = $(this).data('variant-id');
         const variantName = $(this).data('variant-name');
 
-        // For now, just show an alert - functionality will be implemented later
-        toastr.info('Shipping functionality will be implemented soon for: ' + variantName, 'Coming Soon!', {
-            closeButton: true,
-            progressBar: true,
-            timeOut: 4000
-        });
+        // Redirect to shipping page
+        window.location.href = '/ecom-products-variants-shipping?id=' + variantId;
     });
 });
 </script>

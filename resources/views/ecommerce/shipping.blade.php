@@ -554,6 +554,7 @@ function loadShippingData() {
         },
         success: function(response) {
             hideLoading();
+            console.log('Success response:', response);
             updateTable(response.data);
             updatePagination(response);
             updateInfo(response);
@@ -561,7 +562,9 @@ function loadShippingData() {
         error: function(xhr) {
             hideLoading();
             console.error('Error loading shipping data:', xhr);
-            $('#shippingTableBody').html('<tr><td colspan="4" class="text-center text-danger">Error loading data. Please try again.</td></tr>');
+            console.error('Status:', xhr.status);
+            console.error('Response:', xhr.responseText);
+            $('#shippingTableBody').html('<tr><td colspan="5" class="text-center text-danger">Error loading data. Please try again.</td></tr>');
         }
     });
 }

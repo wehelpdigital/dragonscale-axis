@@ -177,6 +177,7 @@
                                 <th>Shipping Name</th>
                                 <th>Shipping Description</th>
                                 <th>Default Price</th>
+                                <th>Default Max Order Quantity</th>
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
@@ -551,6 +552,7 @@ function loadShippingData() {
         },
         success: function(response) {
             hideLoading();
+            console.log('Success response:', response);
             updateTable(response.data);
             updatePagination(response);
             updateInfo(response);
@@ -558,7 +560,9 @@ function loadShippingData() {
         error: function(xhr) {
             hideLoading();
             console.error('Error loading shipping data:', xhr);
-            $('#shippingTableBody').html('<tr><td colspan="4" class="text-center text-danger">Error loading data. Please try again.</td></tr>');
+            console.error('Status:', xhr.status);
+            console.error('Response:', xhr.responseText);
+            $('#shippingTableBody').html('<tr><td colspan="5" class="text-center text-danger">Error loading data. Please try again.</td></tr>');
         }
     });
 }
@@ -581,7 +585,7 @@ function updateTable(data) {
     if (data.length === 0) {
         tbody.html(`
             <tr>
-                <td colspan="4" class="text-center text-muted">
+                <td colspan="5" class="text-center text-muted">
                     <i class="bx bx-car display-4"></i>
                     <p class="mt-2">No shipping methods found</p>
                 </td>
@@ -596,6 +600,7 @@ function updateTable(data) {
                 <td>${shipping.shippingName}</td>
                 <td>${shipping.shippingDescription}</td>
                 <td>${shipping.defaultPrice}</td>
+                <td>${shipping.defaultMaxQuantity}</td>
                 <td class="text-center">
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
                         <button type="button" class="btn btn-sm btn-outline-success badge-style edit-btn" data-id="${shipping.id}" title="Edit">

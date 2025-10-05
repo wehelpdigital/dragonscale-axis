@@ -415,32 +415,6 @@ class OrdersCustomAddController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function checkPhoneNumber(Request $request)
-    {
-        $phoneNumber = $request->get('phone_number');
-
-        if (!$phoneNumber) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Phone number is required'
-            ], 400);
-        }
-
-        try {
-            $exists = ClientAllDatabase::where('clientPhoneNumber', $phoneNumber)->exists();
-
-            return response()->json([
-                'success' => true,
-                'exists' => $exists,
-                'message' => $exists ? 'Phone number already exists' : 'Phone number is available'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error checking phone number: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Get access clients by store.
@@ -507,69 +481,6 @@ class OrdersCustomAddController extends Controller
         }
     }
 
-    /**
-     * Store a new client.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function storeClient(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'clientFirstName' => 'required|string|max:255',
-            'clientMiddleName' => 'required|string|max:255',
-            'clientLastName' => 'required|string|max:255',
-            'clientPhoneNumber' => 'required|string|unique:clients_all_database,clientPhoneNumber',
-            'clientEmailAddress' => 'required|email|max:255|unique:clients_all_database,clientEmailAddress',
-        ], [
-            'clientPhoneNumber.unique' => 'This phone number already exists and cannot be added.',
-        ]);
-
-        // Custom phone number validation
-        $validator->after(function ($validator) use ($request) {
-            $phoneNumber = $request->clientPhoneNumber;
-            if ($phoneNumber && !preg_match('/^(09\d{9}|\+63\d{9})$/', $phoneNumber)) {
-                $validator->errors()->add('clientPhoneNumber', 'Phone number must start with 09 or +63 followed by 9 digits.');
-            }
-        });
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $client = ClientAllDatabase::create([
-                'clientFirstName' => $request->clientFirstName,
-                'clientMiddleName' => $request->clientMiddleName,
-                'clientLastName' => $request->clientLastName,
-                'clientPhoneNumber' => $request->clientPhoneNumber,
-                'clientEmailAddress' => $request->clientEmailAddress,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Client created successfully',
-                'client' => [
-                    'id' => $client->id,
-                    'fullName' => $client->fullName,
-                    'clientFirstName' => $client->clientFirstName,
-                    'clientMiddleName' => $client->clientMiddleName,
-                    'clientLastName' => $client->clientLastName,
-                    'clientPhoneNumber' => $client->clientPhoneNumber,
-                    'clientEmailAddress' => $client->clientEmailAddress,
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create client: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Check if phone number already exists in clients_access_login table
@@ -751,6 +662,109 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create access client: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if phone number already exists in clients_all_database table
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkClientPhone(Request $request)
+    {
+        $phoneNumber = $request->get('phone_number');
+
+        if (!$phoneNumber) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Phone number is required'
+            ], 400);
+        }
+
+        try {
+            // Normalize the input phone number to check all possible formats
+            $normalizedPhone = $this->normalizePhoneNumber($phoneNumber);
+            $possibleFormats = $this->generatePhoneFormats($normalizedPhone);
+
+            // Check if any of the possible formats exist in the database
+            $exists = ClientAllDatabase::whereIn('clientPhoneNumber', $possibleFormats)->exists();
+
+            return response()->json([
+                'success' => true,
+                'exists' => $exists,
+                'message' => $exists ? 'Phone number already exists' : 'Phone number is available'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking phone number: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Save a new client to the database
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveClient(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'clientFirstName' => 'required|string|max:255',
+            'clientMiddleName' => 'required|string|max:255',
+            'clientLastName' => 'required|string|max:255',
+            'clientPhoneNumber' => 'required|string|unique:clients_all_database,clientPhoneNumber',
+            'clientEmailAddress' => 'required|email|max:255|unique:clients_all_database,clientEmailAddress',
+        ], [
+            'clientPhoneNumber.unique' => 'This phone number already exists.',
+            'clientEmailAddress.unique' => 'This email address already exists.',
+        ]);
+
+        // Custom phone number validation
+        $validator->after(function ($validator) use ($request) {
+            $phoneNumber = $request->clientPhoneNumber;
+            if ($phoneNumber && !preg_match('/^(09\d{9}|\+63\d{9}|63\d{9})$/', $phoneNumber)) {
+                $validator->errors()->add('clientPhoneNumber', 'Phone number must be in format: 09XXXXXXXXX, +63XXXXXXXXX, or 63XXXXXXXXX');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $client = ClientAllDatabase::create([
+                'clientFirstName' => $request->clientFirstName,
+                'clientMiddleName' => $request->clientMiddleName,
+                'clientLastName' => $request->clientLastName,
+                'clientPhoneNumber' => $request->clientPhoneNumber,
+                'clientEmailAddress' => $request->clientEmailAddress,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Client created successfully',
+                'client' => [
+                    'id' => $client->id,
+                    'fullName' => $client->fullName,
+                    'clientFirstName' => $client->clientFirstName,
+                    'clientMiddleName' => $client->clientMiddleName,
+                    'clientLastName' => $client->clientLastName,
+                    'clientPhoneNumber' => $client->clientPhoneNumber,
+                    'clientEmailAddress' => $client->clientEmailAddress,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create client: ' . $e->getMessage()
             ], 500);
         }
     }

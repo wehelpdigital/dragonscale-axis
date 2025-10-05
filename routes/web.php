@@ -165,6 +165,12 @@ Route::delete('/ecom-products-variants-photos/{id}', [App\Http\Controllers\Ecomm
 Route::patch('/ecom-products-variants/{id}/status', [App\Http\Controllers\Ecommerce\ProductsController::class, 'updateVariantStatus'])->name('ecom-products.variants.update-status')->middleware('auth');
 Route::patch('/ecom-products-variants/{id}/stocks', [App\Http\Controllers\Ecommerce\ProductsController::class, 'updateVariantStocks'])->name('ecom-products.variants.update-stocks')->middleware('auth');
 Route::delete('/ecom-products-variants/{id}', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteVariant'])->name('ecom-products.variants.delete')->middleware('auth');
+Route::get('/ecom-products-variants-shipping', [App\Http\Controllers\Ecommerce\ProductsController::class, 'variantShipping'])->name('ecom-products.variants.shipping')->middleware('auth');
+Route::get('/ecom-products-variants-shipping-options', [App\Http\Controllers\Ecommerce\ProductsController::class, 'getShippingOptions'])->name('ecom-products.variants.shipping-options')->middleware('auth');
+Route::get('/ecom-products-variants-shipping-methods', [App\Http\Controllers\Ecommerce\ProductsController::class, 'getShippingMethods'])->name('ecom-products.variants.shipping-methods')->middleware('auth');
+Route::get('/ecom-products-variants-shipping-selections', [App\Http\Controllers\Ecommerce\ProductsController::class, 'getVariantShippingSelections'])->name('ecom-products.variants.shipping-selections')->middleware('auth');
+Route::post('/ecom-products-variants-shipping-add', [App\Http\Controllers\Ecommerce\ProductsController::class, 'addVariantShipping'])->name('ecom-products.variants.shipping-add')->middleware('auth');
+Route::post('/ecom-products-variants-shipping-remove', [App\Http\Controllers\Ecommerce\ProductsController::class, 'removeVariantShipping'])->name('ecom-products.variants.shipping-remove')->middleware('auth');
 
 // E-commerce product variant triggers route
 Route::get('/ecom-products-variants-triggers', [App\Http\Controllers\Ecommerce\ProductsController::class, 'variantTriggers'])->name('ecom-products.variants.triggers')->middleware('auth');
@@ -187,11 +193,11 @@ Route::get('/ecom-orders-custom-add/variants', [App\Http\Controllers\Ecommerce\O
 Route::get('/ecom-orders-custom-add/variant-details', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getVariantDetails'])->name('ecom-orders-custom-add.variant-details')->middleware('auth');
 Route::get('/ecom-orders-custom-add/stores', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getStores'])->name('ecom-orders-custom-add.stores')->middleware('auth');
 Route::get('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getClients'])->name('ecom-orders-custom-add.clients')->middleware('auth');
-Route::post('/ecom-orders-custom-add/clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'storeClient'])->name('ecom-orders-custom-add.clients.store')->middleware('auth');
-Route::get('/ecom-orders-custom-add/clients/check-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkPhoneNumber'])->name('ecom-orders-custom-add.clients.check-phone')->middleware('auth');
 Route::get('/ecom-orders-custom-add/access-clients', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getAccessClients'])->name('ecom-orders-custom-add.access-clients')->middleware('auth');
 Route::get('/ecom-orders-custom-add/check-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkAccessPhone'])->name('ecom-orders-custom-add.check-phone')->middleware('auth');
 Route::post('/ecom-orders-custom-add/save-access', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'saveAccess'])->name('ecom-orders-custom-add.save-access')->middleware('auth');
+Route::get('/ecom-orders-custom-add/check-client-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkClientPhone'])->name('ecom-orders-custom-add.check-client-phone')->middleware('auth');
+Route::post('/ecom-orders-custom-add/save-client', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'saveClient'])->name('ecom-orders-custom-add.save-client')->middleware('auth');
 
 
 // E-commerce shipping routes

@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\EcomProduct;
 use App\Models\EcomProductVariant;
 use App\Models\EcomProductStore;
+use App\Models\EcomProductsShipping;
+use App\Models\EcomProductsShippingOptions;
+use App\Models\EcomProductsVariantsShipping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -1261,6 +1264,267 @@ class ProductsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while deleting the tag: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the shipping page for a specific variant.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function variantShipping(Request $request)
+    {
+        $variantId = $request->get('id');
+
+        // Get the variant details
+        $variant = EcomProductVariant::active()->find($variantId);
+
+        if (!$variant) {
+            return redirect()->route('ecom-products')
+                ->with('error', 'Variant not found.');
+        }
+
+        // Get the product details
+        $product = EcomProduct::active()->find($variant->ecomProductsId);
+
+        if (!$product) {
+            return redirect()->route('ecom-products')
+                ->with('error', 'Product not found.');
+        }
+
+        // Get active shipping methods
+        $shippingMethods = EcomProductsShipping::active()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('ecommerce.products.variants.shipping', compact('variant', 'product', 'shippingMethods'));
+    }
+
+    /**
+     * Get shipping options for a specific shipping method.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getShippingOptions(Request $request)
+    {
+        try {
+            $shippingId = $request->get('shipping_id');
+
+            if (!$shippingId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Shipping ID is required.'
+                ], 400);
+            }
+
+            // Get shipping options for the specified shipping method
+            $shippingOptions = EcomProductsShippingOptions::active()
+                ->byShippingId($shippingId)
+                ->where('isActive', 1)
+                ->orderBy('provinceTarget', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $shippingOptions,
+                'count' => $shippingOptions->count()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching shipping options: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get shipping methods with search and pagination.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getShippingMethods(Request $request)
+    {
+        try {
+            $query = EcomProductsShipping::active();
+
+            // Search functionality
+            if ($request->has('search') && !empty($request->search)) {
+                $searchTerm = $request->search;
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('shippingName', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('shippingDescription', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('defaultPrice', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('defaultMaxQuantity', 'LIKE', "%{$searchTerm}%");
+                });
+            }
+
+            // Get total count before pagination
+            $totalRecords = $query->count();
+
+            // Pagination
+            $perPage = $request->get('per_page', 10);
+            $page = $request->get('page', 1);
+            $offset = ($page - 1) * $perPage;
+
+            $shippingMethods = $query->orderBy('created_at', 'desc')
+                ->offset($offset)
+                ->limit($perPage)
+                ->get();
+
+            $lastPage = ceil($totalRecords / $perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $shippingMethods,
+                'pagination' => [
+                    'current_page' => $page,
+                    'last_page' => $lastPage,
+                    'per_page' => $perPage,
+                    'total' => $totalRecords,
+                    'from' => $offset + 1,
+                    'to' => min($offset + $perPage, $totalRecords)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching shipping methods: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get existing shipping selections for a variant.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getVariantShippingSelections(Request $request)
+    {
+        try {
+            $variantId = $request->get('variant_id');
+
+            if (!$variantId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Variant ID is required.'
+                ], 400);
+            }
+
+            // Get existing shipping selections for this variant
+            $selections = EcomProductsVariantsShipping::active()
+                ->byVariant($variantId)
+                ->pluck('ecomShippingId')
+                ->toArray();
+
+            return response()->json([
+                'success' => true,
+                'data' => $selections
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching shipping selections: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add shipping method to variant.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function addVariantShipping(Request $request)
+    {
+        try {
+            $request->validate([
+                'variant_id' => 'required|integer|exists:ecom_products_variants,id',
+                'shipping_id' => 'required|integer|exists:ecom_products_shipping,id'
+            ]);
+
+            $variantId = $request->variant_id;
+            $shippingId = $request->shipping_id;
+
+            // Check if the relationship already exists
+            $existing = EcomProductsVariantsShipping::where('ecomVariantId', $variantId)
+                ->where('ecomShippingId', $shippingId)
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This shipping method is already assigned to this variant.'
+                ], 400);
+            }
+
+            // Create the relationship
+            EcomProductsVariantsShipping::create([
+                'ecomVariantId' => $variantId,
+                'ecomShippingId' => $shippingId
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Shipping method has been successfully assigned to this variant.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while assigning shipping method: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove shipping method from variant.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function removeVariantShipping(Request $request)
+    {
+        try {
+            $request->validate([
+                'variant_id' => 'required|integer|exists:ecom_products_variants,id',
+                'shipping_id' => 'required|integer|exists:ecom_products_shipping,id'
+            ]);
+
+            $variantId = $request->variant_id;
+            $shippingId = $request->shipping_id;
+
+            // Find and delete the relationship
+            $relationship = EcomProductsVariantsShipping::where('ecomVariantId', $variantId)
+                ->where('ecomShippingId', $shippingId)
+                ->first();
+
+            if (!$relationship) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This shipping method is not assigned to this variant.'
+                ], 400);
+            }
+
+            // Hard delete the relationship
+            $relationship->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Shipping method has been successfully removed from this variant.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while removing shipping method: ' . $e->getMessage()
             ], 500);
         }
     }
