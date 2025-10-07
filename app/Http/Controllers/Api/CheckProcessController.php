@@ -334,6 +334,16 @@ class CheckProcessController extends Controller
         Log::info("Task usersId: {$task->usersId}");
 
         try {
+            // Validate usersId
+            if (empty($task->usersId) || $task->usersId == 0) {
+                Log::error("Invalid usersId for task ID: {$task->id}, usersId: {$task->usersId}");
+                return [
+                    'status' => 'Invalid usersId - no email configuration possible',
+                    'notification_email_data' => null,
+                    'notification_receiver_data' => null
+                ];
+            }
+
             // Get SMTP credentials from notification_email table
             $notificationEmail = NotificationEmail::where('usersId', $task->usersId)->first();
 
@@ -341,10 +351,14 @@ class CheckProcessController extends Controller
             Log::info("Looking for notification email with usersId: {$task->usersId}");
 
             // Check if there are any records in the table at all
-            $allNotificationEmails = NotificationEmail::all();
-            Log::info("Total notification email records: " . $allNotificationEmails->count());
-            if ($allNotificationEmails->count() > 0) {
-                Log::info("Available usersId values: " . $allNotificationEmails->pluck('usersId')->implode(', '));
+            try {
+                $allNotificationEmails = NotificationEmail::all();
+                Log::info("Total notification email records: " . $allNotificationEmails->count());
+                if ($allNotificationEmails->count() > 0) {
+                    Log::info("Available usersId values: " . $allNotificationEmails->pluck('usersId')->implode(', '));
+                }
+            } catch (\Exception $e) {
+                Log::error("Database error when checking notification emails: " . $e->getMessage());
             }
 
             Log::info("Notification email found: " . ($notificationEmail ? 'YES' : 'NO'));
@@ -378,22 +392,41 @@ class CheckProcessController extends Controller
                 ];
             }
 
+            // Validate SMTP configuration
+            if (empty($notificationEmail->smtp_host) || empty($notificationEmail->smtp_port) ||
+                empty($notificationEmail->email) || empty($notificationEmail->password)) {
+                Log::error("Incomplete SMTP configuration for user ID: {$task->usersId}");
+                return [
+                    'status' => 'Incomplete SMTP configuration',
+                    'notification_email_data' => [
+                        'usersId' => $notificationEmail->usersId,
+                        'email' => $notificationEmail->email,
+                        'smtp_host' => $notificationEmail->smtp_host,
+                        'smtp_port' => $notificationEmail->smtp_port
+                    ],
+                    'notification_receiver_data' => null
+                ];
+            }
+
             // Configure SMTP settings
             $config = [
                 'transport' => 'smtp',
                 'host' => $notificationEmail->smtp_host,
-                'port' => $notificationEmail->smtp_port,
+                'port' => (int) $notificationEmail->smtp_port,
                 'username' => $notificationEmail->email,
                 'password' => $notificationEmail->password,
                 'encryption' => 'tls',
-                'timeout' => null,
-                'local_domain' => env('MAIL_EHLO_DOMAIN'),
+                'timeout' => 60,
+                'local_domain' => env('MAIL_EHLO_DOMAIN', 'localhost'),
             ];
 
             // Set the mail configuration
             config(['mail.mailers.smtp' => $config]);
             config(['mail.from.address' => $notificationEmail->email]);
             config(['mail.from.name' => 'Crypto Alert System']);
+            config(['mail.default' => 'smtp']);
+
+            Log::info("SMTP configuration set: Host: {$notificationEmail->smtp_host}, Port: {$notificationEmail->smtp_port}, Email: {$notificationEmail->email}");
 
             // Email subject
             $subject = "Buy Crypto To Earn - " . number_format($differenceInPhp, 2);
@@ -403,13 +436,18 @@ class CheckProcessController extends Controller
             $message .= "AI Analysis: <a href='#'>Click here for AI analysis</a>";
 
             // Send email to the recipient from notification_receiver table
-            Mail::raw($message, function($mail) use ($notificationReceiver, $subject) {
-                $mail->to($notificationReceiver->emailRecipient)
-                     ->subject($subject)
-                     ->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            try {
+                Mail::raw($message, function($mail) use ($notificationReceiver, $subject) {
+                    $mail->to($notificationReceiver->emailRecipient)
+                         ->subject($subject)
+                         ->from(config('mail.from.address'), config('mail.from.name'));
+                });
 
-            Log::info("Buy email sent successfully to: {$notificationReceiver->emailRecipient}");
+                Log::info("Buy email sent successfully to: {$notificationReceiver->emailRecipient}");
+            } catch (\Exception $mailException) {
+                Log::error("Failed to send buy email: " . $mailException->getMessage());
+                throw $mailException;
+            }
 
             // Save notification history after email is sent successfully
             $this->saveNotificationHistory($task->id, $task->usersId, $finalBtcAmount, $differenceInPhp);
@@ -552,6 +590,16 @@ class CheckProcessController extends Controller
         Log::info("Sending notification for task ID: {$task->id}, Difference: {$difference}, Final Amount: {$finalAmount}");
 
         try {
+            // Validate usersId
+            if (empty($task->usersId) || $task->usersId == 0) {
+                Log::error("Invalid usersId for task ID: {$task->id}, usersId: {$task->usersId}");
+                return [
+                    'status' => 'Invalid usersId - no email configuration possible',
+                    'notification_email_data' => null,
+                    'notification_receiver_data' => null
+                ];
+            }
+
             // Get SMTP credentials from notification_email table
             $notificationEmail = NotificationEmail::where('usersId', $task->usersId)->first();
 
@@ -581,22 +629,41 @@ class CheckProcessController extends Controller
                 ];
             }
 
+            // Validate SMTP configuration
+            if (empty($notificationEmail->smtp_host) || empty($notificationEmail->smtp_port) ||
+                empty($notificationEmail->email) || empty($notificationEmail->password)) {
+                Log::error("Incomplete SMTP configuration for user ID: {$task->usersId}");
+                return [
+                    'status' => 'Incomplete SMTP configuration',
+                    'notification_email_data' => [
+                        'usersId' => $notificationEmail->usersId,
+                        'email' => $notificationEmail->email,
+                        'smtp_host' => $notificationEmail->smtp_host,
+                        'smtp_port' => $notificationEmail->smtp_port
+                    ],
+                    'notification_receiver_data' => null
+                ];
+            }
+
             // Configure SMTP settings
             $config = [
                 'transport' => 'smtp',
                 'host' => $notificationEmail->smtp_host,
-                'port' => $notificationEmail->smtp_port,
+                'port' => (int) $notificationEmail->smtp_port,
                 'username' => $notificationEmail->email,
                 'password' => $notificationEmail->password,
                 'encryption' => 'tls',
-                'timeout' => null,
-                'local_domain' => env('MAIL_EHLO_DOMAIN'),
+                'timeout' => 60,
+                'local_domain' => env('MAIL_EHLO_DOMAIN', 'localhost'),
             ];
 
             // Set the mail configuration
             config(['mail.mailers.smtp' => $config]);
             config(['mail.from.address' => $notificationEmail->email]);
             config(['mail.from.name' => 'Crypto Alert System']);
+            config(['mail.default' => 'smtp']);
+
+            Log::info("SMTP configuration set: Host: {$notificationEmail->smtp_host}, Port: {$notificationEmail->smtp_port}, Email: {$notificationEmail->email}");
 
             // Email subject
             $subject = "Sell Your Crypto To Earn - " . number_format($difference, 2);
@@ -606,13 +673,18 @@ class CheckProcessController extends Controller
             $message .= "AI Analysis: <a href='#'>Click here for AI analysis</a>";
 
             // Send email to the recipient from notification_receiver table
-            Mail::raw($message, function($mail) use ($notificationReceiver, $subject) {
-                $mail->to($notificationReceiver->emailRecipient)
-                     ->subject($subject)
-                     ->from(config('mail.from.address'), config('mail.from.name'));
-            });
+            try {
+                Mail::raw($message, function($mail) use ($notificationReceiver, $subject) {
+                    $mail->to($notificationReceiver->emailRecipient)
+                         ->subject($subject)
+                         ->from(config('mail.from.address'), config('mail.from.name'));
+                });
 
-            Log::info("Email sent successfully to: {$notificationReceiver->emailRecipient}");
+                Log::info("Sell email sent successfully to: {$notificationReceiver->emailRecipient}");
+            } catch (\Exception $mailException) {
+                Log::error("Failed to send sell email: " . $mailException->getMessage());
+                throw $mailException;
+            }
 
             // Save notification history after email is sent successfully
             $this->saveNotificationHistory($task->id, $task->usersId, $finalAmount, $difference);

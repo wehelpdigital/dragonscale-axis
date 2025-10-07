@@ -198,6 +198,9 @@ Route::get('/ecom-orders-custom-add/check-phone', [App\Http\Controllers\Ecommerc
 Route::post('/ecom-orders-custom-add/save-access', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'saveAccess'])->name('ecom-orders-custom-add.save-access')->middleware('auth');
 Route::get('/ecom-orders-custom-add/check-client-phone', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'checkClientPhone'])->name('ecom-orders-custom-add.check-client-phone')->middleware('auth');
 Route::post('/ecom-orders-custom-add/save-client', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'saveClient'])->name('ecom-orders-custom-add.save-client')->middleware('auth');
+Route::get('/ecom-orders-custom-add/philippine-provinces', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getPhilippineProvinces'])->name('ecom-orders-custom-add.philippine-provinces')->middleware('auth');
+Route::get('/ecom-orders-custom-add/philippine-municipalities', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getPhilippineMunicipalities'])->name('ecom-orders-custom-add.philippine-municipalities')->middleware('auth');
+Route::post('/ecom-orders-custom-add/calculate-shipping', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'calculateShipping'])->name('ecom-orders-custom-add.calculate-shipping')->middleware('auth');
 
 
 // E-commerce shipping routes
@@ -209,6 +212,23 @@ Route::get('/ecom-shipping/{id}/edit', [App\Http\Controllers\Ecommerce\ShippingC
 Route::put('/ecom-shipping/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'update'])->name('ecom-shipping.update')->middleware('auth');
 Route::get('/ecom-shipping-settings', [App\Http\Controllers\Ecommerce\ShippingController::class, 'settings'])->name('ecom-shipping.settings')->middleware('auth');
 Route::get('/ecom-shipping-options/data', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getShippingOptionsData'])->name('ecom-shipping-options.data')->middleware('auth');
+
+// E-commerce discounts routes
+Route::get('/ecom-discounts', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'index'])->name('ecom-discounts')->middleware('auth');
+Route::get('/ecom-discounts/data', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'getData'])->name('ecom-discounts.data')->middleware('auth');
+Route::get('/ecom-discounts-add', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'create'])->name('ecom-discounts.create')->middleware('auth');
+Route::post('/ecom-discounts-add', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'store'])->name('ecom-discounts.store')->middleware('auth');
+Route::get('/ecom-discounts-edit', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'edit'])->name('ecom-discounts.edit')->middleware('auth');
+Route::put('/ecom-discounts-edit', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'update'])->name('ecom-discounts.update')->middleware('auth');
+Route::get('/ecom-discounts/{id}', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'show'])->name('ecom-discounts.show')->middleware('auth');
+Route::patch('/ecom-discounts/{id}/status', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'updateStatus'])->name('ecom-discounts.update-status')->middleware('auth');
+Route::delete('/ecom-discounts/{id}', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'destroy'])->name('ecom-discounts.destroy')->middleware('auth');
+
+// E-commerce affiliates routes
+Route::get('/ecom-affiliates', [App\Http\Controllers\Ecommerce\AffiliatesController::class, 'index'])->name('ecom-affiliates')->middleware('auth');
+
+// E-commerce triggers routes
+Route::get('/ecom-triggers', [App\Http\Controllers\Ecommerce\TriggersController::class, 'index'])->name('ecom-triggers')->middleware('auth');
 Route::get('/ecom-shipping-options/available-provinces', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getAvailableProvinces'])->name('ecom-shipping-options.available-provinces')->middleware('auth');
 Route::get('/ecom-shipping-options/{id}/edit', [App\Http\Controllers\Ecommerce\ShippingController::class, 'editShippingOption'])->name('ecom-shipping-options.edit')->middleware('auth');
 Route::post('/ecom-shipping-options', [App\Http\Controllers\Ecommerce\ShippingController::class, 'storeShippingOption'])->name('ecom-shipping-options.store')->middleware('auth');

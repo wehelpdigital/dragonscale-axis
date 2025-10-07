@@ -36,13 +36,13 @@
                                 <small class="text-muted">Step 2: Client Details</small>
                                 <small class="text-muted">Step 3: Client Logins</small>
                                 <small class="text-muted">Step 4: Shipping</small>
-                                <small class="text-muted">Step 5: Final Step</small>
+                                <small class="text-muted">Step 5: Discounts</small>
                             </div>
                         </div>
                     </div>
 
                     <!-- Wizard Form -->
-                    <form id="order-wizard-form" method="POST">
+                    <form id="order-wizard-form" method="POST" novalidate>
                         @csrf
                         <div class="wizard-content">
                             <!-- Step 1: Product Selection -->
@@ -290,7 +290,7 @@
                                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <form id="addNewClientForm">
+                                            <form id="addNewClientForm" novalidate>
                                                 <div class="row">
                                                     <div class="col-12">
                                                         <div class="mb-3">
@@ -395,19 +395,237 @@
         <!-- Step 4: Shipping -->
         <div class="wizard-step d-none" id="step-4">
             <h5 class="mb-3">Shipping</h5>
-            <div class="text-center py-5">
-                <i class="mdi mdi-truck display-4 text-info mb-3"></i>
-                <h6 class="text-muted">Shipping Information</h6>
-                <p class="text-muted">This step will be implemented later.</p>
+
+            <!-- Ship Products Stores -->
+            <div id="ship-stores-container">
+                <!-- Stores will be dynamically loaded here -->
+            </div>
+
+            <!-- No Ship Products Message -->
+            <div id="no-ship-products" class="text-center py-5" style="display: none;">
+                <i class="mdi mdi-skip-next display-4 text-muted mb-3"></i>
+                <h6 class="text-muted">No Ship Products Selected</h6>
+                <p class="text-muted">You are not buying any ship type products, so skip this step.</p>
+            </div>
+
+            <!-- Shipping Address Section -->
+            <div class="row mt-4" id="shipping-address-section">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="mdi mdi-map-marker me-2"></i>Shipping Address
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Who Will Receive the Order -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="mdi mdi-account me-2"></i>Who Will Receive the Order
+                                    </h6>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="shipping_first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_first_name" name="shipping_first_name" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="shipping_middle_name" class="form-label">Middle Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_middle_name" name="shipping_middle_name" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="shipping_last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_last_name" name="shipping_last_name" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="shipping_phone" name="shipping_phone" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="shipping_email" name="shipping_email" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <!-- Address Details -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary mb-3">
+                                        <i class="mdi mdi-home me-2"></i>Address Details
+                                    </h6>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label for="shipping_house_number" class="form-label">House Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_house_number" name="shipping_house_number" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-8 mb-3">
+                                    <label for="shipping_street" class="form-label">Street <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_street" name="shipping_street" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_zone" class="form-label">Zone (if any)</label>
+                                    <input type="text" class="form-control" id="shipping_zone" name="shipping_zone">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_province" class="form-label">Province <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="shipping_province" name="shipping_province" required>
+                                        <option value="">Select Province</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_municipality" class="form-label">Municipality/City <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="shipping_municipality" name="shipping_municipality" required disabled>
+                                        <option value="">Select Municipality/City</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_barangay" class="form-label">Barangay <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="shipping_barangay" name="shipping_barangay" rows="2" required disabled></textarea>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_zip_code" class="form-label">Zip Code <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_zip_code" name="shipping_zip_code" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_landmark" class="form-label">Landmark</label>
+                                    <textarea class="form-control" id="shipping_landmark" name="shipping_landmark" rows="2" placeholder="Nearby landmarks or additional directions"></textarea>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Calculation Section -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="mdi mdi-calculator me-2"></i>Shipping & Total Calculation
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Loading State -->
+                            <div id="shipping-calculation-loading" class="text-center py-5">
+                                <div class="spinner-border text-success mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                    <span class="visually-hidden">Calculating...</span>
+                                </div>
+                                <h6 class="text-success">Calculating Order Total...</h6>
+                                <p class="text-muted">Please wait while we calculate your shipping costs and total price</p>
+                            </div>
+
+                            <!-- Calculation Results -->
+                            <div id="shipping-calculation-results" style="display: none;">
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h6 class="text-success mb-3">Complete Order Breakdown</h6>
+                                        <div id="complete-breakdown">
+                                            <!-- Complete breakdown will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <!-- Product Summary Accordion -->
+                                        <div class="card border-info mb-3">
+                                            <div class="card-header bg-info text-white" data-bs-toggle="collapse" data-bs-target="#productSummaryCollapse" aria-expanded="false" aria-controls="productSummaryCollapse" style="cursor: pointer;">
+                                                <h6 class="mb-0">
+                                                    <i class="mdi mdi-package-variant me-2"></i>Product Summary
+                                                    <i class="mdi mdi-chevron-down float-end"></i>
+                                                </h6>
+                                            </div>
+                                            <div class="collapse" id="productSummaryCollapse">
+                                                <div class="card-body">
+                                                    <div id="product-summary">
+                                                        <!-- Product summary will be populated here -->
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <!-- Order Summary Accordion -->
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white" data-bs-toggle="collapse" data-bs-target="#orderSummaryCollapse" aria-expanded="true" aria-controls="orderSummaryCollapse" style="cursor: pointer;">
+                                                <h6 class="mb-0">
+                                                    <i class="mdi mdi-calculator me-2"></i>Order Summary
+                                                    <i class="mdi mdi-chevron-up float-end"></i>
+                                                </h6>
+                                            </div>
+                                            <div class="collapse show" id="orderSummaryCollapse">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>Subtotal:</span>
+                                                        <span id="order-subtotal">₱0.00</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2">
+                                                        <span>Shipping:</span>
+                                                        <span id="total-shipping">₱0.00</span>
+                                                    </div>
+                                                    <hr>
+                                                    <div class="d-flex justify-content-between fw-bold">
+                                                        <span>Total:</span>
+                                                        <span id="order-total" class="text-success">₱0.00</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- No Province Selected Message -->
+                            <div id="no-province-selected" class="text-center py-3" style="display: none;">
+                                <i class="mdi mdi-map-marker-off text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mt-2">Please select a province to calculate shipping costs</p>
+                            </div>
+
+                            <!-- No Ship Products Message -->
+                            <div id="no-ship-products-calculation" class="text-center py-3" style="display: none;">
+                                <i class="mdi mdi-package-variant-closed text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mt-2">No ship products selected for shipping calculation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Step 5: Final Step -->
+        <!-- Step 5: Discounts -->
         <div class="wizard-step d-none" id="step-5">
-            <h5 class="mb-3">Final Step</h5>
+            <h5 class="mb-3">Discounts</h5>
             <div class="text-center py-5">
-                <i class="mdi mdi-check-circle display-4 text-success mb-3"></i>
-                <h6 class="text-muted">Step 5 Content</h6>
+                <i class="mdi mdi-tag-multiple display-4 text-success mb-3"></i>
+                <h6 class="text-muted">Discount Configuration</h6>
                 <p class="text-muted">This step will be implemented later.</p>
             </div>
         </div>
@@ -642,7 +860,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="createAccessForm">
+                    <form id="createAccessForm" novalidate>
                         <div class="mb-3">
                             <label for="accessPhoneNumber" class="form-label">Phone Number <span class="text-danger">*</span></label>
                             <input type="tel" class="form-control" id="accessPhoneNumber" name="phoneNumber" required>
@@ -1073,16 +1291,15 @@
 
     /* Cart item styling improvements */
     .cart-item {
-        border-left: 4px solid #007bff !important;
         background-color: #f8f9fa;
         border-radius: 8px !important;
+        transition: all 0.2s ease;
     }
 
     .cart-item:hover {
         background-color: #e9ecef;
-        border-left-color: #0056b3 !important;
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
     .cart-item .fw-bold.text-primary {
@@ -1117,8 +1334,51 @@ $(document).ready(function() {
 
     // Client search variables
     let selectedClient = null;
+
+    // Shipping form data storage
+    let shippingFormData = {};
     let currentClientsPage = 1;
     let clientSearchTimeout;
+
+    // Store color mapping for consistent colors
+    let storeColorMap = {};
+    const storeColors = [
+        '#3498db', // Flat Blue
+        '#e74c3c', // Flat Red
+        '#f39c12', // Flat Orange
+        '#9b59b6', // Flat Purple
+        '#1abc9c', // Flat Turquoise
+        '#e67e22', // Flat Carrot
+        '#f1c40f', // Flat Yellow
+        '#34495e', // Flat Dark Blue
+        '#c0392b', // Flat Dark Red
+        '#8e44ad', // Flat Wisteria
+    ];
+
+    // Function to get consistent color for a store
+    function getStoreColor(storeName) {
+        if (!storeName) return '#3498db'; // Default flat blue
+
+        // Return cached color if exists
+        if (storeColorMap[storeName]) {
+            return storeColorMap[storeName];
+        }
+
+        // Generate hash from store name for consistent color assignment
+        let hash = 0;
+        for (let i = 0; i < storeName.length; i++) {
+            hash = storeName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        // Use hash to select color from array
+        const colorIndex = Math.abs(hash) % storeColors.length;
+        const color = storeColors[colorIndex];
+
+        // Cache it
+        storeColorMap[storeName] = color;
+
+        return color;
+    }
 
     // Access clients selection variables
     let selectedAccessClients = {}; // Object to store selected access clients by store
@@ -1245,14 +1505,18 @@ $(document).ready(function() {
         let html = '';
         products.forEach(function(product, index) {
             const isLast = index === products.length - 1;
+            const storeColor = getStoreColor(product.productStore);
             html += `
-                <div class="card mb-2 ${!isLast ? 'border-bottom' : ''}" style="border-left: 4px solid #007bff;">
+                <div class="card mb-2 ${!isLast ? 'border-bottom' : ''}" style="border-left: 4px solid ${storeColor};">
                     <div class="card-body p-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h6 class="mb-1">${product.productName}</h6>
                                 <div class="d-flex align-items-center gap-2">
-                                    <small class="text-muted">${product.productStore}</small>
+                                    <small class="text-muted">
+                                        <i class="mdi mdi-store" style="color: ${storeColor};"></i>
+                                        ${product.productStore}
+                                    </small>
                                     <span class="badge bg-info text-white">${product.productType || 'N/A'}</span>
                                 </div>
                             </div>
@@ -1485,8 +1749,9 @@ $(document).ready(function() {
                                     price: variant.ecomVariantPrice,
                                     productId: productId,
             productName: variant.productName,
-            productStore: variant.product ? variant.product.productStore : 'Unknown Store',
-            productType: variant.product ? variant.product.productType : 'Unknown',
+            productStore: variant.productStore || 'Unknown Store',
+            productType: variant.productType || 'Unknown',
+            shipCoverage: variant.shipCoverage || 'n/a',
             quantity: 1,
             maxOrderPerTransaction: variant.maxOrderPerTransaction || 1,
                                     stocksAvailable: variant.stocksAvailable || 0
@@ -1581,15 +1846,16 @@ $(document).ready(function() {
                 totalAmount += parseFloat(item.price) * item.quantity;
                 const maxOrderPerTransaction = parseInt(item.maxOrderPerTransaction) || 1;
                 const isAtMaxLimit = item.quantity >= maxOrderPerTransaction;
+                const storeColor = getStoreColor(item.productStore);
 
                 html += `
-                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded cart-item" data-item-index="${index}">
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded cart-item" data-item-index="${index}" style="border-left: 4px solid ${storeColor} !important;">
                         <div>
                             <small class="fw-bold text-primary">${item.productName || 'Unknown Product'}</small><br>
                             <small class="fw-bold">${item.variantName}</small><br>
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <small class="text-muted">
-                                    <i class="mdi mdi-store me-1"></i>${item.productStore || 'Unknown Store'}
+                                    <i class="mdi mdi-store me-1" style="color: ${storeColor};"></i>${item.productStore || 'Unknown Store'}
                                 </small>
                                 <span class="badge bg-info text-white" style="font-size: 0.7em;">${item.productType || 'N/A'}</span>
                             </div>
@@ -1669,6 +1935,9 @@ $(document).ready(function() {
 
         // Update hidden input
         $('#selectedProducts').val(JSON.stringify(selectedProducts));
+
+        // Trigger products updated event
+        $(document).trigger('productsUpdated');
     };
 
     // Update only the quantity display for a specific item
@@ -1705,6 +1974,8 @@ $(document).ready(function() {
         // Animate the summary update
         $('#total-items').fadeOut(100, function() {
             $(this).text(totalItems);
+            // Remove any existing product count text first
+            $(this).find('small').remove();
             if (uniqueProducts > 1) {
                 $(this).append(` <small class="text-muted">(${uniqueProducts} products)</small>`);
             }
@@ -1740,23 +2011,14 @@ $(document).ready(function() {
                 $(this).find('input').attr('onchange', `updateQuantity(${i}, 0, this.value)`);
             });
 
-            // Update cart summary
-            updateCartSummary();
+            // Update cart display and summary
+            updateCartDisplay();
 
             // Update hidden input
             $('#selectedProducts').val(JSON.stringify(selectedProducts));
 
-            // If no items left, show empty state
-            if (selectedProducts.length === 0) {
-                $('#cart-container').html(`
-                    <div class="text-center py-3 text-muted">
-                        <i class="mdi mdi-cart-outline" style="font-size: 48px;"></i>
-                        <p class="mt-2">No products selected</p>
-                        <small>Select products from the left panel to add them to your order</small>
-                    </div>
-                `);
-                $('#cart-summary').hide();
-            }
+            // Trigger products updated event
+            $(document).trigger('productsUpdated');
         }, 300);
     };
 
@@ -1854,8 +2116,9 @@ $(document).ready(function() {
             price: currentVariantForModal.variant.ecomVariantPrice,
             productId: currentVariantForModal.productId,
             productName: currentVariantForModal.variant.productName,
-            productStore: currentVariantForModal.variant.product ? currentVariantForModal.variant.product.productStore : 'Unknown Store',
-            productType: currentVariantForModal.variant.product ? currentVariantForModal.variant.product.productType : 'Unknown',
+            productStore: currentVariantForModal.variant.productStore || 'Unknown Store',
+            productType: currentVariantForModal.variant.productType || 'Unknown',
+            shipCoverage: currentVariantForModal.variant.shipCoverage || 'n/a',
             quantity: quantity,
             maxOrderPerTransaction: currentVariantForModal.variant.maxOrderPerTransaction || 1,
             stocksAvailable: currentVariantForModal.variant.stocksAvailable || 0
@@ -1864,9 +2127,16 @@ $(document).ready(function() {
         // Close modal and update display with animation
         $('#quantityModal').modal('hide');
 
+        // Capture values before clearing
+        const variantId = currentVariantForModal.variant.id;
+        const productId = currentVariantForModal.productId;
+
         setTimeout(() => {
             updateCartDisplay();
-            updateVariantButtonState(currentVariantForModal.variant.id, currentVariantForModal.productId, true);
+            updateVariantButtonState(variantId, productId, true);
+
+            // Trigger products updated event
+            $(document).trigger('productsUpdated');
         }, 300);
 
         currentVariantForModal = null;
@@ -2300,6 +2570,11 @@ $(document).ready(function() {
 
     // Show step
     function showStep(step) {
+        // Save shipping form data when leaving step 4
+        if (currentStep === 4) {
+            saveShippingFormData();
+        }
+
         // Hide all steps first
         $('.wizard-step').addClass('d-none');
 
@@ -2328,6 +2603,19 @@ $(document).ready(function() {
         // Load access products when step 3 is shown
         if (step === 3) {
             loadAccessProductsStores();
+        }
+
+        // Load ship products when step 4 is shown
+        if (step === 4) {
+            loadShipProductsStores();
+            // Initialize shipping calculation state
+            initializeShippingCalculation();
+            // Load provinces and restore form data
+            // Delay to ensure ship products are loaded first
+            setTimeout(function() {
+                loadPhilippineProvinces();
+                restoreShippingFormData();
+            }, 100);
         }
     }
 
@@ -2401,7 +2689,143 @@ $(document).ready(function() {
             }
         }
 
+        // Special validation for step 4 - check if shipping address is complete
+        if (step === 4) {
+            // Get ship products (products with type 'ship')
+            const shipProducts = selectedProducts.filter(product =>
+                product.productType === 'ship' || product.productType === 'Ship'
+            );
+
+            // Validate ship coverage for ship products
+            const province = $('#shipping_province').val();
+            const shipCoverageErrors = [];
+
+            shipProducts.forEach(product => {
+                const shipCoverage = product.shipCoverage || 'n/a';
+                const productName = product.productName || 'Unknown Product';
+
+                if (shipCoverage.toLowerCase() === 'province') {
+                    if (!province) {
+                        shipCoverageErrors.push(`Province shipping location is required for product: ${productName}`);
+                    } else if (province.toLowerCase() !== 'pangasinan') {
+                        shipCoverageErrors.push(`Product '${productName}' has Province shipping coverage only and can only be shipped to Pangasinan.`);
+                    }
+                }
+            });
+
+            // Show ship coverage errors if any
+            if (shipCoverageErrors.length > 0) {
+                showErrorAlertModal(shipCoverageErrors.join(' '));
+                return false;
+            }
+
+            if (shipProducts.length > 0) {
+                // Validate all required shipping address fields
+                const requiredFields = [
+                    'shipping_first_name', 'shipping_middle_name', 'shipping_last_name',
+                    'shipping_phone', 'shipping_email', 'shipping_house_number',
+                    'shipping_street', 'shipping_province', 'shipping_municipality',
+                    'shipping_barangay', 'shipping_zip_code'
+                ];
+
+                const missingFields = [];
+                requiredFields.forEach(fieldId => {
+                    const field = $(`#${fieldId}`);
+                    if (!field.val() || field.val().trim() === '') {
+                        missingFields.push(fieldId.replace('shipping_', '').replace('_', ' '));
+                        field.addClass('is-invalid');
+                        field.siblings('.invalid-feedback').text('This field is required.');
+                    } else {
+                        field.removeClass('is-invalid');
+                        field.siblings('.invalid-feedback').text('');
+                    }
+                });
+
+                // Validate email format
+                const email = $('#shipping_email').val();
+                if (email && !isValidEmail(email)) {
+                    $('#shipping_email').addClass('is-invalid');
+                    $('#shipping_email').siblings('.invalid-feedback').text('Please enter a valid email address.');
+                    missingFields.push('valid email address');
+                }
+
+                // Validate phone format
+                const phone = $('#shipping_phone').val();
+                if (phone && !isValidPhone(phone)) {
+                    $('#shipping_phone').addClass('is-invalid');
+                    $('#shipping_phone').siblings('.invalid-feedback').text('Please enter a valid phone number.');
+                    missingFields.push('valid phone number');
+                }
+
+                if (missingFields.length > 0) {
+                    showErrorAlertModal('Please complete all required shipping address fields: ' + missingFields.join(', '));
+                    isValid = false;
+                }
+            }
+        }
+
         return isValid;
+    }
+
+    // Save shipping form data
+    function saveShippingFormData() {
+        shippingFormData = {
+            shipping_first_name: $('#shipping_first_name').val(),
+            shipping_middle_name: $('#shipping_middle_name').val(),
+            shipping_last_name: $('#shipping_last_name').val(),
+            shipping_phone: $('#shipping_phone').val(),
+            shipping_email: $('#shipping_email').val(),
+            shipping_house_number: $('#shipping_house_number').val(),
+            shipping_street: $('#shipping_street').val(),
+            shipping_zone: $('#shipping_zone').val(),
+            shipping_province: $('#shipping_province').val(),
+            shipping_municipality: $('#shipping_municipality').val(),
+            shipping_barangay: $('#shipping_barangay').val(),
+            shipping_zip_code: $('#shipping_zip_code').val()
+        };
+    }
+
+    // Restore shipping form data
+    function restoreShippingFormData() {
+        // Wait for province dropdown to be populated
+        setTimeout(() => {
+            if (Object.keys(shippingFormData).length > 0 && shippingFormData.shipping_province) {
+                // Restore all form fields
+                $('#shipping_first_name').val(shippingFormData.shipping_first_name || '');
+                $('#shipping_middle_name').val(shippingFormData.shipping_middle_name || '');
+                $('#shipping_last_name').val(shippingFormData.shipping_last_name || '');
+                $('#shipping_phone').val(shippingFormData.shipping_phone || '');
+                $('#shipping_email').val(shippingFormData.shipping_email || '');
+                $('#shipping_house_number').val(shippingFormData.shipping_house_number || '');
+                $('#shipping_street').val(shippingFormData.shipping_street || '');
+                $('#shipping_zone').val(shippingFormData.shipping_zone || '');
+                $('#shipping_zip_code').val(shippingFormData.shipping_zip_code || '');
+
+                // Restore province and trigger municipality load
+                $('#shipping_province').val(shippingFormData.shipping_province);
+
+                // Load municipalities and restore municipality selection
+                loadMunicipalities(shippingFormData.shipping_province, function() {
+                    if (shippingFormData.shipping_municipality) {
+                        $('#shipping_municipality').val(shippingFormData.shipping_municipality);
+                    }
+
+                    // Restore barangay
+                    if (shippingFormData.shipping_barangay) {
+                        $('#shipping_barangay').val(shippingFormData.shipping_barangay);
+                    }
+
+                    // Recalculate with current products
+                    if (selectedProducts && selectedProducts.length > 0) {
+                        calculateShippingCosts();
+                    } else {
+                        clearShippingCalculation();
+                    }
+                });
+            }
+            // If no saved form data but there are ship products, the auto-selection
+            // in populateProvinceDropdown() will handle setting Pangasinan and calculating
+        }, 500);
     }
 
     // Previous button click
@@ -3108,6 +3532,749 @@ $(document).ready(function() {
                 showStoreProductsModal(store);
             });
         });
+    }
+
+    // Load ship products by store for step 4
+    function loadShipProductsStores() {
+        const shipProducts = selectedProducts.filter(product => {
+            // Check if product type is 'ship' - you may need to adjust this based on your data structure
+            return product.productType === 'ship' || product.productType === 'Ship';
+        });
+
+        if (shipProducts.length === 0) {
+            $('#no-ship-products').show();
+            $('#ship-stores-container').hide();
+            $('#shipping-address-section').hide();
+
+            // Remove required attribute from shipping fields when hidden
+            $('#shipping-address-section input[required], #shipping-address-section select[required]').each(function() {
+                $(this).removeAttr('required').data('was-required', true);
+            });
+
+            // Clear shipping form data and form fields when there are no ship products
+            shippingFormData = {};
+            $('#shipping-address-section input, #shipping-address-section select').val('');
+
+            // Calculate totals for access products (no province needed)
+            if (selectedProducts && selectedProducts.length > 0) {
+                // Small delay to ensure everything is loaded
+                setTimeout(function() {
+                    calculateShippingCosts();
+                }, 300);
+            } else {
+                clearShippingCalculation();
+            }
+
+            return;
+        } else {
+            $('#no-ship-products').hide();
+            $('#ship-stores-container').show();
+            $('#shipping-address-section').show();
+
+            // Restore required attribute to shipping fields when shown
+            $('#shipping-address-section input[data-was-required], #shipping-address-section select[data-was-required]').each(function() {
+                $(this).attr('required', 'required');
+            });
+        }
+
+        // Get unique stores from ship products
+        const uniqueStores = [...new Set(shipProducts.map(product => product.productStore || 'Unknown Store'))];
+
+        // Display stores and load products for each store
+        let storesHtml = '';
+        const colorClasses = ['store-card-primary', 'store-card-success', 'store-card-warning', 'store-card-danger', 'store-card-info', 'store-card-secondary'];
+
+        uniqueStores.forEach((store, index) => {
+            const colorClass = colorClasses[index % colorClasses.length];
+            const storeId = store.replace(/\s+/g, '-').toLowerCase();
+
+            storesHtml += `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card ${colorClass}">
+                            <div class="card-header text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="mdi mdi-store me-2"></i>${store}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- Store Actions -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-outline-info btn-sm" id="view-ship-products-${storeId}" title="View Products for this Store">
+                                                <i class="mdi mdi-package-variant me-1"></i>View Products
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-end">
+                                            <small class="text-muted">
+                                                <i class="mdi mdi-package-variant me-1"></i>
+                                                <span id="ship-products-count-${storeId}">0</span> ship products
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Products List -->
+                                <div id="ship-products-${storeId}" class="ship-products-container">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Loading ship products...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        $('#ship-stores-container').html(storesHtml);
+        $('#no-ship-products').hide();
+        $('#ship-stores-container').show();
+
+        // Load ship products for each store
+        uniqueStores.forEach(store => {
+            loadShipProductsForStore(store);
+        });
+
+        // Add event listeners for view products buttons
+        uniqueStores.forEach(store => {
+            const storeId = store.replace(/\s+/g, '-').toLowerCase();
+
+            // View products button
+            $(`#view-ship-products-${storeId}`).on('click', function() {
+                showStoreProductsModal(store);
+            });
+        });
+    }
+
+    // Load ship products for a specific store
+    function loadShipProductsForStore(store) {
+        const storeId = store.replace(/\s+/g, '-').toLowerCase();
+        const containerId = `#ship-products-${storeId}`;
+
+        // Filter ship products for this store
+        const storeShipProducts = selectedProducts.filter(product =>
+            product.productStore === store &&
+            (product.productType === 'ship' || product.productType === 'Ship')
+        );
+
+        // Update count
+        $(`#ship-products-count-${storeId}`).text(storeShipProducts.length);
+
+        if (storeShipProducts.length === 0) {
+            $(containerId).html(`
+                <div class="text-center py-3">
+                    <i class="mdi mdi-package-variant-closed text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mt-2">No ship products selected for ${store}</p>
+                </div>
+            `);
+            return;
+        }
+
+        // Generate products HTML
+        let productsHtml = `
+            <div class="mb-3">
+                <h6>Selected Ship Products (${storeShipProducts.length})</h6>
+            </div>
+        `;
+
+        storeShipProducts.forEach((product, index) => {
+            const quantity = product.quantity || 1;
+            const price = parseFloat(product.price) || 0;
+            const subtotal = quantity * price;
+
+            productsHtml += `
+                <div class="card mb-2">
+                    <div class="card-body py-2">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <h6 class="mb-1">${product.productName || 'Unnamed Product'}</h6>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">Variant:</small>
+                                <div class="fw-medium">${product.variantName || 'Default'}</div>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <small class="text-muted">Quantity:</small>
+                                <div class="fw-bold text-primary">${quantity}</div>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <small class="text-muted">Price:</small>
+                                <div class="fw-medium">$${price.toFixed(2)}</div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <small class="text-muted">Subtotal:</small>
+                                <div class="fw-bold text-success">$${subtotal.toFixed(2)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        $(containerId).html(productsHtml);
+    }
+
+    // Philippine Location Data and Functions
+    let philippineProvinces = [];
+    let philippineMunicipalities = {};
+
+    // Load Philippine provinces
+    function loadPhilippineProvinces() {
+        const provinceSelect = $('#shipping_province');
+
+        console.log('loadPhilippineProvinces called, current products:', selectedProducts.length);
+
+        // Check if provinces are already loaded
+        if (philippineProvinces.length > 0) {
+            console.log('Provinces already cached, populating dropdown');
+            populateProvinceDropdown();
+            return;
+        }
+
+        // Show loading state
+        provinceSelect.html('<option value="">Loading provinces...</option>');
+
+        // Load provinces from API or static data
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.philippine-provinces") }}',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.data) {
+                    philippineProvinces = response.data;
+                    populateProvinceDropdown();
+                } else {
+                    // Fallback to static data if API fails
+                    loadStaticProvinces();
+                }
+            },
+            error: function() {
+                // Fallback to static data
+                loadStaticProvinces();
+            }
+        });
+    }
+
+    // Fallback static provinces data
+    function loadStaticProvinces() {
+        philippineProvinces = [
+            'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay', 'Antique', 'Apayao',
+            'Aurora', 'Basilan', 'Bataan', 'Batanes', 'Batangas', 'Benguet', 'Biliran', 'Bohol',
+            'Bukidnon', 'Bulacan', 'Cagayan', 'Camarines Norte', 'Camarines Sur', 'Camiguin',
+            'Capiz', 'Catanduanes', 'Cavite', 'Cebu', 'Cotabato', 'Davao de Oro', 'Davao del Norte',
+            'Davao del Sur', 'Davao Occidental', 'Davao Oriental', 'Dinagat Islands', 'Eastern Samar',
+            'Guimaras', 'Ifugao', 'Ilocos Norte', 'Ilocos Sur', 'Iloilo', 'Isabela', 'Kalinga',
+            'Laguna', 'Lanao del Norte', 'Lanao del Sur', 'La Union', 'Leyte', 'Maguindanao',
+            'Marinduque', 'Masbate', 'Misamis Occidental', 'Misamis Oriental', 'Mountain Province',
+            'Negros Occidental', 'Negros Oriental', 'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya',
+            'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Pampanga', 'Pangasinan',
+            'Quezon', 'Quirino', 'Rizal', 'Romblon', 'Samar', 'Sarangani', 'Siquijor',
+            'Sorsogon', 'South Cotabato', 'Southern Leyte', 'Sultan Kudarat', 'Sulu',
+            'Surigao del Norte', 'Surigao del Sur', 'Tarlac', 'Tawi-Tawi', 'Zambales',
+            'Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay'
+        ];
+        populateProvinceDropdown();
+    }
+
+    // Populate province dropdown
+    function populateProvinceDropdown() {
+        const provinceSelect = $('#shipping_province');
+        provinceSelect.html('<option value="">Select Province</option>');
+
+        philippineProvinces.forEach(province => {
+            provinceSelect.append(`<option value="${province}">${province}</option>`);
+        });
+
+        // Set Pangasinan as default if there are ship products and no saved province
+        const shipProducts = selectedProducts && selectedProducts.length > 0
+            ? selectedProducts.filter(product =>
+                product.productType === 'ship' || product.productType === 'Ship'
+            )
+            : [];
+
+        // Check if there's no saved province or saved province is empty
+        const currentProvinceValue = provinceSelect.val();
+        const hasSavedProvince = shippingFormData.shipping_province && shippingFormData.shipping_province !== '';
+
+        // Auto-select Pangasinan if:
+        // 1. There are ship products
+        // 2. No saved province data
+        // 3. Province dropdown is currently empty
+        if (shipProducts.length > 0 && !hasSavedProvince && !currentProvinceValue) {
+            console.log('Auto-selecting Pangasinan for ship products');
+            provinceSelect.val('Pangasinan');
+
+            // Load municipalities for Pangasinan
+            loadMunicipalities('Pangasinan', function() {
+                console.log('Municipalities loaded, triggering calculation');
+                // Trigger shipping calculation after setting default province
+                if (selectedProducts && selectedProducts.length > 0) {
+                    calculateShippingCosts();
+                }
+            });
+        }
+    }
+
+    // Load municipalities for selected province
+    function loadMunicipalities(province, callback) {
+        const municipalitySelect = $('#shipping_municipality');
+
+        if (!province) {
+            municipalitySelect.html('<option value="">Select Municipality/City</option>').prop('disabled', true);
+            $('#shipping_barangay').prop('disabled', true).val('');
+            return;
+        }
+
+        // Check if municipalities for this province are already loaded
+        if (philippineMunicipalities[province]) {
+            populateMunicipalityDropdown(philippineMunicipalities[province]);
+            if (callback) callback();
+            return;
+        }
+
+        // Show loading state
+        municipalitySelect.html('<option value="">Loading municipalities...</option>').prop('disabled', false);
+
+        // Load municipalities from API
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.philippine-municipalities") }}',
+            type: 'GET',
+            data: { province: province },
+            success: function(response) {
+                if (response.success && response.data) {
+                    philippineMunicipalities[province] = response.data;
+                    populateMunicipalityDropdown(response.data);
+                    if (callback) callback();
+                } else {
+                    municipalitySelect.html('<option value="">No municipalities found for ' + province + '</option>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading municipalities for', province, ':', error);
+                municipalitySelect.html('<option value="">Error loading municipalities. Please try again.</option>');
+
+                // Show user-friendly error message
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    showErrorAlertModal('Error loading municipalities: ' + xhr.responseJSON.message);
+                } else {
+                    showErrorAlertModal('Error loading municipalities for ' + province + '. Please try again.');
+                }
+            }
+        });
+    }
+
+    // Populate municipality dropdown
+    function populateMunicipalityDropdown(municipalities) {
+        const municipalitySelect = $('#shipping_municipality');
+        municipalitySelect.html('<option value="">Select Municipality/City</option>');
+
+        municipalities.forEach(municipality => {
+            municipalitySelect.append(`<option value="${municipality}">${municipality}</option>`);
+        });
+
+        municipalitySelect.prop('disabled', false);
+    }
+
+    // Validation helper functions
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    function isValidPhone(phone) {
+        // Accept various Philippine phone formats
+        const phoneRegex = /^(\+63|0)?[0-9]{10}$/;
+        return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+    }
+
+    // Dynamic validation for shipping address fields
+    function validateShippingField(fieldId) {
+        const field = $(`#${fieldId}`);
+        const value = field.val().trim();
+
+        field.removeClass('is-invalid');
+        field.siblings('.invalid-feedback').text('');
+
+        if (field.prop('required') && !value) {
+            field.addClass('is-invalid');
+            field.siblings('.invalid-feedback').text('This field is required.');
+            return false;
+        }
+
+        // Email validation
+        if (fieldId === 'shipping_email' && value && !isValidEmail(value)) {
+            field.addClass('is-invalid');
+            field.siblings('.invalid-feedback').text('Please enter a valid email address.');
+            return false;
+        }
+
+        // Phone validation
+        if (fieldId === 'shipping_phone' && value && !isValidPhone(value)) {
+            field.addClass('is-invalid');
+            field.siblings('.invalid-feedback').text('Please enter a valid phone number.');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Event listeners for shipping address form
+    $(document).ready(function() {
+        // Province change event
+        $(document).on('change', '#shipping_province', function() {
+            const selectedProvince = $(this).val();
+            loadMunicipalities(selectedProvince);
+
+            // Validate ship coverage when province changes
+            validateShipCoverage(selectedProvince);
+
+            // Recalculate shipping when province changes (only if products exist)
+            if (selectedProducts && selectedProducts.length > 0) {
+                calculateShippingCosts();
+            }
+        });
+
+        // Listen for product selection changes (triggered from other steps)
+        $(document).on('productsUpdated', function() {
+            // Recalculate shipping when products are updated from other steps
+            if (currentStep === 4 && selectedProducts && selectedProducts.length > 0) {
+                calculateShippingCosts();
+            }
+        });
+
+        // Handle accordion chevron rotation
+        $(document).on('click', '[data-bs-toggle="collapse"]', function() {
+            const target = $(this).data('bs-target');
+            const chevron = $(this).find('.mdi-chevron-down, .mdi-chevron-up');
+
+            $(target).on('shown.bs.collapse', function() {
+                chevron.removeClass('mdi-chevron-down').addClass('mdi-chevron-up');
+            });
+
+            $(target).on('hidden.bs.collapse', function() {
+                chevron.removeClass('mdi-chevron-up').addClass('mdi-chevron-down');
+            });
+        });
+
+        // Municipality change event
+        $(document).on('change', '#shipping_municipality', function() {
+            const selectedMunicipality = $(this).val();
+            if (selectedMunicipality) {
+                $('#shipping_barangay').prop('disabled', false);
+            } else {
+                $('#shipping_barangay').prop('disabled', true).val('');
+            }
+        });
+
+        // Dynamic validation on input/change
+        const shippingFields = [
+            'shipping_first_name', 'shipping_middle_name', 'shipping_last_name',
+            'shipping_phone', 'shipping_email', 'shipping_house_number',
+            'shipping_street', 'shipping_zone', 'shipping_province',
+            'shipping_municipality', 'shipping_barangay', 'shipping_zip_code',
+            'shipping_landmark'
+        ];
+
+        shippingFields.forEach(fieldId => {
+            $(document).on('input blur', `#${fieldId}`, function() {
+                validateShippingField(fieldId);
+            });
+        });
+    });
+
+    // Track if shipping form has been initialized
+    let shippingFormInitialized = false;
+
+    // Ship Coverage Validation Function
+    function validateShipCoverage(province) {
+        const shipProducts = selectedProducts.filter(product =>
+            product.productType === 'ship' || product.productType === 'Ship'
+        );
+
+        const shipCoverageErrors = [];
+
+        shipProducts.forEach(product => {
+            const shipCoverage = product.shipCoverage || 'n/a';
+            const productName = product.productName || 'Unknown Product';
+
+            if (shipCoverage.toLowerCase() === 'province') {
+                if (!province) {
+                    shipCoverageErrors.push(`Province shipping location is required for product: ${productName}`);
+                } else if (province.toLowerCase() !== 'pangasinan') {
+                    shipCoverageErrors.push(`Product '${productName}' has Province shipping coverage only and can only be shipped to Pangasinan.`);
+                }
+            }
+        });
+
+        // Show ship coverage errors if any
+        if (shipCoverageErrors.length > 0) {
+            showErrorAlertModal(shipCoverageErrors.join(' '));
+        }
+    }
+
+    // Shipping Calculation Functions
+    function initializeShippingCalculation() {
+        // Don't calculate immediately - let province loading complete first
+        // The calculation will be triggered by:
+        // 1. Auto-selection of Pangasinan (in populateProvinceDropdown)
+        // 2. User selecting a province manually
+        // 3. Restoring saved form data
+
+        // Just hide calculation states initially
+        $('#shipping-calculation-loading').hide();
+        $('#shipping-calculation-results').hide();
+        $('#no-province-selected').hide();
+
+        if (!selectedProducts || selectedProducts.length === 0) {
+            $('#no-ship-products-calculation').show();
+        } else {
+            $('#no-ship-products-calculation').hide();
+        }
+
+        shippingFormInitialized = true;
+    }
+
+    function clearShippingCalculation() {
+        // Clear the calculation display
+        $('#shipping-calculation-loading').hide();
+        $('#shipping-calculation-results').hide();
+        $('#no-province-selected').hide();
+        $('#no-ship-products-calculation').show();
+
+        // Reset order summary values
+        $('#order-subtotal').text('₱0.00');
+        $('#total-shipping').text('₱0.00');
+        $('#order-total').text('₱0.00');
+
+        // Clear breakdown displays
+        $('#shipping-breakdown-container').html('');
+        $('#product-summary-container').html('');
+    }
+
+    function showShippingCalculationState() {
+        const province = $('#shipping_province').val();
+
+        // Hide all states first
+        $('#shipping-calculation-loading').hide();
+        $('#shipping-calculation-results').hide();
+        $('#no-province-selected').hide();
+        $('#no-ship-products-calculation').hide();
+
+        if (!selectedProducts || selectedProducts.length === 0) {
+            $('#no-ship-products-calculation').show();
+        } else {
+            // Calculate shipping costs (works even without province for access products)
+            calculateShippingCosts();
+        }
+    }
+
+    function calculateShippingCosts() {
+        const province = $('#shipping_province').val();
+
+        // Early return if no products selected
+        if (!selectedProducts || selectedProducts.length === 0) {
+            $('#shipping-calculation-loading').hide();
+            $('#shipping-calculation-results').hide();
+            $('#no-province-selected').hide();
+            $('#no-ship-products-calculation').show();
+            return;
+        }
+
+        // Show loading state with spinner
+        $('#shipping-calculation-loading').show();
+        $('#shipping-calculation-results').hide();
+        $('#no-province-selected').hide();
+        $('#no-ship-products-calculation').hide();
+
+        // Prepare data for API call - send ALL selected products
+        const requestData = {
+            selectedProducts: selectedProducts,
+            province: province || '' // Send empty string if no province selected
+        };
+
+        // Debug log
+        console.log('Calculating shipping with data:', {
+            province: province,
+            productsCount: selectedProducts.length,
+            products: selectedProducts
+        });
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.calculate-shipping") }}',
+            type: 'POST',
+            data: requestData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (response.success) {
+                    displayShippingCalculation(response.data);
+                } else {
+                    showShippingCalculationError(response.message || 'Error calculating shipping costs');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Shipping calculation error:', error);
+                console.error('Response:', xhr.responseJSON);
+                console.error('Request data:', requestData);
+
+                let errorMessage = 'Error calculating shipping costs';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+
+                showShippingCalculationError(errorMessage);
+            }
+        });
+    }
+
+    function displayShippingCalculation(data) {
+        // Hide loading state
+        $('#shipping-calculation-loading').hide();
+
+        // Debug: Log the received data
+        console.log('Shipping calculation data received:', data);
+        console.log('Product stores found:', data.completeBreakdown.map(item => ({
+            productName: item.productName,
+            productStore: item.productStore,
+            productType: item.productType
+        })));
+        console.log('All product data:', data.completeBreakdown);
+
+        // Update order summary
+        $('#order-subtotal').text('₱' + data.subtotal.toFixed(2));
+        $('#total-shipping').text('₱' + data.totalShipping.toFixed(2));
+        $('#order-total').text('₱' + data.total.toFixed(2));
+
+        // Generate complete breakdown with all products
+        let breakdownHtml = '';
+        let productSummaryHtml = '';
+
+        if (data.completeBreakdown && data.completeBreakdown.length > 0) {
+            breakdownHtml += `
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Type</th>
+                                <th>Product</th>
+                                <th>Variant</th>
+                                <th>Qty</th>
+                                <th>Subtotal</th>
+                                <th>Shipping</th>
+                                <th>Total</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            let shipCount = 0;
+            let accessCount = 0;
+            let shipTotal = 0;
+            let accessTotal = 0;
+
+            data.completeBreakdown.forEach(item => {
+                const total = item.subtotal + item.shippingPrice;
+                const typeBadge = item.productType === 'ship' ?
+                    '<span class="badge bg-primary">Ship</span>' :
+                    '<span class="badge bg-primary">Access</span>';
+
+                let detailsHtml = '';
+                if (item.shippingDetails) {
+                    const shippingDetails = item.shippingDetails;
+                    detailsHtml = `
+                        <div class="small">
+                            <div><strong>${shippingDetails.shippingName || 'Default Shipping'}</strong></div>
+                            <div><strong>${shippingDetails.pricingType || 'N/A'}</strong></div>
+                            <div>Max Qty: ${shippingDetails.maxQuantity || 'N/A'}</div>
+                            <div>Price/Batch: ₱${parseFloat(shippingDetails.pricePerBatch || 0).toFixed(2)}</div>
+                            <div>Batches: ${shippingDetails.batches || 'N/A'}</div>
+                            <div class="text-muted">${shippingDetails.province || 'N/A'}</div>
+                        </div>
+                    `;
+                } else {
+                    detailsHtml = '<div class="small text-muted">No shipping required</div>';
+                }
+
+                breakdownHtml += `
+                    <tr>
+                        <td class="align-middle">${typeBadge}</td>
+                        <td class="align-middle">${item.productName}</td>
+                        <td class="align-middle">${item.variantName}</td>
+                        <td class="text-center align-middle">${item.quantity}</td>
+                        <td class="text-end align-middle">₱${item.subtotal.toFixed(2)}</td>
+                        <td class="text-end align-middle">₱${item.shippingPrice.toFixed(2)}</td>
+                        <td class="text-end align-middle fw-bold">₱${total.toFixed(2)}</td>
+                        <td class="align-middle">${detailsHtml}</td>
+                    </tr>
+                `;
+
+                // Update counters for summary
+                if (item.productType === 'ship') {
+                    shipCount += item.quantity;
+                    shipTotal += item.subtotal;
+                } else {
+                    accessCount += item.quantity;
+                    accessTotal += item.subtotal;
+                }
+            });
+
+            breakdownHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Generate product summary
+            productSummaryHtml = `
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Ship Products:</span>
+                    <span>${shipCount} items - ₱${shipTotal.toFixed(2)}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Access Products:</span>
+                    <span>${accessCount} items - ₱${accessTotal.toFixed(2)}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fw-bold">
+                    <span>Total Items:</span>
+                    <span>${shipCount + accessCount} items</span>
+                </div>
+            `;
+        } else {
+            breakdownHtml = `
+                <div class="alert alert-info">
+                    <i class="mdi mdi-information"></i>
+                    No products found for calculation.
+                </div>
+            `;
+        }
+
+        $('#complete-breakdown').html(breakdownHtml);
+        $('#product-summary').html(productSummaryHtml);
+        $('#shipping-calculation-results').show();
+    }
+
+    function showShippingCalculationError(message) {
+        $('#shipping-calculation-loading').hide();
+
+        const errorHtml = `
+            <div class="alert alert-danger">
+                <i class="mdi mdi-alert-circle"></i>
+                ${message}
+            </div>
+        `;
+
+        $('#complete-breakdown').html(errorHtml);
+        $('#shipping-calculation-results').show();
     }
 
     // Store pagination and search data

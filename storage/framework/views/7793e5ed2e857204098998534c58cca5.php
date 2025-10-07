@@ -156,19 +156,19 @@
                             </a>
                         </li>
                         <li>
-                            <a href="javascript: void(0);" class="waves-effect">
+                            <a href="<?php echo e(route('ecom-discounts')); ?>" class="waves-effect">
                                 <i class="bx bx-tag"></i>
                                 <span key="t-discounts">Discounts</span>
                             </a>
                         </li>
                         <li>
-                            <a href="javascript: void(0);" class="waves-effect">
+                            <a href="<?php echo e(route('ecom-affiliates')); ?>" class="waves-effect">
                                 <i class="bx bx-group"></i>
                                 <span key="t-affiliates">Affiliates</span>
                             </a>
                         </li>
                         <li>
-                            <a href="javascript: void(0);" class="waves-effect">
+                            <a href="<?php echo e(route('ecom-triggers')); ?>" class="waves-effect">
                                 <i class="bx bx-key"></i>
                                 <span key="t-triggers">Triggers</span>
                             </a>

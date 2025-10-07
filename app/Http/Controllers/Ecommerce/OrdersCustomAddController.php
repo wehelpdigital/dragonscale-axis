@@ -259,10 +259,20 @@ class OrdersCustomAddController extends Controller
 
         $variants = $query->paginate($perPage, ['*'], 'page', $page);
 
-        // Add product name to each variant
+        // Add product information to each variant
         $variantsData = $variants->items();
         foreach ($variantsData as $variant) {
-            $variant->productName = $variant->product ? $variant->product->productName : 'Unknown Product';
+            if ($variant->product) {
+                $variant->productName = $variant->product->productName ?? 'Unknown Product';
+                $variant->productStore = $variant->product->productStore ?? 'Unknown Store';
+                $variant->productType = $variant->product->productType ?? 'Unknown';
+                $variant->shipCoverage = $variant->product->shipCoverage ?? 'n/a';
+            } else {
+                $variant->productName = 'Unknown Product';
+                $variant->productStore = 'Unknown Store';
+                $variant->productType = 'Unknown';
+                $variant->shipCoverage = 'n/a';
+            }
         }
 
         return response()->json([
@@ -765,6 +775,824 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create client: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Philippine provinces
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPhilippineProvinces()
+    {
+        try {
+            $provinces = [
+                'Abra', 'Agusan del Norte', 'Agusan del Sur', 'Aklan', 'Albay', 'Antique', 'Apayao',
+                'Aurora', 'Basilan', 'Bataan', 'Batanes', 'Batangas', 'Benguet', 'Biliran', 'Bohol',
+                'Bukidnon', 'Bulacan', 'Cagayan', 'Camarines Norte', 'Camarines Sur', 'Camiguin',
+                'Capiz', 'Catanduanes', 'Cavite', 'Cebu', 'Cotabato', 'Davao de Oro', 'Davao del Norte',
+                'Davao del Sur', 'Davao Occidental', 'Davao Oriental', 'Dinagat Islands', 'Eastern Samar',
+                'Guimaras', 'Ifugao', 'Ilocos Norte', 'Ilocos Sur', 'Iloilo', 'Isabela', 'Kalinga',
+                'Laguna', 'Lanao del Norte', 'Lanao del Sur', 'La Union', 'Leyte', 'Maguindanao',
+                'Marinduque', 'Masbate', 'Metro Manila', 'Misamis Occidental', 'Misamis Oriental', 'Mountain Province',
+                'Negros Occidental', 'Negros Oriental', 'Northern Samar', 'Nueva Ecija', 'Nueva Vizcaya',
+                'Occidental Mindoro', 'Oriental Mindoro', 'Palawan', 'Pampanga', 'Pangasinan',
+                'Quezon', 'Quirino', 'Rizal', 'Romblon', 'Samar', 'Sarangani', 'Siquijor',
+                'Sorsogon', 'South Cotabato', 'Southern Leyte', 'Sultan Kudarat', 'Sulu',
+                'Surigao del Norte', 'Surigao del Sur', 'Tarlac', 'Tawi-Tawi', 'Zambales',
+                'Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay'
+            ];
+
+            sort($provinces);
+
+            return response()->json([
+                'success' => true,
+                'data' => $provinces
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching provinces: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get municipalities/cities for a specific province
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getPhilippineMunicipalities(Request $request)
+    {
+        $province = $request->get('province');
+
+        if (!$province) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Province is required'
+            ], 400);
+        }
+
+        try {
+            // Sample municipalities data - in a real application, this would come from a database
+            $municipalities = $this->getMunicipalitiesByProvince($province);
+
+            if (empty($municipalities)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No municipalities found for the selected province'
+                ], 404);
+            }
+
+            sort($municipalities);
+
+            return response()->json([
+                'success' => true,
+                'data' => $municipalities
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching municipalities: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get municipalities for a specific province
+     * This is a simplified implementation - in production, use a proper Philippine location database
+     *
+     * @param string $province
+     * @return array
+     */
+    private function getMunicipalitiesByProvince($province)
+    {
+        // Complete data for all Philippine provinces with their municipalities and cities
+        $municipalitiesData = [
+            'Metro Manila' => [
+                'Caloocan', 'Las Piñas', 'Makati', 'Malabon', 'Mandaluyong', 'Manila', 'Marikina',
+                'Muntinlupa', 'Navotas', 'Parañaque', 'Pasay', 'Pasig', 'Pateros', 'Quezon City',
+                'San Juan', 'Taguig', 'Valenzuela'
+            ],
+            'Cebu' => [
+                'Bogo', 'Carcar', 'Cebu City', 'Danao', 'Lapu-Lapu City', 'Mandaue', 'Naga',
+                'Talisay', 'Toledo', 'Argao', 'Asturias', 'Badian', 'Balamban', 'Bantayan',
+                'Barili', 'Boljoon', 'Borbon', 'Carmen', 'Catmon', 'Compostela', 'Consolacion',
+                'Cordova', 'Daanbantayan', 'Dalaguete', 'Dumanjug', 'Ginatilan', 'Liloan',
+                'Madridejos', 'Malabuyoc', 'Medellin', 'Minglanilla', 'Moalboal', 'Oslob',
+                'Pilar', 'Pinamungajan', 'Poro', 'Ronda', 'Samboan', 'San Fernando', 'San Francisco',
+                'San Remigio', 'Santa Fe', 'Santander', 'Sibonga', 'Sogod', 'Tabogon', 'Tabuelan',
+                'Tuburan', 'Tudela'
+            ],
+            'Laguna' => [
+                'Biñan', 'Cabuyao', 'Calamba', 'San Pablo', 'Santa Rosa', 'Alaminos', 'Bay',
+                'Calauan', 'Cavinti', 'Famy', 'Kalayaan', 'Liliw', 'Los Baños', 'Luisiana',
+                'Lumban', 'Mabitac', 'Magdalena', 'Majayjay', 'Nagcarlan', 'Paete', 'Pagsanjan',
+                'Pakil', 'Pangil', 'Pila', 'Rizal', 'San Pedro', 'Santa Cruz', 'Santa Maria',
+                'Siniloan', 'Victoria'
+            ],
+            'Batangas' => [
+                'Batangas City', 'Lipa', 'Tanauan', 'Bauan', 'Calaca', 'Lemery', 'Nasugbu',
+                'Balayan', 'Calatagan', 'Cuenca', 'Ibaan', 'Laurel', 'Lian', 'Lobo', 'Mabini',
+                'Malvar', 'Mataasnakahoy', 'Padre Garcia', 'Rosario', 'San Jose', 'San Juan',
+                'San Luis', 'San Nicolas', 'San Pascual', 'Santo Tomas', 'Taal', 'Taysan',
+                'Tingloy', 'Tuy'
+            ],
+            'Cavite' => [
+                'Bacoor', 'Cavite City', 'Dasmariñas', 'Imus', 'Tagaytay', 'Trece Martires',
+                'Alfonso', 'Amadeo', 'Carmona', 'General Emilio Aguinaldo', 'General Mariano Alvarez',
+                'General Trias', 'Indang', 'Kawit', 'Magallanes', 'Maragondon', 'Mendez',
+                'Naic', 'Noveleta', 'Rosario', 'Silang', 'Tanza', 'Ternate'
+            ],
+            'Bulacan' => [
+                'Angat', 'Balagtas', 'Baliuag', 'Bocaue', 'Bulacan', 'Bustos', 'Calumpit',
+                'Doña Remedios Trinidad', 'Guiguinto', 'Hagonoy', 'Malolos', 'Marilao',
+                'Meycauayan', 'Norzagaray', 'Obando', 'Pandi', 'Paombong', 'Plaridel',
+                'Pulilan', 'San Ildefonso', 'San Jose del Monte', 'San Miguel', 'San Rafael',
+                'Santa Maria'
+            ],
+            'Pampanga' => [
+                'Angeles', 'Apalit', 'Arayat', 'Bacolor', 'Candaba', 'Floridablanca',
+                'Guagua', 'Lubao', 'Mabalacat', 'Macabebe', 'Magalang', 'Masantol',
+                'Mexico', 'Minalin', 'Porac', 'San Fernando', 'San Luis', 'San Simon',
+                'Santa Ana', 'Santa Rita', 'Santo Tomas', 'Sasmuan'
+            ],
+            'Rizal' => [
+                'Angono', 'Antipolo', 'Baras', 'Binangonan', 'Cainta', 'Cardona',
+                'Jala-Jala', 'Morong', 'Pililla', 'Rodriguez', 'San Mateo', 'Tanay',
+                'Taytay', 'Teresa'
+            ],
+            'Quezon' => [
+                'Agdangan', 'Alabat', 'Atimonan', 'Buenavista', 'Burdeos', 'Calauag',
+                'Candelaria', 'Catanauan', 'Dolores', 'General Luna', 'General Nakar',
+                'Guinayangan', 'Gumaca', 'Infanta', 'Jomalig', 'Lopez', 'Lucban',
+                'Lucena', 'Macalelon', 'Mauban', 'Mulanay', 'Padre Burgos', 'Pagbilao',
+                'Panukulan', 'Patnanungan', 'Perez', 'Pitogo', 'Plaridel', 'Polillo',
+                'Quezon', 'Real', 'Sampaloc', 'San Andres', 'San Antonio', 'San Francisco',
+                'San Narciso', 'Sariaya', 'Tagkawayan', 'Tayabas', 'Tiaong', 'Unisan'
+            ],
+            'Nueva Ecija' => [
+                'Aliaga', 'Bongabon', 'Cabanatuan', 'Cabiao', 'Carranglan', 'Cuyapo',
+                'Gabaldon', 'General Mamerto Natividad', 'General Tinio', 'Guimba',
+                'Jaen', 'Laur', 'Licab', 'Llanera', 'Lupao', 'Muñoz', 'Nampicuan',
+                'Palayan', 'Pantabangan', 'Peñaranda', 'Quezon', 'Rizal', 'San Antonio',
+                'San Isidro', 'San Jose', 'San Leonardo', 'Santa Rosa', 'Santo Domingo',
+                'Talavera', 'Talugtug', 'Zaragoza'
+            ],
+            'Tarlac' => [
+                'Anao', 'Bamban', 'Camiling', 'Capas', 'Concepcion', 'Gerona',
+                'La Paz', 'Mayantoc', 'Moncada', 'Paniqui', 'Pura', 'Ramos',
+                'San Clemente', 'San Jose', 'San Manuel', 'Santa Ignacia', 'Tarlac City', 'Victoria'
+            ],
+            'Zambales' => [
+                'Botolan', 'Cabangan', 'Candelaria', 'Castillejos', 'Iba', 'Masinloc',
+                'Olongapo', 'Palauig', 'San Antonio', 'San Felipe', 'San Marcelino',
+                'San Narciso', 'Santa Cruz', 'Subic'
+            ],
+            'Bataan' => [
+                'Abucay', 'Bagac', 'Balanga', 'Dinalupihan', 'Hermosa', 'Limay',
+                'Mariveles', 'Morong', 'Orani', 'Orion', 'Pilar', 'Samal'
+            ],
+            'Iloilo' => [
+                'Ajuy', 'Alimodian', 'Anilao', 'Badiangan', 'Balasan', 'Banate',
+                'Barotac Nuevo', 'Barotac Viejo', 'Batad', 'Bingawan', 'Cabatuan',
+                'Calinog', 'Carles', 'Concepcion', 'Dingle', 'Dueñas', 'Dumangas',
+                'Estancia', 'Guimbal', 'Igbaras', 'Janiuay', 'Lambunao', 'Leganes',
+                'Lemery', 'Leon', 'Maasin', 'Miagao', 'Mina', 'New Lucena', 'Oton',
+                'Passi', 'Pavia', 'Pototan', 'San Dionisio', 'San Enrique', 'San Joaquin',
+                'San Miguel', 'San Rafael', 'Santa Barbara', 'Sara', 'Tigbauan',
+                'Tubungan', 'Zarraga', 'Iloilo City'
+            ],
+            'Negros Occidental' => [
+                'Bacolod', 'Bago', 'Binalbagan', 'Cadiz', 'Calatrava', 'Candoni',
+                'Cauayan', 'Enrique B. Magalona', 'Escalante', 'Himamaylan', 'Hinigaran',
+                'Hinoba-an', 'Ilog', 'Isabela', 'Kabankalan', 'La Carlota', 'La Castellana',
+                'Manapla', 'Moises Padilla', 'Murcia', 'Pontevedra', 'Pulupandan',
+                'Sagay', 'Salvador Benedicto', 'San Carlos', 'San Enrique', 'Silay',
+                'Sipalay', 'Talisay', 'Toboso', 'Valladolid', 'Victorias'
+            ],
+            'Negros Oriental' => [
+                'Amlan', 'Ayungon', 'Bacong', 'Basay', 'Bayawan', 'Bindoy',
+                'Canlaon', 'Dauin', 'Dumaguete', 'Guihulngan', 'Jimalalud', 'La Libertad',
+                'Mabinay', 'Manjuyod', 'Pamplona', 'San Jose', 'Santa Catalina',
+                'Siaton', 'Sibulan', 'Tanjay', 'Tayasan', 'Valencia', 'Vallehermoso',
+                'Zamboanguita'
+            ],
+            'Aklan' => [
+                'Altavas', 'Balete', 'Banga', 'Batan', 'Buruanga', 'Ibajay',
+                'Kalibo', 'Lezo', 'Libacao', 'Madalag', 'Makato', 'Malay',
+                'Malinao', 'Nabas', 'New Washington', 'Numancia', 'Tangalan'
+            ],
+            'Antique' => [
+                'Anini-y', 'Barbaza', 'Belison', 'Bugasong', 'Caluya', 'Culasi',
+                'Hamtic', 'Laua-an', 'Libertad', 'Pandan', 'Patnongon', 'San Jose',
+                'San Remigio', 'Sebaste', 'Sibalom', 'Tibiao', 'Tobias Fornier', 'Valderrama'
+            ],
+            'Capiz' => [
+                'Cuartero', 'Dao', 'Dumalag', 'Dumarao', 'Ivisan', 'Jamindan',
+                'Maayon', 'Mambusao', 'Panay', 'Panitan', 'Pilar', 'Pontevedra',
+                'President Roxas', 'Roxas City', 'Sapian', 'Sigma', 'Tapaz'
+            ],
+            'Guimaras' => [
+                'Buenavista', 'Jordan', 'Nueva Valencia', 'San Lorenzo', 'Sibunag'
+            ],
+            'Bohol' => [
+                'Alburquerque', 'Alicia', 'Anda', 'Antequera', 'Baclayon', 'Balilihan',
+                'Batuan', 'Bien Unido', 'Bilar', 'Buenavista', 'Calape', 'Candijay',
+                'Carmen', 'Catigbian', 'Clarin', 'Corella', 'Cortes', 'Dagohoy',
+                'Danao', 'Dauis', 'Dimiao', 'Duero', 'Garcia Hernandez', 'Getafe',
+                'Guindulman', 'Inabanga', 'Jagna', 'Lila', 'Loay', 'Loboc',
+                'Loon', 'Mabini', 'Maribojoc', 'Panglao', 'Pilar', 'Pres. Carlos P. Garcia',
+                'Sagbayan', 'San Isidro', 'San Miguel', 'Sevilla', 'Sierra Bullones',
+                'Sikatuna', 'Tagbilaran', 'Talibon', 'Trinidad', 'Tubigon', 'Ubay', 'Valencia'
+            ],
+            'Abra' => [
+                'Bangued', 'Boliney', 'Bucay', 'Bucloc', 'Daguioman', 'Danglas',
+                'Dolores', 'La Paz', 'Lacub', 'Lagangilang', 'Lagayan', 'Langiden',
+                'Licuan-Baay', 'Luba', 'Malibcong', 'Manabo', 'Peñarrubia', 'Pidigan',
+                'Pilar', 'Sallapadan', 'San Isidro', 'San Juan', 'San Quintin', 'Tayum',
+                'Tineg', 'Tubo', 'Villaviciosa'
+            ],
+            'Agusan del Norte' => [
+                'Butuan', 'Cabadbaran', 'Buenavista', 'Carmen', 'Jabonga', 'Kitcharao',
+                'Las Nieves', 'Magallanes', 'Nasipit', 'Remedios T. Romualdez', 'Santiago', 'Tubay'
+            ],
+            'Agusan del Sur' => [
+                'Bayugan', 'Bunawan', 'Esperanza', 'La Paz', 'Loreto', 'Prosperidad',
+                'Rosario', 'San Francisco', 'San Luis', 'Santa Josefa', 'Sibagat',
+                'Talacogon', 'Trento', 'Veruela'
+            ],
+            'Albay' => [
+                'Legazpi', 'Ligao', 'Tabaco', 'Bacacay', 'Camalig', 'Daraga',
+                'Guinobatan', 'Jovellar', 'Libon', 'Malilipot', 'Malinao', 'Manito',
+                'Oas', 'Pio Duran', 'Polangui', 'Rapu-Rapu', 'Santo Domingo', 'Tiwi'
+            ],
+            'Apayao' => [
+                'Calanasan', 'Conner', 'Flora', 'Kabugao', 'Luna', 'Pudtol', 'Santa Marcela'
+            ],
+            'Aurora' => [
+                'Baler', 'Casiguran', 'Dilasag', 'Dinalungan', 'Dingalan', 'Dipaculao',
+                'Maria Aurora', 'San Luis'
+            ],
+            'Basilan' => [
+                'Isabela City', 'Lamitan', 'Akbar', 'Al-Barka', 'Hadji Mohammad Ajul',
+                'Hadji Muhtamad', 'Lantawan', 'Maluso', 'Sumisip', 'Tabuan-Lasa',
+                'Tipo-Tipo', 'Tuburan', 'Ungkaya Pukan'
+            ],
+            'Batanes' => [
+                'Basco', 'Itbayat', 'Ivana', 'Mahatao', 'Sabtang', 'Uyugan'
+            ],
+            'Benguet' => [
+                'Baguio', 'Atok', 'Bakun', 'Bokod', 'Buguias', 'Itogon',
+                'Kabayan', 'Kapangan', 'Kibungan', 'La Trinidad', 'Mankayan', 'Sablan',
+                'Tuba', 'Tublay'
+            ],
+            'Biliran' => [
+                'Almeria', 'Biliran', 'Cabucgayan', 'Caibiran', 'Culaba', 'Kawayan',
+                'Maripipi', 'Naval'
+            ],
+            'Bukidnon' => [
+                'Malaybalay', 'Valencia', 'Baungon', 'Cabanglasan', 'Damulog', 'Dangcagan',
+                'Don Carlos', 'Impasugong', 'Kadingilan', 'Kalilangan', 'Kibawe', 'Kitaotao',
+                'Lantapan', 'Libona', 'Malitbog', 'Manolo Fortich', 'Maramag', 'Pangantucan',
+                'Quezon', 'San Fernando', 'Sumilao', 'Talakag'
+            ],
+            'Cagayan' => [
+                'Tuguegarao', 'Abulug', 'Alcala', 'Allacapan', 'Amulung', 'Aparri',
+                'Baggao', 'Ballesteros', 'Buguey', 'Calayan', 'Camalaniugan', 'Claveria',
+                'Enrile', 'Gattaran', 'Gonzaga', 'Iguig', 'Lal-lo', 'Lasam',
+                'Pamplona', 'Peñablanca', 'Piat', 'Rizal', 'Sanchez-Mira', 'Santa Ana',
+                'Santa Praxedes', 'Santa Teresita', 'Santo Niño', 'Solana', 'Tuao'
+            ],
+            'Camarines Norte' => [
+                'Basud', 'Capalonga', 'Daet', 'Jose Panganiban', 'Labo', 'Mercedes',
+                'Paracale', 'San Lorenzo Ruiz', 'San Vicente', 'Santa Elena', 'Talisay', 'Vinzons'
+            ],
+            'Camarines Sur' => [
+                'Iriga', 'Naga', 'Baao', 'Balatan', 'Bato', 'Bombon',
+                'Buhi', 'Bula', 'Cabusao', 'Calabanga', 'Camaligan', 'Canaman',
+                'Caramoan', 'Del Gallego', 'Gainza', 'Garchitorena', 'Goa', 'Lagonoy',
+                'Libmanan', 'Lupi', 'Magarao', 'Milaor', 'Minalabac', 'Nabua',
+                'Ocampo', 'Pamplona', 'Pasacao', 'Pili', 'Presentacion', 'Ragay',
+                'Sagñay', 'San Fernando', 'San Jose', 'Sipocot', 'Siruma', 'Tigaon', 'Tinambac'
+            ],
+            'Camiguin' => [
+                'Catarman', 'Guinsiliban', 'Mahinog', 'Mambajao', 'Sagay'
+            ],
+            'Catanduanes' => [
+                'Virac', 'Bagamanoc', 'Baras', 'Bato', 'Caramoran', 'Gigmoto',
+                'Pandan', 'Panganiban', 'San Andres', 'San Miguel', 'Viga'
+            ],
+            'Cotabato' => [
+                'Alamada', 'Aleosan', 'Antipas', 'Arakan', 'Banisilan', 'Carmen',
+                'Kabacan', 'Kidapawan', 'Libungan', 'M\'lang', 'Magpet', 'Makilala',
+                'Matalam', 'Midsayap', 'Pigcawayan', 'Pikit', 'President Roxas', 'Tulunan'
+            ],
+            'Davao de Oro' => [
+                'Nabunturan', 'Compostela', 'Laak', 'Mabini', 'Maco', 'Maragusan',
+                'Mawab', 'Monkayo', 'Montevista', 'New Bataan', 'Pantukan'
+            ],
+            'Davao del Norte' => [
+                'Tagum', 'Asuncion', 'Braulio E. Dujali', 'Carmen', 'Kapalong', 'New Corella',
+                'Panabo', 'Samal', 'San Isidro', 'Santo Tomas', 'Talaingod'
+            ],
+            'Davao del Sur' => [
+                'Davao City', 'Digos', 'Bansalan', 'Hagonoy', 'Kiblawan', 'Magsaysay',
+                'Malalag', 'Matanao', 'Padada', 'Santa Cruz', 'Sulop'
+            ],
+            'Davao Occidental' => [
+                'Malita', 'Don Marcelino', 'Jose Abad Santos', 'Santa Maria', 'Sarangani'
+            ],
+            'Davao Oriental' => [
+                'Mati', 'Baganga', 'Banaybanay', 'Boston', 'Caraga', 'Cateel',
+                'Governor Generoso', 'Lupon', 'Manay', 'San Isidro', 'Tarragona'
+            ],
+            'Dinagat Islands' => [
+                'Basilisa', 'Cagdianao', 'Dinagat', 'Libjo', 'Loreto', 'San Jose', 'Tubajon'
+            ],
+            'Eastern Samar' => [
+                'Borongan', 'Arteche', 'Balangiga', 'Balangkayan', 'Can-avid', 'Dolores',
+                'General MacArthur', 'Giporlos', 'Guiuan', 'Hernani', 'Jipapad', 'Lawaan',
+                'Llorente', 'Maslog', 'Maydolong', 'Mercedes', 'Oras', 'Quinapondan',
+                'Salcedo', 'San Julian', 'San Policarpo', 'Sulat', 'Taft'
+            ],
+            'Ifugao' => [
+                'Aguinaldo', 'Alfonso Lista', 'Asipulo', 'Banaue', 'Hingyon', 'Hungduan',
+                'Kiangan', 'Lagawe', 'Lamut', 'Mayoyao', 'Tinoc'
+            ],
+            'Ilocos Norte' => [
+                'Batac', 'Laoag', 'Adams', 'Bacarra', 'Badoc', 'Bangui',
+                'Banna', 'Burgos', 'Carasi', 'Currimao', 'Dingras', 'Dumalneg',
+                'Marcos', 'Nueva Era', 'Pagudpud', 'Paoay', 'Pasuquin', 'Piddig',
+                'Pinili', 'San Nicolas', 'Sarrat', 'Solsona', 'Vintar'
+            ],
+            'Ilocos Sur' => [
+                'Candon', 'Vigan', 'Alilem', 'Banayoyo', 'Bantay', 'Burgos',
+                'Cabugao', 'Caoayan', 'Cervantes', 'Galimuyod', 'Gregorio del Pilar', 'Lidlidda',
+                'Magsingal', 'Nagbukel', 'Narvacan', 'Quirino', 'Salcedo', 'San Emilio',
+                'San Esteban', 'San Ildefonso', 'San Juan', 'San Vicente', 'Santa', 'Santa Catalina',
+                'Santa Cruz', 'Santa Lucia', 'Santa Maria', 'Santiago', 'Santo Domingo',
+                'Sigay', 'Sinait', 'Sugpon', 'Suyo', 'Tagudin'
+            ],
+            'Isabela' => [
+                'Cauayan', 'Ilagan', 'Santiago', 'Alicia', 'Angadanan', 'Aurora',
+                'Benito Soliven', 'Burgos', 'Cabagan', 'Cabatuan', 'Cordon', 'Delfin Albano',
+                'Dinapigue', 'Divilacan', 'Echague', 'Gamu', 'Jones', 'Luna',
+                'Maconacon', 'Mallig', 'Naguilian', 'Palanan', 'Quezon', 'Quirino',
+                'Ramon', 'Reina Mercedes', 'Roxas', 'San Agustin', 'San Guillermo', 'San Isidro',
+                'San Manuel', 'San Mariano', 'San Mateo', 'San Pablo', 'Santa Maria', 'Santo Tomas', 'Tumauini'
+            ],
+            'Kalinga' => [
+                'Tabuk', 'Balbalan', 'Lubuagan', 'Pasil', 'Pinukpuk', 'Rizal',
+                'Tanudan', 'Tinglayan'
+            ],
+            'La Union' => [
+                'San Fernando', 'Agoo', 'Aringay', 'Bacnotan', 'Bagulin', 'Balaoan',
+                'Bangar', 'Bauang', 'Burgos', 'Caba', 'Luna', 'Naguilian',
+                'Pugo', 'Rosario', 'San Gabriel', 'San Juan', 'Santo Tomas', 'Santol',
+                'Sudipen', 'Tubao'
+            ],
+            'Lanao del Norte' => [
+                'Iligan', 'Bacolod', 'Baloi', 'Baroy', 'Kapatagan', 'Kauswagan',
+                'Kolambugan', 'Lala', 'Linamon', 'Magsaysay', 'Maigo', 'Matungao',
+                'Munai', 'Nunungan', 'Pantao Ragat', 'Pantar', 'Poona Piagapo', 'Salvador',
+                'Sapad', 'Sultan Naga Dimaporo', 'Tagoloan', 'Tangcal', 'Tubod'
+            ],
+            'Lanao del Sur' => [
+                'Marawi', 'Bacolod-Kalawi', 'Balabagan', 'Balindong', 'Bayang', 'Binidayan',
+                'Buadiposo-Buntong', 'Bubong', 'Butig', 'Calanogas', 'Ditsaan-Ramain', 'Ganassi',
+                'Kapai', 'Kapatagan', 'Lumba-Bayabao', 'Lumbaca-Unayan', 'Lumbatan', 'Lumbayanague',
+                'Madalum', 'Madamba', 'Malabang', 'Marantao', 'Marogong', 'Masiu',
+                'Mulondo', 'Pagayawan', 'Piagapo', 'Picong', 'Poona Bayabao', 'Pualas',
+                'Saguiaran', 'Sultan Dumalondong', 'Tagoloan II', 'Tamparan', 'Taraka', 'Tubaran',
+                'Tugaya', 'Wao'
+            ],
+            'Leyte' => [
+                'Ormoc', 'Tacloban', 'Abuyog', 'Alangalang', 'Albuera', 'Babatngon',
+                'Barugo', 'Bato', 'Baybay', 'Burauen', 'Calubian', 'Capoocan',
+                'Carigara', 'Dagami', 'Dulag', 'Hilongos', 'Hindang', 'Inopacan',
+                'Isabel', 'Jaro', 'Javier', 'Julita', 'Kananga', 'La Paz',
+                'Leyte', 'MacArthur', 'Mahaplag', 'Matag-ob', 'Matalom', 'Mayorga',
+                'Merida', 'Palo', 'Palompon', 'Pastrana', 'San Isidro', 'San Miguel',
+                'Santa Fe', 'Tabango', 'Tabontabon', 'Tanauan', 'Tolosa', 'Tunga', 'Villaba'
+            ],
+            'Maguindanao' => [
+                'Ampatuan', 'Barira', 'Buldon', 'Buluan', 'Cotabato City', 'Datu Abdullah Sangki',
+                'Datu Anggal Midtimbang', 'Datu Blah T. Sinsuat', 'Datu Hoffer Ampatuan', 'Datu Montawal',
+                'Datu Odin Sinsuat', 'Datu Paglas', 'Datu Piang', 'Datu Salibo', 'Datu Saudi-Ampatuan',
+                'Datu Unsay', 'General Salipada K. Pendatun', 'Guindulungan', 'Kabuntalan', 'Mamasapano',
+                'Mangudadatu', 'Matanog', 'Northern Kabuntalan', 'Pagalungan', 'Paglat',
+                'Pandag', 'Parang', 'Rajah Buayan', 'Shariff Aguak', 'Shariff Saydona Mustapha',
+                'South Upi', 'Sultan Kudarat', 'Sultan Mastura', 'Sultan sa Barongis', 'Talayan',
+                'Talitay', 'Upi'
+            ],
+            'Marinduque' => [
+                'Boac', 'Buenavista', 'Gasan', 'Mogpog', 'Santa Cruz', 'Torrijos'
+            ],
+            'Masbate' => [
+                'Masbate City', 'Aroroy', 'Baleno', 'Balud', 'Batuan', 'Cataingan',
+                'Cawayan', 'Claveria', 'Dimasalang', 'Esperanza', 'Mandaon', 'Milagros',
+                'Mobo', 'Monreal', 'Palanas', 'Pio V. Corpuz', 'Placer', 'San Fernando',
+                'San Jacinto', 'San Pascual', 'Uson'
+            ],
+            'Misamis Occidental' => [
+                'Oroquieta', 'Ozamiz', 'Tangub', 'Aloran', 'Baliangao', 'Bonifacio',
+                'Calamba', 'Clarin', 'Concepcion', 'Don Victoriano Chiongbian', 'Jimenez', 'Lopez Jaena',
+                'Panaon', 'Plaridel', 'Sapang Dalaga', 'Sinacaban', 'Tudela'
+            ],
+            'Misamis Oriental' => [
+                'Cagayan de Oro', 'Gingoog', 'Alubijid', 'Balingasag', 'Balingoan', 'Binuangan',
+                'Claveria', 'El Salvador', 'Gitagum', 'Initao', 'Jasaan', 'Kinoguitan',
+                'Lagonglong', 'Laguindingan', 'Libertad', 'Lugait', 'Magsaysay', 'Manticao',
+                'Medina', 'Naawan', 'Opol', 'Salay', 'Sugbongcogon', 'Tagoloan', 'Talisayan', 'Villanueva'
+            ],
+            'Mountain Province' => [
+                'Barlig', 'Bauko', 'Besao', 'Bontoc', 'Natonin', 'Paracelis',
+                'Sabangan', 'Sadanga', 'Sagada', 'Tadian'
+            ],
+            'Northern Samar' => [
+                'Allen', 'Biri', 'Bobon', 'Capul', 'Catarman', 'Catubig',
+                'Gamay', 'Laoang', 'Lapinig', 'Las Navas', 'Lavezares', 'Lope de Vega',
+                'Mapanas', 'Mondragon', 'Palapag', 'Pambujan', 'Rosario', 'San Antonio',
+                'San Isidro', 'San Jose', 'San Roque', 'San Vicente', 'Silvino Lobos', 'Victoria'
+            ],
+            'Nueva Vizcaya' => [
+                'Bayombong', 'Alfonso Castañeda', 'Ambaguio', 'Aritao', 'Bagabag', 'Bambang',
+                'Diadi', 'Dupax del Norte', 'Dupax del Sur', 'Kasibu', 'Kayapa', 'Quezon',
+                'Santa Fe', 'Solano', 'Villaverde'
+            ],
+            'Occidental Mindoro' => [
+                'Abra de Ilog', 'Calintaan', 'Looc', 'Lubang', 'Magsaysay', 'Mamburao',
+                'Paluan', 'Rizal', 'Sablayan', 'San Jose', 'Santa Cruz'
+            ],
+            'Oriental Mindoro' => [
+                'Calapan', 'Baco', 'Bansud', 'Bongabong', 'Bulalacao', 'Gloria',
+                'Mansalay', 'Naujan', 'Pinamalayan', 'Pola', 'Puerto Galera', 'Roxas',
+                'San Teodoro', 'Socorro', 'Victoria'
+            ],
+            'Palawan' => [
+                'Puerto Princesa', 'Aborlan', 'Agutaya', 'Araceli', 'Balabac', 'Bataraza',
+                'Brooke\'s Point', 'Busuanga', 'Cagayancillo', 'Coron', 'Culion', 'Cuyo',
+                'Dumaran', 'El Nido', 'Kalayaan', 'Linapacan', 'Magsaysay', 'Narra',
+                'Quezon', 'Rizal', 'Roxas', 'San Vicente', 'Sofronio Española', 'Taytay'
+            ],
+            'Pangasinan' => [
+                'Alaminos', 'Dagupan', 'San Carlos', 'Urdaneta', 'Agno', 'Aguilar',
+                'Alcala', 'Anda', 'Asingan', 'Balungao', 'Bani', 'Basista',
+                'Bautista', 'Bayambang', 'Binalonan', 'Binmaley', 'Bolinao', 'Bugallon',
+                'Burgos', 'Calasiao', 'Dasol', 'Infanta', 'Labrador', 'Laoac',
+                'Lingayen', 'Mabini', 'Malasiqui', 'Manaoag', 'Mangaldan', 'Mangatarem',
+                'Mapandan', 'Natividad', 'Pozorrubio', 'Rosales', 'San Fabian', 'San Jacinto',
+                'San Manuel', 'San Nicolas', 'San Quintin', 'Santa Barbara', 'Santa Maria', 'Santo Tomas',
+                'Sison', 'Sual', 'Tayug', 'Umingan', 'Urbiztondo', 'Villasis'
+            ],
+            'Quirino' => [
+                'Aglipay', 'Cabarroguis', 'Diffun', 'Maddela', 'Nagtipunan', 'Saguday'
+            ],
+            'Romblon' => [
+                'Alcantara', 'Banton', 'Cajidiocan', 'Calatrava', 'Concepcion', 'Corcuera',
+                'Ferrol', 'Looc', 'Magdiwang', 'Odiongan', 'Romblon', 'San Agustin',
+                'San Andres', 'San Fernando', 'San Jose', 'Santa Fe', 'Santa Maria'
+            ],
+            'Samar' => [
+                'Catbalogan', 'Calbayog', 'Almagro', 'Basey', 'Calbiga', 'Daram',
+                'Gandara', 'Hinabangan', 'Jiabong', 'Marabut', 'Matuguinao', 'Motiong',
+                'Pagsanghan', 'Paranas', 'Pinabacdao', 'San Jorge', 'San Jose de Buan', 'San Sebastian',
+                'Santa Margarita', 'Santa Rita', 'Santo Niño', 'Tagapul-an', 'Talalora', 'Tarangnan',
+                'Villareal', 'Zumarraga'
+            ],
+            'Sarangani' => [
+                'Alabel', 'Glan', 'Kiamba', 'Maasim', 'Maitum', 'Malapatan', 'Malungon'
+            ],
+            'Siquijor' => [
+                'Enrique Villanueva', 'Larena', 'Lazi', 'Maria', 'San Juan', 'Siquijor'
+            ],
+            'Sorsogon' => [
+                'Sorsogon City', 'Barcelona', 'Bulan', 'Bulusan', 'Casiguran', 'Castilla',
+                'Donsol', 'Gubat', 'Irosin', 'Juban', 'Magallanes', 'Matnog',
+                'Pilar', 'Prieto Diaz', 'Santa Magdalena'
+            ],
+            'South Cotabato' => [
+                'General Santos', 'Koronadal', 'Banga', 'Lake Sebu', 'Norala', 'Polomolok',
+                'Santo Niño', 'Surallah', 'T\'Boli', 'Tampakan', 'Tantangan', 'Tupi'
+            ],
+            'Southern Leyte' => [
+                'Maasin', 'Anahawan', 'Bontoc', 'Hinunangan', 'Hinundayan', 'Libagon',
+                'Liloan', 'Limasawa', 'Macrohon', 'Malitbog', 'Padre Burgos', 'Pintuyan',
+                'Saint Bernard', 'San Francisco', 'San Juan', 'San Ricardo', 'Silago', 'Sogod', 'Tomas Oppus'
+            ],
+            'Sultan Kudarat' => [
+                'Tacurong', 'Bagumbayan', 'Columbio', 'Esperanza', 'Isulan', 'Kalamansig',
+                'Lambayong', 'Lebak', 'Lutayan', 'Palimbang', 'President Quirino', 'Senator Ninoy Aquino'
+            ],
+            'Sulu' => [
+                'Jolo', 'Hadji Panglima Tahil', 'Indanan', 'Kalingalan Caluang', 'Lugus', 'Luuk',
+                'Maimbung', 'Old Panamao', 'Omar', 'Pandami', 'Panglima Estino', 'Pangutaran',
+                'Parang', 'Pata', 'Patikul', 'Siasi', 'Talipao', 'Tapul', 'Tongkil'
+            ],
+            'Surigao del Norte' => [
+                'Surigao City', 'Alegria', 'Bacuag', 'Burgos', 'Claver', 'Dapa',
+                'Del Carmen', 'General Luna', 'Gigaquit', 'Mainit', 'Malimono', 'Pilar',
+                'Placer', 'San Benito', 'San Francisco', 'San Isidro', 'Santa Monica', 'Sison',
+                'Socorro', 'Tagana-an', 'Tubod'
+            ],
+            'Surigao del Sur' => [
+                'Bislig', 'Tandag', 'Barobo', 'Bayabas', 'Cagwait', 'Cantilan',
+                'Carmen', 'Carrascal', 'Cortes', 'Hinatuan', 'Lanuza', 'Lianga',
+                'Lingig', 'Madrid', 'Marihatag', 'San Agustin', 'San Miguel', 'Tagbina', 'Tago'
+            ],
+            'Tawi-Tawi' => [
+                'Bongao', 'Languyan', 'Mapun', 'Panglima Sugala', 'Sapa-Sapa', 'Sibutu',
+                'Simunul', 'Sitangkai', 'South Ubian', 'Tandubas', 'Turtle Islands'
+            ],
+            'Zamboanga del Norte' => [
+                'Dapitan', 'Dipolog', 'Baliguian', 'Dapitan', 'Godod', 'Gutalac',
+                'Jose Dalman', 'Kalawit', 'Katipunan', 'La Libertad', 'Labason', 'Liloy',
+                'Manukan', 'Mutia', 'Piñan', 'Polanco', 'President Manuel A. Roxas', 'Rizal',
+                'Salug', 'Sergio Osmeña Sr.', 'Siayan', 'Sibuco', 'Sibutad', 'Sindangan',
+                'Siocon', 'Sirawai', 'Tampilisan'
+            ],
+            'Zamboanga del Sur' => [
+                'Pagadian', 'Zamboanga City', 'Aurora', 'Bayog', 'Dimataling', 'Dinas',
+                'Dumalinao', 'Dumingag', 'Guipos', 'Josefina', 'Kumalarang', 'Labangan',
+                'Lakewood', 'Lapuyan', 'Mahayag', 'Margosatubig', 'Midsalip', 'Molave',
+                'Pitogo', 'Ramon Magsaysay', 'San Miguel', 'San Pablo', 'Sominot', 'Tabina',
+                'Tambulig', 'Tigbao', 'Tukuran', 'Vincenzo A. Sagun'
+            ],
+            'Zamboanga Sibugay' => [
+                'Alicia', 'Buug', 'Diplahan', 'Imelda', 'Ipil', 'Kabasalan',
+                'Mabuhay', 'Malangas', 'Naga', 'Olutanga', 'Payao', 'Roseller Lim',
+                'Siay', 'Talusan', 'Titay', 'Tungawan'
+            ]
+        ];
+
+        // Return the municipalities for the province, or empty array if not found
+        return $municipalitiesData[$province] ?? [];
+    }
+
+    /**
+     * Calculate shipping costs for selected products
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function calculateShipping(Request $request)
+    {
+        try {
+            $selectedProducts = $request->input('selectedProducts', []);
+            $province = $request->input('province');
+
+            // Province is optional - we can calculate access products without it
+            // Only required if there are ship products
+
+            if (empty($selectedProducts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No products selected'
+                ], 400);
+            }
+
+            // Separate ship and access products
+            $shipProducts = array_filter($selectedProducts, function($product) {
+                return isset($product['productType']) &&
+                       (strtolower($product['productType']) === 'ship');
+            });
+
+            $accessProducts = array_filter($selectedProducts, function($product) {
+                return isset($product['productType']) &&
+                       (strtolower($product['productType']) === 'access');
+            });
+
+            // Debug: Log product types found
+            \Log::info('Product type detection', [
+                'total_products' => count($selectedProducts),
+                'ship_products_count' => count($shipProducts),
+                'access_products_count' => count($accessProducts),
+                'selected_products' => $selectedProducts,
+                'province' => $province
+            ]);
+
+            // Check if province is required (only if there are ship products)
+            if (count($shipProducts) > 0 && empty($province)) {
+                // Show warning but still calculate access products
+                \Log::info('Province not provided but ship products exist');
+            }
+
+            // Validate ship coverage for ship products
+            $shipCoverageErrors = [];
+            foreach ($shipProducts as $product) {
+                $shipCoverage = $product['shipCoverage'] ?? 'n/a';
+                $productName = $product['productName'] ?? 'Unknown Product';
+
+                if (strtolower($shipCoverage) === 'province') {
+                    if (empty($province)) {
+                        $shipCoverageErrors[] = "Province shipping location is required for product: {$productName}";
+                    } elseif (strtolower($province) !== 'pangasinan') {
+                        $shipCoverageErrors[] = "Product '{$productName}' has Province shipping coverage only and can only be shipped to Pangasinan.";
+                    }
+                }
+            }
+
+            // Return validation errors if any
+            if (!empty($shipCoverageErrors)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => implode(' ', $shipCoverageErrors)
+                ], 400);
+            }
+
+            // Calculate total subtotal for all products
+            $totalSubtotal = 0;
+            foreach ($selectedProducts as $product) {
+                $quantity = intval($product['quantity'] ?? 1);
+                $price = floatval($product['price'] ?? 0);
+                $totalSubtotal += $quantity * $price;
+            }
+
+            $shippingBreakdown = [];
+            $totalShipping = 0;
+
+            // Process ship products for shipping calculation
+            foreach ($shipProducts as $product) {
+                $variantId = $product['variantId'] ?? null;
+                $quantity = intval($product['quantity'] ?? 1);
+                $price = floatval($product['price'] ?? 0);
+
+                if (!$variantId) continue;
+
+                $subtotal = $quantity * $price;
+
+                // Get shipping options for this variant
+                $shippingOptions = DB::table('ecom_products_variants_shipping as evs')
+                    ->join('ecom_products_shipping as es', 'evs.ecomShippingId', '=', 'es.id')
+                    ->leftJoin('ecom_products_shipping_options as eso', function($join) use ($province) {
+                        $join->on('es.id', '=', 'eso.shippingId')
+                             ->where('eso.provinceTarget', '=', $province)
+                             ->where('eso.isActive', '=', 1)
+                             ->where('eso.deleteStatus', '=', 1);
+                    })
+                    ->where('evs.ecomVariantId', $variantId)
+                    ->where('es.isActive', 1)
+                    ->where('es.deleteStatus', 1)
+                    ->select(
+                        'es.id as shippingId',
+                        'es.defaultMaxQuantity',
+                        'es.defaultPrice',
+                        'eso.maxQuantity',
+                        'eso.shippingPrice',
+                        'eso.provinceTarget'
+                    )
+                    ->get();
+
+                // Debug: Log the query results
+                \Log::info('Shipping Options Query Result for Variant ' . $variantId . ' and Province ' . $province, [
+                    'shipping_options' => $shippingOptions->toArray()
+                ]);
+
+                if ($shippingOptions->isEmpty()) {
+                    // No shipping options found for this variant
+                    continue;
+                }
+
+                // Find the cheapest shipping option
+                $cheapestShipping = null;
+                $cheapestPrice = PHP_FLOAT_MAX;
+
+                foreach ($shippingOptions as $option) {
+                    $shippingPrice = 0;
+                    $isProvinceSpecific = false;
+
+                    // Use province-specific pricing if available
+                    if ($option->shippingPrice !== null && $option->maxQuantity !== null && $option->provinceTarget) {
+                        $maxQty = intval($option->maxQuantity);
+                        $pricePerBatch = floatval($option->shippingPrice);
+                        $isProvinceSpecific = true;
+
+                        // Calculate how many batches needed
+                        $batches = ceil($quantity / $maxQty);
+                        $shippingPrice = $batches * $pricePerBatch;
+
+                        \Log::info('Using province-specific pricing', [
+                            'province' => $option->provinceTarget,
+                            'maxQuantity' => $maxQty,
+                            'pricePerBatch' => $pricePerBatch,
+                            'quantity' => $quantity,
+                            'batches' => $batches,
+                            'totalPrice' => $shippingPrice
+                        ]);
+                    } else {
+                        // Use default pricing
+                        $maxQty = intval($option->defaultMaxQuantity);
+                        $pricePerBatch = floatval($option->defaultPrice);
+
+                        // Calculate how many batches needed
+                        $batches = ceil($quantity / $maxQty);
+                        $shippingPrice = $batches * $pricePerBatch;
+
+                        \Log::info('Using default pricing', [
+                            'defaultMaxQuantity' => $maxQty,
+                            'defaultPrice' => $pricePerBatch,
+                            'quantity' => $quantity,
+                            'batches' => $batches,
+                            'totalPrice' => $shippingPrice
+                        ]);
+                    }
+
+                    if ($shippingPrice < $cheapestPrice) {
+                        $cheapestPrice = $shippingPrice;
+                        $cheapestShipping = $option;
+                        $cheapestShipping->isProvinceSpecific = $isProvinceSpecific;
+                    }
+                }
+
+                if ($cheapestShipping) {
+                    $totalShipping += $cheapestPrice;
+
+                    // Get shipping name from the shipping options query
+                    $shippingName = 'Default Shipping';
+                    if ($cheapestShipping->shippingId) {
+                        $shippingInfo = DB::table('ecom_products_shipping')
+                            ->where('id', $cheapestShipping->shippingId)
+                            ->select('shippingName')
+                            ->first();
+                        if ($shippingInfo) {
+                            $shippingName = $shippingInfo->shippingName ?? 'Default Shipping';
+                        }
+                    }
+
+                    $shippingBreakdown[] = [
+                        'productName' => $product['productName'] ?? 'Unknown Product',
+                        'variantName' => $product['variantName'] ?? 'Default',
+                        'productStore' => $product['productStore'] ?? 'Unknown Store',
+                        'quantity' => $quantity,
+                        'subtotal' => $subtotal,
+                        'shippingPrice' => $cheapestPrice,
+                        'shippingDetails' => [
+                            'shippingId' => intval($cheapestShipping->shippingId),
+                            'shippingName' => $shippingName,
+                            'maxQuantity' => intval($cheapestShipping->maxQuantity ?? $cheapestShipping->defaultMaxQuantity),
+                            'pricePerBatch' => floatval($cheapestShipping->shippingPrice ?? $cheapestShipping->defaultPrice),
+                            'batches' => ceil($quantity / intval($cheapestShipping->maxQuantity ?? $cheapestShipping->defaultMaxQuantity)),
+                            'province' => $province,
+                            'isProvinceSpecific' => $cheapestShipping->isProvinceSpecific ?? false,
+                            'pricingType' => ($cheapestShipping->isProvinceSpecific ?? false) ? 'Province-Specific' : 'Default'
+                        ]
+                    ];
+                }
+            }
+
+            // Create complete breakdown including access products
+            $completeBreakdown = [];
+
+            // Add ship products with shipping details
+            foreach ($shippingBreakdown as $item) {
+                $completeBreakdown[] = [
+                    'productName' => $item['productName'],
+                    'variantName' => $item['variantName'],
+                    'quantity' => $item['quantity'],
+                    'subtotal' => $item['subtotal'],
+                    'productType' => 'ship',
+                    'shippingPrice' => $item['shippingPrice'],
+                    'shippingDetails' => $item['shippingDetails']
+                ];
+            }
+
+            // Add access products (no shipping)
+            foreach ($accessProducts as $product) {
+                $quantity = intval($product['quantity'] ?? 1);
+                $price = floatval($product['price'] ?? 0);
+                $subtotal = $quantity * $price;
+
+                $completeBreakdown[] = [
+                    'productName' => $product['productName'] ?? 'Unknown Product',
+                    'variantName' => $product['variantName'] ?? 'Default',
+                    'productStore' => $product['productStore'] ?? 'Unknown Store',
+                    'quantity' => $quantity,
+                    'subtotal' => $subtotal,
+                    'productType' => 'access',
+                    'shippingPrice' => 0,
+                    'shippingDetails' => null
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'completeBreakdown' => $completeBreakdown,
+                    'shippingBreakdown' => $shippingBreakdown,
+                    'subtotal' => $totalSubtotal,
+                    'totalShipping' => $totalShipping,
+                    'total' => $totalSubtotal + $totalShipping,
+                    'province' => $province
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating shipping: ' . $e->getMessage()
             ], 500);
         }
     }

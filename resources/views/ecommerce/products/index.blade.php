@@ -284,6 +284,15 @@
                                                class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                                 <i class="bx bx-edit me-1"></i>Edit
                                             </a>
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning badge-style"
+                                                    title="Discounts"
+                                                    data-product-id="{{ $product->id }}"
+                                                    data-product-name="{{ $product->productName }}">
+                                                <i class="bx bx-tag me-1"></i>Discounts
+                                            </button>
+
                                             <button type="button" class="btn btn-sm btn-outline-primary badge-style status-btn" title="Status"
                                                     data-product-id="{{ $product->id }}"
                                                     data-product-name="{{ $product->productName }}"
