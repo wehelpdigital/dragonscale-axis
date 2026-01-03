@@ -4,6 +4,10 @@
     Add New Order
 @endsection
 
+@section('css')
+<!-- Toastr -->
+<link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
+@endsection
 
 @section('content')
     @component('components.breadcrumb')
@@ -32,11 +36,12 @@
                                 <div class="progress-bar" role="progressbar" id="wizard-progress" style="width: 33.33%"></div>
                             </div>
                             <div class="d-flex justify-content-between mt-2">
-                                <small class="text-muted">Step 1: Product Selection</small>
-                                <small class="text-muted">Step 2: Client Details</small>
-                                <small class="text-muted">Step 3: Client Logins</small>
+                                <small class="text-muted">Step 1: Products</small>
+                                <small class="text-muted">Step 2: Client</small>
+                                <small class="text-muted">Step 3: Logins</small>
                                 <small class="text-muted">Step 4: Shipping</small>
                                 <small class="text-muted">Step 5: Discounts</small>
+                                <small class="text-muted">Step 6: Affiliates</small>
                             </div>
                         </div>
                     </div>
@@ -623,13 +628,239 @@
         <!-- Step 5: Discounts -->
         <div class="wizard-step d-none" id="step-5">
             <h5 class="mb-3">Discounts</h5>
-            <div class="text-center py-5">
-                <i class="mdi mdi-tag-multiple display-4 text-success mb-3"></i>
-                <h6 class="text-muted">Discount Configuration</h6>
-                <p class="text-muted">This step will be implemented later.</p>
+
+            <!-- Discount Code Entry Section (Top) -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center border-bottom">
+                            <h6 class="card-title mb-0 text-dark">
+                                <i class="mdi mdi-ticket-percent me-2 text-primary"></i>Enter Discount Code
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="refresh_auto_discounts" title="Refresh Auto-Apply Discounts">
+                                <i class="mdi mdi-refresh me-1"></i>Refresh Discounts
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <input type="text"
+                                               class="form-control"
+                                               id="discount_code_input"
+                                               placeholder="Enter discount code"
+                                               maxlength="50">
+                                        <button type="button" class="btn btn-primary" id="apply_discount_code">
+                                            <i class="mdi mdi-check me-1"></i>Apply Code
+                                        </button>
+                                    </div>
+                                    <div id="discount_code_feedback" class="mt-2" style="display: none;"></div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-center">
+                                    <small class="text-body-secondary">
+                                        <i class="mdi mdi-information-outline me-1"></i>
+                                        Enter a valid discount code and click Apply. Use <strong>Refresh Discounts</strong> to re-apply removed auto-apply discounts.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applied Discounts Table Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="mdi mdi-tag-multiple me-2"></i>Applied Discounts
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Loading State -->
+                            <div id="auto-apply-discounts-loading" class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2 text-muted">Loading available discounts...</span>
+                            </div>
+
+                            <!-- Applied Discounts Table -->
+                            <div id="applied-discounts-table-container" style="display: none;">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover mb-0" id="applied-discounts-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 30%;">Discount Name</th>
+                                                <th style="width: 20%;">Type</th>
+                                                <th style="width: 20%;">Value</th>
+                                                <th style="width: 15%;">Source</th>
+                                                <th style="width: 15%;" class="text-center">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="applied-discounts-tbody">
+                                            <!-- Applied discounts rows will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- No Discounts Applied Message -->
+                            <div id="no-discounts-applied" class="text-center py-4" style="display: none;">
+                                <i class="mdi mdi-tag-off text-secondary" style="font-size: 2.5rem;"></i>
+                                <p class="text-dark mt-2 mb-1">No discounts applied to this order.</p>
+                                <small class="text-secondary">Auto-apply discounts will appear here automatically, or enter a discount code above.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Breakdown with Discounts Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="mdi mdi-calculator me-2"></i>Order Summary with Discounts
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Loading State -->
+                            <div id="discount-calculation-loading" class="text-center py-4" style="display: none;">
+                                <div class="spinner-border text-info mb-3" role="status" style="width: 2rem; height: 2rem;">
+                                    <span class="visually-hidden">Calculating...</span>
+                                </div>
+                                <p class="text-muted mb-0">Calculating discounts...</p>
+                            </div>
+
+                            <!-- Order Breakdown -->
+                            <div id="discount-order-breakdown">
+                                <!-- Product Summary Accordion -->
+                                <div class="card border-secondary mb-3">
+                                    <div class="card-header bg-light" data-bs-toggle="collapse" data-bs-target="#discountProductSummaryCollapse" aria-expanded="false" aria-controls="discountProductSummaryCollapse" style="cursor: pointer;">
+                                        <h6 class="mb-0 text-secondary">
+                                            <i class="mdi mdi-package-variant me-2"></i>Product Summary
+                                            <i class="mdi mdi-chevron-down float-end"></i>
+                                        </h6>
+                                    </div>
+                                    <div class="collapse" id="discountProductSummaryCollapse">
+                                        <div class="card-body">
+                                            <div id="discount-product-summary">
+                                                <!-- Product summary will be populated here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Order Totals -->
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="mdi mdi-receipt me-2"></i>Order Total
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Subtotal:</span>
+                                            <span id="discount-subtotal">₱0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Shipping:</span>
+                                            <span id="discount-shipping">₱0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2 text-success" id="discount-row" style="display: none;">
+                                            <span>Discount:</span>
+                                            <span id="discount-amount">-₱0.00</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold fs-5">
+                                            <span>Grand Total:</span>
+                                            <span id="discount-grand-total" class="text-primary">₱0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+        <!-- Step 6: Affiliates -->
+        <div class="wizard-step d-none" id="step-6">
+            <h5 class="mb-3">Affiliates</h5>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="card-title mb-0" style="color: #fff !important;">
+                                <i class="mdi mdi-account-group me-2"></i>Affiliate Settings
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center py-5">
+                                <i class="mdi mdi-account-group text-muted" style="font-size: 4rem;"></i>
+                                <h5 class="text-muted mt-3">Affiliate Features Coming Soon</h5>
+                                <p class="text-secondary">
+                                    This section will allow you to assign affiliate commissions and track referrals for this order.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <!-- Order Summary Card -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="mdi mdi-clipboard-text me-2"></i>Order Summary
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal:</span>
+                                <span id="affiliate-subtotal">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Shipping:</span>
+                                <span id="affiliate-shipping">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-success" id="affiliate-discount-row" style="display: none;">
+                                <span>Discount:</span>
+                                <span id="affiliate-discount">-₱0.00</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold fs-5">
+                                <span>Grand Total:</span>
+                                <span id="affiliate-grand-total" class="text-primary">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info Card -->
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h6 class="card-title text-info">
+                                <i class="mdi mdi-information me-1"></i>About Affiliates
+                            </h6>
+                            <p class="text-muted small mb-0">
+                                The affiliate system will enable you to:
+                            </p>
+                            <ul class="text-muted small mt-2 mb-0">
+                                <li>Assign affiliate referrals to orders</li>
+                                <li>Calculate commission percentages</li>
+                                <li>Track affiliate performance</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
                     </form>
                 </div>
@@ -654,7 +885,7 @@
 
     <!-- Variant Details Modal -->
     <div class="modal fade" id="variantModal" tabindex="-1" aria-labelledby="variantModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="variantModalLabel">Variant Details</h5>
@@ -851,6 +1082,33 @@
         </div>
     </div>
 
+    <!-- Data Changes Detection Modal -->
+    <div class="modal fade" id="changesDetectedModal" tabindex="-1" aria-labelledby="changesDetectedModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="changesDetectedModalLabel">
+                        <i class="mdi mdi-alert-circle-outline me-2"></i>Changes Detected
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3">
+                        <i class="mdi mdi-information-outline me-2"></i>
+                        <strong>Important:</strong> Some data has changed since you started this order. Please review the changes below and click "Apply Changes & Review" to update your order.
+                    </div>
+                    <div id="changesListContainer">
+                        <!-- Changes will be dynamically inserted here -->
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-warning" id="acceptChangesBtn">
+                        <i class="mdi mdi-check me-1"></i>Apply Changes & Review
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Create New Access Modal -->
     <div class="modal fade" id="createAccessModal" tabindex="-1" aria-labelledby="createAccessModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -911,6 +1169,9 @@
 @endsection
 
 @section('script')
+<!-- Toastr -->
+<script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
+
 <style>
     /* Loading animations */
     .search-loading {
@@ -1185,6 +1446,19 @@
         max-width: 400px !important;
     }
 
+    /* Variant details modal - wider */
+    #variantModal .modal-dialog {
+        max-width: 1140px !important;
+        width: 95% !important;
+    }
+
+    /* Image and Video lightbox modals - wider */
+    #imageLightbox .modal-dialog,
+    #videoLightbox .modal-dialog {
+        max-width: 1140px !important;
+        width: 95% !important;
+    }
+
     /* Ensure modal appears on top of everything */
     .modal.show {
         display: block !important;
@@ -1323,7 +1597,7 @@
 <script>
 $(document).ready(function() {
     let currentStep = 1;
-    const totalSteps = 5;
+    const totalSteps = 6;
     let selectedProducts = [];
     let currentProductsPage = 1;
     let currentStoreSearch = '';
@@ -2222,89 +2496,116 @@ $(document).ready(function() {
                         <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
                             <i class="mdi mdi-package-variant text-white"></i>
                         </div>
-                        <div>
+                        <div class="flex-grow-1">
                             <h4 class="mb-1 text-primary">${variant.ecomVariantName || 'Variant Details'}</h4>
                             <p class="text-muted mb-0">${product.productName || 'Product'}</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-info fs-6">${product.productStore || 'N/A'}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Main Content -->
-            <div class="row">
-                <!-- Left Column - Product Information -->
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-light border-0">
+            <!-- Main Content - 3 Column Layout -->
+            <div class="row g-4">
+                <!-- Column 1 - Product & Variant Info -->
+                <div class="col-lg-4">
+                    <!-- Product Information -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-light border-0 py-2">
                             <h6 class="mb-0 text-primary">
                                 <i class="mdi mdi-information-outline me-2"></i>Product Information
                             </h6>
                         </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-muted small">Product Name</label>
-                                    <p class="mb-0">${product.productName || 'N/A'}</p>
+                        <div class="card-body py-3">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small mb-1">Product Name</label>
+                                <p class="mb-0">${product.productName || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <label class="form-label fw-bold text-muted small mb-1">Description</label>
+                                <p class="mb-0 text-muted small">${product.productDescription || 'No description available'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Variant Information -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-light border-0 py-2">
+                            <h6 class="mb-0 text-primary">
+                                <i class="mdi mdi-tag-outline me-2"></i>Variant Information
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small mb-1">Variant Name</label>
+                                <p class="mb-0">${variant.ecomVariantName || 'N/A'}</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted small mb-1">Description</label>
+                                <p class="mb-0 text-muted small">${variant.ecomVariantDescription || 'No description available'}</p>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold text-muted small mb-1">Price</label>
+                                    <div class="h5 text-success mb-0">₱${parseFloat(variant.ecomVariantPrice || 0).toFixed(2)}</div>
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-muted small">Product Store</label>
-                                    <p class="mb-0">
-                                        <span class="badge bg-info">${product.productStore || 'N/A'}</span>
-                                    </p>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold text-muted small mb-1">Stock</label>
+                                    <div>
+                                        <span class="badge ${variant.stocksAvailable > 0 ? 'bg-success' : 'bg-danger'}">
+                                            ${variant.stocksAvailable || 0} ${variant.stocksAvailable === 1 ? 'item' : 'items'}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-muted small">Product Description</label>
-                                    <p class="mb-0 text-muted">${product.productDescription || 'No description available'}</p>
+                                <div class="col-12 mt-2">
+                                    <label class="form-label fw-bold text-muted small mb-1">Max Order/Transaction</label>
+                                    <div>
+                                        <span class="badge bg-info">${variant.maxOrderPerTransaction || 1}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column - Product Images -->
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-light border-0">
+                <!-- Column 2 - Product Images -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-light border-0 py-2">
                             <h6 class="mb-0 text-primary">
                                 <i class="mdi mdi-image-multiple me-2"></i>Product Images
                             </h6>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body py-3">
         `;
 
         if (images.length > 0) {
-            html += `
-                <div class="row g-3" id="image-gallery">
-            `;
-
+            html += `<div class="row g-2" id="image-gallery">`;
             images.forEach(function(image, index) {
                 html += `
                     <div class="col-6">
-                        <div class="card border-0 shadow-sm">
-                            <img src="${image.imageLink}"
-                                 class="card-img-top rounded"
-                                 style="height: 150px; object-fit: cover; cursor: pointer; transition: transform 0.2s;"
-                                 alt="Variant Image ${index + 1}"
-                                 onclick="showImageLightbox('${image.imageLink}')"
-                                 onmouseover="this.style.transform='scale(1.05)'"
-                                 onmouseout="this.style.transform='scale(1)'"
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZTwvdGV4dD48L3N2Zz4='">
-                        </div>
+                        <img src="${image.imageLink}"
+                             class="img-fluid rounded"
+                             style="height: 120px; width: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s;"
+                             alt="Variant Image ${index + 1}"
+                             onclick="showImageLightbox('${image.imageLink}')"
+                             onmouseover="this.style.transform='scale(1.05)'"
+                             onmouseout="this.style.transform='scale(1)'"
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZTwvdGV4dD48L3N2Zz4='">
                     </div>
                 `;
             });
-
-            html += `
-                </div>
-            `;
+            html += `</div>`;
         } else {
             html += `
-                    <div class="text-center py-5">
-                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="mdi mdi-image-off text-muted" style="font-size: 32px;"></i>
+                <div class="text-center py-4">
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                        <i class="mdi mdi-image-off text-muted" style="font-size: 24px;"></i>
                     </div>
-                    <h6 class="text-muted">No Images Available</h6>
-                    <p class="text-muted small mb-0">This variant doesn't have any images yet.</p>
+                    <h6 class="text-muted mb-1">No Images</h6>
+                    <p class="text-muted small mb-0">No images available</p>
                 </div>
             `;
         }
@@ -2313,112 +2614,49 @@ $(document).ready(function() {
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Second Row - Variant Information & Videos -->
-            <div class="row">
-                <!-- Left Column - Variant Information -->
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-light border-0">
-                            <h6 class="mb-0 text-primary">
-                                <i class="mdi mdi-tag-outline me-2"></i>Variant Information
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-muted small">Variant Name</label>
-                                    <p class="mb-0">${variant.ecomVariantName || 'N/A'}</p>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-bold text-muted small">Variant Description</label>
-                                    <p class="mb-0 text-muted">${variant.ecomVariantDescription || 'No description available'}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-muted small">Price</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="h5 text-success mb-0">₱${parseFloat(variant.ecomVariantPrice || 0).toFixed(2)}</span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-muted small">Stock Available</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge ${variant.stocksAvailable > 0 ? 'bg-success' : 'bg-danger'} fs-6 px-3 py-2">
-                                            <i class="mdi mdi-${variant.stocksAvailable > 0 ? 'check-circle' : 'close-circle'} me-1"></i>
-                                            ${variant.stocksAvailable || 0} ${variant.stocksAvailable === 1 ? 'item' : 'items'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-muted small">Max Order Per Transaction</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge ${parseInt(variant.maxOrderPerTransaction) === 1 ? 'bg-info' : 'bg-warning'} fs-6 px-3 py-2">
-                                            <i class="mdi mdi-${parseInt(variant.maxOrderPerTransaction) === 1 ? 'lock' : 'lock-open'} me-1"></i>
-                                            ${variant.maxOrderPerTransaction || 1}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-                <!-- Right Column - Product Videos -->
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-light border-0">
+                <!-- Column 3 - Product Videos -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-light border-0 py-2">
                             <h6 class="mb-0 text-primary">
                                 <i class="mdi mdi-video me-2"></i>Product Videos
                             </h6>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body py-3">
         `;
 
         if (data.videos && data.videos.length > 0) {
-            html += `
-                <div class="row g-3" id="video-gallery">
-            `;
-
+            html += `<div class="row g-2" id="video-gallery">`;
             data.videos.forEach(function(video, index) {
-                // Extract YouTube video ID from embed URL
                 const videoId = extractYouTubeVideoId(video.videoLink);
                 const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-
                 html += `
                     <div class="col-6">
-                        <div class="card border-0 shadow-sm">
-                            <div class="position-relative">
-                                <img src="${thumbnailUrl}"
-                                     class="card-img-top rounded"
-                                     style="height: 120px; object-fit: cover; cursor: pointer;"
-                                     alt="Video Thumbnail ${index + 1}"
-                                     onclick="showVideoLightbox('${video.videoLink}')">
-                                <div class="position-absolute top-50 start-50 translate-middle">
-                                    <div class="bg-danger rounded-circle p-2">
-                                        <i class="mdi mdi-play text-white"></i>
-                                    </div>
+                        <div class="position-relative">
+                            <img src="${thumbnailUrl}"
+                                 class="img-fluid rounded"
+                                 style="height: 100px; width: 100%; object-fit: cover; cursor: pointer;"
+                                 alt="Video Thumbnail ${index + 1}"
+                                 onclick="showVideoLightbox('${video.videoLink}')">
+                            <div class="position-absolute top-50 start-50 translate-middle">
+                                <div class="bg-danger rounded-circle p-1">
+                                    <i class="mdi mdi-play text-white"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
             });
-
-            html += `
-                </div>
-            `;
+            html += `</div>`;
         } else {
             html += `
-                <div class="text-center py-5">
-                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="mdi mdi-video-off text-muted" style="font-size: 32px;"></i>
+                <div class="text-center py-4">
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                        <i class="mdi mdi-video-off text-muted" style="font-size: 24px;"></i>
                     </div>
-                    <h6 class="text-muted">No Videos Available</h6>
-                    <p class="text-muted small mb-0">This variant doesn't have any videos yet.</p>
+                    <h6 class="text-muted mb-1">No Videos</h6>
+                    <p class="text-muted small mb-0">No videos available</p>
                 </div>
             `;
         }
@@ -2617,6 +2855,52 @@ $(document).ready(function() {
                 restoreShippingFormData();
             }, 100);
         }
+
+        // Load discounts and order summary when step 5 is shown
+        if (step === 5) {
+            loadAutoApplyDiscounts();
+            updateDiscountOrderSummary();
+        }
+
+        // Load affiliate summary when step 6 is shown
+        if (step === 6) {
+            updateAffiliateSummary();
+        }
+    }
+
+    // Update affiliate summary (Step 6)
+    function updateAffiliateSummary() {
+        // Calculate subtotal from selected products
+        const subtotal = selectedProducts.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+
+        // Get shipping from previous calculation (if available)
+        let shippingTotal = 0;
+        const shippingText = $('#discount-shipping').text();
+        if (shippingText) {
+            shippingTotal = parseFloat(shippingText.replace(/[₱,]/g, '')) || 0;
+        }
+
+        // Get discount from previous calculation
+        let discountTotal = 0;
+        const discountText = $('#discount-amount').text();
+        if (discountText) {
+            discountTotal = parseFloat(discountText.replace(/[-₱,]/g, '')) || 0;
+        }
+
+        const grandTotal = Math.max(0, subtotal - discountTotal + shippingTotal);
+
+        // Update affiliate summary
+        $('#affiliate-subtotal').text('₱' + formatNumber(subtotal));
+        $('#affiliate-shipping').text('₱' + formatNumber(shippingTotal));
+
+        if (discountTotal > 0) {
+            $('#affiliate-discount').text('-₱' + formatNumber(discountTotal));
+            $('#affiliate-discount-row').show();
+        } else {
+            $('#affiliate-discount-row').hide();
+        }
+
+        $('#affiliate-grand-total').text('₱' + formatNumber(grandTotal));
     }
 
     // Validate current step
@@ -2833,19 +3117,314 @@ $(document).ready(function() {
         showStep(currentStep - 1);
     });
 
-    // Next button click
-    $('#next-btn').click(function(e) {
+    // Variables for change detection
+    let pendingChangesCallback = null;
+    let pendingUpdatedData = null;
+
+    // Next button click - with async validation
+    $('#next-btn').click(async function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         console.log('Next button clicked, current step:', currentStep);
 
-        if (validateStep(currentStep)) {
-            showStep(currentStep + 1);
+        // First, run basic validation
+        if (!validateStep(currentStep)) {
+            return false;
+        }
+
+        // Show loading state on button
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Validating...');
+
+        try {
+            // Run step-specific async validations
+            const validationResult = await validateStepData(currentStep);
+
+            $btn.prop('disabled', false).html(originalHtml);
+
+            if (validationResult.hasChanges) {
+                // Show changes modal and wait for user decision
+                showChangesModal(validationResult.changes, validationResult.updateCallback, validationResult.updatedData);
+            } else {
+                // No changes, proceed to next step
+                showStep(currentStep + 1);
+            }
+        } catch (error) {
+            $btn.prop('disabled', false).html(originalHtml);
+            console.error('Validation error:', error);
+            showErrorAlertModal('An error occurred while validating. Please try again.');
         }
 
         return false;
     });
+
+    // Async validation for each step's data
+    async function validateStepData(step) {
+        switch(step) {
+            case 1:
+                // Validate product prices and availability before moving to Step 2
+                return await validateProductsBeforeNext();
+            case 4:
+                // Validate shipping rates before moving to Step 5
+                return await validateShippingBeforeNext();
+            case 5:
+                // Validate discounts before moving to Step 6
+                return await validateDiscountsBeforeNext();
+            default:
+                // No special validation needed for other steps
+                return { hasChanges: false, changes: [], updateCallback: null, updatedData: null };
+        }
+    }
+
+    // Validate products (Step 1 → Step 2)
+    async function validateProductsBeforeNext() {
+        const cartItems = selectedProducts.map(item => ({
+            variantId: item.variantId,
+            variantName: item.variantName,
+            productId: item.productId,
+            productName: item.productName,
+            productStore: item.productStore,
+            productType: item.productType,
+            shipCoverage: item.shipCoverage,
+            price: item.price,
+            quantity: item.quantity,
+            stocksAvailable: item.stocksAvailable,
+            maxOrderPerTransaction: item.maxOrderPerTransaction
+        }));
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.validate-product-prices") }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    cartItems: JSON.stringify(cartItems)
+                },
+                success: function(response) {
+                    if (response.success) {
+                        resolve({
+                            hasChanges: response.hasChanges,
+                            changes: response.changes || [],
+                            updatedData: response.updatedItems || [],
+                            updateCallback: function(updatedItems) {
+                                // Update selectedProducts with new data
+                                selectedProducts = updatedItems.map(item => ({
+                                    variantId: item.variantId,
+                                    variantName: item.variantName,
+                                    productId: item.productId,
+                                    productName: item.productName,
+                                    productStore: item.productStore,
+                                    productType: item.productType,
+                                    shipCoverage: item.shipCoverage,
+                                    price: item.price,
+                                    quantity: item.quantity,
+                                    stocksAvailable: item.stocksAvailable,
+                                    maxOrderPerTransaction: item.maxOrderPerTransaction
+                                }));
+                                $('#selectedProducts').val(JSON.stringify(selectedProducts));
+                                updateCartDisplay();
+                            }
+                        });
+                    } else {
+                        reject(new Error(response.message || 'Validation failed'));
+                    }
+                },
+                error: function(xhr) {
+                    reject(new Error(xhr.responseJSON?.message || 'Network error'));
+                }
+            });
+        });
+    }
+
+    // Validate shipping rates (Step 4 → Step 5)
+    async function validateShippingBeforeNext() {
+        const cartItems = selectedProducts.map(item => ({
+            productId: item.productId,
+            productType: item.productType,
+            quantity: item.quantity
+        }));
+
+        // Get current shipping value from the display
+        let currentShipping = 0;
+        const shippingText = $('#shipping_total_calculated').text();
+        if (shippingText) {
+            currentShipping = parseFloat(shippingText.replace(/[₱,]/g, '')) || 0;
+        }
+
+        const province = $('#shipping_province').val() || '';
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.validate-shipping-rates") }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    cartItems: JSON.stringify(cartItems),
+                    province: province,
+                    currentShipping: currentShipping
+                },
+                success: function(response) {
+                    if (response.success) {
+                        resolve({
+                            hasChanges: response.hasChanges,
+                            changes: response.changes || [],
+                            updatedData: { newShipping: response.newShipping },
+                            updateCallback: function(updatedData) {
+                                // Update shipping display
+                                const newShipping = updatedData.newShipping || 0;
+                                $('#shipping_total_calculated').text('₱' + formatNumber(newShipping));
+                                orderShipping = newShipping;
+                            }
+                        });
+                    } else {
+                        reject(new Error(response.message || 'Validation failed'));
+                    }
+                },
+                error: function(xhr) {
+                    reject(new Error(xhr.responseJSON?.message || 'Network error'));
+                }
+            });
+        });
+    }
+
+    // Validate discounts (Step 5 → Step 6)
+    async function validateDiscountsBeforeNext() {
+        const cartItems = selectedProducts.map(item => ({
+            productId: item.productId,
+            productStore: item.productStore || '',
+            variantId: item.variantId
+        }));
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.validate-applied-discounts") }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    appliedDiscounts: JSON.stringify(appliedDiscounts),
+                    cartItems: JSON.stringify(cartItems)
+                },
+                success: function(response) {
+                    if (response.success) {
+                        resolve({
+                            hasChanges: response.hasChanges,
+                            changes: response.changes || [],
+                            updatedData: {
+                                validDiscounts: response.validDiscounts || [],
+                                removedDiscounts: response.removedDiscounts || []
+                            },
+                            updateCallback: function(updatedData) {
+                                // Update applied discounts with valid ones
+                                appliedDiscounts = updatedData.validDiscounts.map(d => ({
+                                    id: d.id,
+                                    discountName: d.discountName,
+                                    discountDescription: d.discountDescription,
+                                    amountType: d.amountType,
+                                    valuePercent: d.valuePercent,
+                                    valueAmount: d.valueAmount,
+                                    valueReplacement: d.valueReplacement,
+                                    discountCapType: d.discountCapType,
+                                    discountCapValue: d.discountCapValue,
+                                    displayValue: d.displayValue,
+                                    trigger: d.trigger,
+                                    discountCode: d.discountCode || null
+                                }));
+                                renderAppliedDiscountsTable();
+                                calculateDiscountTotals();
+                            }
+                        });
+                    } else {
+                        reject(new Error(response.message || 'Validation failed'));
+                    }
+                },
+                error: function(xhr) {
+                    reject(new Error(xhr.responseJSON?.message || 'Network error'));
+                }
+            });
+        });
+    }
+
+    // Show changes modal
+    function showChangesModal(changes, updateCallback, updatedData) {
+        pendingChangesCallback = updateCallback;
+        pendingUpdatedData = updatedData;
+
+        // Build the changes list HTML
+        let changesHtml = '<div class="list-group">';
+
+        changes.forEach(function(change) {
+            let iconClass = 'mdi-information-outline';
+            let bgClass = 'list-group-item-warning';
+
+            switch(change.type) {
+                case 'removed':
+                case 'out_of_stock':
+                case 'deactivated':
+                case 'expired':
+                case 'restriction_mismatch':
+                    iconClass = 'mdi-close-circle';
+                    bgClass = 'list-group-item-danger';
+                    break;
+                case 'price_change':
+                case 'value_change':
+                case 'shipping_change':
+                    iconClass = 'mdi-currency-usd';
+                    bgClass = 'list-group-item-info';
+                    break;
+                case 'stock_reduced':
+                case 'max_order_exceeded':
+                    iconClass = 'mdi-package-variant';
+                    bgClass = 'list-group-item-warning';
+                    break;
+            }
+
+            changesHtml += `
+                <div class="list-group-item ${bgClass}">
+                    <div class="d-flex align-items-start">
+                        <i class="mdi ${iconClass} me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <strong>${escapeHtml(change.variantName || change.discountName || 'Item')}</strong>
+                            <p class="mb-0 small">${escapeHtml(change.message)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        changesHtml += '</div>';
+
+        $('#changesListContainer').html(changesHtml);
+        $('#changesDetectedModal').modal('show');
+    }
+
+    // Accept changes button handler
+    $('#acceptChangesBtn').click(function() {
+        if (pendingChangesCallback && pendingUpdatedData) {
+            // Apply the updates
+            pendingChangesCallback(pendingUpdatedData);
+        }
+
+        // Close modal
+        $('#changesDetectedModal').modal('hide');
+        pendingChangesCallback = null;
+        pendingUpdatedData = null;
+
+        // Stay on current step so user can review the changes
+        // Show toastr notification
+        toastr.success('The changes have been applied. Please review the updated information before proceeding.', 'Changes Applied', {
+            closeButton: true,
+            progressBar: true,
+            positionClass: 'toast-top-right',
+            timeOut: 5000,
+            extendedTimeOut: 2000
+        });
+
+        // Scroll to top of the step content for better visibility
+        $('.wizard-step:not(.d-none)').first().get(0)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
 
     // Add New Client button click
     $('#add-new-client-btn').click(function() {
@@ -4932,6 +5511,443 @@ $(document).ready(function() {
     function showErrorAlertModal(message) {
         $('#errorAlertMessage').text(message);
         $('#errorAlertModal').modal('show');
+    }
+
+    // ==========================================
+    // STEP 5: DISCOUNT FUNCTIONS
+    // ==========================================
+
+    // Store for applied discounts
+    let appliedDiscounts = [];
+    let autoApplyDiscountsData = [];
+    let orderSubtotal = 0;
+    let orderShipping = 0;
+
+    // Load auto-apply discounts
+    function loadAutoApplyDiscounts() {
+        $('#auto-apply-discounts-loading').show();
+        $('#applied-discounts-table-container').hide();
+        $('#no-discounts-applied').hide();
+
+        // Prepare cart items for restriction checking
+        const cartItems = selectedProducts.map(item => ({
+            productId: item.productId,
+            productStore: item.productStore || '',
+            variantId: item.variantId
+        }));
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.auto-apply-discounts") }}',
+            type: 'GET',
+            data: { cartItems: JSON.stringify(cartItems) },
+            success: function(response) {
+                $('#auto-apply-discounts-loading').hide();
+
+                if (response.success && response.data && response.data.length > 0) {
+                    autoApplyDiscountsData = response.data;
+
+                    // Auto-apply all auto-apply discounts
+                    response.data.forEach(function(discount) {
+                        if (!isDiscountApplied(discount.id)) {
+                            addAppliedDiscount(discount, 'auto');
+                        }
+                    });
+
+                    // Render the unified table and recalculate totals
+                    renderAppliedDiscountsTable();
+                    calculateDiscountTotals();
+                } else {
+                    // No auto-apply discounts, but check if there are any applied discounts
+                    renderAppliedDiscountsTable();
+                }
+            },
+            error: function(xhr) {
+                $('#auto-apply-discounts-loading').hide();
+                renderAppliedDiscountsTable();
+                console.error('Error loading auto-apply discounts:', xhr);
+            }
+        });
+    }
+
+    // Generate display value for a discount (fallback if not provided)
+    function getDiscountDisplayValue(discount) {
+        // If displayValue is already set, use it
+        if (discount.displayValue) {
+            return discount.displayValue;
+        }
+
+        // Otherwise, generate it from the discount data
+        if (discount.amountType === 'Percentage' && discount.valuePercent !== null && discount.valuePercent !== undefined) {
+            return discount.valuePercent + '%';
+        } else if (discount.amountType === 'Specific Amount' && discount.valueAmount !== null && discount.valueAmount !== undefined) {
+            return '₱' + formatNumber(discount.valueAmount);
+        } else if (discount.amountType === 'Price Replacement' && discount.valueReplacement !== null && discount.valueReplacement !== undefined) {
+            return '₱' + formatNumber(discount.valueReplacement) + ' (replacement)';
+        }
+
+        return 'N/A';
+    }
+
+    // Render unified applied discounts table (both auto-apply and code-based)
+    function renderAppliedDiscountsTable() {
+        const $tableContainer = $('#applied-discounts-table-container');
+        const $tbody = $('#applied-discounts-tbody');
+        const $noDiscounts = $('#no-discounts-applied');
+
+        if (appliedDiscounts.length === 0) {
+            $tableContainer.hide();
+            $noDiscounts.show();
+            return;
+        }
+
+        let html = '';
+        appliedDiscounts.forEach(function(discount) {
+            const sourceLabel = discount.trigger === 'auto'
+                ? '<span class="badge bg-success"><i class="mdi mdi-auto-fix me-1"></i>Auto-Apply</span>'
+                : '<span class="badge bg-primary"><i class="mdi mdi-ticket-percent me-1"></i>Code</span>';
+
+            const codeDisplay = discount.discountCode
+                ? `<br><small class="text-secondary">Code: <code class="text-dark">${escapeHtml(discount.discountCode)}</code></small>`
+                : '';
+
+            // Get display value with fallback
+            const displayValue = getDiscountDisplayValue(discount);
+
+            html += `
+                <tr data-discount-id="${discount.id}">
+                    <td>
+                        <strong class="text-dark">${escapeHtml(discount.discountName)}</strong>
+                        ${discount.discountDescription ? `<br><small class="text-secondary">${escapeHtml(discount.discountDescription)}</small>` : ''}
+                        ${codeDisplay}
+                    </td>
+                    <td class="text-dark">${escapeHtml(discount.amountType || 'N/A')}</td>
+                    <td><span class="badge bg-success text-white">${escapeHtml(displayValue)}</span></td>
+                    <td>${sourceLabel}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-discount-btn" data-discount-id="${discount.id}" title="Remove Discount">
+                            <i class="mdi mdi-trash-can-outline me-1"></i>Remove
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        $tbody.html(html);
+        $noDiscounts.hide();
+        $tableContainer.show();
+    }
+
+    // Check if a discount is already applied
+    function isDiscountApplied(discountId) {
+        return appliedDiscounts.some(d => d.id === discountId);
+    }
+
+    // Add a discount to applied list
+    function addAppliedDiscount(discount, trigger) {
+        if (!isDiscountApplied(discount.id)) {
+            appliedDiscounts.push({
+                id: discount.id,
+                discountName: discount.discountName,
+                discountDescription: discount.discountDescription,
+                amountType: discount.amountType,
+                valuePercent: discount.valuePercent,
+                valueAmount: discount.valueAmount,
+                valueReplacement: discount.valueReplacement,
+                discountCapType: discount.discountCapType,
+                discountCapValue: discount.discountCapValue,
+                displayValue: discount.displayValue,
+                trigger: trigger,
+                discountCode: discount.discountCode || null
+            });
+        }
+    }
+
+    // Remove a discount from applied list
+    function removeAppliedDiscount(discountId) {
+        appliedDiscounts = appliedDiscounts.filter(d => d.id !== discountId);
+        renderAppliedDiscountsTable();
+        calculateDiscountTotals();
+    }
+
+    // Apply discount code
+    $('#apply_discount_code').on('click', function() {
+        applyDiscountCode();
+    });
+
+    $('#discount_code_input').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            applyDiscountCode();
+        }
+    });
+
+    function applyDiscountCode() {
+        const code = $('#discount_code_input').val().trim();
+
+        if (!code) {
+            showDiscountCodeFeedback('Please enter a discount code.', 'warning');
+            return;
+        }
+
+        // Prepare cart items for restriction checking
+        const cartItems = selectedProducts.map(item => ({
+            productId: item.productId,
+            productStore: item.productStore || '',
+            variantId: item.variantId
+        }));
+
+        const $btn = $('#apply_discount_code');
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Applying...');
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.validate-discount-code") }}',
+            type: 'GET',
+            data: { code: code, cartItems: JSON.stringify(cartItems) },
+            success: function(response) {
+                $btn.prop('disabled', false).html(originalHtml);
+
+                if (response.success) {
+                    const discount = response.data;
+
+                    // Check if already applied
+                    if (isDiscountApplied(discount.id)) {
+                        showDiscountCodeFeedback('This discount code is already applied.', 'warning');
+                        return;
+                    }
+
+                    // Add to applied discounts
+                    addAppliedDiscount(discount, 'code');
+                    renderAppliedDiscountsTable();
+                    calculateDiscountTotals();
+
+                    // Clear input and show success
+                    $('#discount_code_input').val('');
+                    showDiscountCodeFeedback('Discount code applied successfully!', 'success');
+                } else {
+                    showDiscountCodeFeedback(response.message || 'Invalid discount code.', 'danger');
+                }
+            },
+            error: function(xhr) {
+                $btn.prop('disabled', false).html(originalHtml);
+                const message = xhr.responseJSON?.message || 'Error applying discount code.';
+                showDiscountCodeFeedback(message, 'danger');
+            }
+        });
+    }
+
+    function showDiscountCodeFeedback(message, type) {
+        const $feedback = $('#discount_code_feedback');
+        $feedback.html(`<div class="alert alert-${type} alert-sm py-2 mb-0">${message}</div>`).show();
+
+        setTimeout(function() {
+            $feedback.fadeOut();
+        }, 3000);
+    }
+
+    // Remove discount handler (unified for both auto-apply and code-based)
+    $(document).on('click', '.remove-discount-btn', function() {
+        const discountId = $(this).data('discount-id');
+        removeAppliedDiscount(discountId);
+    });
+
+    // Refresh auto-apply discounts button handler
+    $('#refresh_auto_discounts').on('click', function() {
+        refreshAutoApplyDiscounts();
+    });
+
+    // Refresh auto-apply discounts function
+    function refreshAutoApplyDiscounts() {
+        const $btn = $('#refresh_auto_discounts');
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i>Refreshing...');
+
+        // Prepare cart items for restriction checking
+        const cartItems = selectedProducts.map(item => ({
+            productId: item.productId,
+            productStore: item.productStore || '',
+            variantId: item.variantId
+        }));
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.auto-apply-discounts") }}',
+            type: 'GET',
+            data: { cartItems: JSON.stringify(cartItems) },
+            success: function(response) {
+                $btn.prop('disabled', false).html(originalHtml);
+
+                if (response.success && response.data && response.data.length > 0) {
+                    autoApplyDiscountsData = response.data;
+                    let addedCount = 0;
+
+                    // Re-apply any auto-apply discounts that are not currently applied
+                    response.data.forEach(function(discount) {
+                        if (!isDiscountApplied(discount.id)) {
+                            addAppliedDiscount(discount, 'auto');
+                            addedCount++;
+                        }
+                    });
+
+                    // Render the unified table and recalculate totals
+                    renderAppliedDiscountsTable();
+                    calculateDiscountTotals();
+
+                    if (addedCount > 0) {
+                        showDiscountCodeFeedback(addedCount + ' auto-apply discount(s) have been re-applied.', 'success');
+                    } else {
+                        showDiscountCodeFeedback('All auto-apply discounts are already applied.', 'info');
+                    }
+                } else {
+                    showDiscountCodeFeedback('No auto-apply discounts available at this time.', 'info');
+                }
+            },
+            error: function(xhr) {
+                $btn.prop('disabled', false).html(originalHtml);
+                showDiscountCodeFeedback('Error refreshing discounts. Please try again.', 'danger');
+                console.error('Error refreshing auto-apply discounts:', xhr);
+            }
+        });
+    }
+
+    // Update discount order summary
+    function updateDiscountOrderSummary() {
+        // Calculate subtotal from selected products
+        orderSubtotal = 0;
+        orderShipping = 0;
+
+        selectedProducts.forEach(function(product) {
+            const price = parseFloat(product.price) || 0;
+            const quantity = parseInt(product.quantity) || 1;
+            orderSubtotal += price * quantity;
+        });
+
+        // Get shipping from Step 4 calculation (if available)
+        const shippingText = $('#total-shipping').text();
+        if (shippingText) {
+            orderShipping = parseFloat(shippingText.replace(/[^\d.]/g, '')) || 0;
+        }
+
+        // Update product summary in Step 5
+        renderDiscountProductSummary();
+
+        // Calculate discount totals
+        calculateDiscountTotals();
+    }
+
+    // Render product summary in Step 5
+    function renderDiscountProductSummary() {
+        if (selectedProducts.length === 0) {
+            $('#discount-product-summary').html('<p class="text-dark mb-0">No products selected.</p>');
+            return;
+        }
+
+        let html = '<table class="table table-sm table-bordered mb-0">';
+        html += '<thead class="table-light"><tr><th class="text-dark">Product</th><th class="text-dark">Variant</th><th class="text-dark">Type</th><th class="text-dark text-center">Qty</th><th class="text-dark text-end">Price</th><th class="text-dark text-end">Subtotal</th></tr></thead>';
+        html += '<tbody>';
+
+        selectedProducts.forEach(function(product) {
+            const price = parseFloat(product.price) || 0;
+            const quantity = parseInt(product.quantity) || 1;
+            const subtotal = price * quantity;
+
+            // Determine product type and badge
+            const productType = (product.productType || 'unknown').toLowerCase();
+            let typeBadge = '';
+            if (productType === 'access') {
+                typeBadge = '<span class="badge bg-primary text-white"><i class="mdi mdi-key me-1"></i>Access</span>';
+            } else if (productType === 'ship') {
+                typeBadge = '<span class="badge bg-warning text-dark"><i class="mdi mdi-truck me-1"></i>Ship</span>';
+            } else {
+                typeBadge = '<span class="badge bg-secondary text-white">' + escapeHtml(product.productType || 'N/A') + '</span>';
+            }
+
+            html += `
+                <tr>
+                    <td class="text-dark">${escapeHtml(product.productName || 'Unknown')}</td>
+                    <td class="text-dark">${escapeHtml(product.variantName || 'Default')}</td>
+                    <td>${typeBadge}</td>
+                    <td class="text-dark text-center">${quantity}</td>
+                    <td class="text-dark text-end">₱${formatNumber(price)}</td>
+                    <td class="text-dark text-end fw-semibold">₱${formatNumber(subtotal)}</td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        $('#discount-product-summary').html(html);
+    }
+
+    // Calculate discount totals
+    function calculateDiscountTotals() {
+        if (appliedDiscounts.length === 0) {
+            // No discounts applied
+            updateDiscountDisplay(orderSubtotal, orderShipping, 0, orderSubtotal + orderShipping, []);
+            return;
+        }
+
+        // Calculate discounts via API
+        $('#discount-calculation-loading').show();
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.calculate-with-discounts") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                subtotal: orderSubtotal,
+                shippingTotal: orderShipping,
+                appliedDiscounts: appliedDiscounts.map(d => ({ id: d.id }))
+            },
+            success: function(response) {
+                $('#discount-calculation-loading').hide();
+
+                if (response.success) {
+                    const data = response.data;
+                    updateDiscountDisplay(
+                        data.subtotal,
+                        data.shippingTotal,
+                        data.totalDiscount,
+                        data.grandTotal,
+                        data.discountBreakdown
+                    );
+                }
+            },
+            error: function(xhr) {
+                $('#discount-calculation-loading').hide();
+                console.error('Error calculating discounts:', xhr);
+                // Fall back to simple calculation
+                updateDiscountDisplay(orderSubtotal, orderShipping, 0, orderSubtotal + orderShipping, []);
+            }
+        });
+    }
+
+    // Update discount display
+    function updateDiscountDisplay(subtotal, shipping, totalDiscount, grandTotal, breakdown) {
+        $('#discount-subtotal').text('₱' + formatNumber(subtotal));
+        $('#discount-shipping').text('₱' + formatNumber(shipping));
+        $('#discount-grand-total').text('₱' + formatNumber(grandTotal));
+
+        if (totalDiscount > 0) {
+            $('#discount-row').show();
+            $('#discount-amount').text('-₱' + formatNumber(totalDiscount));
+        } else {
+            $('#discount-row').hide();
+        }
+    }
+
+    // Helper: Format number
+    function formatNumber(num) {
+        return parseFloat(num).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // Helper: Escape HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // Initialize

@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
 use App\Models\EcomProductDiscount;
+use App\Models\EcomProductDiscountRestriction;
+use App\Models\EcomProductStore;
+use App\Models\EcomProduct;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -398,6 +401,7 @@ class DiscountsController extends Controller
                     })
                     ->addColumn('action', function($discount) {
                         $editUrl = route('ecom-discounts.edit', ['id' => $discount->id]);
+                        $restrictionsUrl = route('ecom-discounts.restrictions', ['id' => $discount->id]);
                         $discountName = htmlspecialchars($discount->discountName ?? '', ENT_QUOTES, 'UTF-8');
                         return '
                             <div class="d-flex flex-wrap gap-1 justify-content-center">
@@ -413,6 +417,12 @@ class DiscountsController extends Controller
                                    class="btn btn-sm btn-outline-success badge-style"
                                    title="Edit">
                                     <i class="bx bx-edit me-1"></i>Edit
+                                </a>
+
+                                <a href="' . $restrictionsUrl . '"
+                                   class="btn btn-sm btn-outline-warning badge-style"
+                                   title="Restrictions">
+                                    <i class="bx bx-filter me-1"></i>Restrictions
                                 </a>
 
                                 <button type="button"
@@ -442,6 +452,352 @@ class DiscountsController extends Controller
                     'error' => 'An error occurred while loading data.'
                 ], 500);
             }
+        }
+    }
+
+    /**
+     * Display the restrictions page for a discount.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View
+     */
+    public function restrictions(Request $request)
+    {
+        $discountId = $request->get('id');
+
+        $discount = EcomProductDiscount::active()->find($discountId);
+
+        if (!$discount) {
+            return redirect()->route('ecom-discounts')
+                ->with('error', 'Discount not found.');
+        }
+
+        // Get existing restrictions with related data
+        $existingRestrictions = EcomProductDiscountRestriction::active()
+            ->where('discountId', $discountId)
+            ->with(['store', 'product'])
+            ->get();
+
+        // Get all active stores for dropdown
+        $stores = EcomProductStore::active()->enabled()->orderBy('storeName')->get();
+
+        return view('ecommerce.discounts.restrictions', compact('discount', 'existingRestrictions', 'stores'));
+    }
+
+    /**
+     * Search for stores (AJAX endpoint for dynamic search with pagination).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchStores(Request $request)
+    {
+        try {
+            $search = $request->get('search', '');
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 20);
+
+            // Only show active and non-deleted stores
+            $query = EcomProductStore::where('deleteStatus', 1)
+                ->where('isActive', 1);
+
+            // Search by store name
+            if ($search) {
+                $query->where('storeName', 'LIKE', '%' . $search . '%');
+            }
+
+            $total = $query->count();
+            $stores = $query->orderBy('storeName')
+                ->skip(($page - 1) * $perPage)
+                ->take($perPage)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'stores' => $stores->map(function($store) {
+                    return [
+                        'id' => $store->id,
+                        'name' => $store->storeName ?? 'Unknown',
+                        'isActive' => $store->isActive
+                    ];
+                }),
+                'pagination' => [
+                    'current_page' => (int) $page,
+                    'per_page' => (int) $perPage,
+                    'total' => $total,
+                    'has_more' => ($page * $perPage) < $total
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error searching stores: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Search for products (AJAX endpoint for dynamic search with pagination).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchProducts(Request $request)
+    {
+        try {
+            $search = $request->get('search', '');
+            $storeId = $request->get('store_id');
+            $page = $request->get('page', 1);
+            $perPage = $request->get('per_page', 20);
+
+            // Only show active and non-deleted products
+            $query = EcomProduct::where('deleteStatus', 1)
+                ->where('isActive', 1);
+
+            // Filter by store if provided
+            if ($storeId) {
+                $store = EcomProductStore::find($storeId);
+                if ($store) {
+                    $query->where('productStore', $store->storeName);
+                }
+            }
+
+            // Search by product name
+            if ($search) {
+                $query->where('productName', 'LIKE', '%' . $search . '%');
+            }
+
+            $total = $query->count();
+            $products = $query->orderBy('productName')
+                ->skip(($page - 1) * $perPage)
+                ->take($perPage)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'products' => $products->map(function($product) {
+                    // Get active variants for price range
+                    $variants = $product->variants()
+                        ->where('deleteStatus', 1)
+                        ->where('isActive', 1)
+                        ->get();
+
+                    $minPrice = $variants->min('ecomVariantPrice');
+                    $maxPrice = $variants->max('ecomVariantPrice');
+                    $variantCount = $variants->count();
+
+                    // Format price range
+                    if ($variantCount === 0) {
+                        $priceRange = 'No variants';
+                    } elseif ($minPrice == $maxPrice) {
+                        $priceRange = '₱' . number_format($minPrice, 2);
+                    } else {
+                        $priceRange = '₱' . number_format($minPrice, 2) . ' - ₱' . number_format($maxPrice, 2);
+                    }
+
+                    return [
+                        'id' => $product->id,
+                        'name' => $product->productName ?? 'Unknown',
+                        'store' => $product->productStore ?? '',
+                        'price' => $priceRange,
+                        'variantCount' => $variantCount
+                    ];
+                }),
+                'pagination' => [
+                    'current_page' => (int) $page,
+                    'per_page' => (int) $perPage,
+                    'total' => $total,
+                    'has_more' => ($page * $perPage) < $total
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error searching products: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get variants for a specific product.
+     *
+     * @param  int  $productId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getProductVariants($productId)
+    {
+        try {
+            $product = EcomProduct::find($productId);
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Product not found'
+                ], 404);
+            }
+
+            // Get active and non-deleted variants with their first image
+            $variants = $product->variants()
+                ->where('deleteStatus', 1)
+                ->where('isActive', 1)
+                ->with('firstImage')
+                ->orderBy('ecomVariantPrice')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'variants' => $variants->map(function($variant) {
+                    $image = $variant->firstImage;
+                    return [
+                        'id' => $variant->id,
+                        'name' => $variant->ecomVariantName ?? 'Unknown',
+                        'price' => '₱' . number_format($variant->ecomVariantPrice ?? 0, 2),
+                        'stock' => $variant->stocksAvailable ?? 0,
+                        'image' => $image ? asset($image->imageLink) : null
+                    ];
+                })
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading variants: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Save restrictions for a discount.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveRestrictions(Request $request, $id)
+    {
+        try {
+            $discount = EcomProductDiscount::active()->findOrFail($id);
+
+            $restrictionType = $request->get('restrictionType', 'all');
+            $storeIds = $request->get('storeIds', []);
+            $productIds = $request->get('productIds', []);
+
+            // Update the discount's restriction type
+            $discount->update(['restrictionType' => $restrictionType]);
+
+            // Soft delete all existing restrictions
+            EcomProductDiscountRestriction::where('discountId', $id)
+                ->update(['deleteStatus' => 0]);
+
+            // Create new restrictions based on type
+            if ($restrictionType === 'stores' && !empty($storeIds)) {
+                foreach ($storeIds as $storeId) {
+                    EcomProductDiscountRestriction::create([
+                        'discountId' => $id,
+                        'storeId' => $storeId,
+                        'productId' => null,
+                        'deleteStatus' => 1
+                    ]);
+                }
+            } elseif ($restrictionType === 'products' && !empty($productIds)) {
+                foreach ($productIds as $productId) {
+                    EcomProductDiscountRestriction::create([
+                        'discountId' => $id,
+                        'storeId' => null,
+                        'productId' => $productId,
+                        'deleteStatus' => 1
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Restrictions have been saved successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving restrictions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get current restrictions for a discount (AJAX).
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRestrictions($id)
+    {
+        try {
+            $discount = EcomProductDiscount::active()->findOrFail($id);
+
+            $restrictions = EcomProductDiscountRestriction::active()
+                ->where('discountId', $id)
+                ->with(['store', 'product'])
+                ->get();
+
+            $formattedRestrictions = $restrictions->map(function($restriction) {
+                $data = [
+                    'id' => $restriction->id,
+                    'type' => $restriction->storeId ? 'store' : 'product'
+                ];
+
+                if ($restriction->store) {
+                    $data['storeId'] = $restriction->storeId;
+                    $data['storeName'] = $restriction->store->storeName;
+                }
+
+                if ($restriction->product) {
+                    $data['productId'] = $restriction->productId;
+                    $data['productName'] = $restriction->product->productName;
+                    $data['productStore'] = $restriction->product->productStore ?? '';
+                    $data['productPrice'] = '₱' . number_format($restriction->product->productPrice ?? 0, 2);
+                }
+
+                return $data;
+            });
+
+            return response()->json([
+                'success' => true,
+                'restrictionType' => $discount->restrictionType ?? 'all',
+                'restrictions' => $formattedRestrictions
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching restrictions: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Remove a single restriction.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function removeRestriction($id)
+    {
+        try {
+            $restriction = EcomProductDiscountRestriction::findOrFail($id);
+            $restriction->update(['deleteStatus' => 0]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Restriction has been removed.'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error removing restriction: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

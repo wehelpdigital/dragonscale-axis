@@ -27,10 +27,12 @@ class EcomProductVariant extends Model
         'ecomVariantDescription',
         'stocksAvailable',
         'ecomVariantPrice',
+        'ecomRawVariantPrice',
+        'costPrice',
+        'affiliatePrice',
         'maxOrderPerTransaction',
         'isActive',
         'deleteStatus',
-        // Add other fields as needed
     ];
 
     /**
@@ -41,6 +43,9 @@ class EcomProductVariant extends Model
     protected $casts = [
         'stocksAvailable' => 'integer',
         'ecomVariantPrice' => 'decimal:2',
+        'ecomRawVariantPrice' => 'decimal:2',
+        'costPrice' => 'decimal:2',
+        'affiliatePrice' => 'decimal:2',
         'isActive' => 'boolean',
         'deleteStatus' => 'boolean',
         'created_at' => 'datetime',
@@ -69,5 +74,25 @@ class EcomProductVariant extends Model
     public function scopeByProduct($query, $productId)
     {
         return $query->where('ecomProductsId', $productId);
+    }
+
+    /**
+     * Get the images for this variant.
+     */
+    public function images()
+    {
+        return $this->hasMany(EcomProductVariantImage::class, 'ecomVariantsId', 'id')
+            ->where('deleteStatus', 1)
+            ->orderBy('imageOrder');
+    }
+
+    /**
+     * Get the first image for this variant.
+     */
+    public function firstImage()
+    {
+        return $this->hasOne(EcomProductVariantImage::class, 'ecomVariantsId', 'id')
+            ->where('deleteStatus', 1)
+            ->orderBy('imageOrder');
     }
 }

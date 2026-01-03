@@ -9,10 +9,13 @@ use App\Models\EcomProductVariant;
 use App\Models\EcomProductVariantImage;
 use App\Models\EcomProductVariantVideo;
 use App\Models\EcomProductStore;
+use App\Models\EcomProductDiscount;
+use App\Models\EcomProductDiscountRestriction;
 use App\Models\ClientAllDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class OrdersCustomAddController extends Controller
 {
@@ -1598,6 +1601,724 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error calculating shipping: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if a discount is applicable to the given cart items based on its restrictions.
+     *
+     * @param  EcomProductDiscount  $discount
+     * @param  array  $cartItems  Array of cart items with productId and productStore
+     * @return bool
+     */
+    private function isDiscountApplicableToCart(EcomProductDiscount $discount, array $cartItems): bool
+    {
+        // If no cart items, discount is not applicable
+        if (empty($cartItems)) {
+            return false;
+        }
+
+        $restrictionType = $discount->restrictionType ?? 'all';
+
+        // If restriction type is 'all', the discount applies to everything
+        if ($restrictionType === 'all') {
+            return true;
+        }
+
+        // Get active restrictions for this discount
+        $restrictions = EcomProductDiscountRestriction::where('discountId', $discount->id)
+            ->where('deleteStatus', 1)
+            ->get();
+
+        // If no restrictions are defined but type is not 'all', discount is not applicable
+        if ($restrictions->isEmpty()) {
+            return false;
+        }
+
+        if ($restrictionType === 'stores') {
+            // Get the store IDs from restrictions
+            $allowedStoreIds = $restrictions->pluck('storeId')->filter()->toArray();
+
+            if (empty($allowedStoreIds)) {
+                return false;
+            }
+
+            // Get store names for the allowed store IDs
+            $allowedStoreNames = EcomProductStore::whereIn('id', $allowedStoreIds)
+                ->where('deleteStatus', 1)
+                ->pluck('storeName')
+                ->toArray();
+
+            // Check if at least one cart item's store matches the allowed stores
+            foreach ($cartItems as $item) {
+                $itemStore = $item['productStore'] ?? '';
+                if (in_array($itemStore, $allowedStoreNames)) {
+                    return true;
+                }
+            }
+
+            return false;
+
+        } elseif ($restrictionType === 'products') {
+            // Get the product IDs from restrictions
+            $allowedProductIds = $restrictions->pluck('productId')->filter()->toArray();
+
+            if (empty($allowedProductIds)) {
+                return false;
+            }
+
+            // Check if at least one cart item's product ID matches the allowed products
+            foreach ($cartItems as $item) {
+                $itemProductId = $item['productId'] ?? null;
+                if ($itemProductId && in_array((int)$itemProductId, $allowedProductIds)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all active auto-apply discounts.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAutoApplyDiscounts(Request $request)
+    {
+        try {
+            // Get cart items from request (JSON encoded array)
+            $cartItems = $request->get('cartItems', []);
+            if (is_string($cartItems)) {
+                $cartItems = json_decode($cartItems, true) ?? [];
+            }
+
+            $discounts = EcomProductDiscount::active()
+                ->enabled()
+                ->autoApply()
+                ->get()
+                ->filter(function ($discount) use ($cartItems) {
+                    // Filter out expired discounts
+                    if ($discount->isExpired()) {
+                        return false;
+                    }
+
+                    // Check if discount is applicable based on restrictions
+                    return $this->isDiscountApplicableToCart($discount, $cartItems);
+                })
+                ->map(function ($discount) {
+                    return [
+                        'id' => $discount->id,
+                        'discountName' => $discount->discountName,
+                        'discountDescription' => $discount->discountDescription,
+                        'discountType' => $discount->discountType,
+                        'amountType' => $discount->amountType,
+                        'valuePercent' => $discount->valuePercent,
+                        'valueAmount' => $discount->valueAmount,
+                        'valueReplacement' => $discount->valueReplacement,
+                        'discountCapType' => $discount->discountCapType,
+                        'discountCapValue' => $discount->discountCapValue,
+                        'displayValue' => $discount->getDisplayValue(),
+                        'expirationType' => $discount->expirationType,
+                        'dateTimeExpiration' => $discount->dateTimeExpiration,
+                        'restrictionType' => $discount->restrictionType ?? 'all',
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $discounts
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching discounts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate a discount code and return its details.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateDiscountCode(Request $request)
+    {
+        $code = $request->get('code');
+
+        if (empty($code)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Discount code is required'
+            ], 400);
+        }
+
+        // Get cart items from request (JSON encoded array)
+        $cartItems = $request->get('cartItems', []);
+        if (is_string($cartItems)) {
+            $cartItems = json_decode($cartItems, true) ?? [];
+        }
+
+        try {
+            $discount = EcomProductDiscount::active()
+                ->enabled()
+                ->codeBased()
+                ->where('discountCode', $code)
+                ->first();
+
+            if (!$discount) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid discount code'
+                ], 404);
+            }
+
+            // Check if expired
+            if ($discount->isExpired()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This discount code has expired'
+                ], 400);
+            }
+
+            // Check if discount is applicable based on restrictions
+            if (!$this->isDiscountApplicableToCart($discount, $cartItems)) {
+                $restrictionType = $discount->restrictionType ?? 'all';
+                $message = 'This discount code is not applicable to the products in your cart.';
+
+                if ($restrictionType === 'stores') {
+                    $message = 'This discount code is only valid for products from specific stores not in your cart.';
+                } elseif ($restrictionType === 'products') {
+                    $message = 'This discount code is only valid for specific products not in your cart.';
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount code applied successfully',
+                'data' => [
+                    'id' => $discount->id,
+                    'discountName' => $discount->discountName,
+                    'discountDescription' => $discount->discountDescription,
+                    'discountType' => $discount->discountType,
+                    'discountCode' => $discount->discountCode,
+                    'amountType' => $discount->amountType,
+                    'valuePercent' => $discount->valuePercent,
+                    'valueAmount' => $discount->valueAmount,
+                    'valueReplacement' => $discount->valueReplacement,
+                    'discountCapType' => $discount->discountCapType,
+                    'discountCapValue' => $discount->discountCapValue,
+                    'displayValue' => $discount->getDisplayValue(),
+                    'expirationType' => $discount->expirationType,
+                    'dateTimeExpiration' => $discount->dateTimeExpiration,
+                    'restrictionType' => $discount->restrictionType ?? 'all',
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating discount code: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate order total with discounts applied.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function calculateWithDiscounts(Request $request)
+    {
+        try {
+            $subtotal = floatval($request->input('subtotal', 0));
+            $shippingTotal = floatval($request->input('shippingTotal', 0));
+            $appliedDiscounts = $request->input('appliedDiscounts', []);
+
+            $discountBreakdown = [];
+            $totalDiscount = 0;
+
+            foreach ($appliedDiscounts as $discountData) {
+                $discountId = $discountData['id'] ?? null;
+                if (!$discountId) continue;
+
+                $discount = EcomProductDiscount::active()->enabled()->find($discountId);
+                if (!$discount || $discount->isExpired()) continue;
+
+                $discountAmount = 0;
+
+                // Calculate based on amount type
+                if ($discount->amountType === 'Percentage') {
+                    $discountAmount = ($subtotal * $discount->valuePercent) / 100;
+                } elseif ($discount->amountType === 'Specific Amount') {
+                    $discountAmount = $discount->valueAmount;
+                } elseif ($discount->amountType === 'Price Replacement') {
+                    // Price replacement is handled differently - it replaces the total
+                    $discountAmount = max(0, $subtotal - $discount->valueReplacement);
+                }
+
+                // Apply discount cap if set
+                if ($discount->discountCapType !== 'None' && $discount->discountCapValue !== null) {
+                    $discountAmount = min($discountAmount, $discount->discountCapValue);
+                }
+
+                // Ensure discount doesn't exceed subtotal
+                $discountAmount = min($discountAmount, $subtotal - $totalDiscount);
+                $discountAmount = max(0, $discountAmount);
+
+                $totalDiscount += $discountAmount;
+
+                $discountBreakdown[] = [
+                    'id' => $discount->id,
+                    'name' => $discount->discountName,
+                    'type' => $discount->amountType,
+                    'displayValue' => $discount->getDisplayValue(),
+                    'calculatedAmount' => $discountAmount,
+                    'trigger' => $discount->discountTrigger,
+                    'code' => $discount->discountCode,
+                ];
+            }
+
+            $grandTotal = max(0, $subtotal - $totalDiscount + $shippingTotal);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'subtotal' => $subtotal,
+                    'shippingTotal' => $shippingTotal,
+                    'totalDiscount' => $totalDiscount,
+                    'grandTotal' => $grandTotal,
+                    'discountBreakdown' => $discountBreakdown,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating discounts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate product prices and availability against current database values.
+     * Called before moving from Step 1 to Step 2.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateProductPrices(Request $request)
+    {
+        try {
+            $cartItems = $request->get('cartItems', []);
+            if (is_string($cartItems)) {
+                $cartItems = json_decode($cartItems, true) ?? [];
+            }
+
+            if (empty($cartItems)) {
+                return response()->json([
+                    'success' => true,
+                    'hasChanges' => false,
+                    'changes' => []
+                ]);
+            }
+
+            $changes = [];
+            $updatedItems = [];
+
+            foreach ($cartItems as $item) {
+                $variantId = $item['variantId'] ?? null;
+                $currentPrice = floatval($item['price'] ?? 0);
+                $currentQuantity = intval($item['quantity'] ?? 1);
+
+                if (!$variantId) continue;
+
+                // Get fresh variant data from database
+                $variant = EcomProductVariant::with('product')
+                    ->where('id', $variantId)
+                    ->where('deleteStatus', 1)
+                    ->first();
+
+                if (!$variant) {
+                    // Variant has been deleted
+                    $changes[] = [
+                        'type' => 'removed',
+                        'variantId' => $variantId,
+                        'variantName' => $item['variantName'] ?? 'Unknown',
+                        'productName' => $item['productName'] ?? 'Unknown',
+                        'message' => "Product variant '{$item['variantName']}' is no longer available and will be removed from your cart."
+                    ];
+                    continue;
+                }
+
+                // Check if variant is still active
+                if (!$variant->isActive) {
+                    $changes[] = [
+                        'type' => 'removed',
+                        'variantId' => $variantId,
+                        'variantName' => $variant->ecomVariantName,
+                        'productName' => $variant->product->productName ?? 'Unknown',
+                        'message' => "Product variant '{$variant->ecomVariantName}' is no longer active and will be removed from your cart."
+                    ];
+                    continue;
+                }
+
+                // Check if product is still active
+                if ($variant->product && (!$variant->product->isActive || $variant->product->deleteStatus != 1)) {
+                    $changes[] = [
+                        'type' => 'removed',
+                        'variantId' => $variantId,
+                        'variantName' => $variant->ecomVariantName,
+                        'productName' => $variant->product->productName ?? 'Unknown',
+                        'message' => "Product '{$variant->product->productName}' is no longer available and will be removed from your cart."
+                    ];
+                    continue;
+                }
+
+                $newPrice = floatval($variant->ecomVariantPrice);
+                $availableStock = intval($variant->stocksAvailable);
+                $maxOrder = intval($variant->maxOrderPerTransaction) ?: 999999;
+
+                $itemUpdate = [
+                    'variantId' => $variantId,
+                    'variantName' => $variant->ecomVariantName,
+                    'productName' => $variant->product->productName ?? $item['productName'],
+                    'productStore' => $variant->product->productStore ?? $item['productStore'],
+                    'productType' => $variant->product->productType ?? $item['productType'],
+                    'shipCoverage' => $variant->product->shipCoverage ?? $item['shipCoverage'],
+                    'price' => $newPrice,
+                    'quantity' => $currentQuantity,
+                    'stocksAvailable' => $availableStock,
+                    'maxOrderPerTransaction' => $maxOrder
+                ];
+
+                // Check for price change
+                if (abs($newPrice - $currentPrice) > 0.01) {
+                    $changes[] = [
+                        'type' => 'price_change',
+                        'variantId' => $variantId,
+                        'variantName' => $variant->ecomVariantName,
+                        'productName' => $variant->product->productName ?? 'Unknown',
+                        'oldPrice' => $currentPrice,
+                        'newPrice' => $newPrice,
+                        'message' => "Price of '{$variant->ecomVariantName}' changed from ₱" . number_format($currentPrice, 2) . " to ₱" . number_format($newPrice, 2)
+                    ];
+                }
+
+                // Check for stock availability
+                if ($availableStock < $currentQuantity) {
+                    if ($availableStock == 0) {
+                        $changes[] = [
+                            'type' => 'out_of_stock',
+                            'variantId' => $variantId,
+                            'variantName' => $variant->ecomVariantName,
+                            'productName' => $variant->product->productName ?? 'Unknown',
+                            'message' => "'{$variant->ecomVariantName}' is now out of stock and will be removed from your cart."
+                        ];
+                        continue;
+                    } else {
+                        $changes[] = [
+                            'type' => 'stock_reduced',
+                            'variantId' => $variantId,
+                            'variantName' => $variant->ecomVariantName,
+                            'productName' => $variant->product->productName ?? 'Unknown',
+                            'oldQuantity' => $currentQuantity,
+                            'newQuantity' => $availableStock,
+                            'message' => "Stock for '{$variant->ecomVariantName}' reduced. Quantity adjusted from {$currentQuantity} to {$availableStock}."
+                        ];
+                        $itemUpdate['quantity'] = $availableStock;
+                    }
+                }
+
+                // Check max order limit
+                if ($currentQuantity > $maxOrder) {
+                    $changes[] = [
+                        'type' => 'max_order_exceeded',
+                        'variantId' => $variantId,
+                        'variantName' => $variant->ecomVariantName,
+                        'productName' => $variant->product->productName ?? 'Unknown',
+                        'oldQuantity' => $currentQuantity,
+                        'newQuantity' => $maxOrder,
+                        'message' => "Maximum order limit for '{$variant->ecomVariantName}' is {$maxOrder}. Quantity adjusted."
+                    ];
+                    $itemUpdate['quantity'] = min($itemUpdate['quantity'], $maxOrder);
+                }
+
+                $updatedItems[] = $itemUpdate;
+            }
+
+            return response()->json([
+                'success' => true,
+                'hasChanges' => count($changes) > 0,
+                'changes' => $changes,
+                'updatedItems' => $updatedItems
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating products: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate shipping rates against current values.
+     * Called before moving from Step 4 to Step 5.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateShippingRates(Request $request)
+    {
+        try {
+            $cartItems = $request->get('cartItems', []);
+            $province = $request->get('province', '');
+            $currentShipping = floatval($request->get('currentShipping', 0));
+
+            if (is_string($cartItems)) {
+                $cartItems = json_decode($cartItems, true) ?? [];
+            }
+
+            // Filter only ship products
+            $shipProducts = array_filter($cartItems, function($item) {
+                $type = strtolower($item['productType'] ?? '');
+                return $type === 'ship';
+            });
+
+            if (empty($shipProducts)) {
+                return response()->json([
+                    'success' => true,
+                    'hasChanges' => false,
+                    'changes' => [],
+                    'newShipping' => 0
+                ]);
+            }
+
+            // Recalculate shipping using the same logic as calculateShipping
+            $shippingConfig = DB::table('ecom_shipping_config')
+                ->where('deleteStatus', 1)
+                ->first();
+
+            if (!$shippingConfig) {
+                return response()->json([
+                    'success' => true,
+                    'hasChanges' => false,
+                    'changes' => [],
+                    'newShipping' => $currentShipping
+                ]);
+            }
+
+            // Determine shipping rate
+            $newShippingRate = 0;
+            $provinceLower = strtolower(trim($province));
+
+            if ($provinceLower === 'pangasinan') {
+                $newShippingRate = floatval($shippingConfig->provinceShipPrice ?? 0);
+            } else {
+                $newShippingRate = floatval($shippingConfig->nationwideShipPrice ?? 0);
+            }
+
+            // Calculate total shipping based on products
+            $totalShipping = 0;
+            foreach ($shipProducts as $product) {
+                $quantity = intval($product['quantity'] ?? 1);
+                $totalShipping += $newShippingRate * $quantity;
+            }
+
+            $changes = [];
+            if (abs($totalShipping - $currentShipping) > 0.01) {
+                $changes[] = [
+                    'type' => 'shipping_change',
+                    'oldShipping' => $currentShipping,
+                    'newShipping' => $totalShipping,
+                    'message' => "Shipping cost has changed from ₱" . number_format($currentShipping, 2) . " to ₱" . number_format($totalShipping, 2)
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'hasChanges' => count($changes) > 0,
+                'changes' => $changes,
+                'newShipping' => $totalShipping
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating shipping: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate applied discounts are still valid and applicable.
+     * Called before moving from Step 5 to Step 6.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateAppliedDiscounts(Request $request)
+    {
+        try {
+            $appliedDiscounts = $request->get('appliedDiscounts', []);
+            $cartItems = $request->get('cartItems', []);
+
+            if (is_string($appliedDiscounts)) {
+                $appliedDiscounts = json_decode($appliedDiscounts, true) ?? [];
+            }
+            if (is_string($cartItems)) {
+                $cartItems = json_decode($cartItems, true) ?? [];
+            }
+
+            if (empty($appliedDiscounts)) {
+                return response()->json([
+                    'success' => true,
+                    'hasChanges' => false,
+                    'changes' => [],
+                    'validDiscounts' => [],
+                    'removedDiscounts' => []
+                ]);
+            }
+
+            $changes = [];
+            $validDiscounts = [];
+            $removedDiscounts = [];
+
+            foreach ($appliedDiscounts as $appliedDiscount) {
+                $discountId = $appliedDiscount['id'] ?? null;
+                if (!$discountId) continue;
+
+                // Get fresh discount data from database
+                $discount = EcomProductDiscount::where('id', $discountId)
+                    ->where('deleteStatus', 1)
+                    ->first();
+
+                // Check if discount exists and is active
+                if (!$discount) {
+                    $changes[] = [
+                        'type' => 'removed',
+                        'discountId' => $discountId,
+                        'discountName' => $appliedDiscount['discountName'] ?? 'Unknown',
+                        'message' => "Discount '{$appliedDiscount['discountName']}' is no longer available."
+                    ];
+                    $removedDiscounts[] = $discountId;
+                    continue;
+                }
+
+                if (!$discount->isActive) {
+                    $changes[] = [
+                        'type' => 'deactivated',
+                        'discountId' => $discountId,
+                        'discountName' => $discount->discountName,
+                        'message' => "Discount '{$discount->discountName}' has been deactivated."
+                    ];
+                    $removedDiscounts[] = $discountId;
+                    continue;
+                }
+
+                // Check if expired
+                if ($discount->isExpired()) {
+                    $changes[] = [
+                        'type' => 'expired',
+                        'discountId' => $discountId,
+                        'discountName' => $discount->discountName,
+                        'message' => "Discount '{$discount->discountName}' has expired."
+                    ];
+                    $removedDiscounts[] = $discountId;
+                    continue;
+                }
+
+                // Check if discount is still applicable to cart based on restrictions
+                if (!$this->isDiscountApplicableToCart($discount, $cartItems)) {
+                    $restrictionType = $discount->restrictionType ?? 'all';
+                    $message = "Discount '{$discount->discountName}' no longer applies to your cart items.";
+
+                    if ($restrictionType === 'stores') {
+                        $message = "Discount '{$discount->discountName}' is restricted to specific stores not in your cart.";
+                    } elseif ($restrictionType === 'products') {
+                        $message = "Discount '{$discount->discountName}' is restricted to specific products not in your cart.";
+                    }
+
+                    $changes[] = [
+                        'type' => 'restriction_mismatch',
+                        'discountId' => $discountId,
+                        'discountName' => $discount->discountName,
+                        'message' => $message
+                    ];
+                    $removedDiscounts[] = $discountId;
+                    continue;
+                }
+
+                // Check if discount values have changed
+                $oldDisplayValue = $appliedDiscount['displayValue'] ?? '';
+                $newDisplayValue = $discount->getDisplayValue();
+
+                $valueChanged = false;
+                $oldPercent = floatval($appliedDiscount['valuePercent'] ?? 0);
+                $oldAmount = floatval($appliedDiscount['valueAmount'] ?? 0);
+                $oldReplacement = floatval($appliedDiscount['valueReplacement'] ?? 0);
+
+                if ($discount->amountType === 'Percentage' && abs($oldPercent - floatval($discount->valuePercent)) > 0.01) {
+                    $valueChanged = true;
+                } elseif ($discount->amountType === 'Specific Amount' && abs($oldAmount - floatval($discount->valueAmount)) > 0.01) {
+                    $valueChanged = true;
+                } elseif ($discount->amountType === 'Price Replacement' && abs($oldReplacement - floatval($discount->valueReplacement)) > 0.01) {
+                    $valueChanged = true;
+                }
+
+                if ($valueChanged) {
+                    $changes[] = [
+                        'type' => 'value_change',
+                        'discountId' => $discountId,
+                        'discountName' => $discount->discountName,
+                        'oldValue' => $oldDisplayValue,
+                        'newValue' => $newDisplayValue,
+                        'message' => "Discount '{$discount->discountName}' value changed from {$oldDisplayValue} to {$newDisplayValue}."
+                    ];
+                }
+
+                // Add to valid discounts with updated values
+                $validDiscounts[] = [
+                    'id' => $discount->id,
+                    'discountName' => $discount->discountName,
+                    'discountDescription' => $discount->discountDescription,
+                    'discountType' => $discount->discountType,
+                    'discountCode' => $discount->discountCode,
+                    'amountType' => $discount->amountType,
+                    'valuePercent' => $discount->valuePercent,
+                    'valueAmount' => $discount->valueAmount,
+                    'valueReplacement' => $discount->valueReplacement,
+                    'discountCapType' => $discount->discountCapType,
+                    'discountCapValue' => $discount->discountCapValue,
+                    'displayValue' => $newDisplayValue,
+                    'trigger' => $appliedDiscount['trigger'] ?? 'auto',
+                    'restrictionType' => $discount->restrictionType ?? 'all',
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'hasChanges' => count($changes) > 0,
+                'changes' => $changes,
+                'validDiscounts' => $validDiscounts,
+                'removedDiscounts' => $removedDiscounts
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error validating discounts: ' . $e->getMessage()
             ], 500);
         }
     }

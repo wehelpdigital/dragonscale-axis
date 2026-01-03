@@ -212,6 +212,12 @@ Route::post('/ecom-orders-custom-add/save-client', [App\Http\Controllers\Ecommer
 Route::get('/ecom-orders-custom-add/philippine-provinces', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getPhilippineProvinces'])->name('ecom-orders-custom-add.philippine-provinces')->middleware('auth');
 Route::get('/ecom-orders-custom-add/philippine-municipalities', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getPhilippineMunicipalities'])->name('ecom-orders-custom-add.philippine-municipalities')->middleware('auth');
 Route::post('/ecom-orders-custom-add/calculate-shipping', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'calculateShipping'])->name('ecom-orders-custom-add.calculate-shipping')->middleware('auth');
+Route::get('/ecom-orders-custom-add/auto-apply-discounts', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'getAutoApplyDiscounts'])->name('ecom-orders-custom-add.auto-apply-discounts')->middleware('auth');
+Route::get('/ecom-orders-custom-add/validate-discount-code', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'validateDiscountCode'])->name('ecom-orders-custom-add.validate-discount-code')->middleware('auth');
+Route::post('/ecom-orders-custom-add/calculate-with-discounts', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'calculateWithDiscounts'])->name('ecom-orders-custom-add.calculate-with-discounts')->middleware('auth');
+Route::post('/ecom-orders-custom-add/validate-product-prices', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'validateProductPrices'])->name('ecom-orders-custom-add.validate-product-prices')->middleware('auth');
+Route::post('/ecom-orders-custom-add/validate-shipping-rates', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'validateShippingRates'])->name('ecom-orders-custom-add.validate-shipping-rates')->middleware('auth');
+Route::post('/ecom-orders-custom-add/validate-applied-discounts', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'validateAppliedDiscounts'])->name('ecom-orders-custom-add.validate-applied-discounts')->middleware('auth');
 
 
 // E-commerce shipping routes
@@ -227,6 +233,9 @@ Route::get('/ecom-shipping-options/data', [App\Http\Controllers\Ecommerce\Shippi
 // E-commerce discounts routes
 Route::get('/ecom-discounts', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'index'])->name('ecom-discounts')->middleware('auth');
 Route::get('/ecom-discounts/data', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'getData'])->name('ecom-discounts.data')->middleware('auth');
+Route::get('/ecom-discounts/search-products', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'searchProducts'])->name('ecom-discounts.search-products')->middleware('auth');
+Route::get('/ecom-discounts/search-stores', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'searchStores'])->name('ecom-discounts.search-stores')->middleware('auth');
+Route::get('/ecom-discounts/product-variants/{productId}', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'getProductVariants'])->name('ecom-discounts.product-variants')->middleware('auth');
 Route::get('/ecom-discounts-add', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'create'])->name('ecom-discounts.create')->middleware('auth');
 Route::post('/ecom-discounts-add', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'store'])->name('ecom-discounts.store')->middleware('auth');
 Route::get('/ecom-discounts-edit', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'edit'])->name('ecom-discounts.edit')->middleware('auth');
@@ -234,6 +243,12 @@ Route::put('/ecom-discounts-edit', [App\Http\Controllers\Ecommerce\DiscountsCont
 Route::get('/ecom-discounts/{id}', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'show'])->name('ecom-discounts.show')->middleware('auth');
 Route::patch('/ecom-discounts/{id}/status', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'updateStatus'])->name('ecom-discounts.update-status')->middleware('auth');
 Route::delete('/ecom-discounts/{id}', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'destroy'])->name('ecom-discounts.destroy')->middleware('auth');
+
+// E-commerce discount restrictions routes
+Route::get('/ecom-discounts-restrictions', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'restrictions'])->name('ecom-discounts.restrictions')->middleware('auth');
+Route::get('/ecom-discounts/{id}/restrictions', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'getRestrictions'])->name('ecom-discounts.get-restrictions')->middleware('auth');
+Route::post('/ecom-discounts/{id}/restrictions', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'saveRestrictions'])->name('ecom-discounts.save-restrictions')->middleware('auth');
+Route::delete('/ecom-discounts-restrictions/{id}', [App\Http\Controllers\Ecommerce\DiscountsController::class, 'removeRestriction'])->name('ecom-discounts.remove-restriction')->middleware('auth');
 
 // E-commerce affiliates routes
 Route::get('/ecom-affiliates', [App\Http\Controllers\Ecommerce\AffiliatesController::class, 'index'])->name('ecom-affiliates')->middleware('auth');
