@@ -21,7 +21,11 @@ class ProductsController extends Controller
      */
     public function index(Request $request)
     {
-        $query = EcomProduct::active();
+        // Get active store names (only stores with isActive = 1)
+        $activeStoreNames = EcomProductStore::active()->enabled()->pluck('storeName')->toArray();
+
+        $query = EcomProduct::active()
+            ->whereIn('productStore', $activeStoreNames);
 
         // Apply filters
         if ($request->filled('name')) {
@@ -39,11 +43,19 @@ class ProductsController extends Controller
         // Get paginated results
         $products = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        // Get unique stores for filter dropdown
-        $stores = EcomProduct::active()->distinct()->pluck('productStore')->filter();
+        // Get unique stores for filter dropdown (only from active stores)
+        $stores = EcomProduct::active()
+            ->whereIn('productStore', $activeStoreNames)
+            ->distinct()
+            ->pluck('productStore')
+            ->filter();
 
         // Get unique product types for filter dropdown
-        $productTypes = EcomProduct::active()->distinct()->pluck('productType')->filter();
+        $productTypes = EcomProduct::active()
+            ->whereIn('productStore', $activeStoreNames)
+            ->distinct()
+            ->pluck('productType')
+            ->filter();
 
         return view('ecommerce.products.index', compact('products', 'stores', 'productTypes'));
     }
@@ -55,8 +67,8 @@ class ProductsController extends Controller
      */
     public function create()
     {
-        // Get active stores for the dropdown
-        $stores = EcomProductStore::active()->orderBy('storeName')->get();
+        // Get active and enabled stores for the dropdown
+        $stores = EcomProductStore::active()->enabled()->orderBy('storeName')->get();
 
         return view('ecommerce.products.create', compact('stores'));
     }
@@ -304,6 +316,7 @@ class ProductsController extends Controller
             'ecomVariantName' => 'required|string|max:255',
             'ecomVariantDescription' => 'required|string|max:1000',
             'ecomVariantPrice' => 'required|numeric|min:0',
+            'rawPrice' => 'required|numeric|min:0',
             'costPrice' => 'required|numeric|min:0',
             'affiliatePrice' => 'required|numeric|min:0',
             'stocksAvailable' => 'required|integer|min:0',
@@ -316,6 +329,9 @@ class ProductsController extends Controller
             'ecomVariantPrice.required' => 'Variant price is required.',
             'ecomVariantPrice.numeric' => 'Variant price must be a valid number.',
             'ecomVariantPrice.min' => 'Variant price must be greater than or equal to 0.',
+            'rawPrice.required' => 'Raw price is required.',
+            'rawPrice.numeric' => 'Raw price must be a valid number.',
+            'rawPrice.min' => 'Raw price must be greater than or equal to 0.',
             'costPrice.required' => 'Cost price is required.',
             'costPrice.numeric' => 'Cost price must be a valid number.',
             'costPrice.min' => 'Cost price must be greater than or equal to 0.',
@@ -339,6 +355,7 @@ class ProductsController extends Controller
                 'ecomVariantName' => $request->ecomVariantName,
                 'ecomVariantDescription' => $request->ecomVariantDescription,
                 'ecomVariantPrice' => $request->ecomVariantPrice,
+                'ecomRawVariantPrice' => $request->rawPrice,
                 'costPrice' => $request->costPrice,
                 'affiliatePrice' => $request->affiliatePrice,
                 'stocksAvailable' => $request->stocksAvailable,
@@ -886,8 +903,8 @@ class ProductsController extends Controller
                 ->with('error', 'Product not found.');
         }
 
-        // Get active stores for the dropdown
-        $stores = EcomProductStore::active()->orderBy('storeName')->get();
+        // Get active and enabled stores for the dropdown
+        $stores = EcomProductStore::active()->enabled()->orderBy('storeName')->get();
 
         return view('ecommerce.products.edit', compact('product', 'stores'));
     }

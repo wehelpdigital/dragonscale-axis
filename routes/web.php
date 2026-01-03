@@ -145,6 +145,17 @@ Route::post('/upload-image', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseC
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
 
 // E-commerce routes
+// Stores
+Route::get('/ecom-stores', [App\Http\Controllers\Ecommerce\StoresController::class, 'index'])->name('ecom-stores')->middleware('auth');
+Route::get('/ecom-stores-add', [App\Http\Controllers\Ecommerce\StoresController::class, 'create'])->name('ecom-stores.create')->middleware('auth');
+Route::post('/ecom-stores-add', [App\Http\Controllers\Ecommerce\StoresController::class, 'store'])->name('ecom-stores.store')->middleware('auth');
+Route::get('/ecom-stores-edit', [App\Http\Controllers\Ecommerce\StoresController::class, 'edit'])->name('ecom-stores.edit')->middleware('auth');
+Route::put('/ecom-stores/{id}', [App\Http\Controllers\Ecommerce\StoresController::class, 'update'])->name('ecom-stores.update')->middleware('auth');
+Route::delete('/ecom-stores/{id}', [App\Http\Controllers\Ecommerce\StoresController::class, 'destroy'])->name('ecom-stores.destroy')->middleware('auth');
+Route::patch('/ecom-stores/{id}/status', [App\Http\Controllers\Ecommerce\StoresController::class, 'updateStatus'])->name('ecom-stores.update-status')->middleware('auth');
+Route::post('/ecom-stores/{id}/remove-logo', [App\Http\Controllers\Ecommerce\StoresController::class, 'removeLogo'])->name('ecom-stores.remove-logo')->middleware('auth');
+
+// Products
 Route::get('/ecom-products', [App\Http\Controllers\Ecommerce\ProductsController::class, 'index'])->name('ecom-products')->middleware('auth');
 Route::get('/ecom-products-add', [App\Http\Controllers\Ecommerce\ProductsController::class, 'create'])->name('ecom-products.create')->middleware('auth');
 Route::post('/ecom-products-add', [App\Http\Controllers\Ecommerce\ProductsController::class, 'store'])->name('ecom-products.store')->middleware('auth');

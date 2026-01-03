@@ -120,7 +120,7 @@
                     </a>
                     <ul class="sub-menu" aria-expanded="false">
                         <li>
-                            <a href="javascript: void(0);" class="waves-effect">
+                            <a href="{{ route('ecom-stores') }}" class="waves-effect">
                                 <i class="bx bx-store"></i>
                                 <span key="t-stores">Stores</span>
                             </a>

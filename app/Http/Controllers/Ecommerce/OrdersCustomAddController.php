@@ -196,9 +196,13 @@ class OrdersCustomAddController extends Controller
         $page = $request->get('page', 1);
         $perPage = $request->get('per_page', 15);
 
+        // Get active store names (only stores with isActive = 1)
+        $activeStoreNames = EcomProductStore::active()->enabled()->pluck('storeName')->toArray();
+
         $query = EcomProduct::active()
             ->where('isActive', 1)
             ->where('deleteStatus', 1)
+            ->whereIn('productStore', $activeStoreNames)
             ->whereHas('variants', function ($variantQuery) {
                 $variantQuery->where('isActive', 1)
                            ->where('deleteStatus', 1);
@@ -298,6 +302,7 @@ class OrdersCustomAddController extends Controller
     {
         try {
             $stores = EcomProductStore::active()
+                ->enabled()
                 ->orderBy('storeName', 'asc')
                 ->get(['id', 'storeName']);
 
