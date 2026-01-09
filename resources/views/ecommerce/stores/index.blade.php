@@ -84,6 +84,26 @@
     color: white !important;
 }
 
+.btn-outline-info.badge-style {
+    color: #50a5f1 !important;
+    border-color: #50a5f1 !important;
+}
+
+.btn-outline-info.badge-style:hover {
+    background-color: #50a5f1 !important;
+    color: white !important;
+}
+
+.btn-outline-secondary.badge-style {
+    color: #74788d !important;
+    border-color: #74788d !important;
+}
+
+.btn-outline-secondary.badge-style:hover {
+    background-color: #74788d !important;
+    color: white !important;
+}
+
 /* Loading Overlay Styles */
 .loading-overlay {
     position: absolute;
@@ -209,7 +229,7 @@
                                 <th>Store Name</th>
                                 <th style="width: 100px;">Products</th>
                                 <th style="width: 100px;">Status</th>
-                                <th style="width: 280px;" class="text-center">Actions</th>
+                                <th style="width: 440px;" class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -242,6 +262,16 @@
                                         <a href="{{ route('ecom-stores.edit', ['id' => $store->id]) }}"
                                            class="btn btn-sm btn-outline-success badge-style" title="Edit">
                                             <i class="bx bx-edit me-1"></i>Edit
+                                        </a>
+
+                                        <a href="{{ route('ecom-store-settings', ['id' => $store->id]) }}"
+                                           class="btn btn-sm btn-outline-secondary badge-style" title="Settings">
+                                            <i class="bx bx-cog me-1"></i>Settings
+                                        </a>
+
+                                        <a href="{{ route('ecom-store-logins', ['id' => $store->id]) }}"
+                                           class="btn btn-sm btn-outline-info badge-style" title="Logins">
+                                            <i class="bx bx-key me-1"></i>Logins
                                         </a>
 
                                         <button type="button"

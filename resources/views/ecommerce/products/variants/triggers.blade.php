@@ -5,6 +5,20 @@
 @section('css')
 <!-- Toastr CSS -->
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
+<style>
+    .trigger-description {
+        max-width: 400px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .nav-tabs .nav-link {
+        color: #495057;
+    }
+    .nav-tabs .nav-link.active {
+        font-weight: 600;
+    }
+</style>
 @endsection
 
 @section('content')
@@ -25,7 +39,7 @@
                     <div>
                         <h4 class="card-title">Variant Triggers</h4>
                         @if($variant && $product)
-                            <p class="card-title-desc">Manage triggers for: <strong>{{ $variant->ecomVariantName }}</strong> ({{ $product->productName }})</p>
+                            <p class="card-title-desc">Manage trigger tags for: <strong>{{ $variant->ecomVariantName }}</strong> ({{ $product->productName }})</p>
                         @else
                             <p class="card-title-desc">Variant not found.</p>
                         @endif
@@ -40,13 +54,18 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h5 class="text-primary">
-                                    <i class="bx bx-tag me-2"></i>Tags to Trigger the Course
+                                    <i class="bx bx-tag me-2"></i>Trigger Tags
                                 </h5>
-                                <p class="text-muted">These are the access tags that can trigger access to this course.</p>
+                                <p class="text-muted mb-0">These trigger tags are associated with this variant for access control.</p>
                             </div>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTriggerTagModal">
-                                <i class="bx bx-plus me-1"></i>Add Trigger Tag
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addExistingTagModal">
+                                    <i class="bx bx-list-check me-1"></i>Add Existing Tag
+                                </button>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createNewTagModal">
+                                    <i class="bx bx-plus me-1"></i>Create New Tag
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -55,21 +74,26 @@
                             <table class="table table-bordered table-striped" id="mainVariantTagsTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Tag Name</th>
-                                        <th>Expiration Length</th>
-                                        <th width="100">Actions</th>
+                                        <th class="text-dark">Tag Name</th>
+                                        <th class="text-dark">Description</th>
+                                        <th class="text-dark" width="100">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="variantTagsTableBody">
                                     @foreach($variantTags as $tag)
-                                        <tr data-tag-id="{{ $tag->id }}" data-tag-name="{{ $tag->tagName }}">
-                                            <td>{{ $tag->tagName }}</td>
-                                            <td>{{ $tag->expirationLength }}</td>
+                                        <tr data-tag-id="{{ $tag->id }}" data-tag-name="{{ $tag->triggerTagName }}">
+                                            <td class="text-dark">
+                                                <i class="bx bx-tag text-primary me-1"></i>
+                                                {{ $tag->triggerTagName }}
+                                            </td>
+                                            <td class="text-secondary trigger-description" title="{{ $tag->triggerTagDescription }}">
+                                                {{ $tag->triggerTagDescription ?: '-' }}
+                                            </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger delete-tag-btn"
                                                         data-tag-id="{{ $tag->id }}"
-                                                        data-tag-name="{{ $tag->tagName }}"
-                                                        title="Delete Tag">
+                                                        data-tag-name="{{ $tag->triggerTagName }}"
+                                                        title="Remove Tag">
                                                     <i class="bx bx-trash"></i>
                                                 </button>
                                             </td>
@@ -81,8 +105,9 @@
                     @else
                         <div class="text-center py-5" id="noTagsMessage">
                             <i class="bx bx-tag display-1 text-muted"></i>
-                            <h5 class="mt-3 text-muted">No Tags Found</h5>
-                            <p class="text-muted">No access tags have been configured for this variant yet.</p>
+                            <h5 class="mt-3 text-dark">No Trigger Tags Found</h5>
+                            <p class="text-secondary">No trigger tags have been configured for this variant yet.</p>
+                            <p class="text-secondary">Use "Add Existing Tag" to select from available tags, or "Create New Tag" to create a new trigger tag.</p>
                         </div>
                     @endif
                 @else
@@ -96,97 +121,130 @@
     </div>
 </div>
 
-
-
 <!-- Delete Tag Confirmation Modal -->
 <div class="modal fade" id="deleteTagModal" tabindex="-1" aria-labelledby="deleteTagModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="deleteTagModalLabel">
-                    <i class="bx bx-trash text-danger me-2"></i>Confirm Delete
+                    <i class="bx bx-trash text-danger me-2"></i>Confirm Remove
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to remove this tag from the variant?</p>
-                <p class="text-muted mb-0"><strong>Tag:</strong> <span id="deleteTagName"></span></p>
+                <p class="text-dark">Are you sure you want to remove this trigger tag from the variant?</p>
+                <p class="text-secondary mb-0"><strong>Tag:</strong> <span id="deleteTagName" class="text-dark"></span></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="bx bx-x me-1"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteTag">
-                    <i class="bx bx-trash me-1"></i>Delete Tag
+                    <i class="bx bx-trash me-1"></i>Remove Tag
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Trigger Tag Modal -->
-<div class="modal fade" id="addTriggerTagModal" tabindex="-1" aria-labelledby="addTriggerTagModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+<!-- Add Existing Trigger Tag Modal -->
+<div class="modal fade" id="addExistingTagModal" tabindex="-1" aria-labelledby="addExistingTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addTriggerTagModalLabel">
-                    <i class="bx bx-plus-circle me-2"></i>Add Trigger Tag
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="addExistingTagModalLabel">
+                    <i class="bx bx-list-check me-2"></i>Add Existing Trigger Tag
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Search Fields -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="searchTag" class="form-label">Search Tag</label>
-                        <input type="text" class="form-control" id="searchTag" placeholder="Search by tag name...">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="searchItem" class="form-label">Search Item</label>
-                        <input type="text" class="form-control" id="searchItem" placeholder="Search by item name...">
-                    </div>
+                <!-- Search Field -->
+                <div class="mb-3">
+                    <label for="searchExistingTag" class="form-label text-dark">Search Trigger Tags</label>
+                    <input type="text" class="form-control" id="searchExistingTag" placeholder="Search by tag name or description...">
                 </div>
 
                 <!-- Loading Spinner -->
-                <div id="loadingSpinner" class="text-center py-5" style="display: none;">
+                <div id="existingTagsLoadingSpinner" class="text-center py-5" style="display: none;">
                     <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <p class="mt-3 text-muted">Loading available tags...</p>
+                    <p class="mt-3 text-secondary">Loading available tags...</p>
                 </div>
 
                 <!-- Available Tags Table -->
-                <div class="table-responsive" id="tableContainer" style="display: none;">
-                    <table class="table table-bordered table-striped" id="availableTagsTable">
+                <div class="table-responsive" id="existingTagsTableContainer" style="display: none;">
+                    <table class="table table-bordered table-hover" id="existingTagsTable">
                         <thead class="table-light">
                             <tr>
-                                <th width="50">
-                                    <input type="checkbox" class="form-check-input" id="selectAllTags">
+                                <th class="text-dark" width="50">
+                                    <input type="checkbox" class="form-check-input" id="selectAllExistingTags">
                                 </th>
-                                <th>Tag Name</th>
-                                <th>Type</th>
-                                <th>Item Name</th>
-                                <th>Expiration Length</th>
+                                <th class="text-dark">Tag Name</th>
+                                <th class="text-dark">Description</th>
                             </tr>
                         </thead>
-                        <tbody id="availableTagsTableBody">
+                        <tbody id="existingTagsTableBody">
                             <!-- Data will be loaded dynamically -->
                         </tbody>
                     </table>
                 </div>
 
-                <div id="noTagsFound" class="text-center py-4" style="display: none;">
-                    <i class="bx bx-search display-4 text-muted"></i>
-                    <h5 class="mt-3 text-muted">No Tags Found</h5>
-                    <p class="text-muted">No available tags found matching your search criteria.</p>
+                <div id="noExistingTagsFound" class="text-center py-4" style="display: none;">
+                    <i class="bx bx-search display-4 text-secondary"></i>
+                    <h5 class="mt-3 text-dark">No Available Tags</h5>
+                    <p class="text-secondary">No available trigger tags found. Create a new one using the "Create New Tag" button.</p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="bx bx-x me-1"></i>Cancel
                 </button>
-                <button type="button" class="btn btn-primary" id="saveTriggerTags">
-                    <i class="bx bx-save me-1"></i>Save Selected Tags
+                <button type="button" class="btn btn-primary" id="saveExistingTags">
+                    <i class="bx bx-check me-1"></i>Add Selected Tags
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Trigger Tag Modal -->
+<div class="modal fade" id="createNewTagModal" tabindex="-1" aria-labelledby="createNewTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="createNewTagModalLabel">
+                    <i class="bx bx-plus-circle me-2"></i>Create New Trigger Tag
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTagForm">
+                    <div class="mb-3">
+                        <label for="triggerTagName" class="form-label text-dark">Trigger Tag Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="triggerTagName" name="triggerTagName"
+                               placeholder="Enter trigger tag name" required maxlength="255">
+                        <div class="invalid-feedback" id="triggerTagNameError"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="triggerTagDescription" class="form-label text-dark">Description</label>
+                        <textarea class="form-control" id="triggerTagDescription" name="triggerTagDescription"
+                                  rows="3" placeholder="Enter a description for this trigger tag (optional)"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="addToVariantAfterCreate" checked>
+                        <label class="form-check-label text-dark" for="addToVariantAfterCreate">
+                            Add this tag to the current variant after creation
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bx bx-x me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="createTriggerTagBtn">
+                    <i class="bx bx-plus me-1"></i>Create Tag
                 </button>
             </div>
         </div>
@@ -199,138 +257,108 @@
 <!-- Toastr JS -->
 <script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
 <script>
-// Ensure Toastr is loaded after jQuery
-if (typeof jQuery !== 'undefined' && typeof toastr === 'undefined') {
-    console.error('Toastr failed to load. Please check the file path.');
-}
-
 $(document).ready(function() {
-    // Variant Triggers page specific JavaScript will go here
-    console.log('Variant Triggers page loaded');
+    // Toastr configuration
+    toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+    };
 
-    // Wait for Toastr to be fully loaded
-    function waitForToastr(callback, maxAttempts = 10) {
-        if (typeof toastr !== 'undefined' && typeof toastr.success === 'function') {
-            callback();
-        } else if (maxAttempts > 0) {
-            setTimeout(function() {
-                waitForToastr(callback, maxAttempts - 1);
-            }, 100);
-        } else {
-            console.warn('Toastr not available, using fallback notifications');
-        }
-    }
+    const variantId = '{{ $variant->id ?? "" }}';
 
-    // Configure Toastr when it's ready
-    waitForToastr(function() {
-        toastr.options = {
-            "closeButton": true,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": true,
-            "positionClass": "toast-top-right",
-            "preventDuplicates": false,
-            "onclick": null,
-            "showDuration": "300",
-            "hideDuration": "1000",
-            "timeOut": "5000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut"
-        };
-        console.log('Toastr configured successfully');
-    });
-
-    // Fallback notification function
+    // Show notification helper
     function showNotification(type, message) {
-        try {
-            if (typeof toastr !== 'undefined' && typeof toastr[type] === 'function') {
-                toastr[type](message);
-            } else {
-                // Fallback to alert if toastr is not available
-                console.warn('Toastr not available, using alert fallback');
-                alert(message);
-            }
-        } catch (error) {
-            console.error('Notification error:', error);
-            // Ultimate fallback
+        if (typeof toastr !== 'undefined' && typeof toastr[type] === 'function') {
+            toastr[type](message);
+        } else {
             alert(message);
         }
     }
 
-    // Load available tags when modal is shown
-    $('#addTriggerTagModal').on('shown.bs.modal', function() {
-        loadAvailableTags();
+    // Escape HTML helper
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Load available existing tags when modal is shown
+    $('#addExistingTagModal').on('shown.bs.modal', function() {
+        loadExistingTags();
     });
 
-        // Load available tags from database
-    function loadAvailableTags() {
-        const variantId = '{{ $variant->id ?? "" }}';
-
-        // Show loading spinner and hide other elements
-        $('#loadingSpinner').show();
-        $('#tableContainer').hide();
-        $('#noTagsFound').hide();
+    // Load existing tags from database
+    function loadExistingTags() {
+        $('#existingTagsLoadingSpinner').show();
+        $('#existingTagsTableContainer').hide();
+        $('#noExistingTagsFound').hide();
 
         $.ajax({
             url: '{{ route("ecom-products.variants.triggers.available-tags") }}',
             method: 'GET',
-            data: {
-                id: variantId
-            },
+            data: { id: variantId },
             success: function(response) {
                 if (response.success) {
-                    displayAvailableTags(response.tags);
+                    displayExistingTags(response.tags);
                 } else {
-                    console.error('Error loading tags:', response.message);
-                    $('#loadingSpinner').hide();
-                    $('#noTagsFound').show().html(`
-                        <i class="bx bx-error-circle display-4 text-danger"></i>
-                        <h5 class="mt-3 text-danger">Error Loading Tags</h5>
-                        <p class="text-muted">Failed to load available tags. Please try again.</p>
-                    `);
+                    $('#existingTagsLoadingSpinner').hide();
+                    $('#noExistingTagsFound').show();
                 }
             },
             error: function(xhr, status, error) {
                 console.error('AJAX Error:', error);
-                $('#loadingSpinner').hide();
-                $('#noTagsFound').show().html(`
+                $('#existingTagsLoadingSpinner').hide();
+                $('#noExistingTagsFound').html(`
                     <i class="bx bx-error-circle display-4 text-danger"></i>
                     <h5 class="mt-3 text-danger">Error Loading Tags</h5>
-                    <p class="text-muted">Failed to load available tags. Please try again.</p>
-                `);
+                    <p class="text-secondary">Failed to load available tags. Please try again.</p>
+                `).show();
             }
         });
     }
 
-    // Display available tags in the table
-    function displayAvailableTags(tags) {
-        const tbody = $('#availableTagsTableBody');
+    // Display existing tags in table
+    function displayExistingTags(tags) {
+        const tbody = $('#existingTagsTableBody');
         tbody.empty();
-
-        // Hide loading spinner
-        $('#loadingSpinner').hide();
+        $('#existingTagsLoadingSpinner').hide();
 
         if (tags.length === 0) {
-            $('#noTagsFound').show();
-            $('#tableContainer').hide();
+            $('#noExistingTagsFound').show();
+            $('#existingTagsTableContainer').hide();
         } else {
-            $('#noTagsFound').hide();
-            $('#tableContainer').show();
+            $('#noExistingTagsFound').hide();
+            $('#existingTagsTableContainer').show();
 
             tags.forEach(function(tag) {
+                const description = tag.triggerTagDescription || '-';
                 const row = `
                     <tr>
                         <td>
-                            <input type="checkbox" class="form-check-input tag-checkbox"
-                                   value="${tag.id}" data-tag-name="${tag.tagName}">
+                            <input type="checkbox" class="form-check-input existing-tag-checkbox"
+                                   value="${tag.id}" data-tag-name="${escapeHtml(tag.triggerTagName)}">
                         </td>
-                        <td>${tag.tagName}</td>
-                        <td>${tag.tagType || 'N/A'}</td>
-                        <td>${tag.courseName || 'N/A'}</td>
-                        <td>${tag.expirationLength}</td>
+                        <td class="text-dark">
+                            <i class="bx bx-tag text-primary me-1"></i>
+                            ${escapeHtml(tag.triggerTagName)}
+                        </td>
+                        <td class="text-secondary trigger-description" title="${escapeHtml(description)}">
+                            ${escapeHtml(description)}
+                        </td>
                     </tr>
                 `;
                 tbody.append(row);
@@ -338,40 +366,15 @@ $(document).ready(function() {
         }
     }
 
-    // Search functionality
-    $('#searchTag, #searchItem').on('input', function() {
-        const tagSearch = $('#searchTag').val().toLowerCase();
-        const itemSearch = $('#searchItem').val().toLowerCase();
+    // Search functionality for existing tags
+    $('#searchExistingTag').on('input', function() {
+        const searchTerm = $(this).val().toLowerCase();
 
-        // Show loading spinner during search
-        if (tagSearch || itemSearch) {
-            $('#loadingSpinner').show();
-            $('#tableContainer').hide();
-            $('#noTagsFound').hide();
-
-            // Add a small delay to show loading state and prevent excessive API calls
-            clearTimeout(window.searchTimeout);
-            window.searchTimeout = setTimeout(function() {
-                performSearch(tagSearch, itemSearch);
-            }, 300);
-        } else {
-            // If search fields are empty, show all results
-            $('#loadingSpinner').hide();
-            $('#tableContainer').show();
-            $('#noTagsFound').hide();
-        }
-    });
-
-    // Perform the actual search
-    function performSearch(tagSearch, itemSearch) {
-        $('#availableTagsTableBody tr').each(function() {
+        $('#existingTagsTableBody tr').each(function() {
             const tagName = $(this).find('td:eq(1)').text().toLowerCase();
-            const itemName = $(this).find('td:eq(3)').text().toLowerCase();
+            const description = $(this).find('td:eq(2)').text().toLowerCase();
 
-            const tagMatch = tagName.includes(tagSearch);
-            const itemMatch = itemName.includes(itemSearch);
-
-            if (tagMatch && itemMatch) {
+            if (tagName.includes(searchTerm) || description.includes(searchTerm)) {
                 $(this).show();
             } else {
                 $(this).hide();
@@ -379,118 +382,180 @@ $(document).ready(function() {
         });
 
         // Show/hide no results message
-        const visibleRows = $('#availableTagsTableBody tr:visible').length;
-        if (visibleRows === 0) {
-            $('#loadingSpinner').hide();
-            $('#tableContainer').hide();
-            $('#noTagsFound').show();
-        } else {
-            $('#loadingSpinner').hide();
-            $('#tableContainer').show();
-            $('#noTagsFound').hide();
+        const visibleRows = $('#existingTagsTableBody tr:visible').length;
+        if (visibleRows === 0 && searchTerm) {
+            $('#existingTagsTableContainer').hide();
+            $('#noExistingTagsFound').html(`
+                <i class="bx bx-search display-4 text-secondary"></i>
+                <h5 class="mt-3 text-dark">No Matching Tags</h5>
+                <p class="text-secondary">No tags found matching "${escapeHtml(searchTerm)}".</p>
+            `).show();
+        } else if ($('#existingTagsTableBody tr').length > 0) {
+            $('#noExistingTagsFound').hide();
+            $('#existingTagsTableContainer').show();
         }
-    }
-
-    // Select all functionality
-    $('#selectAllTags').change(function() {
-        $('.tag-checkbox').prop('checked', $(this).is(':checked'));
     });
 
-    // Function to clear the modal form
-    function clearModalForm() {
-        // Clear search fields
-        $('#searchTag').val('');
-        $('#searchItem').val('');
+    // Select all existing tags functionality
+    $('#selectAllExistingTags').change(function() {
+        $('.existing-tag-checkbox:visible').prop('checked', $(this).is(':checked'));
+    });
 
-        // Uncheck all checkboxes
-        $('.tag-checkbox').prop('checked', false);
-        $('#selectAllTags').prop('checked', false);
+    // Save selected existing tags
+    $('#saveExistingTags').click(function() {
+        const selectedTags = [];
+        $('.existing-tag-checkbox:checked').each(function() {
+            selectedTags.push($(this).val());
+        });
 
-        // Clear the table body
-        $('#availableTagsTableBody').empty();
-
-        // Hide table and show no tags message
-        $('#tableContainer').hide();
-        $('#noTagsFound').hide();
-        $('#loadingSpinner').hide();
-    }
-
-    // Function to refresh the variant tags table
-    function refreshVariantTags() {
-        const variantId = '{{ $variant->id ?? "" }}';
-
-        // Show loading state on main table
-        $('#mainTableContainer').hide();
-        $('#noTagsMessage').hide();
-
-        // Create a loading spinner for the main table
-        if ($('#mainTableLoadingSpinner').length === 0) {
-            $('<div id="mainTableLoadingSpinner" class="text-center py-5">' +
-                '<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">' +
-                '<span class="visually-hidden">Loading...</span></div>' +
-                '<p class="mt-3 text-muted">Updating table...</p></div>').insertAfter('#mainTableContainer');
+        if (selectedTags.length === 0) {
+            showNotification('warning', 'Please select at least one tag to add.');
+            return;
         }
-        $('#mainTableLoadingSpinner').show();
+
+        const $btn = $(this);
+        const originalText = $btn.html();
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
 
         $.ajax({
-            url: '{{ route("ecom-products.variants.triggers") }}',
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
+            url: '{{ route("ecom-products.variants.triggers.save-tags") }}',
+            method: 'POST',
             data: {
-                id: variantId,
-                refresh: true
+                variantId: variantId,
+                tagIds: selectedTags,
+                _token: '{{ csrf_token() }}'
             },
             success: function(response) {
-                // Parse the HTML response to extract the table data
-                const tempDiv = $('<div>').html(response);
-                const newTableBody = tempDiv.find('#variantTagsTableBody');
-                const newNoTagsMessage = tempDiv.find('#noTagsMessage');
+                if (response.success) {
+                    showNotification('success', response.message);
+                    $('#addExistingTagModal').modal('hide');
 
-                if (newTableBody.length > 0 && newTableBody.find('tr').length > 0) {
-                    // Update the existing table body
-                    $('#variantTagsTableBody').html(newTableBody.html());
+                    // Clear form and refresh
+                    $('#searchExistingTag').val('');
+                    $('.existing-tag-checkbox').prop('checked', false);
+                    $('#selectAllExistingTags').prop('checked', false);
 
-                    // Show the table and hide loading
-                    $('#mainTableLoadingSpinner').hide();
-                    $('#mainTableContainer').show();
-                    $('#noTagsMessage').hide();
-
-                    showNotification('success', 'Tags added successfully!');
-                } else if (newNoTagsMessage.length > 0) {
-                    // Show no tags message
-                    $('#mainTableLoadingSpinner').hide();
-                    $('#mainTableContainer').hide();
-                    $('#noTagsMessage').show();
-
-                    showNotification('info', 'No tags found for this variant.');
+                    // Refresh the page to show updated tags
+                    location.reload();
+                } else {
+                    showNotification('error', response.message || 'Failed to save tags.');
                 }
-
-                // Also refresh the available tags in the modal
-                loadAvailableTags();
             },
-            error: function(xhr, status, error) {
-                console.error('Refresh Error:', error);
-                $('#mainTableLoadingSpinner').hide();
-                $('#mainTableContainer').show(); // Show the old table
-                showNotification('error', 'Failed to refresh table data.');
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while saving the tags.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showNotification('error', errorMessage);
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html(originalText);
             }
         });
-    }
+    });
+
+    // Create new trigger tag
+    $('#createTriggerTagBtn').click(function() {
+        const tagName = $('#triggerTagName').val().trim();
+        const tagDescription = $('#triggerTagDescription').val().trim();
+        const addToVariant = $('#addToVariantAfterCreate').is(':checked');
+
+        // Validate
+        if (!tagName) {
+            $('#triggerTagName').addClass('is-invalid');
+            $('#triggerTagNameError').text('Trigger tag name is required.');
+            return;
+        }
+
+        $('#triggerTagName').removeClass('is-invalid');
+
+        const $btn = $(this);
+        const originalText = $btn.html();
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Creating...');
+
+        $.ajax({
+            url: '{{ route("ecom-products.variants.triggers.create-tag") }}',
+            method: 'POST',
+            data: {
+                triggerTagName: tagName,
+                triggerTagDescription: tagDescription,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    showNotification('success', response.message);
+
+                    if (addToVariant && response.tag) {
+                        // Add the newly created tag to this variant
+                        $.ajax({
+                            url: '{{ route("ecom-products.variants.triggers.save-tags") }}',
+                            method: 'POST',
+                            data: {
+                                variantId: variantId,
+                                tagIds: [response.tag.id],
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(saveResponse) {
+                                if (saveResponse.success) {
+                                    showNotification('success', 'Tag created and added to variant!');
+                                }
+                                $('#createNewTagModal').modal('hide');
+                                location.reload();
+                            },
+                            error: function() {
+                                $('#createNewTagModal').modal('hide');
+                                showNotification('info', 'Tag created but could not be added to variant. Add it manually.');
+                                location.reload();
+                            }
+                        });
+                    } else {
+                        $('#createNewTagModal').modal('hide');
+                        // Clear form
+                        $('#triggerTagName').val('');
+                        $('#triggerTagDescription').val('');
+                        showNotification('success', 'Trigger tag created! You can now add it from the existing tags list.');
+                    }
+                } else {
+                    if (response.message && response.message.includes('already exists')) {
+                        $('#triggerTagName').addClass('is-invalid');
+                        $('#triggerTagNameError').text(response.message);
+                    } else {
+                        showNotification('error', response.message || 'Failed to create trigger tag.');
+                    }
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while creating the trigger tag.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showNotification('error', errorMessage);
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // Clear validation on input
+    $('#triggerTagName').on('input', function() {
+        $(this).removeClass('is-invalid');
+    });
+
+    // Clear form when modal is hidden
+    $('#createNewTagModal').on('hidden.bs.modal', function() {
+        $('#triggerTagName').val('').removeClass('is-invalid');
+        $('#triggerTagDescription').val('');
+        $('#addToVariantAfterCreate').prop('checked', true);
+    });
 
     // Handle delete tag button clicks
     $(document).on('click', '.delete-tag-btn', function() {
         const tagId = $(this).data('tag-id');
         const tagName = $(this).data('tag-name');
 
-        // Set the tag name in the confirmation modal
         $('#deleteTagName').text(tagName);
-
-        // Store the tag ID for deletion
         $('#confirmDeleteTag').data('tag-id', tagId);
-
-        // Show the confirmation modal
         $('#deleteTagModal').modal('show');
     });
 
@@ -503,24 +568,17 @@ $(document).ready(function() {
             return;
         }
 
-        // Disable button and show loading state
-        const deleteBtn = $(this);
-        const originalText = deleteBtn.html();
-        deleteBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
+        const $btn = $(this);
+        const originalText = $btn.html();
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Removing...');
 
-        // Make AJAX call to delete the tag
         $.ajax({
             url: '{{ route("ecom-products.variants.triggers.delete-tag", ["id" => ":id"]) }}'.replace(':id', tagId),
             method: 'DELETE',
-            data: {
-                _token: '{{ csrf_token() }}'
-            },
+            data: { _token: '{{ csrf_token() }}' },
             success: function(response) {
                 if (response.success) {
-                    // Show success notification
                     showNotification('success', response.message);
-
-                    // Close the delete modal
                     $('#deleteTagModal').modal('hide');
 
                     // Remove the row from the table
@@ -529,91 +587,23 @@ $(document).ready(function() {
 
                         // Check if table is empty
                         if ($('#variantTagsTableBody tr').length === 0) {
-                            // Hide table and show no tags message
                             $('#mainTableContainer').hide();
                             $('#noTagsMessage').show();
                         }
                     });
-
-                    // Also refresh the available tags in the modal
-                    loadAvailableTags();
                 } else {
-                    showNotification('error', response.message || 'Failed to delete tag.');
+                    showNotification('error', response.message || 'Failed to remove tag.');
                 }
             },
-            error: function(xhr, status, error) {
-                console.error('Delete Error:', error);
-                let errorMessage = 'An error occurred while deleting the tag.';
-
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while removing the tag.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-
                 showNotification('error', errorMessage);
             },
             complete: function() {
-                // Re-enable button
-                deleteBtn.prop('disabled', false).html(originalText);
-            }
-        });
-    });
-
-    // Save selected tags
-    $('#saveTriggerTags').click(function() {
-        const selectedTags = [];
-        $('.tag-checkbox:checked').each(function() {
-            selectedTags.push($(this).val());
-        });
-
-        if (selectedTags.length === 0) {
-            alert('Please select at least one tag to add.');
-            return;
-        }
-
-        // Disable save button and show loading state
-        const saveBtn = $(this);
-        const originalText = saveBtn.html();
-        saveBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
-
-        // Make AJAX call to save the selected tags
-        $.ajax({
-            url: '{{ route("ecom-products.variants.triggers.save-tags") }}',
-            method: 'POST',
-            data: {
-                variantId: '{{ $variant->id ?? "" }}',
-                tagIds: selectedTags,
-                _token: '{{ csrf_token() }}'
-            },
-                        success: function(response) {
-                if (response.success) {
-                    // Show success notification using Toastr
-                    showNotification('success', response.message);
-
-                    // Clear the modal form
-                    clearModalForm();
-
-                    // Close the add trigger tag modal
-                    $('#addTriggerTagModal').modal('hide');
-
-                    // Dynamically refresh the table data
-                    refreshVariantTags();
-                } else {
-                    showNotification('error', response.message || 'Failed to save tags.');
-                }
-            },
-                        error: function(xhr, status, error) {
-                console.error('Save Error:', error);
-                let errorMessage = 'An error occurred while saving the tags.';
-
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-
-                showNotification('error', errorMessage);
-            },
-            complete: function() {
-                // Re-enable save button
-                saveBtn.prop('disabled', false).html(originalText);
+                $btn.prop('disabled', false).html(originalText);
             }
         });
     });

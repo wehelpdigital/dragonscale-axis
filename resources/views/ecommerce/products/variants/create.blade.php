@@ -9,16 +9,7 @@
         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
     }
 
-    .form-control.is-valid {
-        border-color: #198754;
-        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
-    }
-
     .invalid-feedback {
-        display: block;
-    }
-
-    .valid-feedback {
         display: block;
     }
 </style>
@@ -61,7 +52,6 @@
                                        value="{{ old('ecomVariantName') }}"
                                        placeholder="Enter variant name">
                                 <div class="invalid-feedback" id="ecomVariantName-error"></div>
-                                <div class="valid-feedback" id="ecomVariantName-success">Looks good!</div>
                                 @error('ecomVariantName')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -81,8 +71,26 @@
                                            placeholder="0.00">
                                 </div>
                                 <div class="invalid-feedback" id="ecomVariantPrice-error"></div>
-                                <div class="valid-feedback" id="ecomVariantPrice-success">Looks good!</div>
                                 @error('ecomVariantPrice')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="rawPrice" class="form-label">Raw Price <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="text" class="form-control @error('rawPrice') is-invalid @enderror"
+                                           id="rawPrice" name="rawPrice"
+                                           value="{{ old('rawPrice', '0.00') }}"
+                                           placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback" id="rawPrice-error"></div>
+                                @error('rawPrice')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -101,7 +109,6 @@
                                            placeholder="0.00">
                                 </div>
                                 <div class="invalid-feedback" id="costPrice-error"></div>
-                                <div class="valid-feedback" id="costPrice-success">Looks good!</div>
                                 @error('costPrice')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -118,7 +125,6 @@
                                            placeholder="0.00">
                                 </div>
                                 <div class="invalid-feedback" id="affiliatePrice-error"></div>
-                                <div class="valid-feedback" id="affiliatePrice-success">Looks good!</div>
                                 @error('affiliatePrice')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -135,7 +141,6 @@
                                        value="{{ old('stocksAvailable') }}"
                                        placeholder="0">
                                 <div class="invalid-feedback" id="stocksAvailable-error"></div>
-                                <div class="valid-feedback" id="stocksAvailable-success">Looks good!</div>
                                 @error('stocksAvailable')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -152,7 +157,6 @@
                                        value="{{ old('maxOrderPerTransaction', 1) }}"
                                        min="1" placeholder="1">
                                 <div class="invalid-feedback" id="maxOrderPerTransaction-error"></div>
-                                <div class="valid-feedback" id="maxOrderPerTransaction-success">Looks good!</div>
                                 @error('maxOrderPerTransaction')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -168,7 +172,6 @@
                                           id="ecomVariantDescription" name="ecomVariantDescription"
                                           rows="3" placeholder="Enter variant description">{{ old('ecomVariantDescription') }}</textarea>
                                 <div class="invalid-feedback" id="ecomVariantDescription-error"></div>
-                                <div class="valid-feedback" id="ecomVariantDescription-success">Looks good!</div>
                                 @error('ecomVariantDescription')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -202,6 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('variantForm');
     const variantNameInput = document.getElementById('ecomVariantName');
     const variantPriceInput = document.getElementById('ecomVariantPrice');
+    const rawPriceInput = document.getElementById('rawPrice');
     const costPriceInput = document.getElementById('costPrice');
     const affiliatePriceInput = document.getElementById('affiliatePrice');
     const stocksAvailableInput = document.getElementById('stocksAvailable');
@@ -218,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(variantNameInput, 'ecomVariantName-error', 'Variant name must not exceed 255 characters.');
             return false;
         } else {
-            showSuccess(variantNameInput, 'ecomVariantName-success');
+            clearError(variantNameInput);
             return true;
         }
     }
@@ -241,13 +245,30 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(variantPriceInput, 'ecomVariantPrice-error', 'Price must be greater than or equal to 0.');
             return false;
         } else {
-            // Format the price with peso symbol and commas
-            const formattedPrice = '₱' + price.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-            variantPriceInput.value = formattedPrice;
-            showSuccess(variantPriceInput, 'ecomVariantPrice-success');
+            clearError(variantPriceInput);
+            return true;
+        }
+    }
+
+    function validateRawPrice() {
+        const value = rawPriceInput.value.trim();
+        if (value === '') {
+            showError(rawPriceInput, 'rawPrice-error', 'Raw price is required.');
+            return false;
+        }
+
+        // Remove currency symbol and commas, then validate
+        const cleanValue = value.replace(/[₱,\s]/g, '');
+        const price = parseFloat(cleanValue);
+
+        if (isNaN(price)) {
+            showError(rawPriceInput, 'rawPrice-error', 'Raw price must be a valid number.');
+            return false;
+        } else if (price < 0) {
+            showError(rawPriceInput, 'rawPrice-error', 'Raw price must be greater than or equal to 0.');
+            return false;
+        } else {
+            clearError(rawPriceInput);
             return true;
         }
     }
@@ -270,13 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(costPriceInput, 'costPrice-error', 'Cost price must be greater than or equal to 0.');
             return false;
         } else {
-            // Format the price with peso symbol and commas
-            const formattedPrice = '₱' + price.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-            costPriceInput.value = formattedPrice;
-            showSuccess(costPriceInput, 'costPrice-success');
+            clearError(costPriceInput);
             return true;
         }
     }
@@ -299,13 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(affiliatePriceInput, 'affiliatePrice-error', 'Affiliate price must be greater than or equal to 0.');
             return false;
         } else {
-            // Format the price with peso symbol and commas
-            const formattedPrice = '₱' + price.toLocaleString('en-PH', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-            affiliatePriceInput.value = formattedPrice;
-            showSuccess(affiliatePriceInput, 'affiliatePrice-success');
+            clearError(affiliatePriceInput);
             return true;
         }
     }
@@ -334,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Format with commas
             const formattedStocks = stocks.toLocaleString('en-PH');
             stocksAvailableInput.value = formattedStocks;
-            showSuccess(stocksAvailableInput, 'stocksAvailable-success');
+            clearError(stocksAvailableInput);
             return true;
         }
     }
@@ -358,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'Maximum order per transaction must be a whole number.');
             return false;
         } else {
-            showSuccess(maxOrderPerTransactionInput, 'maxOrderPerTransaction-success');
+            clearError(maxOrderPerTransactionInput);
             return true;
         }
     }
@@ -372,66 +381,65 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(variantDescriptionInput, 'ecomVariantDescription-error', 'Description must not exceed 1000 characters.');
             return false;
         } else {
-            showSuccess(variantDescriptionInput, 'ecomVariantDescription-success');
+            clearError(variantDescriptionInput);
             return true;
         }
     }
 
     function showError(input, errorId, message) {
-        input.classList.remove('is-valid');
         input.classList.add('is-invalid');
         document.getElementById(errorId).textContent = message;
         document.getElementById(errorId).style.display = 'block';
-        document.getElementById(errorId.replace('-error', '-success')).style.display = 'none';
     }
 
-    function showSuccess(input, successId) {
+    function clearError(input) {
         input.classList.remove('is-invalid');
-        input.classList.add('is-valid');
-        document.getElementById(successId).style.display = 'block';
-        document.getElementById(successId.replace('-success', '-error')).style.display = 'none';
-    }
-
-    function clearValidation(input, errorId, successId) {
-        input.classList.remove('is-valid', 'is-invalid');
-        document.getElementById(errorId).style.display = 'none';
-        document.getElementById(successId).style.display = 'none';
+        // Find and hide the error feedback element
+        const errorElement = input.closest('.mb-3').querySelector('.invalid-feedback');
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
     }
 
     // Event listeners for real-time validation
     variantNameInput.addEventListener('blur', validateVariantName);
     variantNameInput.addEventListener('input', function() {
-        clearValidation(variantNameInput, 'ecomVariantName-error', 'ecomVariantName-success');
+        clearError(variantNameInput);
     });
 
     variantPriceInput.addEventListener('blur', validateVariantPrice);
     variantPriceInput.addEventListener('input', function() {
-        clearValidation(variantPriceInput, 'ecomVariantPrice-error', 'ecomVariantPrice-success');
+        clearError(variantPriceInput);
+    });
+
+    rawPriceInput.addEventListener('blur', validateRawPrice);
+    rawPriceInput.addEventListener('input', function() {
+        clearError(rawPriceInput);
     });
 
     costPriceInput.addEventListener('blur', validateCostPrice);
     costPriceInput.addEventListener('input', function() {
-        clearValidation(costPriceInput, 'costPrice-error', 'costPrice-success');
+        clearError(costPriceInput);
     });
 
     affiliatePriceInput.addEventListener('blur', validateAffiliatePrice);
     affiliatePriceInput.addEventListener('input', function() {
-        clearValidation(affiliatePriceInput, 'affiliatePrice-error', 'affiliatePrice-success');
+        clearError(affiliatePriceInput);
     });
 
     stocksAvailableInput.addEventListener('blur', validateStocksAvailable);
     stocksAvailableInput.addEventListener('input', function() {
-        clearValidation(stocksAvailableInput, 'stocksAvailable-error', 'stocksAvailable-success');
+        clearError(stocksAvailableInput);
     });
 
     maxOrderPerTransactionInput.addEventListener('blur', validateMaxOrderPerTransaction);
     maxOrderPerTransactionInput.addEventListener('input', function() {
-        clearValidation(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'maxOrderPerTransaction-success');
+        clearError(maxOrderPerTransactionInput);
     });
 
     variantDescriptionInput.addEventListener('blur', validateVariantDescription);
     variantDescriptionInput.addEventListener('input', function() {
-        clearValidation(variantDescriptionInput, 'ecomVariantDescription-error', 'ecomVariantDescription-success');
+        clearError(variantDescriptionInput);
     });
 
     // Form submission validation

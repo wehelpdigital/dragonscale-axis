@@ -2,13 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class EcomOrder extends Model
+class EcomOrder extends BaseModel
 {
-    use HasFactory;
-
     /**
      * The table associated with the model.
      *
@@ -22,15 +17,46 @@ class EcomOrder extends Model
      * @var array
      */
     protected $fillable = [
+        'usersId',
         'orderNumber',
-        'paymentStatus',
+        'orderStatus',
         'shippingStatus',
-        'customerFullName',
-        'paymentAmount',
-        'paymentDiscount',
-        'shippingAmount',
-        'totalToPay',
-        'handledBy',
+        'trackingNumber',
+        'clientId',
+        'clientFirstName',
+        'clientMiddleName',
+        'clientLastName',
+        'clientPhone',
+        'clientEmail',
+        'shippingType',
+        'shippingName',
+        'shippingFirstName',
+        'shippingMiddleName',
+        'shippingLastName',
+        'shippingPhone',
+        'shippingEmail',
+        'shippingHouseNumber',
+        'shippingStreet',
+        'shippingZone',
+        'shippingMunicipality',
+        'shippingProvince',
+        'shippingZipCode',
+        'subtotal',
+        'shippingTotal',
+        'discountTotal',
+        'grandTotal',
+        'affiliateCommissionTotal',
+        'netRevenue',
+        'orderNotes',
+        // Package purchase fields
+        'isPackage',
+        'packageId',
+        'packageName',
+        'packageDescription',
+        'packageCalculatedPrice',
+        'packagePrice',
+        'packageSavings',
+        'deleteStatus',
     ];
 
     /**
@@ -39,20 +65,99 @@ class EcomOrder extends Model
      * @var array
      */
     protected $casts = [
-        'paymentAmount' => 'decimal:2',
-        'paymentDiscount' => 'decimal:2',
-        'shippingAmount' => 'decimal:2',
-        'totalToPay' => 'decimal:2',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'usersId' => 'integer',
+        'clientId' => 'integer',
+        'subtotal' => 'decimal:2',
+        'shippingTotal' => 'decimal:2',
+        'discountTotal' => 'decimal:2',
+        'grandTotal' => 'decimal:2',
+        'affiliateCommissionTotal' => 'decimal:2',
+        'netRevenue' => 'decimal:2',
+        // Package fields
+        'isPackage' => 'boolean',
+        'packageId' => 'integer',
+        'packageCalculatedPrice' => 'decimal:2',
+        'packagePrice' => 'decimal:2',
+        'packageSavings' => 'decimal:2',
+        'deleteStatus' => 'integer',
+        'created_at' => 'datetime:Y-m-d H:i:s',
+        'updated_at' => 'datetime:Y-m-d H:i:s',
     ];
 
     /**
-     * Scope to get all orders (no filtering needed since no deleteStatus column)
+     * Scope to get only active orders (deleteStatus = 1)
      */
     public function scopeActive($query)
     {
-        return $query; // Return all orders since there's no deleteStatus column
+        return $query->where('deleteStatus', 1);
+    }
+
+    /**
+     * Scope to filter by user
+     */
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where('usersId', $userId);
+    }
+
+    /**
+     * Get the order items for this order.
+     */
+    public function items()
+    {
+        return $this->hasMany(EcomOrderItem::class, 'orderId');
+    }
+
+    /**
+     * Get the discounts for this order.
+     */
+    public function discounts()
+    {
+        return $this->hasMany(EcomOrderDiscount::class, 'orderId');
+    }
+
+    /**
+     * Get the affiliate commissions for this order.
+     */
+    public function affiliateCommissions()
+    {
+        return $this->hasMany(EcomOrderAffiliateCommission::class, 'orderId');
+    }
+
+    /**
+     * Get the user who created this order.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'usersId');
+    }
+
+    /**
+     * Get the package for this order (if it's a package purchase).
+     */
+    public function package()
+    {
+        return $this->belongsTo(EcomPackage::class, 'packageId');
+    }
+
+    /**
+     * Generate a unique order number.
+     */
+    public static function generateOrderNumber()
+    {
+        $prefix = 'ORD';
+        $date = now()->format('Ymd');
+        $random = strtoupper(substr(uniqid(), -4));
+
+        do {
+            $orderNumber = $prefix . '-' . $date . '-' . $random;
+            $exists = self::where('orderNumber', $orderNumber)->exists();
+            if ($exists) {
+                $random = strtoupper(substr(uniqid(), -4));
+            }
+        } while ($exists);
+
+        return $orderNumber;
     }
 
     /**
@@ -72,34 +177,52 @@ class EcomOrder extends Model
     }
 
     /**
-     * Get formatted payment amount attribute
+     * Get formatted grand total attribute
      */
-    public function getFormattedPaymentAmountAttribute()
+    public function getFormattedGrandTotalAttribute()
     {
-        return $this->paymentAmount ? '₱' . number_format($this->paymentAmount, 2) : '₱0.00';
+        return $this->grandTotal ? '₱' . number_format($this->grandTotal, 2) : '₱0.00';
     }
 
     /**
-     * Get formatted payment discount attribute
+     * Get client full name attribute
      */
-    public function getFormattedPaymentDiscountAttribute()
+    public function getClientFullNameAttribute()
     {
-        return $this->paymentDiscount ? '₱' . number_format($this->paymentDiscount, 2) : '₱0.00';
+        $parts = array_filter([
+            $this->clientFirstName,
+            $this->clientMiddleName,
+            $this->clientLastName
+        ]);
+        return implode(' ', $parts) ?: 'N/A';
     }
 
     /**
-     * Get formatted shipping amount attribute
+     * Get shipping full name attribute
      */
-    public function getFormattedShippingAmountAttribute()
+    public function getShippingFullNameAttribute()
     {
-        return $this->shippingAmount ? '₱' . number_format($this->shippingAmount, 2) : '₱0.00';
+        $parts = array_filter([
+            $this->shippingFirstName,
+            $this->shippingMiddleName,
+            $this->shippingLastName
+        ]);
+        return implode(' ', $parts) ?: 'N/A';
     }
 
     /**
-     * Get formatted total to pay attribute
+     * Get full shipping address attribute
      */
-    public function getFormattedTotalToPayAttribute()
+    public function getFullShippingAddressAttribute()
     {
-        return $this->totalToPay ? '₱' . number_format($this->totalToPay, 2) : '₱0.00';
+        $parts = array_filter([
+            $this->shippingHouseNumber,
+            $this->shippingStreet,
+            $this->shippingZone,
+            $this->shippingMunicipality,
+            $this->shippingProvince,
+            $this->shippingZipCode
+        ]);
+        return implode(', ', $parts) ?: 'N/A';
     }
 }

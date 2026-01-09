@@ -27,7 +27,7 @@ class ClientAllDatabase extends Model
         'clientLastName',
         'clientPhoneNumber',
         'clientEmailAddress',
-        // Add other fields as needed
+        'deleteStatus',
     ];
 
     /**
@@ -41,11 +41,11 @@ class ClientAllDatabase extends Model
     ];
 
     /**
-     * Scope to get all clients (no filtering since no isActive/deleteStatus columns)
+     * Scope to get active (non-deleted) clients
      */
     public function scopeActive($query)
     {
-        return $query; // Return all clients since there are no status columns
+        return $query->where('deleteStatus', 1);
     }
 
     /**

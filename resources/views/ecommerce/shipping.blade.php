@@ -62,6 +62,16 @@
     color: white !important;
 }
 
+.btn-outline-warning.badge-style {
+    color: #f1b44c !important;
+    border-color: #f1b44c !important;
+}
+
+.btn-outline-warning.badge-style:hover {
+    background-color: #f1b44c !important;
+    color: #212529 !important;
+}
+
 /* Loading Overlay Styles */
 .loading-overlay {
     position: absolute;
@@ -177,6 +187,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Shipping Name</th>
+                                <th>Shipping Type</th>
                                 <th>Shipping Description</th>
                                 <th>Default Price</th>
                                 <th>Default Max Order Quantity</th>
@@ -226,6 +237,31 @@
                         <div class="invalid-feedback" id="editShippingNameError"></div>
                     </div>
                     <div class="form-group mb-3">
+                        <label class="form-label">Shipping Type <span class="text-danger">*</span></label>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input edit-shipping-type" type="checkbox" value="Regular" id="editTypeRegular" name="shippingType[]">
+                                <label class="form-check-label" for="editTypeRegular">
+                                    <span class="badge bg-primary">Regular</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input edit-shipping-type" type="checkbox" value="Cash on Delivery" id="editTypeCOD" name="shippingType[]">
+                                <label class="form-check-label" for="editTypeCOD">
+                                    <span class="badge bg-info text-white">Cash on Delivery</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input edit-shipping-type" type="checkbox" value="Cash on Pickup" id="editTypeCOP" name="shippingType[]">
+                                <label class="form-check-label" for="editTypeCOP">
+                                    <span class="badge bg-warning text-dark">Cash on Pickup</span>
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Select one or more shipping types this method supports</small>
+                        <div class="invalid-feedback" id="editShippingTypeError"></div>
+                    </div>
+                    <div class="form-group mb-3">
                         <label for="editShippingDescription">Shipping Description <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="editShippingDescription" name="shippingDescription" rows="3" placeholder="Enter shipping method description..."></textarea>
                         <div class="invalid-feedback" id="editShippingDescriptionError"></div>
@@ -264,6 +300,31 @@
                         <label for="addShippingName">Shipping Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="addShippingName" name="shippingName">
                         <div class="invalid-feedback" id="shippingNameError"></div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Shipping Type <span class="text-danger">*</span></label>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input add-shipping-type" type="checkbox" value="Regular" id="addTypeRegular" name="shippingType[]" checked>
+                                <label class="form-check-label" for="addTypeRegular">
+                                    <span class="badge bg-primary">Regular</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input add-shipping-type" type="checkbox" value="Cash on Delivery" id="addTypeCOD" name="shippingType[]">
+                                <label class="form-check-label" for="addTypeCOD">
+                                    <span class="badge bg-info text-white">Cash on Delivery</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input add-shipping-type" type="checkbox" value="Cash on Pickup" id="addTypeCOP" name="shippingType[]">
+                                <label class="form-check-label" for="addTypeCOP">
+                                    <span class="badge bg-warning text-dark">Cash on Pickup</span>
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Select one or more shipping types this method supports. Regular is selected by default.</small>
+                        <div class="invalid-feedback" id="shippingTypeError"></div>
                     </div>
                     <div class="form-group mb-3">
                         <label for="addShippingDescription">Shipping Description <span class="text-danger">*</span></label>
@@ -587,7 +648,7 @@ function updateTable(data) {
     if (data.length === 0) {
         tbody.html(`
             <tr>
-                <td colspan="5" class="text-center text-muted">
+                <td colspan="6" class="text-center text-muted">
                     <i class="bx bx-car display-4"></i>
                     <p class="mt-2">No shipping methods found</p>
                 </td>
@@ -597,9 +658,21 @@ function updateTable(data) {
     }
 
     data.forEach(function(shipping) {
+        // Build badges HTML for multiple shipping types
+        let typeBadgesHtml = '';
+        if (shipping.shippingTypeBadges && shipping.shippingTypeBadges.length > 0) {
+            shipping.shippingTypeBadges.forEach(function(badge) {
+                typeBadgesHtml += `<span class="badge ${badge.badgeClass} me-1">${badge.type}</span>`;
+            });
+        } else {
+            // Fallback for old data format
+            typeBadgesHtml = `<span class="badge ${shipping.shippingTypeBadgeClass}">${shipping.shippingType}</span>`;
+        }
+
         let row = `
             <tr>
                 <td>${shipping.shippingName}</td>
+                <td>${typeBadgesHtml}</td>
                 <td>${shipping.shippingDescription}</td>
                 <td>${shipping.defaultPrice}</td>
                 <td>${shipping.defaultMaxQuantity}</td>
@@ -611,6 +684,9 @@ function updateTable(data) {
                         <button type="button" class="btn btn-sm btn-outline-info badge-style settings-btn" data-id="${shipping.id}" title="Settings">
                             <i class="bx bx-cog me-1"></i>Settings
                         </button>
+                        <a href="/ecom-shipping-restrictions?id=${shipping.id}" class="btn btn-sm btn-outline-warning badge-style" title="Restrictions">
+                            <i class="bx bx-filter-alt me-1"></i>Restrictions
+                        </a>
                         <button type="button" class="btn btn-sm btn-outline-danger badge-style delete-btn" data-id="${shipping.id}" title="Delete">
                             <i class="bx bx-trash me-1"></i>Delete
                         </button>
@@ -722,6 +798,13 @@ function validateAddForm() {
         isValid = false;
     }
 
+    // Validate Shipping Type (at least one checkbox must be selected)
+    const selectedTypes = $('.add-shipping-type:checked').length;
+    if (selectedTypes === 0) {
+        $('#shippingTypeError').text('At least one shipping type must be selected').addClass('show');
+        isValid = false;
+    }
+
     // Validate Shipping Description
     const shippingDescription = $('#addShippingDescription').val().trim();
     if (shippingDescription === '') {
@@ -772,15 +855,19 @@ function clearFieldError(fieldId) {
 
 function clearValidationErrors() {
     // Remove invalid/valid classes from all fields
-    $('#addShippingName, #addShippingDescription, #addDefaultPrice, #addDefaultMaxQuantity').removeClass('is-invalid is-valid');
+    $('#addShippingName, #addShippingType, #addShippingDescription, #addDefaultPrice, #addDefaultMaxQuantity').removeClass('is-invalid is-valid');
 
     // Hide all error messages
-    $('#shippingNameError, #shippingDescriptionError, #defaultPriceError, #defaultMaxQuantityError').removeClass('show');
+    $('#shippingNameError, #shippingTypeError, #shippingDescriptionError, #defaultPriceError, #defaultMaxQuantityError').removeClass('show');
 }
 
 function clearAddForm() {
     // Clear form fields
     $('#addForm')[0].reset();
+
+    // Reset shipping type checkboxes - Regular should be checked by default
+    $('.add-shipping-type').prop('checked', false);
+    $('#addTypeRegular').prop('checked', true);
 
     // Clear validation states
     clearValidationErrors();
@@ -793,9 +880,16 @@ function saveShippingMethod() {
     const originalText = submitBtn.text();
     submitBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-2"></i>Saving...');
 
+    // Collect selected shipping types from checkboxes
+    const selectedTypes = [];
+    $('.add-shipping-type:checked').each(function() {
+        selectedTypes.push($(this).val());
+    });
+
     // Prepare form data
     const formData = {
         shippingName: $('#addShippingName').val().trim(),
+        'shippingType[]': selectedTypes, // Send as array
         shippingDescription: $('#addShippingDescription').val().trim(),
         defaultPrice: $('#addDefaultPrice').val().trim(),
         defaultMaxQuantity: $('#addDefaultMaxQuantity').val().trim(),
@@ -853,6 +947,30 @@ function loadShippingForEdit(shippingId) {
             $('#editDefaultPrice').val(response.defaultPrice);
             $('#editDefaultMaxQuantity').val(response.defaultMaxQuantity);
 
+            // Handle shipping types - could be array or string
+            let shippingTypes = response.shippingType;
+            if (typeof shippingTypes === 'string') {
+                // Legacy string value - convert to array
+                shippingTypes = [shippingTypes || 'Regular'];
+            } else if (!Array.isArray(shippingTypes) || shippingTypes.length === 0) {
+                // Default to Regular if empty/invalid
+                shippingTypes = ['Regular'];
+            }
+
+            // Uncheck all edit shipping type checkboxes first
+            $('.edit-shipping-type').prop('checked', false);
+
+            // Check the appropriate checkboxes based on shipping types
+            shippingTypes.forEach(function(type) {
+                if (type === 'Regular') {
+                    $('#editTypeRegular').prop('checked', true);
+                } else if (type === 'Cash on Delivery') {
+                    $('#editTypeCOD').prop('checked', true);
+                } else if (type === 'Cash on Pickup') {
+                    $('#editTypeCOP').prop('checked', true);
+                }
+            });
+
             // Clear validation states
             clearEditValidationErrors();
 
@@ -876,6 +994,13 @@ function validateEditForm() {
     const shippingName = $('#editShippingName').val().trim();
     if (shippingName === '') {
         showFieldError('editShippingName', 'Shipping name is required');
+        isValid = false;
+    }
+
+    // Validate Shipping Type (at least one checkbox must be selected)
+    const selectedTypes = $('.edit-shipping-type:checked').length;
+    if (selectedTypes === 0) {
+        $('#editShippingTypeError').text('At least one shipping type must be selected').addClass('show');
         isValid = false;
     }
 
@@ -918,9 +1043,16 @@ function updateShippingMethod() {
 
     const shippingId = $('#editShippingId').val();
 
+    // Collect selected shipping types from checkboxes
+    const selectedTypes = [];
+    $('.edit-shipping-type:checked').each(function() {
+        selectedTypes.push($(this).val());
+    });
+
     // Prepare form data
     const formData = {
         shippingName: $('#editShippingName').val().trim(),
+        'shippingType[]': selectedTypes, // Send as array
         shippingDescription: $('#editShippingDescription').val().trim(),
         defaultPrice: $('#editDefaultPrice').val().trim(),
         defaultMaxQuantity: $('#editDefaultMaxQuantity').val().trim(),
@@ -969,10 +1101,10 @@ function updateShippingMethod() {
 // Clear edit form validation errors
 function clearEditValidationErrors() {
     // Remove invalid/valid classes from all edit fields
-    $('#editShippingName, #editShippingDescription, #editDefaultPrice, #editDefaultMaxQuantity').removeClass('is-invalid is-valid');
+    $('#editShippingName, #editShippingType, #editShippingDescription, #editDefaultPrice, #editDefaultMaxQuantity').removeClass('is-invalid is-valid');
 
     // Hide all error messages
-    $('#editShippingNameError, #editShippingDescriptionError, #editDefaultPriceError, #editDefaultMaxQuantityError').removeClass('show');
+    $('#editShippingNameError, #editShippingTypeError, #editShippingDescriptionError, #editDefaultPriceError, #editDefaultMaxQuantityError').removeClass('show');
 }
 
 // Show delete confirmation modal

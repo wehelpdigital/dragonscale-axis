@@ -11,10 +11,23 @@ use App\Models\EcomProductVariantVideo;
 use App\Models\EcomProductStore;
 use App\Models\EcomProductDiscount;
 use App\Models\EcomProductDiscountRestriction;
+use App\Models\EcomProductsShipping;
+use App\Models\EcomProductShippingRestriction;
 use App\Models\ClientAllDatabase;
+use App\Models\EcomAffiliate;
+use App\Models\EcomAffiliateReferral;
+use App\Models\EcomOrderItem;
+use App\Models\EcomOrderDiscount;
+use App\Models\EcomOrderAffiliateCommission;
+use App\Models\EcomOrderAuditLog;
+use App\Models\EcomClientShippingAddress;
+use App\Models\EcomPackage;
+use App\Models\EcomPackageItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class OrdersCustomAddController extends Controller
@@ -706,8 +719,8 @@ class OrdersCustomAddController extends Controller
             $normalizedPhone = $this->normalizePhoneNumber($phoneNumber);
             $possibleFormats = $this->generatePhoneFormats($normalizedPhone);
 
-            // Check if any of the possible formats exist in the database
-            $exists = ClientAllDatabase::whereIn('clientPhoneNumber', $possibleFormats)->exists();
+            // Check if any of the possible formats exist in the database (only active clients)
+            $exists = ClientAllDatabase::active()->whereIn('clientPhoneNumber', $possibleFormats)->exists();
 
             return response()->json([
                 'success' => true,
@@ -718,6 +731,205 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error checking phone number: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if email already exists in clients_all_database table
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkClientEmail(Request $request)
+    {
+        $email = $request->get('email');
+
+        if (!$email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email is required'
+            ], 400);
+        }
+
+        try {
+            // Check if email exists in the database (only active clients)
+            $exists = ClientAllDatabase::active()
+                ->where('clientEmailAddress', $email)
+                ->exists();
+
+            return response()->json([
+                'success' => true,
+                'exists' => $exists,
+                'message' => $exists ? 'Email already exists' : 'Email is available'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if email already exists in clients_access_login table for a specific store
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkAccessEmail(Request $request)
+    {
+        $email = $request->get('email');
+        $store = $request->get('store');
+
+        if (empty($email) || empty($store)) {
+            return response()->json([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Email and store are required'
+            ]);
+        }
+
+        try {
+            // Check if email exists in the database for this store
+            $exists = DB::table('clients_access_login')
+                ->where('deleteStatus', 1)
+                ->where('productStore', $store)
+                ->where('clientEmailAddress', $email)
+                ->exists();
+
+            return response()->json([
+                'success' => true,
+                'exists' => $exists,
+                'message' => $exists ? 'Email already exists for this store' : 'Email is available'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'exists' => false,
+                'message' => 'Error checking email: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Search for matching shipping addresses based on recipient details
+     * Returns matches when at least 3 of the 4 fields (firstName, lastName, phone, email) match
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function searchShippingAddress(Request $request)
+    {
+        try {
+            $firstName = trim($request->get('firstName', ''));
+            $lastName = trim($request->get('lastName', ''));
+            $phone = trim($request->get('phone', ''));
+            $email = trim($request->get('email', ''));
+
+            // Count how many fields have values
+            $filledFields = 0;
+            if (!empty($firstName)) $filledFields++;
+            if (!empty($lastName)) $filledFields++;
+            if (!empty($phone)) $filledFields++;
+            if (!empty($email)) $filledFields++;
+
+            // Need at least 3 fields filled to search
+            if ($filledFields < 3) {
+                return response()->json([
+                    'success' => true,
+                    'matches' => [],
+                    'message' => 'Need at least 3 fields to search'
+                ]);
+            }
+
+            // Build query to find matching addresses
+            $query = EcomClientShippingAddress::active();
+
+            // Build conditions - we want records that match on at least 3 of the provided fields
+            $matches = $query->where(function($q) use ($firstName, $lastName, $phone, $email) {
+                // Match all 4 fields if all provided
+                if (!empty($firstName) && !empty($lastName) && !empty($phone) && !empty($email)) {
+                    $q->where(function($sub) use ($firstName, $lastName, $phone, $email) {
+                        // All 4 match
+                        $sub->where('firstName', 'like', $firstName)
+                            ->where('lastName', 'like', $lastName)
+                            ->where('phoneNumber', 'like', $phone)
+                            ->where('emailAddress', 'like', $email);
+                    })->orWhere(function($sub) use ($firstName, $lastName, $phone) {
+                        // First 3 match (no email)
+                        $sub->where('firstName', 'like', $firstName)
+                            ->where('lastName', 'like', $lastName)
+                            ->where('phoneNumber', 'like', $phone);
+                    })->orWhere(function($sub) use ($firstName, $lastName, $email) {
+                        // First name, last name, email match (no phone)
+                        $sub->where('firstName', 'like', $firstName)
+                            ->where('lastName', 'like', $lastName)
+                            ->where('emailAddress', 'like', $email);
+                    })->orWhere(function($sub) use ($firstName, $phone, $email) {
+                        // First name, phone, email match (no last name)
+                        $sub->where('firstName', 'like', $firstName)
+                            ->where('phoneNumber', 'like', $phone)
+                            ->where('emailAddress', 'like', $email);
+                    })->orWhere(function($sub) use ($lastName, $phone, $email) {
+                        // Last name, phone, email match (no first name)
+                        $sub->where('lastName', 'like', $lastName)
+                            ->where('phoneNumber', 'like', $phone)
+                            ->where('emailAddress', 'like', $email);
+                    });
+                } else {
+                    // Only 3 fields provided - match all 3
+                    if (!empty($firstName)) {
+                        $q->where('firstName', 'like', $firstName);
+                    }
+                    if (!empty($lastName)) {
+                        $q->where('lastName', 'like', $lastName);
+                    }
+                    if (!empty($phone)) {
+                        $q->where('phoneNumber', 'like', $phone);
+                    }
+                    if (!empty($email)) {
+                        $q->where('emailAddress', 'like', $email);
+                    }
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+            $results = $matches->map(function($address) {
+                return [
+                    'id' => $address->id,
+                    'recipientName' => $address->full_name,
+                    'firstName' => $address->firstName,
+                    'middleName' => $address->middleName,
+                    'lastName' => $address->lastName,
+                    'phoneNumber' => $address->phoneNumber,
+                    'emailAddress' => $address->emailAddress,
+                    'fullAddress' => $address->full_address,
+                    'houseNumber' => $address->houseNumber,
+                    'street' => $address->street,
+                    'zone' => $address->zone,
+                    'municipality' => $address->municipality,
+                    'province' => $address->province,
+                    'zipCode' => $address->zipCode,
+                    'addressLabel' => $address->addressLabel,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'matches' => $results,
+                'count' => $results->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error searching shipping addresses: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'matches' => [],
+                'message' => 'Error searching shipping addresses'
             ], 500);
         }
     }
@@ -734,18 +946,26 @@ class OrdersCustomAddController extends Controller
             'clientFirstName' => 'required|string|max:255',
             'clientMiddleName' => 'required|string|max:255',
             'clientLastName' => 'required|string|max:255',
-            'clientPhoneNumber' => 'required|string|unique:clients_all_database,clientPhoneNumber',
-            'clientEmailAddress' => 'required|email|max:255|unique:clients_all_database,clientEmailAddress',
-        ], [
-            'clientPhoneNumber.unique' => 'This phone number already exists.',
-            'clientEmailAddress.unique' => 'This email address already exists.',
+            'clientPhoneNumber' => 'required|string|max:50',
+            'clientEmailAddress' => 'required|email|max:255',
         ]);
 
-        // Custom phone number validation
+        // Custom phone number format validation (only 09XXXXXXXXX format)
         $validator->after(function ($validator) use ($request) {
             $phoneNumber = $request->clientPhoneNumber;
-            if ($phoneNumber && !preg_match('/^(09\d{9}|\+63\d{9}|63\d{9})$/', $phoneNumber)) {
-                $validator->errors()->add('clientPhoneNumber', 'Phone number must be in format: 09XXXXXXXXX, +63XXXXXXXXX, or 63XXXXXXXXX');
+            if ($phoneNumber && !preg_match('/^09\d{9}$/', $phoneNumber)) {
+                $validator->errors()->add('clientPhoneNumber', 'Phone number must be in format: 09XXXXXXXXX (11 digits starting with 09)');
+            }
+
+            // Check for duplicate phone number among active clients only
+            if ($phoneNumber && ClientAllDatabase::active()->where('clientPhoneNumber', $phoneNumber)->exists()) {
+                $validator->errors()->add('clientPhoneNumber', 'This phone number already exists.');
+            }
+
+            // Check for duplicate email among active clients only
+            $email = $request->clientEmailAddress;
+            if ($email && ClientAllDatabase::active()->where('clientEmailAddress', $email)->exists()) {
+                $validator->errors()->add('clientEmailAddress', 'This email address already exists.');
             }
         });
 
@@ -764,6 +984,7 @@ class OrdersCustomAddController extends Controller
                 'clientLastName' => $request->clientLastName,
                 'clientPhoneNumber' => $request->clientPhoneNumber,
                 'clientEmailAddress' => $request->clientEmailAddress,
+                'deleteStatus' => 1,
             ]);
 
             return response()->json([
@@ -1341,6 +1562,178 @@ class OrdersCustomAddController extends Controller
     }
 
     /**
+     * Get available shipping options for selected products.
+     * Returns all shipping methods for each ship-type product variant.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getShippingOptions(Request $request)
+    {
+        try {
+            $selectedProducts = $request->input('selectedProducts', []);
+            $province = $request->input('province', '');
+            $shippingType = $request->input('shippingType', ''); // Regular, Cash on Delivery, Cash on Pickup
+
+            if (empty($selectedProducts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No products selected'
+                ], 400);
+            }
+
+            // Filter ship products only
+            $shipProducts = array_filter($selectedProducts, function($product) {
+                return isset($product['productType']) &&
+                       (strtolower($product['productType']) === 'ship');
+            });
+
+            if (empty($shipProducts)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'hasShipProducts' => false,
+                        'products' => []
+                    ]
+                ]);
+            }
+
+            $productsWithShipping = [];
+
+            foreach ($shipProducts as $product) {
+                $variantId = $product['variantId'] ?? null;
+                $quantity = intval($product['quantity'] ?? 1);
+
+                if (!$variantId) continue;
+
+                // Get all shipping methods for this variant
+                // If province is selected, we need to check if the province has an ACTIVE entry in shipping options
+                $query = DB::table('ecom_products_variants_shipping as evs')
+                    ->join('ecom_products_shipping as es', 'evs.ecomShippingId', '=', 'es.id')
+                    ->leftJoin('ecom_products_shipping_options as eso', function($join) use ($province) {
+                        $join->on('es.id', '=', 'eso.shippingId')
+                             ->where('eso.provinceTarget', '=', $province)
+                             ->where('eso.deleteStatus', '=', 1);
+                    })
+                    ->where('evs.ecomVariantId', $variantId)
+                    ->where('es.isActive', 1)
+                    ->where('es.deleteStatus', 1);
+
+                // Filter by shipping type if specified
+                // shippingType is now a JSON array, so we use JSON_CONTAINS to check if the selected type is in the array
+                if (!empty($shippingType)) {
+                    $query->whereRaw('JSON_CONTAINS(es.shippingType, ?)', [json_encode($shippingType)]);
+                }
+
+                $shippingMethods = $query->select(
+                        'es.id as shippingId',
+                        'es.shippingName',
+                        'es.shippingType',
+                        'es.shippingDescription',
+                        'es.defaultMaxQuantity',
+                        'es.defaultPrice',
+                        'eso.maxQuantity as provinceMaxQuantity',
+                        'eso.shippingPrice as provincePrice',
+                        'eso.provinceTarget',
+                        'eso.isActive as provinceIsActive'
+                    )
+                    ->get();
+
+                $shippingOptions = [];
+                foreach ($shippingMethods as $method) {
+                    // Check if shipping method is applicable to this product based on restrictions
+                    if (!$this->isShippingApplicableToProduct($method->shippingId, $product)) {
+                        // Shipping method is restricted - skip it
+                        continue;
+                    }
+
+                    // If province is selected, check province-specific rules:
+                    // 1. Province must exist in shipping options
+                    // 2. Province option must be active (isActive = 1)
+                    if (!empty($province)) {
+                        // Province is selected - only allow if province option exists AND is active
+                        if ($method->provinceTarget === null) {
+                            // Province not configured for this shipping method - skip it
+                            continue;
+                        }
+                        if ($method->provinceIsActive != 1) {
+                            // Province option exists but is inactive - skip it
+                            continue;
+                        }
+
+                        // Province is valid and active - use province-specific pricing
+                        $maxQty = $method->provinceMaxQuantity;
+                        $pricePerBatch = $method->provincePrice;
+                        $isProvinceSpecific = true;
+                    } else {
+                        // No province selected - use default pricing
+                        $maxQty = $method->defaultMaxQuantity;
+                        $pricePerBatch = $method->defaultPrice;
+                        $isProvinceSpecific = false;
+                    }
+
+                    // Calculate shipping cost for this quantity
+                    $batches = $maxQty > 0 ? ceil($quantity / $maxQty) : 1;
+                    $shippingCost = $batches * floatval($pricePerBatch);
+
+                    $shippingOptions[] = [
+                        'shippingId' => $method->shippingId,
+                        'shippingName' => $method->shippingName,
+                        'shippingType' => $method->shippingType ?? 'Regular',
+                        'shippingDescription' => $method->shippingDescription,
+                        'maxQuantity' => intval($maxQty),
+                        'pricePerBatch' => floatval($pricePerBatch),
+                        'batches' => $batches,
+                        'shippingCost' => $shippingCost,
+                        'isProvinceSpecific' => $isProvinceSpecific,
+                        'pricingType' => $isProvinceSpecific ? 'Province-Specific' : 'Default'
+                    ];
+                }
+
+                // Sort by shipping cost (cheapest first)
+                usort($shippingOptions, function($a, $b) {
+                    return $a['shippingCost'] <=> $b['shippingCost'];
+                });
+
+                $productsWithShipping[] = [
+                    'variantId' => $variantId,
+                    'productId' => $product['productId'] ?? null,
+                    'productName' => $product['productName'] ?? 'Unknown Product',
+                    'variantName' => $product['variantName'] ?? 'Default',
+                    'productStore' => $product['productStore'] ?? 'Unknown Store',
+                    'quantity' => $quantity,
+                    'price' => floatval($product['price'] ?? 0),
+                    'hasShippingOptions' => count($shippingOptions) > 0,
+                    'shippingOptionsCount' => count($shippingOptions),
+                    'shippingOptions' => $shippingOptions,
+                    'selectedShippingId' => count($shippingOptions) > 0 ? $shippingOptions[0]['shippingId'] : null
+                ];
+            }
+
+            // Check if any product has no shipping options
+            $productsWithoutShipping = array_filter($productsWithShipping, function($p) {
+                return !$p['hasShippingOptions'];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'hasShipProducts' => true,
+                    'allHaveShipping' => count($productsWithoutShipping) === 0,
+                    'productsWithoutShipping' => array_values($productsWithoutShipping),
+                    'products' => $productsWithShipping
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting shipping options: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Calculate shipping costs for selected products
      *
      * @param Request $request
@@ -1351,6 +1744,7 @@ class OrdersCustomAddController extends Controller
         try {
             $selectedProducts = $request->input('selectedProducts', []);
             $province = $request->input('province');
+            $selectedShippingMethods = $request->input('selectedShippingMethods', []); // User-selected shipping methods (variantId => shippingId)
 
             // Province is optional - we can calculate access products without it
             // Only required if there are ship products
@@ -1420,7 +1814,11 @@ class OrdersCustomAddController extends Controller
             }
 
             $shippingBreakdown = [];
+            $productsWithoutShipping = []; // Track products that have no valid shipping
             $totalShipping = 0;
+
+            // Get the selected shipping type from request
+            $shippingType = $request->input('shippingType', '');
 
             // Process ship products for shipping calculation
             foreach ($shipProducts as $product) {
@@ -1432,88 +1830,115 @@ class OrdersCustomAddController extends Controller
 
                 $subtotal = $quantity * $price;
 
-                // Get shipping options for this variant
-                $shippingOptions = DB::table('ecom_products_variants_shipping as evs')
+                // Build shipping options query with optional shipping type filter
+                $query = DB::table('ecom_products_variants_shipping as evs')
                     ->join('ecom_products_shipping as es', 'evs.ecomShippingId', '=', 'es.id')
                     ->leftJoin('ecom_products_shipping_options as eso', function($join) use ($province) {
                         $join->on('es.id', '=', 'eso.shippingId')
                              ->where('eso.provinceTarget', '=', $province)
-                             ->where('eso.isActive', '=', 1)
                              ->where('eso.deleteStatus', '=', 1);
                     })
                     ->where('evs.ecomVariantId', $variantId)
                     ->where('es.isActive', 1)
-                    ->where('es.deleteStatus', 1)
-                    ->select(
+                    ->where('es.deleteStatus', 1);
+
+                // Filter by shipping type if specified
+                // shippingType is now a JSON array, so we use JSON_CONTAINS to check if the selected type is in the array
+                if (!empty($shippingType)) {
+                    $query->whereRaw('JSON_CONTAINS(es.shippingType, ?)', [json_encode($shippingType)]);
+                }
+
+                $shippingOptions = $query->select(
                         'es.id as shippingId',
                         'es.defaultMaxQuantity',
                         'es.defaultPrice',
+                        'es.shippingType',
                         'eso.maxQuantity',
                         'eso.shippingPrice',
-                        'eso.provinceTarget'
+                        'eso.provinceTarget',
+                        'eso.isActive as provinceIsActive'
                     )
                     ->get();
 
                 // Debug: Log the query results
-                \Log::info('Shipping Options Query Result for Variant ' . $variantId . ' and Province ' . $province, [
+                \Log::info('Shipping Options Query Result for Variant ' . $variantId . ' and Province ' . $province . ' and Type ' . $shippingType, [
                     'shipping_options' => $shippingOptions->toArray()
                 ]);
 
                 if ($shippingOptions->isEmpty()) {
-                    // No shipping options found for this variant
+                    // No shipping options found for this variant - track it for error display
+                    $productsWithoutShipping[] = [
+                        'productName' => $product['productName'] ?? 'Unknown Product',
+                        'variantName' => $product['variantName'] ?? 'Default',
+                        'variantId' => $variantId,
+                        'productStore' => $product['productStore'] ?? 'Unknown Store',
+                        'quantity' => $quantity,
+                        'subtotal' => $subtotal,
+                        'errorReason' => 'No shipping method available for selected type/province'
+                    ];
                     continue;
                 }
 
-                // Find the cheapest shipping option
-                $cheapestShipping = null;
-                $cheapestPrice = PHP_FLOAT_MAX;
+                // Check if user has selected a specific shipping method for this variant
+                $userSelectedShippingId = $selectedShippingMethods[$variantId] ?? null;
+                $selectedShipping = null;
+                $selectedPrice = 0;
 
                 foreach ($shippingOptions as $option) {
-                    $shippingPrice = 0;
-                    $isProvinceSpecific = false;
+                    // Check if shipping method is applicable to this product based on restrictions
+                    if (!$this->isShippingApplicableToProduct($option->shippingId, $product)) {
+                        // Shipping method is restricted - skip it
+                        continue;
+                    }
 
-                    // Use province-specific pricing if available
-                    if ($option->shippingPrice !== null && $option->maxQuantity !== null && $option->provinceTarget) {
+                    // If province is selected, check province-specific rules:
+                    // 1. Province must exist in shipping options
+                    // 2. Province option must be active (isActive = 1)
+                    if (!empty($province)) {
+                        // Province is selected - only allow if province option exists AND is active
+                        if ($option->provinceTarget === null) {
+                            // Province not configured for this shipping method - skip it
+                            continue;
+                        }
+                        if ($option->provinceIsActive != 1) {
+                            // Province option exists but is inactive - skip it
+                            continue;
+                        }
+
+                        // Province is valid and active - use province-specific pricing
                         $maxQty = intval($option->maxQuantity);
                         $pricePerBatch = floatval($option->shippingPrice);
                         $isProvinceSpecific = true;
-
-                        // Calculate how many batches needed
-                        $batches = ceil($quantity / $maxQty);
-                        $shippingPrice = $batches * $pricePerBatch;
-
-                        \Log::info('Using province-specific pricing', [
-                            'province' => $option->provinceTarget,
-                            'maxQuantity' => $maxQty,
-                            'pricePerBatch' => $pricePerBatch,
-                            'quantity' => $quantity,
-                            'batches' => $batches,
-                            'totalPrice' => $shippingPrice
-                        ]);
                     } else {
-                        // Use default pricing
+                        // No province selected - use default pricing
                         $maxQty = intval($option->defaultMaxQuantity);
                         $pricePerBatch = floatval($option->defaultPrice);
-
-                        // Calculate how many batches needed
-                        $batches = ceil($quantity / $maxQty);
-                        $shippingPrice = $batches * $pricePerBatch;
-
-                        \Log::info('Using default pricing', [
-                            'defaultMaxQuantity' => $maxQty,
-                            'defaultPrice' => $pricePerBatch,
-                            'quantity' => $quantity,
-                            'batches' => $batches,
-                            'totalPrice' => $shippingPrice
-                        ]);
+                        $isProvinceSpecific = false;
                     }
 
-                    if ($shippingPrice < $cheapestPrice) {
-                        $cheapestPrice = $shippingPrice;
-                        $cheapestShipping = $option;
-                        $cheapestShipping->isProvinceSpecific = $isProvinceSpecific;
+                    // Calculate how many batches needed
+                    $batches = $maxQty > 0 ? ceil($quantity / $maxQty) : 1;
+                    $shippingPrice = $batches * $pricePerBatch;
+
+                    // If user selected this shipping method, use it
+                    if ($userSelectedShippingId && intval($option->shippingId) === intval($userSelectedShippingId)) {
+                        $selectedShipping = $option;
+                        $selectedPrice = $shippingPrice;
+                        $selectedShipping->isProvinceSpecific = $isProvinceSpecific;
+                        break; // Use user's selection
+                    }
+
+                    // Track cheapest as fallback
+                    if (!$selectedShipping || $shippingPrice < $selectedPrice) {
+                        $selectedPrice = $shippingPrice;
+                        $selectedShipping = $option;
+                        $selectedShipping->isProvinceSpecific = $isProvinceSpecific;
                     }
                 }
+
+                // Rename for consistency with existing code
+                $cheapestShipping = $selectedShipping;
+                $cheapestPrice = $selectedPrice;
 
                 if ($cheapestShipping) {
                     $totalShipping += $cheapestPrice;
@@ -1548,22 +1973,51 @@ class OrdersCustomAddController extends Controller
                             'pricingType' => ($cheapestShipping->isProvinceSpecific ?? false) ? 'Province-Specific' : 'Default'
                         ]
                     ];
+                } else {
+                    // Shipping options exist but none valid for this province - track as error
+                    $productsWithoutShipping[] = [
+                        'productName' => $product['productName'] ?? 'Unknown Product',
+                        'variantName' => $product['variantName'] ?? 'Default',
+                        'variantId' => $variantId,
+                        'productStore' => $product['productStore'] ?? 'Unknown Store',
+                        'quantity' => $quantity,
+                        'subtotal' => $subtotal,
+                        'errorReason' => 'Shipping not available for selected province or product restrictions'
+                    ];
                 }
             }
 
             // Create complete breakdown including access products
             $completeBreakdown = [];
 
-            // Add ship products with shipping details
+            // Add ship products with shipping details (products WITH valid shipping)
             foreach ($shippingBreakdown as $item) {
                 $completeBreakdown[] = [
                     'productName' => $item['productName'],
                     'variantName' => $item['variantName'],
+                    'productStore' => $item['productStore'],
                     'quantity' => $item['quantity'],
                     'subtotal' => $item['subtotal'],
                     'productType' => 'ship',
                     'shippingPrice' => $item['shippingPrice'],
-                    'shippingDetails' => $item['shippingDetails']
+                    'shippingDetails' => $item['shippingDetails'],
+                    'hasShippingError' => false
+                ];
+            }
+
+            // Add ship products WITHOUT valid shipping (with error flag)
+            foreach ($productsWithoutShipping as $item) {
+                $completeBreakdown[] = [
+                    'productName' => $item['productName'],
+                    'variantName' => $item['variantName'],
+                    'productStore' => $item['productStore'],
+                    'quantity' => $item['quantity'],
+                    'subtotal' => $item['subtotal'],
+                    'productType' => 'ship',
+                    'shippingPrice' => 0,
+                    'shippingDetails' => null,
+                    'hasShippingError' => true,
+                    'shippingErrorReason' => $item['errorReason']
                 ];
             }
 
@@ -1581,19 +2035,26 @@ class OrdersCustomAddController extends Controller
                     'subtotal' => $subtotal,
                     'productType' => 'access',
                     'shippingPrice' => 0,
-                    'shippingDetails' => null
+                    'shippingDetails' => null,
+                    'hasShippingError' => false
                 ];
             }
+
+            // Determine if there are any shipping errors
+            $hasShippingErrors = count($productsWithoutShipping) > 0;
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'completeBreakdown' => $completeBreakdown,
                     'shippingBreakdown' => $shippingBreakdown,
+                    'productsWithShippingErrors' => count($productsWithoutShipping),
+                    'hasShippingErrors' => $hasShippingErrors,
                     'subtotal' => $totalSubtotal,
                     'totalShipping' => $totalShipping,
                     'total' => $totalSubtotal + $totalShipping,
-                    'province' => $province
+                    'province' => $province,
+                    'shippingType' => $shippingType
                 ]
             ]);
 
@@ -1716,6 +2177,7 @@ class OrdersCustomAddController extends Controller
                         'discountName' => $discount->discountName,
                         'discountDescription' => $discount->discountDescription,
                         'discountType' => $discount->discountType,
+                        'discountTrigger' => $discount->discountTrigger,
                         'amountType' => $discount->amountType,
                         'valuePercent' => $discount->valuePercent,
                         'valueAmount' => $discount->valueAmount,
@@ -1812,6 +2274,7 @@ class OrdersCustomAddController extends Controller
                     'discountName' => $discount->discountName,
                     'discountDescription' => $discount->discountDescription,
                     'discountType' => $discount->discountType,
+                    'discountTrigger' => $discount->discountTrigger,
                     'discountCode' => $discount->discountCode,
                     'amountType' => $discount->amountType,
                     'valuePercent' => $discount->valuePercent,
@@ -1879,11 +2342,29 @@ class OrdersCustomAddController extends Controller
 
                 $totalDiscount += $discountAmount;
 
+                // Map amountType to database enum: 'percentage' or 'fixed'
+                $dbDiscountType = 'fixed'; // Default to fixed
+                if ($discount->amountType === 'Percentage') {
+                    $dbDiscountType = 'percentage';
+                }
+
+                // Get the original discount value based on type
+                $discountValue = 0;
+                if ($discount->amountType === 'Percentage') {
+                    $discountValue = $discount->valuePercent ?? 0;
+                } elseif ($discount->amountType === 'Specific Amount') {
+                    $discountValue = $discount->valueAmount ?? 0;
+                } elseif ($discount->amountType === 'Price Replacement') {
+                    $discountValue = $discount->valueReplacement ?? 0;
+                }
+
                 $discountBreakdown[] = [
                     'id' => $discount->id,
                     'name' => $discount->discountName,
-                    'type' => $discount->amountType,
+                    'type' => $dbDiscountType,  // Use mapped enum value
+                    'amountType' => $discount->amountType,  // Keep original for display
                     'displayValue' => $discount->getDisplayValue(),
+                    'value' => $discountValue,  // Original discount value
                     'calculatedAmount' => $discountAmount,
                     'trigger' => $discount->discountTrigger,
                     'code' => $discount->discountCode,
@@ -2097,6 +2578,7 @@ class OrdersCustomAddController extends Controller
             });
 
             if (empty($shipProducts)) {
+                // No ship products = no shipping needed, no changes to detect
                 return response()->json([
                     'success' => true,
                     'hasChanges' => false,
@@ -2105,35 +2587,84 @@ class OrdersCustomAddController extends Controller
                 ]);
             }
 
-            // Recalculate shipping using the same logic as calculateShipping
-            $shippingConfig = DB::table('ecom_shipping_config')
-                ->where('deleteStatus', 1)
-                ->first();
-
-            if (!$shippingConfig) {
-                return response()->json([
-                    'success' => true,
-                    'hasChanges' => false,
-                    'changes' => [],
-                    'newShipping' => $currentShipping
-                ]);
-            }
-
-            // Determine shipping rate
-            $newShippingRate = 0;
-            $provinceLower = strtolower(trim($province));
-
-            if ($provinceLower === 'pangasinan') {
-                $newShippingRate = floatval($shippingConfig->provinceShipPrice ?? 0);
-            } else {
-                $newShippingRate = floatval($shippingConfig->nationwideShipPrice ?? 0);
-            }
-
-            // Calculate total shipping based on products
+            // Calculate shipping using the same logic as calculateShipping()
+            // to ensure consistent values
             $totalShipping = 0;
+
             foreach ($shipProducts as $product) {
+                $variantId = $product['variantId'] ?? null;
                 $quantity = intval($product['quantity'] ?? 1);
-                $totalShipping += $newShippingRate * $quantity;
+
+                if (!$variantId) continue;
+
+                // Get shipping options for this variant (same query as calculateShipping)
+                // Include province isActive status to check if province is active
+                $shippingOptions = DB::table('ecom_products_variants_shipping as evs')
+                    ->join('ecom_products_shipping as es', 'evs.ecomShippingId', '=', 'es.id')
+                    ->leftJoin('ecom_products_shipping_options as eso', function($join) use ($province) {
+                        $join->on('es.id', '=', 'eso.shippingId')
+                             ->where('eso.provinceTarget', '=', $province)
+                             ->where('eso.deleteStatus', '=', 1);
+                    })
+                    ->where('evs.ecomVariantId', $variantId)
+                    ->where('es.isActive', 1)
+                    ->where('es.deleteStatus', 1)
+                    ->select(
+                        'es.id as shippingId',
+                        'es.defaultMaxQuantity',
+                        'es.defaultPrice',
+                        'eso.maxQuantity',
+                        'eso.shippingPrice',
+                        'eso.provinceTarget',
+                        'eso.isActive as provinceIsActive'
+                    )
+                    ->get();
+
+                if ($shippingOptions->isEmpty()) {
+                    continue;
+                }
+
+                // Find the cheapest shipping option
+                $cheapestPrice = PHP_FLOAT_MAX;
+
+                foreach ($shippingOptions as $option) {
+                    // If province is selected, check province-specific rules:
+                    // 1. Province must exist in shipping options
+                    // 2. Province option must be active (isActive = 1)
+                    if (!empty($province)) {
+                        // Province is selected - only allow if province option exists AND is active
+                        if ($option->provinceTarget === null) {
+                            // Province not configured for this shipping method - skip it
+                            continue;
+                        }
+                        if ($option->provinceIsActive != 1) {
+                            // Province option exists but is inactive - skip it
+                            continue;
+                        }
+
+                        // Province is valid and active - use province-specific pricing
+                        $maxQty = intval($option->maxQuantity);
+                        $pricePerBatch = floatval($option->shippingPrice);
+                    } else {
+                        // No province selected - use default pricing
+                        $maxQty = intval($option->defaultMaxQuantity);
+                        $pricePerBatch = floatval($option->defaultPrice);
+                    }
+
+                    // Calculate shipping cost
+                    if ($maxQty > 0) {
+                        $batches = ceil($quantity / $maxQty);
+                        $shippingPrice = $batches * $pricePerBatch;
+
+                        if ($shippingPrice < $cheapestPrice) {
+                            $cheapestPrice = $shippingPrice;
+                        }
+                    }
+                }
+
+                if ($cheapestPrice < PHP_FLOAT_MAX) {
+                    $totalShipping += $cheapestPrice;
+                }
             }
 
             $changes = [];
@@ -2154,10 +2685,14 @@ class OrdersCustomAddController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            // On any error, just allow proceeding without changes
             return response()->json([
-                'success' => false,
-                'message' => 'Error validating shipping: ' . $e->getMessage()
-            ], 500);
+                'success' => true,
+                'hasChanges' => false,
+                'changes' => [],
+                'newShipping' => $currentShipping,
+                'warning' => 'Could not validate shipping rates: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -2302,7 +2837,7 @@ class OrdersCustomAddController extends Controller
                     'discountCapType' => $discount->discountCapType,
                     'discountCapValue' => $discount->discountCapValue,
                     'displayValue' => $newDisplayValue,
-                    'trigger' => $appliedDiscount['trigger'] ?? 'auto',
+                    'trigger' => $discount->discountTrigger, // Use the actual discount trigger from DB
                     'restrictionType' => $discount->restrictionType ?? 'all',
                 ];
             }
@@ -2319,6 +2854,644 @@ class OrdersCustomAddController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error validating discounts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate affiliate commissions for the order.
+     *
+     * This method checks if the selected client was referred by any affiliate
+     * for each store in the cart and calculates commissions based on affiliatePrice.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAffiliateCommissions(Request $request)
+    {
+        try {
+            $clientId = $request->get('clientId');
+            $cartItems = $request->get('cartItems', []);
+
+            if (is_string($cartItems)) {
+                $cartItems = json_decode($cartItems, true) ?? [];
+            }
+
+            if (!$clientId || empty($cartItems)) {
+                return response()->json([
+                    'success' => true,
+                    'commissions' => [],
+                    'totalCommission' => 0
+                ]);
+            }
+
+            // Get unique stores from cart items
+            $stores = collect($cartItems)->pluck('productStore')->unique()->values()->toArray();
+
+            // Get store IDs by store names (include both active and enabled stores)
+            $storeMap = EcomProductStore::where('deleteStatus', 1)
+                ->whereIn('storeName', $stores)
+                ->pluck('id', 'storeName')
+                ->toArray();
+
+            // If no stores found in cart, return empty
+            if (empty($storeMap)) {
+                return response()->json([
+                    'success' => true,
+                    'commissions' => [],
+                    'totalCommission' => 0
+                ]);
+            }
+
+            // Get all referrals for this client - check if client was referred by any affiliate
+            // First, let's get ALL referrals for this client to see what exists
+            $allClientReferrals = EcomAffiliateReferral::where('deleteStatus', 1)
+                ->where('clientId', $clientId)
+                ->with(['affiliate', 'store'])
+                ->get();
+
+            // Filter referrals to only those matching stores in cart and with active affiliates
+            $referrals = $allClientReferrals
+                ->filter(function ($referral) use ($storeMap) {
+                    // Check if this referral's store is in our cart stores
+                    if (!in_array($referral->storeId, array_values($storeMap))) {
+                        return false;
+                    }
+
+                    // Filter out referrals where affiliate is not active or is expired
+                    if (!$referral->affiliate) {
+                        return false;
+                    }
+
+                    // Check if affiliate account is active
+                    if ($referral->affiliate->accountStatus !== 'active') {
+                        return false;
+                    }
+
+                    // Check if affiliate is expired
+                    if ($referral->affiliate->expirationDate && $referral->affiliate->expirationDate->isPast()) {
+                        return false;
+                    }
+
+                    return true;
+                })
+                ->keyBy('storeId');
+
+            $commissions = [];
+            $totalCommission = 0;
+
+            foreach ($cartItems as $item) {
+                $storeName = $item['productStore'] ?? '';
+                $storeId = $storeMap[$storeName] ?? null;
+
+                if (!$storeId) {
+                    continue;
+                }
+
+                // Check if client was referred by an active, non-expired affiliate for this store
+                $referral = $referrals->get($storeId);
+
+                if (!$referral || !$referral->affiliate) {
+                    continue;
+                }
+
+                // Get variant to get the affiliatePrice
+                $variant = EcomProductVariant::find($item['variantId']);
+                if (!$variant) {
+                    continue;
+                }
+
+                $affiliatePrice = floatval($variant->affiliatePrice ?? 0);
+                $quantity = intval($item['quantity'] ?? 1);
+                $commission = $affiliatePrice * $quantity;
+
+                if ($affiliatePrice > 0) {
+                    $commissions[] = [
+                        'storeId' => $storeId,
+                        'storeName' => $storeName,
+                        'affiliateId' => $referral->affiliateId,
+                        'affiliateName' => $referral->affiliate->full_name ?? 'Unknown',
+                        'affiliatePhone' => $referral->affiliate->phoneNumber ?? '',
+                        'affiliateStatus' => $referral->affiliate->accountStatus,
+                        'variantId' => $item['variantId'],
+                        'variantName' => $item['variantName'] ?? '',
+                        'productId' => $item['productId'],
+                        'productName' => $item['productName'] ?? '',
+                        'quantity' => $quantity,
+                        'affiliateRate' => $affiliatePrice,
+                        'commission' => $commission
+                    ];
+
+                    $totalCommission += $commission;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'commissions' => $commissions,
+                'totalCommission' => $totalCommission
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating affiliate commissions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if a shipping method is applicable to a product based on restrictions.
+     *
+     * @param int $shippingId The shipping method ID
+     * @param array $product The product data with productId and productStore
+     * @return bool True if shipping is applicable, false otherwise
+     */
+    private function isShippingApplicableToProduct($shippingId, $product)
+    {
+        // Get the shipping method to check its restriction type
+        $shipping = EcomProductsShipping::find($shippingId);
+
+        if (!$shipping) {
+            return false;
+        }
+
+        $restrictionType = $shipping->restrictionType ?? 'all';
+
+        // If restriction type is 'all', the shipping applies to all products
+        if ($restrictionType === 'all') {
+            return true;
+        }
+
+        // Get active restrictions for this shipping method
+        $restrictions = EcomProductShippingRestriction::where('shippingId', $shippingId)
+            ->where('deleteStatus', 1)
+            ->get();
+
+        // If no restrictions are defined but type is not 'all', shipping is not applicable
+        if ($restrictions->isEmpty()) {
+            return false;
+        }
+
+        if ($restrictionType === 'stores') {
+            // Get the store IDs from restrictions
+            $allowedStoreIds = $restrictions->pluck('storeId')->filter()->toArray();
+
+            if (empty($allowedStoreIds)) {
+                return false;
+            }
+
+            // Get store names for the allowed store IDs
+            $allowedStoreNames = EcomProductStore::whereIn('id', $allowedStoreIds)
+                ->where('deleteStatus', 1)
+                ->pluck('storeName')
+                ->toArray();
+
+            // Check if product's store matches the allowed stores
+            $productStore = $product['productStore'] ?? '';
+            return in_array($productStore, $allowedStoreNames);
+
+        } elseif ($restrictionType === 'products') {
+            // Get the product IDs from restrictions
+            $allowedProductIds = $restrictions->pluck('productId')->filter()->toArray();
+
+            if (empty($allowedProductIds)) {
+                return false;
+            }
+
+            // Check if product ID matches the allowed products
+            $productId = $product['productId'] ?? null;
+            return $productId && in_array((int)$productId, $allowedProductIds);
+        }
+
+        return false;
+    }
+
+    /**
+     * Store the complete order with all details copied independently.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeOrder(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'products' => 'required|array|min:1',
+            'products.*.productId' => 'required|integer',
+            'products.*.productName' => 'required|string',
+            'products.*.variantId' => 'required|integer',
+            'products.*.variantName' => 'required|string',
+            'products.*.unitPrice' => 'required|numeric|min:0',
+            'products.*.quantity' => 'required|integer|min:1',
+            'products.*.productType' => 'required|in:ship,access',
+            'client' => 'nullable|array',
+            'shippingType' => 'nullable|string',
+            'shippingRecipient' => 'nullable|array',
+            'shippingAddress' => 'nullable|array',
+            'accessClients' => 'nullable|array',
+            'shippingMethods' => 'nullable|array',
+            'discounts' => 'nullable|array',
+            'affiliateCommissions' => 'nullable|array',
+            // Package purchase fields
+            'isPackage' => 'nullable|boolean',
+            'package' => 'nullable|array',
+            'package.id' => 'nullable|integer',
+            'package.name' => 'nullable|string',
+            'package.description' => 'nullable|string',
+            'package.calculatedPrice' => 'nullable|numeric|min:0',
+            'package.packagePrice' => 'nullable|numeric|min:0',
+            'package.savings' => 'nullable|numeric|min:0',
+            'totals' => 'required|array',
+            'totals.subtotal' => 'required|numeric|min:0',
+            'totals.grandTotal' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Order validation failed', ['errors' => $validator->errors()->toArray()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \Log::info('Starting order creation', ['user_id' => Auth::id()]);
+            DB::beginTransaction();
+
+            // Generate unique order number
+            $orderNumber = EcomOrder::generateOrderNumber();
+            \Log::info('Generated order number: ' . $orderNumber);
+
+            // Get client data
+            $client = $request->input('client', []);
+            $shippingRecipient = $request->input('shippingRecipient', []);
+            $shippingAddress = $request->input('shippingAddress', []);
+            $totals = $request->input('totals', []);
+            $hasShipProducts = $request->input('hasShipProducts', false);
+
+            // Get package data
+            $isPackage = $request->input('isPackage', false);
+            $packageData = $request->input('package', []);
+
+            // Determine shipping status based on whether there are ship products
+            $shippingStatus = $hasShipProducts ? 'pending' : 'not_applicable';
+
+            // Create the main order with ALL details copied
+            $order = EcomOrder::create([
+                'usersId' => Auth::id(),
+                'orderNumber' => $orderNumber,
+                'orderStatus' => 'pending',
+                'shippingStatus' => $shippingStatus,
+                // Client information (COPIED)
+                'clientId' => $client['id'] ?? null,
+                'clientFirstName' => $client['firstName'] ?? null,
+                'clientMiddleName' => $client['middleName'] ?? null,
+                'clientLastName' => $client['lastName'] ?? null,
+                'clientPhone' => $client['phone'] ?? null,
+                'clientEmail' => $client['email'] ?? null,
+                // Shipping type and name (only if there are ship products)
+                'shippingType' => $hasShipProducts ? $request->input('shippingType') : null,
+                'shippingName' => $hasShipProducts ? $request->input('shippingName') : null,
+                // Shipping recipient (COPIED - only if there are ship products)
+                'shippingFirstName' => $hasShipProducts ? ($shippingRecipient['firstName'] ?? null) : null,
+                'shippingMiddleName' => $hasShipProducts ? ($shippingRecipient['middleName'] ?? null) : null,
+                'shippingLastName' => $hasShipProducts ? ($shippingRecipient['lastName'] ?? null) : null,
+                'shippingPhone' => $hasShipProducts ? ($shippingRecipient['phone'] ?? null) : null,
+                'shippingEmail' => $hasShipProducts ? ($shippingRecipient['email'] ?? null) : null,
+                // Shipping address (COPIED - only if there are ship products)
+                'shippingHouseNumber' => $hasShipProducts ? ($shippingAddress['houseNumber'] ?? null) : null,
+                'shippingStreet' => $hasShipProducts ? ($shippingAddress['street'] ?? null) : null,
+                'shippingZone' => $hasShipProducts ? ($shippingAddress['zone'] ?? null) : null,
+                'shippingMunicipality' => $hasShipProducts ? ($shippingAddress['municipality'] ?? null) : null,
+                'shippingProvince' => $hasShipProducts ? ($shippingAddress['province'] ?? null) : null,
+                'shippingZipCode' => $hasShipProducts ? ($shippingAddress['zipCode'] ?? null) : null,
+                // Order totals
+                'subtotal' => $totals['subtotal'] ?? 0,
+                'shippingTotal' => $totals['shippingTotal'] ?? 0,
+                'discountTotal' => $totals['discountTotal'] ?? 0,
+                'grandTotal' => $totals['grandTotal'] ?? 0,
+                'affiliateCommissionTotal' => $totals['affiliateCommissionTotal'] ?? 0,
+                'netRevenue' => $totals['netRevenue'] ?? ($totals['grandTotal'] ?? 0),
+                // Notes
+                'orderNotes' => $request->input('orderNotes'),
+                // Package purchase fields
+                'isPackage' => $isPackage,
+                'packageId' => $isPackage ? ($packageData['id'] ?? null) : null,
+                'packageName' => $isPackage ? ($packageData['name'] ?? null) : null,
+                'packageDescription' => $isPackage ? ($packageData['description'] ?? null) : null,
+                'packageCalculatedPrice' => $isPackage ? ($packageData['calculatedPrice'] ?? null) : null,
+                'packagePrice' => $isPackage ? ($packageData['packagePrice'] ?? null) : null,
+                'packageSavings' => $isPackage ? ($packageData['savings'] ?? null) : null,
+                'deleteStatus' => 1,
+            ]);
+
+            // Store order items (products with ALL details copied)
+            $products = $request->input('products', []);
+            $accessClients = $request->input('accessClients', []);
+            $shippingMethods = $request->input('shippingMethods', []);
+
+            foreach ($products as $product) {
+                $variantId = $product['variantId'];
+                $productType = $product['productType'] ?? 'ship';
+
+                // Get shipping info for ship products
+                $shippingMethodId = null;
+                $shippingMethodName = null;
+                $shippingCost = 0;
+
+                if ($productType === 'ship' && isset($shippingMethods[$variantId])) {
+                    $shippingMethodId = $shippingMethods[$variantId]['id'] ?? null;
+                    $shippingMethodName = $shippingMethods[$variantId]['name'] ?? null;
+                    $shippingCost = $shippingMethods[$variantId]['cost'] ?? 0;
+                }
+
+                // Get access client info for access products
+                $accessClientId = null;
+                $accessClientName = null;
+                $accessClientPhone = null;
+                $accessClientEmail = null;
+
+                if ($productType === 'access' && isset($accessClients[$variantId])) {
+                    $accessClientId = $accessClients[$variantId]['id'] ?? null;
+                    $accessClientName = $accessClients[$variantId]['name'] ?? null;
+                    $accessClientPhone = $accessClients[$variantId]['phone'] ?? null;
+                    $accessClientEmail = $accessClients[$variantId]['email'] ?? null;
+                }
+
+                EcomOrderItem::create([
+                    'orderId' => $order->id,
+                    'productId' => $product['productId'] ?? null,
+                    'productName' => $product['productName'],
+                    'productStore' => $product['productStore'] ?? null,
+                    'productType' => $productType,
+                    'variantId' => $variantId,
+                    'variantName' => $product['variantName'] ?? null,
+                    'variantSku' => $product['variantSku'] ?? null,
+                    'variantImage' => $product['variantImage'] ?? null,
+                    'unitPrice' => $product['unitPrice'],
+                    'quantity' => $product['quantity'],
+                    'subtotal' => ($product['unitPrice'] ?? 0) * ($product['quantity'] ?? 1),
+                    'shippingMethodId' => $shippingMethodId,
+                    'shippingMethodName' => $shippingMethodName,
+                    'shippingCost' => $shippingCost,
+                    'accessClientId' => $accessClientId,
+                    'accessClientName' => $accessClientName,
+                    'accessClientPhone' => $accessClientPhone,
+                    'accessClientEmail' => $accessClientEmail,
+                    'deleteStatus' => 1,
+                ]);
+            }
+
+            // Store discounts (ALL details copied)
+            $discounts = $request->input('discounts', []);
+            foreach ($discounts as $discount) {
+                EcomOrderDiscount::create([
+                    'orderId' => $order->id,
+                    'discountId' => $discount['id'] ?? null,
+                    'discountName' => $discount['name'] ?? 'Unknown Discount',
+                    'discountCode' => $discount['code'] ?? null,
+                    'discountType' => $discount['type'] ?? 'percentage',
+                    'discountValue' => $discount['value'] ?? 0,
+                    'calculatedAmount' => $discount['calculatedAmount'] ?? 0,
+                    'isAutoApplied' => $discount['isAutoApplied'] ?? false,
+                    'deleteStatus' => 1,
+                ]);
+            }
+
+            // Store affiliate commissions (ALL details copied)
+            $affiliateCommissions = $request->input('affiliateCommissions', []);
+            foreach ($affiliateCommissions as $commission) {
+                EcomOrderAffiliateCommission::create([
+                    'orderId' => $order->id,
+                    'affiliateId' => $commission['affiliateId'] ?? null,
+                    'affiliateName' => $commission['affiliateName'] ?? 'Unknown Affiliate',
+                    'affiliateEmail' => $commission['affiliateEmail'] ?? null,
+                    'affiliatePhone' => $commission['affiliatePhone'] ?? null,
+                    'storeId' => $commission['storeId'] ?? null,
+                    'storeName' => $commission['storeName'] ?? null,
+                    'commissionPercentage' => $commission['percentage'] ?? 0,
+                    'baseAmount' => $commission['baseAmount'] ?? 0,
+                    'commissionAmount' => $commission['commissionAmount'] ?? 0,
+                    'deleteStatus' => 1,
+                ]);
+            }
+
+            // Save shipping address to client shipping addresses table (if order has shipping)
+            if ($hasShipProducts && !empty($client['id'])) {
+                EcomClientShippingAddress::create([
+                    'clientId' => $client['id'],
+                    'orderId' => $order->id,
+                    'addressLabel' => null, // Can be set later or via manual add
+                    'firstName' => $shippingRecipient['firstName'] ?? null,
+                    'middleName' => $shippingRecipient['middleName'] ?? null,
+                    'lastName' => $shippingRecipient['lastName'] ?? null,
+                    'phoneNumber' => $shippingRecipient['phone'] ?? null,
+                    'emailAddress' => $shippingRecipient['email'] ?? null,
+                    'houseNumber' => $shippingAddress['houseNumber'] ?? null,
+                    'street' => $shippingAddress['street'] ?? null,
+                    'zone' => $shippingAddress['zone'] ?? null,
+                    'municipality' => $shippingAddress['municipality'] ?? null,
+                    'province' => $shippingAddress['province'] ?? null,
+                    'zipCode' => $shippingAddress['zipCode'] ?? null,
+                    'deleteStatus' => 1,
+                ]);
+                \Log::info('Client shipping address saved', ['client_id' => $client['id'], 'order_id' => $order->id]);
+            }
+
+            // Log audit trail for order creation
+            $auditMessage = "Order #{$orderNumber} created with grand total: ₱" . number_format($totals['grandTotal'] ?? 0, 2);
+
+            // Add package information to audit message if it's a package purchase
+            if ($isPackage && !empty($packageData)) {
+                $packageName = $packageData['name'] ?? 'Unknown Package';
+                $packagePrice = number_format($packageData['packagePrice'] ?? 0, 2);
+                $packageSavings = number_format($packageData['savings'] ?? 0, 2);
+
+                $auditMessage = "Order #{$orderNumber} created as PACKAGE PURCHASE. Package: \"{$packageName}\" | " .
+                    "Package Price: ₱{$packagePrice} | Savings: ₱{$packageSavings} | " .
+                    "Grand Total: ₱" . number_format($totals['grandTotal'] ?? 0, 2);
+            }
+
+            EcomOrderAuditLog::logAction(
+                $order,
+                'order_created',
+                null,
+                null,
+                null,
+                $auditMessage
+            );
+
+            DB::commit();
+            \Log::info('Order created successfully', ['order_id' => $order->id, 'order_number' => $orderNumber]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order created successfully!',
+                'orderNumber' => $orderNumber,
+                'orderId' => $order->id,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create order', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available packages for selection.
+     * Only returns packages where ALL items are available (active, in stock).
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAvailablePackages(Request $request)
+    {
+        $search = $request->get('search', '');
+        $page = $request->get('page', 1);
+        $perPage = $request->get('per_page', 10);
+
+        try {
+            // Get active store names
+            $activeStoreNames = EcomProductStore::active()->enabled()->pluck('storeName')->toArray();
+
+            // Query active packages with their items
+            $query = EcomPackage::active()
+                ->where('packageStatus', 'active')
+                ->with(['items' => function($q) {
+                    $q->where('deleteStatus', 1);
+                }]);
+
+            // Apply search filter
+            if ($search) {
+                $query->where('packageName', 'LIKE', "%{$search}%");
+            }
+
+            $packages = $query->orderBy('packageName')->get();
+
+            // Filter packages - only keep those where ALL items are available
+            $availablePackages = [];
+
+            foreach ($packages as $package) {
+                $allItemsAvailable = true;
+                $packageItems = [];
+                $totalCalculatedPrice = 0;
+
+                foreach ($package->items as $item) {
+                    // Check if variant exists and is active
+                    $variant = EcomProductVariant::where('id', $item->variantId)
+                        ->where('deleteStatus', 1)
+                        ->where('isActive', 1)
+                        ->first();
+
+                    if (!$variant) {
+                        $allItemsAvailable = false;
+                        break;
+                    }
+
+                    // Check if product exists and is active
+                    $product = EcomProduct::where('id', $item->productId)
+                        ->where('deleteStatus', 1)
+                        ->where('isActive', 1)
+                        ->whereIn('productStore', $activeStoreNames)
+                        ->first();
+
+                    if (!$product) {
+                        $allItemsAvailable = false;
+                        break;
+                    }
+
+                    // Check stock availability
+                    if ($variant->stocksAvailable < $item->quantity) {
+                        $allItemsAvailable = false;
+                        break;
+                    }
+
+                    // Get first image for variant
+                    $image = EcomProductVariantImage::where('ecomVariantsId', $variant->id)
+                        ->where('deleteStatus', 1)
+                        ->orderBy('imageOrder')
+                        ->first();
+
+                    $imageUrl = null;
+                    if ($image && $image->imageLink) {
+                        $imageUrl = url($image->imageLink);
+                    }
+
+                    // Calculate subtotal with current variant price
+                    $currentSubtotal = floatval($variant->ecomVariantPrice) * $item->quantity;
+                    $totalCalculatedPrice += $currentSubtotal;
+
+                    // Build item data for the response
+                    $packageItems[] = [
+                        'itemId' => $item->id,
+                        'variantId' => $variant->id,
+                        'variantName' => $variant->ecomVariantName,
+                        'productId' => $product->id,
+                        'productName' => $product->productName,
+                        'productStore' => $product->productStore,
+                        'productType' => $product->productType ?? 'Unknown',
+                        'shipCoverage' => $product->shipCoverage ?? 'n/a',
+                        'unitPrice' => floatval($variant->ecomVariantPrice),
+                        'quantity' => $item->quantity,
+                        'subtotal' => $currentSubtotal,
+                        'stocksAvailable' => $variant->stocksAvailable,
+                        // If maxOrderPerTransaction is 0, null, or empty, treat as no limit (use stock as max)
+                        'maxOrderPerTransaction' => ($variant->maxOrderPerTransaction && $variant->maxOrderPerTransaction > 0)
+                            ? $variant->maxOrderPerTransaction
+                            : $variant->stocksAvailable,
+                        'imageUrl' => $imageUrl,
+                    ];
+                }
+
+                // Only include package if all items are available
+                if ($allItemsAvailable && count($packageItems) > 0) {
+                    $availablePackages[] = [
+                        'packageId' => $package->id,
+                        'packageName' => $package->packageName,
+                        'packageDescription' => $package->packageDescription,
+                        'calculatedPrice' => $totalCalculatedPrice, // Use real-time calculated price
+                        'packagePrice' => floatval($package->packagePrice),
+                        'discountAmount' => max(0, $totalCalculatedPrice - floatval($package->packagePrice)),
+                        'discountPercentage' => $totalCalculatedPrice > 0
+                            ? round((($totalCalculatedPrice - floatval($package->packagePrice)) / $totalCalculatedPrice) * 100, 2)
+                            : 0,
+                        'itemCount' => count($packageItems),
+                        'items' => $packageItems,
+                    ];
+                }
+            }
+
+            // Manual pagination
+            $totalItems = count($availablePackages);
+            $offset = ($page - 1) * $perPage;
+            $paginatedPackages = array_slice($availablePackages, $offset, $perPage);
+            $lastPage = ceil($totalItems / $perPage) ?: 1;
+
+            return response()->json([
+                'success' => true,
+                'data' => $paginatedPackages,
+                'pagination' => [
+                    'current_page' => (int) $page,
+                    'last_page' => (int) $lastPage,
+                    'per_page' => (int) $perPage,
+                    'total' => $totalItems,
+                    'from' => $totalItems > 0 ? $offset + 1 : 0,
+                    'to' => min($offset + $perPage, $totalItems),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching available packages', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching packages: ' . $e->getMessage()
             ], 500);
         }
     }

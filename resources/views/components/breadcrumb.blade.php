@@ -7,6 +7,15 @@
             <div class="page-title-right">
                 <ol class="breadcrumb m-0">
                     <li class="breadcrumb-item"><a href="javascript: void(0);">{{ $li_1 }}</a></li>
+                    @if(isset($li_2))
+                        <li class="breadcrumb-item">
+                            @if(isset($li_2_link))
+                                <a href="{{ $li_2_link }}">{{ $li_2 }}</a>
+                            @else
+                                <a href="javascript: void(0);">{{ $li_2 }}</a>
+                            @endif
+                        </li>
+                    @endif
                     @if(isset($title))
                         <li class="breadcrumb-item active">{{ $title }}</li>
                     @endif

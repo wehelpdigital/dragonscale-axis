@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan tinker:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd Stores module for E-commerce with inactive store filtering\n\n- Create StoresController with full CRUD operations \\(create, edit, delete, status toggle\\)\n- Add store views \\(index, create, edit\\) with badge-style UI matching products module\n- Add dynamic filtering by name and status in stores listing\n- Add image upload with loading indicator for store logo\n- Update sidebar navigation to link to stores module\n- Filter products by active stores across all modules:\n  - ProductsController: hide products from inactive stores\n  - OrdersCustomAddController: exclude inactive store products from order creation\n- Add dedicated status update endpoint for AJAX status toggle\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(php artisan:*)",
+      "Bash(php -r:*)",
+      "Bash(git add:*)",
+      "Bash(app/Http/Controllers/Ecommerce/DiscountsController.php )",
+      "Bash(app/Http/Controllers/Ecommerce/OrdersCustomAddController.php )",
+      "Bash(app/Models/EcomProductDiscount.php )",
+      "Bash(app/Models/EcomProductDiscountRestriction.php )",
+      "Bash(app/Models/EcomProductVariant.php )",
+      "Bash(database/migrations/2026_01_03_222221_create_ecom_products_discounts_restrictions_table.php )",
+      "Bash(resources/views/ecommerce/discounts/restrictions.blade.php )",
+      "Bash(resources/views/ecommerce/orders/custom-add.blade.php )",
+      "Bash(routes/web.php)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd discount restrictions and order validation with change detection\n\nDiscount Restrictions Feature:\n- Add EcomProductDiscountRestriction model and migration\n- Add restrictions management page for discounts \\(/ecom-discounts-restrictions\\)\n- Support restriction types: All Products, Specific Stores, Specific Products\n- Add expandable product rows showing variants with images and prices\n- Filter discounts by restrictions in order creation\n\nOrder Creation Enhancements:\n- Add Step 6: Affiliates placeholder in order wizard\n- Add real-time data validation on Next button clicks:\n  - Step 1→2: Validate product prices, stock, availability\n  - Step 4→5: Validate shipping rate changes\n  - Step 5→6: Validate discount validity and restrictions\n- Add Changes Detected modal with mandatory acknowledgment\n- Show toastr notifications when changes are applied\n- User must review changes before proceeding to next step\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(if not exist \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\public\\\\images\\\\affiliates\\\\documents\" mkdir \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\public\\\\images\\\\affiliates\\\\documents\")",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(if not exist \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\resources\\\\views\\\\ecommerce\\\\shipping\" mkdir \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\resources\\\\views\\\\ecommerce\\\\shipping\")",
+      "Bash(php -l:*)",
+      "Bash(findstr:*)",
+      "Bash(cd:*)",
+      "Bash(if not exist \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\resources\\\\views\\\\ecommerce\\\\packages\" mkdir \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\resources\\\\views\\\\ecommerce\\\\packages\")",
+      "Bash(if not exist \"resources\\\\views\\\\ecommerce\\\\triggers\" mkdir \"resources\\\\views\\\\ecommerce\\\\triggers\")",
+      "Bash(del \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\app\\\\Models\\\\EcomStoreLogin.php\")",
+      "Bash(del \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\database\\\\migrations\\\\2026_01_10_110000_create_ecom_store_logins_table.php\")",
+      "Bash(if not exist \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\resources\\\\views\\\\ecommerce\\\\client-shippings\" mkdir \"C:\\\\xampp\\\\htdocs\\\\btc-check\\\\resources\\\\views\\\\ecommerce\\\\client-shippings\")"
+    ]
+  }
+}

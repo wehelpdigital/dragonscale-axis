@@ -7,6 +7,42 @@
 @section('css')
 <!-- Toastr -->
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
+<style>
+    .shipping-suggestion-item {
+        padding: 10px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        background: #fff;
+        transition: all 0.2s ease;
+    }
+    .shipping-suggestion-item:hover {
+        background: #f0f7ff;
+        border-color: #556ee6;
+        box-shadow: 0 2px 4px rgba(85, 110, 230, 0.15);
+    }
+    .shipping-suggestion-item:last-child {
+        margin-bottom: 0;
+    }
+    .shipping-suggestion-item .suggestion-name {
+        font-weight: 600;
+        color: #495057;
+    }
+    .shipping-suggestion-item .suggestion-address {
+        font-size: 0.85rem;
+        color: #74788d;
+        margin-top: 4px;
+    }
+    .shipping-suggestion-item .suggestion-label {
+        font-size: 0.7rem;
+        background: #556ee6;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-left: 8px;
+    }
+</style>
 @endsection
 
 @section('content')
@@ -16,6 +52,9 @@
         @endslot
         @slot('li_2')
             Orders
+        @endslot
+        @slot('li_2_link')
+            {{ route('ecom-orders') }}
         @endslot
         @slot('title')
             Add New Order
@@ -42,6 +81,7 @@
                                 <small class="text-muted">Step 4: Shipping</small>
                                 <small class="text-muted">Step 5: Discounts</small>
                                 <small class="text-muted">Step 6: Affiliates</small>
+                                <small class="text-muted">Step 7: Finalize</small>
                             </div>
                         </div>
                     </div>
@@ -106,6 +146,47 @@
                                     </div>
                                 </div>
 
+                                <!-- Available Packages Row -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info text-white rounded-top">
+                                                <h6 class="card-title mb-0" style="color: #fff !important;">
+                                                    <i class="mdi mdi-package-variant-closed me-2"></i>Available Packages
+                                                    <small class="ms-2">(Select a package to add all its products)</small>
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <!-- Search Bar -->
+                                                <div class="mb-3">
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">
+                                                            <i class="mdi mdi-magnify"></i>
+                                                        </span>
+                                                        <input type="text" class="form-control" id="package-search" placeholder="Search packages by name...">
+                                                    </div>
+                                                </div>
+
+                                                <!-- Packages List -->
+                                                <div id="packages-container" style="max-height: 400px; overflow-y: auto;">
+                                                    <div class="text-center py-3">
+                                                        <div class="spinner-border text-info" role="status">
+                                                            <span class="visually-hidden">Loading...</span>
+                                                        </div>
+                                                        <p class="mt-2 text-muted">Loading packages...</p>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Pagination -->
+                                                <nav aria-label="Packages pagination" class="mt-3">
+                                                    <ul class="pagination pagination-sm justify-content-center" id="packages-pagination">
+                                                    </ul>
+                                                </nav>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Selected Products Row -->
                                 <div class="row">
                                     <div class="col-12">
@@ -148,6 +229,8 @@
 
                                 <!-- Hidden input for selected products -->
                                 <input type="hidden" id="selectedProducts" name="selectedProducts" value="">
+                                <!-- Hidden input for active package (if using package pricing) -->
+                                <input type="hidden" id="activePackageData" name="activePackageData" value="">
                             </div>
 
                             <!-- Step 2: Client Details -->
@@ -327,7 +410,7 @@
                                                     <div class="col-12">
                                                         <div class="mb-3">
                                                             <label for="newClientPhoneNumber" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                                            <input type="text" class="form-control" id="newClientPhoneNumber" name="clientPhoneNumber" placeholder="09XXXXXXXXX or +63XXXXXXXXX or 63XXXXXXXXX" required>
+                                                            <input type="text" class="form-control" id="newClientPhoneNumber" name="clientPhoneNumber" placeholder="09225512233" maxlength="11" required>
                                                             <div class="invalid-feedback"></div>
                                                         </div>
                                                     </div>
@@ -399,7 +482,86 @@
 
         <!-- Step 4: Shipping -->
         <div class="wizard-step d-none" id="step-4">
-            <h5 class="mb-3">Shipping</h5>
+            <h5 class="mb-3">Shipping & Delivery</h5>
+
+            <!-- Access Products Section (No Shipping Required) -->
+            <div id="access-products-section" class="mb-4" style="display: none;">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary">
+                        <h6 class="card-title mb-0 text-white">
+                            <i class="mdi mdi-key-variant me-2 text-white"></i>Access Products (No Shipping Required)
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3"><small>These products are digital/access-based and do not require shipping.</small></p>
+                        <div id="access-products-list">
+                            <!-- Access products will be dynamically loaded here -->
+                        </div>
+                        <div class="border-top pt-3 mt-3">
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Access Products Subtotal:</span>
+                                <span id="access-products-subtotal" class="text-primary">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Type Selection -->
+            <div id="shipping-type-section" class="mb-4" style="display: none;">
+                <div class="card border-secondary">
+                    <div class="card-header bg-secondary">
+                        <h6 class="card-title mb-0 text-white">
+                            <i class="mdi mdi-truck-delivery me-2 text-white"></i>Shipping Type
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="shipping_type" class="form-label">Select Shipping Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="shipping_type" name="shipping_type">
+                                    <option value="">Select Shipping Type</option>
+                                    <option value="Regular">Regular Shipping</option>
+                                    <option value="Cash on Delivery">Cash on Delivery (COD)</option>
+                                    <option value="Cash on Pickup">Cash on Pickup</option>
+                                </select>
+                                <small class="text-muted mt-1 d-block">Choose how you want the order to be shipped and paid.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="shipping-type-info" class="mt-4">
+                                    <!-- Shipping type description will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Method Selection (shown when multiple methods available) -->
+            <div id="shipping-method-section" class="mb-4" style="display: none;">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary">
+                        <h6 class="card-title mb-0 text-white">
+                            <i class="mdi mdi-truck-check me-2 text-white"></i>Select Shipping Method
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-secondary mb-3">Multiple shipping methods are available. Please select one to apply to all products:</p>
+                        <div id="shipping-methods-list" class="row g-3">
+                            <!-- Shipping methods will be dynamically loaded here -->
+                        </div>
+                        <div id="selected-shipping-method-info" class="mt-3" style="display: none;">
+                            <div class="alert alert-success mb-0">
+                                <i class="mdi mdi-check-circle me-2"></i>
+                                <strong>Selected:</strong> <span id="selected-method-name"></span>
+                                <span class="float-end">
+                                    <span class="badge bg-light text-dark" id="selected-method-price"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Ship Products Stores -->
             <div id="ship-stores-container">
@@ -408,9 +570,21 @@
 
             <!-- No Ship Products Message -->
             <div id="no-ship-products" class="text-center py-5" style="display: none;">
-                <i class="mdi mdi-skip-next display-4 text-muted mb-3"></i>
-                <h6 class="text-muted">No Ship Products Selected</h6>
-                <p class="text-muted">You are not buying any ship type products, so skip this step.</p>
+                <i class="mdi mdi-truck-fast display-4 text-muted mb-3"></i>
+                <h6 class="text-muted">No Shipping Required</h6>
+                <p class="text-muted">All selected products are access-type and do not require shipping. You can proceed to the next step.</p>
+            </div>
+
+            <!-- Shipping Error Banner -->
+            <div id="shipping-error-banner" class="alert alert-danger" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <i class="mdi mdi-alert-circle-outline me-2" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Cannot Proceed:</strong> One or more products do not have shipping methods configured.
+                        Please <a href="{{ route('ecom-shipping') }}" target="_blank" class="alert-link">configure shipping settings</a> first,
+                        then refresh this page.
+                    </div>
+                </div>
             </div>
 
             <!-- Shipping Address Section -->
@@ -438,8 +612,8 @@
                                 </div>
 
                                 <div class="col-md-4 mb-3">
-                                    <label for="shipping_middle_name" class="form-label">Middle Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="shipping_middle_name" name="shipping_middle_name" required>
+                                    <label for="shipping_middle_name" class="form-label">Middle Name</label>
+                                    <input type="text" class="form-control" id="shipping_middle_name" name="shipping_middle_name">
                                     <div class="invalid-feedback"></div>
                                 </div>
 
@@ -451,14 +625,26 @@
 
                                 <div class="col-md-6 mb-3">
                                     <label for="shipping_phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="shipping_phone" name="shipping_phone" required>
+                                    <input type="tel" class="form-control" id="shipping_phone" name="shipping_phone" placeholder="09XXXXXXXXX" maxlength="11" required>
                                     <div class="invalid-feedback"></div>
+                                    <small class="text-muted">Format: 09XXXXXXXXX (11 digits)</small>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label for="shipping_email" class="form-label">Email Address <span class="text-danger">*</span></label>
                                     <input type="email" class="form-control" id="shipping_email" name="shipping_email" required>
                                     <div class="invalid-feedback"></div>
+                                </div>
+
+                                <!-- Address Autocomplete Suggestions -->
+                                <div class="col-12" id="shippingAddressSuggestions" style="display: none;">
+                                    <div class="alert alert-info py-2 mb-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="mdi mdi-lightbulb-on-outline me-2"></i>
+                                            <strong class="text-dark">Saved addresses found! Click to auto-fill:</strong>
+                                        </div>
+                                        <div id="suggestionsList"></div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -471,20 +657,26 @@
                                 </div>
 
                                 <div class="col-md-4 mb-3">
-                                    <label for="shipping_house_number" class="form-label">House Number <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="shipping_house_number" name="shipping_house_number" required>
+                                    <label for="shipping_house_number" class="form-label">House Number</label>
+                                    <input type="text" class="form-control" id="shipping_house_number" name="shipping_house_number">
                                     <div class="invalid-feedback"></div>
                                 </div>
 
                                 <div class="col-md-8 mb-3">
-                                    <label for="shipping_street" class="form-label">Street <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="shipping_street" name="shipping_street" required>
+                                    <label for="shipping_street" class="form-label">Street</label>
+                                    <input type="text" class="form-control" id="shipping_street" name="shipping_street">
                                     <div class="invalid-feedback"></div>
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label for="shipping_zone" class="form-label">Zone (if any)</label>
-                                    <input type="text" class="form-control" id="shipping_zone" name="shipping_zone">
+                                    <input type="number" class="form-control" id="shipping_zone" name="shipping_zone" min="0" placeholder="Enter zone number">
+                                    <div class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="shipping_barangay" class="form-label">Barangay <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="shipping_barangay" name="shipping_barangay" placeholder="Enter barangay name" required>
                                     <div class="invalid-feedback"></div>
                                 </div>
 
@@ -501,12 +693,6 @@
                                     <select class="form-select" id="shipping_municipality" name="shipping_municipality" required disabled>
                                         <option value="">Select Municipality/City</option>
                                     </select>
-                                    <div class="invalid-feedback"></div>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label for="shipping_barangay" class="form-label">Barangay <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="shipping_barangay" name="shipping_barangay" rows="2" required disabled></textarea>
                                     <div class="invalid-feedback"></div>
                                 </div>
 
@@ -793,69 +979,340 @@
         <div class="wizard-step d-none" id="step-6">
             <h5 class="mb-3">Affiliates</h5>
 
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="card-title mb-0" style="color: #fff !important;">
-                                <i class="mdi mdi-account-group me-2"></i>Affiliate Settings
+            <!-- Affiliate Commissions Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="mdi mdi-account-group me-2"></i>Affiliate Commissions
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="text-center py-5">
-                                <i class="mdi mdi-account-group text-muted" style="font-size: 4rem;"></i>
-                                <h5 class="text-muted mt-3">Affiliate Features Coming Soon</h5>
-                                <p class="text-secondary">
-                                    This section will allow you to assign affiliate commissions and track referrals for this order.
-                                </p>
+                            <!-- Loading State -->
+                            <div id="affiliate-loading" class="text-center py-4">
+                                <div class="spinner-border spinner-border-sm text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <span class="ms-2 text-muted">Checking affiliate referrals...</span>
+                            </div>
+
+                            <!-- Affiliate Commission Table -->
+                            <div id="affiliate-commissions-container" style="display: none;">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover mb-0" id="affiliate-commissions-table">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 20%;">Store</th>
+                                                <th style="width: 25%;">Affiliate</th>
+                                                <th style="width: 25%;">Product/Variant</th>
+                                                <th style="width: 10%;" class="text-center">Qty</th>
+                                                <th style="width: 10%;" class="text-end">Rate</th>
+                                                <th style="width: 10%;" class="text-end">Commission</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="affiliate-commissions-tbody">
+                                            <!-- Affiliate commission rows will be populated here -->
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="5" class="text-end fw-bold">Total Affiliate Commissions:</td>
+                                                <td class="text-end fw-bold text-success" id="total-affiliate-commission">₱0.00</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- No Affiliates Message -->
+                            <div id="no-affiliates-found" class="text-center py-4" style="display: none;">
+                                <i class="mdi mdi-account-off text-secondary" style="font-size: 2.5rem;"></i>
+                                <p class="text-dark mt-2 mb-1">No affiliate referrals found for this customer.</p>
+                                <small class="text-secondary">The selected customer was not referred by any affiliate for the stores in this order.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary with Affiliate Commissions Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0">
+                                <i class="mdi mdi-calculator me-2"></i>Order Summary with Affiliate Commissions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Product Summary Accordion -->
+                            <div class="card border-secondary mb-3">
+                                <div class="card-header bg-light" data-bs-toggle="collapse" data-bs-target="#affiliateProductSummaryCollapse" aria-expanded="false" aria-controls="affiliateProductSummaryCollapse" style="cursor: pointer;">
+                                    <h6 class="mb-0 text-secondary">
+                                        <i class="mdi mdi-package-variant me-2"></i>Product Summary
+                                        <i class="mdi mdi-chevron-down float-end"></i>
+                                    </h6>
+                                </div>
+                                <div class="collapse" id="affiliateProductSummaryCollapse">
+                                    <div class="card-body">
+                                        <div id="affiliate-product-summary">
+                                            <!-- Product summary will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Totals -->
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="mdi mdi-receipt me-2"></i>Order Total
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Subtotal:</span>
+                                        <span id="affiliate-subtotal">₱0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Shipping:</span>
+                                        <span id="affiliate-shipping">₱0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2 text-success" id="affiliate-discount-row" style="display: none;">
+                                        <span>Discount:</span>
+                                        <span id="affiliate-discount">-₱0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2 text-warning" id="affiliate-commission-row" style="display: none;">
+                                        <span>Affiliate Commission:</span>
+                                        <span id="affiliate-commission-display">₱0.00</span>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between fw-bold fs-5">
+                                        <span>Customer Pays:</span>
+                                        <span id="affiliate-grand-total" class="text-primary">₱0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-secondary mt-2" id="affiliate-net-revenue-row" style="display: none;">
+                                        <span><small>Net Revenue (after commission):</small></span>
+                                        <span id="affiliate-net-revenue"><small>₱0.00</small></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 7: Finalize -->
+        <div class="wizard-step d-none" id="step-7">
+            <h5 class="mb-3">Review & Finalize Order</h5>
+
+            <div class="alert alert-info mb-4">
+                <i class="mdi mdi-information-outline me-2"></i>
+                <strong>Final Review:</strong> Please carefully review all order details below before clicking "Create Order".
+            </div>
+
+            <div class="row">
+                <!-- Left Column: Products, Client, Logins -->
+                <div class="col-lg-8">
+                    <!-- Products Summary -->
+                    <div class="card border-primary mb-3">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-package-variant me-2 text-white"></i>Products Summary
+                            </h6>
+                            <span class="badge bg-light text-primary" id="review-products-count">0 items</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 40%;">Product</th>
+                                            <th class="text-center">Type</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">Price</th>
+                                            <th class="text-end">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="review-products-tbody">
+                                        <!-- Products will be populated here -->
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="4" class="text-end fw-bold">Products Subtotal:</td>
+                                            <td class="text-end fw-bold text-primary" id="review-products-subtotal">₱0.00</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Client Information -->
+                    <div class="card border-info mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-account me-2 text-white"></i>Client Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="review-client-info">
+                                <!-- Client info will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Access Logins (shown only if access products exist) -->
+                    <div class="card border-warning mb-3" id="review-logins-section" style="display: none;">
+                        <div class="card-header bg-warning text-white">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-key-variant me-2 text-white"></i>Access Logins
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="review-logins-info">
+                                <!-- Access login info will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shipping Details (shown only if ship products exist) -->
+                    <div class="card border-success mb-3" id="review-shipping-section" style="display: none;">
+                        <div class="card-header bg-success">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-truck-delivery me-2"></i>Shipping Details
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-dark mb-3"><i class="mdi mdi-account-outline me-1"></i>Recipient</h6>
+                                    <div id="review-shipping-recipient">
+                                        <!-- Recipient info will be populated here -->
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-dark mb-3"><i class="mdi mdi-map-marker me-1"></i>Delivery Address</h6>
+                                    <div id="review-shipping-address">
+                                        <!-- Address info will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-dark mb-3"><i class="mdi mdi-truck me-1"></i>Shipping Method</h6>
+                                    <div id="review-shipping-method">
+                                        <!-- Shipping method info will be populated here -->
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-dark mb-3"><i class="mdi mdi-calculator me-1"></i>Shipping Cost Breakdown</h6>
+                                    <div id="review-shipping-cost">
+                                        <!-- Shipping cost breakdown will be populated here -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Right Column: Discounts, Affiliates, Order Totals -->
                 <div class="col-lg-4">
-                    <!-- Order Summary Card -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0">
-                                <i class="mdi mdi-clipboard-text me-2"></i>Order Summary
+                    <!-- Discounts Applied -->
+                    <div class="card border-danger mb-3" id="review-discounts-section" style="display: none;">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-tag-multiple me-2 text-white"></i>Discounts Applied
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Subtotal:</span>
-                                <span id="affiliate-subtotal">₱0.00</span>
+                            <div id="review-discounts-list">
+                                <!-- Discounts will be populated here -->
                             </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>Shipping:</span>
-                                <span id="affiliate-shipping">₱0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2 text-success" id="affiliate-discount-row" style="display: none;">
-                                <span>Discount:</span>
-                                <span id="affiliate-discount">-₱0.00</span>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between fw-bold fs-5">
-                                <span>Grand Total:</span>
-                                <span id="affiliate-grand-total" class="text-primary">₱0.00</span>
+                            <div class="border-top pt-2 mt-2">
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total Discount:</span>
+                                    <span class="text-danger" id="review-total-discount">-₱0.00</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Info Card -->
-                    <div class="card border-info">
-                        <div class="card-body">
-                            <h6 class="card-title text-info">
-                                <i class="mdi mdi-information me-1"></i>About Affiliates
+                    <!-- Affiliate Commissions -->
+                    <div class="card border-secondary mb-3" id="review-affiliates-section" style="display: none;">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-account-group me-2 text-white"></i>Affiliate Commissions
                             </h6>
-                            <p class="text-muted small mb-0">
-                                The affiliate system will enable you to:
-                            </p>
-                            <ul class="text-muted small mt-2 mb-0">
-                                <li>Assign affiliate referrals to orders</li>
-                                <li>Calculate commission percentages</li>
-                                <li>Track affiliate performance</li>
-                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div id="review-affiliates-list">
+                                <!-- Affiliate commissions will be populated here -->
+                            </div>
+                            <div class="border-top pt-2 mt-2">
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total Commission:</span>
+                                    <span class="text-warning" id="review-total-commission">₱0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Totals -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-calculator-variant me-2 text-white"></i>Order Totals
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="text-secondary fs-6">Products Subtotal:</span>
+                                <span class="text-dark fs-6 fw-medium" id="review-subtotal">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3" id="review-shipping-row" style="display: none;">
+                                <span class="text-secondary fs-6">Shipping:</span>
+                                <span class="text-dark fs-6 fw-medium" id="review-shipping-total">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 text-danger" id="review-discount-row" style="display: none;">
+                                <span class="fs-6">Discount:</span>
+                                <span class="fs-6 fw-medium" id="review-discount-total">-₱0.00</span>
+                            </div>
+                            <hr class="my-3">
+                            <div class="d-flex justify-content-between mb-3 py-2 bg-light rounded px-2">
+                                <span class="fw-bold text-dark fs-4">Grand Total:</span>
+                                <span class="fw-bold text-success fs-4" id="review-grand-total">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-warning mb-2" id="review-commission-row" style="display: none;">
+                                <span class="fs-6">Affiliate Commission:</span>
+                                <span class="fs-6" id="review-commission-deduct">-₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-secondary" id="review-net-row" style="display: none;">
+                                <span class="fs-6">Net Revenue:</span>
+                                <span class="fs-6 fw-medium" id="review-net-revenue">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ready to Submit -->
+                    <div class="card bg-light mt-3">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="mdi mdi-checkbox-marked-circle text-success me-3" style="font-size: 2.5rem;"></i>
+                                <div>
+                                    <h6 class="text-dark mb-1">Ready to Create Order</h6>
+                                    <p class="text-secondary small mb-0">
+                                        Review all details above, then click the button to finalize.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-success btn-lg" id="confirm-order-btn">
+                                    <i class="mdi mdi-check-circle me-2"></i>Confirm Order
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1593,18 +2050,224 @@
         font-size: 0.75rem;
     }
 
+    /* Shipping method card styling */
+    .shipping-method-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-width: 2px !important;
+    }
+
+    .shipping-method-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .shipping-method-card.selected {
+        border-color: #556ee6 !important;
+        background-color: #f8f9ff;
+    }
+
+    .shipping-method-card.selected .card-body {
+        background-color: transparent;
+    }
+
+    #shipping-method-section .card-body {
+        background-color: #fafbfc;
+    }
+
+    /* Package card styles */
+    .package-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+
+    .package-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .package-header {
+        padding: 12px 15px;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .package-header:hover {
+        background-color: #f0f0f0;
+    }
+
+    .package-items-container {
+        display: none;
+        padding: 10px 15px;
+        background-color: #ffffff;
+    }
+
+    .package-items-container.show {
+        display: block;
+    }
+
+    .package-item-row {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .package-item-row:last-child {
+        border-bottom: none;
+    }
+
+    .package-item-img {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .package-item-img-placeholder {
+        width: 40px;
+        height: 40px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ccc;
+    }
+
+    .package-discount-badge {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+    }
+
+    .package-chevron {
+        transition: transform 0.2s ease;
+    }
+
+    .package-chevron.rotated {
+        transform: rotate(180deg);
+    }
+
+    #packages-container {
+        transition: all 0.3s ease;
+    }
+
+    /* Selected package animation styles */
+    .package-store-card {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: slideInUp 0.4s ease forwards;
+    }
+
+    .package-store-card:nth-child(1) { animation-delay: 0.1s; }
+    .package-store-card:nth-child(2) { animation-delay: 0.2s; }
+    .package-store-card:nth-child(3) { animation-delay: 0.3s; }
+    .package-store-card:nth-child(4) { animation-delay: 0.4s; }
+    .package-store-card:nth-child(5) { animation-delay: 0.5s; }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .package-header-alert {
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .package-pricing-summary {
+        opacity: 0;
+        transform: translateY(10px);
+        animation: slideInUp 0.4s ease forwards;
+        animation-delay: 0.4s;
+    }
+
+    .package-item-row {
+        opacity: 0;
+        transform: translateX(-10px);
+        animation: slideInLeft 0.3s ease forwards;
+    }
+
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* Stagger animation for items within store cards */
+    .package-store-card .package-item-row:nth-child(1) { animation-delay: 0.15s; }
+    .package-store-card .package-item-row:nth-child(2) { animation-delay: 0.25s; }
+    .package-store-card .package-item-row:nth-child(3) { animation-delay: 0.35s; }
+    .package-store-card .package-item-row:nth-child(4) { animation-delay: 0.45s; }
+    .package-store-card .package-item-row:nth-child(5) { animation-delay: 0.55s; }
+
+    /* Package variant image styles */
+    .package-variant-img {
+        width: 45px;
+        height: 45px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+        flex-shrink: 0;
+    }
+
+    .package-variant-img-placeholder {
+        width: 45px;
+        height: 45px;
+        background-color: #f5f5f5;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ccc;
+        flex-shrink: 0;
+        border: 1px solid #e0e0e0;
+    }
+
 </style>
 <script>
 $(document).ready(function() {
     let currentStep = 1;
-    const totalSteps = 6;
+    const totalSteps = 7;
     let selectedProducts = [];
     let currentProductsPage = 1;
     let currentStoreSearch = '';
     let currentProductSearch = '';
     let searchTimeout;
     let variantSearchTimeout = {};
+
+    // Shipping method selections - maps variantId to selected shippingId
+    let selectedShippingMethods = {};
+    let shippingOptionsData = null;
+    let hasShippingErrors = false;
+    let shippingOptionsLoading = false;
+    let pendingShippingLoads = 0;
     let currentVariantForModal = null;
+
+    // Global shipping method selection
+    let availableShippingMethods = {}; // Maps shippingId to method details
+    let selectedGlobalShippingMethod = null; // The globally selected shipping method ID
+    let allProductShippingData = {}; // Store all shipping data per variant for recalculation
 
     // Client search variables
     let selectedClient = null;
@@ -1628,6 +2291,13 @@ $(document).ready(function() {
         '#c0392b', // Flat Dark Red
         '#8e44ad', // Flat Wisteria
     ];
+
+    // Package-related variables
+    let currentPackagesPage = 1;
+    let currentPackageSearch = '';
+    let packageSearchTimeout;
+    let availablePackages = [];
+    let activePackage = null; // Tracks the currently selected package (if any)
 
     // Function to get consistent color for a store
     function getStoreColor(storeName) {
@@ -1894,6 +2564,16 @@ $(document).ready(function() {
         variants.forEach(function(variant) {
             const isInCart = selectedProducts.some(item => item.variantId === variant.id);
             const maxOrderPerTransaction = parseInt(variant.maxOrderPerTransaction) || 1;
+
+            // Check if package is active - disable add buttons if so
+            const isPackageActive = activePackage !== null;
+            const isOutOfStock = variant.stocksAvailable === 0;
+            const shouldDisable = isPackageActive || isOutOfStock;
+            const btnClass = shouldDisable ? 'btn-secondary' : (isInCart ? 'btn-success' : 'btn-primary');
+            const btnTitle = isPackageActive
+                ? 'Remove the active package first'
+                : (isInCart ? 'Left click: Add quantity | Right click: Remove from cart' : 'Add to cart');
+
             html += `
                 <tr data-variant-name="${variant.ecomVariantName.toLowerCase()}">
                     <td>${variant.ecomVariantName}</td>
@@ -1912,14 +2592,14 @@ $(document).ready(function() {
                         <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="viewVariant(${variant.id})">
                             <i class="mdi mdi-eye"></i>
                         </button>
-                        <button type="button" class="btn btn-sm ${isInCart ? 'btn-success' : 'btn-primary'} variant-action-btn"
+                        <button type="button" class="btn btn-sm ${btnClass} variant-action-btn"
                                 data-variant-id="${variant.id}"
                                 data-product-id="${productId}"
                                 onclick="toggleVariantInCart(${variant.id}, ${productId})"
                                 oncontextmenu="removeVariantFromCart(${variant.id}, ${productId}); return false;"
-                                ${variant.stocksAvailable === 0 ? 'disabled' : ''}
-                                title="${isInCart ? 'Left click: Add quantity | Right click: Remove from cart' : 'Add to cart'}">
-                            <i class="mdi ${isInCart ? 'mdi-plus' : 'mdi-plus'}"></i>
+                                ${shouldDisable ? 'disabled' : ''}
+                                title="${btnTitle}">
+                            <i class="mdi mdi-plus"></i>
                         </button>
                     </td>
                 </tr>
@@ -1951,6 +2631,12 @@ $(document).ready(function() {
 
     // Toggle variant in cart
     window.toggleVariantInCart = function(variantId, productId) {
+        // Check if a package is active - prevent adding individual products
+        if (activePackage) {
+            toastr.warning('A package is active. Remove it first to add individual products.', 'Package Active');
+            return;
+        }
+
         const existingIndex = selectedProducts.findIndex(item => item.variantId === variantId);
         const actionBtn = $(`.variant-action-btn[data-variant-id="${variantId}"]`);
 
@@ -2108,11 +2794,128 @@ $(document).ready(function() {
                 <div class="text-center py-3 text-muted">
                     <i class="mdi mdi-cart-outline" style="font-size: 48px;"></i>
                     <p class="mt-2">No products selected</p>
-                    <small>Select products from the left panel to add them to your order</small>
+                    <small>Select products from the available products or packages above</small>
                 </div>
             `);
             cartSummary.hide();
+        } else if (activePackage) {
+            // Package-specific display
+            let html = '';
+            const calculatedTotal = selectedProducts.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+
+            // Package header with animation
+            html += `
+                <div class="alert alert-info mb-3 d-flex justify-content-between align-items-center package-header-alert">
+                    <div>
+                        <i class="mdi mdi-package-variant-closed me-2"></i>
+                        <strong>Package: ${escapeHtml(activePackage.packageName)}</strong>
+                        ${activePackage.discountAmount > 0 ? `<span class="badge bg-success ms-2">Save ₱${parseFloat(activePackage.discountAmount).toFixed(2)}</span>` : ''}
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeActivePackage()">
+                        <i class="mdi mdi-close me-1"></i>Remove Package
+                    </button>
+                </div>
+            `;
+
+            // Group items by store
+            const itemsByStore = {};
+            selectedProducts.forEach(function(item) {
+                const storeName = item.productStore || 'Unknown Store';
+                if (!itemsByStore[storeName]) {
+                    itemsByStore[storeName] = [];
+                }
+                itemsByStore[storeName].push(item);
+            });
+
+            // Package items organized by store
+            html += '<div class="package-items-list">';
+            Object.keys(itemsByStore).forEach(function(storeName) {
+                const storeItems = itemsByStore[storeName];
+                const storeColor = getStoreColor(storeName);
+                let storeSubtotal = storeItems.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+
+                // Store card with color-coded left border and animation
+                html += `
+                    <div class="card mb-3 package-store-card" style="border-left: 4px solid ${storeColor} !important;">
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center" style="background-color: #f8f9fa;">
+                            <div class="d-flex align-items-center">
+                                <i class="mdi mdi-store me-2" style="color: ${storeColor}; font-size: 1.1rem;"></i>
+                                <strong class="text-dark">${escapeHtml(storeName)}</strong>
+                                <span class="badge bg-secondary ms-2">${storeItems.length} item(s)</span>
+                            </div>
+                            <small class="text-muted text-decoration-line-through">₱${storeSubtotal.toFixed(2)}</small>
+                        </div>
+                        <div class="card-body py-2">
+                `;
+
+                // Items for this store with animation and images
+                storeItems.forEach(function(item, index) {
+                    const typeBadge = item.productType === 'access'
+                        ? '<span class="badge bg-info text-white" style="font-size: 0.65rem;">Access</span>'
+                        : '<span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Ship</span>';
+
+                    const isLast = index === storeItems.length - 1;
+
+                    // Variant image or placeholder
+                    const variantImage = item.imageUrl
+                        ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.variantName)}" class="package-variant-img">`
+                        : `<div class="package-variant-img-placeholder"><i class="mdi mdi-image-off"></i></div>`;
+
+                    html += `
+                        <div class="d-flex align-items-center py-2 package-item-row ${!isLast ? 'border-bottom' : ''}">
+                            ${variantImage}
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-dark fw-medium">${escapeHtml(item.variantName)}</span>
+                                    ${typeBadge}
+                                </div>
+                                <small class="text-secondary">${escapeHtml(item.productName)}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-secondary">Qty: ${item.quantity}</span>
+                                <div class="text-muted small">₱${parseFloat(item.price).toFixed(2)} each</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            // Pricing summary with animation
+            html += `
+                <div class="mt-3 p-3 bg-light rounded package-pricing-summary">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Regular Price:</span>
+                        <span class="text-decoration-line-through text-muted">₱${calculatedTotal.toFixed(2)}</span>
+                    </div>
+                    ${activePackage.discountAmount > 0 ? `
+                    <div class="d-flex justify-content-between mb-1 text-success">
+                        <span>Package Discount (${activePackage.discountPercentage}%):</span>
+                        <span>-₱${parseFloat(activePackage.discountAmount).toFixed(2)}</span>
+                    </div>
+                    ` : ''}
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between">
+                        <strong class="text-dark">Package Price:</strong>
+                        <strong class="text-primary fs-5">₱${parseFloat(activePackage.packagePrice).toFixed(2)}</strong>
+                    </div>
+                </div>
+            `;
+
+            cartContainer.html(html);
+
+            // Update summary to show package price
+            const totalItems = selectedProducts.reduce((sum, item) => sum + item.quantity, 0);
+            $('#total-items').text(totalItems + ' items (Package)');
+            $('#total-amount').text('₱' + parseFloat(activePackage.packagePrice).toFixed(2));
+            cartSummary.show();
         } else {
+            // Regular individual products display
             let html = '';
             let totalAmount = 0;
 
@@ -2241,17 +3044,25 @@ $(document).ready(function() {
 
     // Update only the cart summary (total items and amount)
     function updateCartSummary() {
-        const totalAmount = selectedProducts.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
         const totalItems = selectedProducts.reduce((sum, item) => sum + item.quantity, 0);
         const uniqueProducts = new Set(selectedProducts.map(item => item.productId)).size;
 
+        // Use package price if a package is active, otherwise calculate from individual items
+        const totalAmount = activePackage
+            ? parseFloat(activePackage.packagePrice)
+            : selectedProducts.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+
         // Animate the summary update
         $('#total-items').fadeOut(100, function() {
-            $(this).text(totalItems);
-            // Remove any existing product count text first
-            $(this).find('small').remove();
-            if (uniqueProducts > 1) {
-                $(this).append(` <small class="text-muted">(${uniqueProducts} products)</small>`);
+            if (activePackage) {
+                $(this).text(totalItems + ' items (Package)');
+            } else {
+                $(this).text(totalItems);
+                // Remove any existing product count text first
+                $(this).find('small').remove();
+                if (uniqueProducts > 1) {
+                    $(this).append(` <small class="text-muted">(${uniqueProducts} products)</small>`);
+                }
             }
             $(this).fadeIn(100);
         });
@@ -2806,11 +3617,394 @@ $(document).ready(function() {
         }
     });
 
+    // ==========================================
+    // PACKAGE SELECTION FUNCTIONALITY
+    // ==========================================
+
+    // Load available packages
+    function loadPackages(page = 1, search = '') {
+        showPackagesLoading();
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.packages") }}',
+            type: 'GET',
+            data: {
+                page: page,
+                search: search,
+                per_page: 10
+            },
+            success: function(response) {
+                if (response.success) {
+                    availablePackages = response.data;
+                    displayPackages(response.data);
+                    updatePackagesPagination(response.pagination);
+                } else {
+                    $('#packages-container').html('<div class="text-center py-3 text-muted">No packages available</div>');
+                }
+            },
+            error: function() {
+                $('#packages-container').html('<div class="text-center py-3 text-danger">Error loading packages</div>');
+            }
+        });
+    }
+
+    // Show packages loading indicator
+    function showPackagesLoading() {
+        $('#packages-container').html(`
+            <div class="text-center py-3">
+                <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading packages...</p>
+            </div>
+        `);
+    }
+
+    // Display packages
+    function displayPackages(packages) {
+        if (packages.length === 0) {
+            $('#packages-container').html(`
+                <div class="text-center py-3 text-muted">
+                    <i class="mdi mdi-package-variant-closed-remove" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0">No available packages found</p>
+                    <small>All packages must have all items in stock to appear here</small>
+                </div>
+            `);
+            return;
+        }
+
+        let html = '';
+        packages.forEach(function(pkg) {
+            const hasDiscount = pkg.discountAmount > 0;
+            const discountBadge = hasDiscount
+                ? `<span class="badge bg-success package-discount-badge ms-2">Save ₱${parseFloat(pkg.discountAmount).toFixed(2)} (${pkg.discountPercentage}% off)</span>`
+                : '';
+
+            html += `
+                <div class="package-card" data-package-id="${pkg.packageId}">
+                    <div class="package-header d-flex justify-content-between align-items-center" onclick="togglePackageItems(${pkg.packageId})">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center">
+                                <h6 class="mb-0 text-dark fw-medium">${escapeHtml(pkg.packageName)}</h6>
+                                ${discountBadge}
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-1">
+                                <small class="text-secondary">
+                                    <i class="mdi mdi-package-variant me-1"></i>${pkg.itemCount} item(s)
+                                </small>
+                                <small class="text-secondary">
+                                    <span class="text-decoration-line-through">₱${parseFloat(pkg.calculatedPrice).toFixed(2)}</span>
+                                </small>
+                                <strong class="text-primary">₱${parseFloat(pkg.packagePrice).toFixed(2)}</strong>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-info text-white add-package-btn"
+                                    onclick="event.stopPropagation(); addPackageToCart(${pkg.packageId})"
+                                    title="Add all items to cart">
+                                <i class="mdi mdi-cart-plus"></i> Add
+                            </button>
+                            <i class="mdi mdi-chevron-down package-chevron" id="pkg-chevron-${pkg.packageId}"></i>
+                        </div>
+                    </div>
+                    <div class="package-items-container" id="pkg-items-${pkg.packageId}">
+                        ${renderPackageItems(pkg.items)}
+                    </div>
+                </div>
+            `;
+        });
+
+        $('#packages-container').html(html);
+    }
+
+    // Render package items
+    function renderPackageItems(items) {
+        let html = '<div class="small text-secondary mb-2">Package contents:</div>';
+
+        items.forEach(function(item) {
+            const imgHtml = item.imageUrl
+                ? `<img src="${item.imageUrl}" class="package-item-img" alt="${escapeHtml(item.variantName)}">`
+                : `<div class="package-item-img-placeholder"><i class="mdi mdi-image"></i></div>`;
+
+            const typeBadge = item.productType === 'access'
+                ? '<span class="badge bg-info text-white" style="font-size: 0.65rem;">Access</span>'
+                : '<span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Ship</span>';
+
+            const storeColor = getStoreColor(item.productStore);
+
+            html += `
+                <div class="package-item-row" style="border-left: 3px solid ${storeColor}; margin-left: 0; padding-left: 10px;">
+                    ${imgHtml}
+                    <div class="ms-2 flex-grow-1">
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="text-dark" style="font-size: 0.85rem;">${escapeHtml(item.variantName)}</span>
+                            ${typeBadge}
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-secondary">${escapeHtml(item.productName)}</small>
+                            <small class="text-secondary">Qty: ${item.quantity}</small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-primary fw-medium">₱${parseFloat(item.unitPrice).toFixed(2)}</small>
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    // Toggle package items visibility
+    window.togglePackageItems = function(packageId) {
+        const itemsContainer = $(`#pkg-items-${packageId}`);
+        const chevron = $(`#pkg-chevron-${packageId}`);
+
+        if (itemsContainer.hasClass('show')) {
+            itemsContainer.removeClass('show');
+            chevron.removeClass('rotated');
+        } else {
+            itemsContainer.addClass('show');
+            chevron.addClass('rotated');
+        }
+    };
+
+    // Add package to cart
+    window.addPackageToCart = function(packageId) {
+        // Check if there's already an active package
+        if (activePackage) {
+            toastr.warning('A package is already in the cart. Remove it first to add a different package.', 'Package Active');
+            return;
+        }
+
+        // Check if there are already individual products in cart
+        if (selectedProducts.length > 0) {
+            toastr.warning('Please remove existing products before adding a package.', 'Cart Not Empty');
+            return;
+        }
+
+        const pkg = availablePackages.find(p => p.packageId === packageId);
+        if (!pkg) {
+            toastr.error('Package not found', 'Error');
+            return;
+        }
+
+        // Check if all items can be added (stock validation)
+        let canAddAll = true;
+        let errorMessages = [];
+
+        pkg.items.forEach(function(item) {
+            if (item.quantity > item.stocksAvailable) {
+                canAddAll = false;
+                errorMessages.push(`${item.variantName}: Only ${item.stocksAvailable} in stock`);
+            }
+        });
+
+        if (!canAddAll) {
+            toastr.error('Cannot add package:<br>' + errorMessages.join('<br>'), 'Stock Issue', {
+                allowHtml: true,
+                timeOut: 5000
+            });
+            return;
+        }
+
+        // Set the active package
+        activePackage = {
+            packageId: pkg.packageId,
+            packageName: pkg.packageName,
+            packagePrice: pkg.packagePrice,
+            calculatedPrice: pkg.calculatedPrice,
+            discountAmount: pkg.discountAmount,
+            discountPercentage: pkg.discountPercentage,
+            items: pkg.items
+        };
+
+        // Add all items to selectedProducts (for order processing)
+        pkg.items.forEach(function(item) {
+            selectedProducts.push({
+                variantId: item.variantId,
+                variantName: item.variantName,
+                price: item.unitPrice,
+                productId: item.productId,
+                productName: item.productName,
+                productStore: item.productStore,
+                productType: item.productType,
+                shipCoverage: item.shipCoverage,
+                quantity: item.quantity,
+                maxOrderPerTransaction: item.maxOrderPerTransaction,
+                stocksAvailable: item.stocksAvailable,
+                imageUrl: item.imageUrl || null, // Include variant image
+                isPackageItem: true // Mark as package item
+            });
+        });
+
+        // Update cart display
+        updateCartDisplay();
+        $('#selectedProducts').val(JSON.stringify(selectedProducts));
+        $('#activePackageData').val(JSON.stringify(activePackage));
+
+        // Disable all product and package add buttons
+        disableProductPackageButtons();
+
+        toastr.success(`Package "${pkg.packageName}" added to cart!`, 'Package Added');
+    };
+
+    // Remove active package from cart
+    window.removeActivePackage = function() {
+        if (!activePackage) return;
+
+        const packageName = activePackage.packageName;
+
+        // Clear selected products
+        selectedProducts = [];
+        activePackage = null;
+
+        // Update cart display
+        updateCartDisplay();
+        $('#selectedProducts').val(JSON.stringify(selectedProducts));
+        $('#activePackageData').val('');
+
+        // Re-enable all product and package add buttons
+        enableProductPackageButtons();
+
+        // Refresh product button states
+        $('.variant-action-btn').each(function() {
+            const variantId = $(this).data('variant-id');
+            const productId = $(this).data('product-id');
+            updateVariantButtonState(variantId, productId, false);
+        });
+
+        toastr.info(`Package "${packageName}" removed from cart.`, 'Package Removed');
+    };
+
+    // Disable product and package add buttons when package is active
+    function disableProductPackageButtons() {
+        // Disable individual product variant buttons
+        $('.variant-action-btn').prop('disabled', true)
+            .removeClass('btn-primary btn-success')
+            .addClass('btn-secondary')
+            .attr('title', 'Remove the active package first');
+
+        // Disable package add buttons
+        $('.add-package-btn').prop('disabled', true)
+            .removeClass('btn-info')
+            .addClass('btn-secondary')
+            .attr('title', 'Remove the active package first');
+    }
+
+    // Re-enable product and package add buttons
+    function enableProductPackageButtons() {
+        // Re-enable individual product variant buttons
+        $('.variant-action-btn').prop('disabled', false)
+            .removeClass('btn-secondary')
+            .addClass('btn-primary')
+            .attr('title', 'Add to cart');
+
+        // Re-enable package add buttons
+        $('.add-package-btn').prop('disabled', false)
+            .removeClass('btn-secondary')
+            .addClass('btn-info')
+            .attr('title', 'Add all items to cart');
+    }
+
+    // Check if adding individual products is allowed
+    function canAddIndividualProducts() {
+        if (activePackage) {
+            toastr.warning('A package is active. Remove it first to add individual products.', 'Package Active');
+            return false;
+        }
+        return true;
+    }
+
+    // Get the correct subtotal (package price if package is active, otherwise sum of items)
+    function getOrderSubtotal() {
+        if (activePackage) {
+            return parseFloat(activePackage.packagePrice);
+        }
+        return selectedProducts.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+    }
+
+    // Update packages pagination
+    function updatePackagesPagination(pagination) {
+        const paginationContainer = $('#packages-pagination');
+        let html = '';
+
+        if (pagination.last_page > 1) {
+            html += '<nav aria-label="Packages pagination"><ul class="pagination pagination-sm justify-content-center">';
+
+            // Previous button
+            html += `<li class="page-item ${pagination.current_page === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadPackagesPage(${pagination.current_page - 1})">
+                    <i class="mdi mdi-chevron-left"></i>
+                </a>
+            </li>`;
+
+            // Page numbers
+            for (let i = 1; i <= pagination.last_page; i++) {
+                if (i === 1 || i === pagination.last_page ||
+                    (i >= pagination.current_page - 1 && i <= pagination.current_page + 1)) {
+                    html += `<li class="page-item ${i === pagination.current_page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadPackagesPage(${i})">${i}</a>
+                    </li>`;
+                } else if (i === pagination.current_page - 2 || i === pagination.current_page + 2) {
+                    html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            // Next button
+            html += `<li class="page-item ${pagination.current_page === pagination.last_page ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadPackagesPage(${pagination.current_page + 1})">
+                    <i class="mdi mdi-chevron-right"></i>
+                </a>
+            </li>`;
+
+            html += '</ul></nav>';
+        }
+
+        paginationContainer.html(html);
+    }
+
+    // Load packages page
+    window.loadPackagesPage = function(page) {
+        if (page < 1) return;
+        currentPackagesPage = page;
+        loadPackages(page, currentPackageSearch);
+    };
+
+    // Package search with debouncing
+    function performPackageSearch() {
+        clearTimeout(packageSearchTimeout);
+        packageSearchTimeout = setTimeout(function() {
+            currentPackageSearch = $('#package-search').val();
+            currentPackagesPage = 1;
+            loadPackages(1, currentPackageSearch);
+        }, 300);
+    }
+
+    // Bind package search events
+    $('#package-search').on('input', performPackageSearch);
+
+    $('#package-search').keypress(function(e) {
+        if (e.which === 13) {
+            clearTimeout(packageSearchTimeout);
+            performPackageSearch();
+        }
+    });
+
+    // ==========================================
+    // END PACKAGE SELECTION FUNCTIONALITY
+    // ==========================================
+
     // Show step
     function showStep(step) {
         // Save shipping form data when leaving step 4
         if (currentStep === 4) {
             saveShippingFormData();
+            // Reset Next button state when leaving step 4
+            $('#next-btn').prop('disabled', false)
+                .addClass('btn-primary')
+                .removeClass('btn-secondary')
+                .html('<i class="bx bx-right-arrow-alt me-1"></i>Next');
         }
 
         // Hide all steps first
@@ -2866,12 +4060,26 @@ $(document).ready(function() {
         if (step === 6) {
             updateAffiliateSummary();
         }
+
+        // Populate order review when step 7 is shown
+        if (step === 7) {
+            populateOrderReview();
+        }
     }
+
+    // Store affiliate commissions data
+    let affiliateCommissions = [];
+    let totalAffiliateCommission = 0;
 
     // Update affiliate summary (Step 6)
     function updateAffiliateSummary() {
-        // Calculate subtotal from selected products
-        const subtotal = selectedProducts.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+        // Show loading state
+        $('#affiliate-loading').show();
+        $('#affiliate-commissions-container').hide();
+        $('#no-affiliates-found').hide();
+
+        // Calculate subtotal (uses package price if package is active)
+        const subtotal = getOrderSubtotal();
 
         // Get shipping from previous calculation (if available)
         let shippingTotal = 0;
@@ -2887,7 +4095,128 @@ $(document).ready(function() {
             discountTotal = parseFloat(discountText.replace(/[-₱,]/g, '')) || 0;
         }
 
+        // Update product summary
+        updateAffiliateProductSummary();
+
+        // Call API to get affiliate commissions
+        if (selectedClient && selectedProducts.length > 0) {
+            loadAffiliateCommissions(subtotal, shippingTotal, discountTotal);
+        } else {
+            // No client or products selected
+            $('#affiliate-loading').hide();
+            $('#no-affiliates-found').show();
+            updateAffiliateOrderTotals(subtotal, shippingTotal, discountTotal, 0);
+        }
+    }
+
+    // Load affiliate commissions from API
+    function loadAffiliateCommissions(subtotal, shippingTotal, discountTotal) {
+        const cartItems = selectedProducts.map(item => ({
+            variantId: item.variantId,
+            productId: item.productId,
+            productName: item.productName,
+            variantName: item.variantName,
+            productStore: item.productStore,
+            quantity: item.quantity,
+            price: item.price
+        }));
+
+        $.ajax({
+            url: '/ecom-orders-custom-add/affiliate-commissions',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                clientId: selectedClient.id,
+                cartItems: JSON.stringify(cartItems)
+            },
+            success: function(response) {
+                $('#affiliate-loading').hide();
+
+                if (response.success) {
+                    affiliateCommissions = response.commissions || [];
+                    totalAffiliateCommission = response.totalCommission || 0;
+
+                    if (affiliateCommissions.length > 0) {
+                        renderAffiliateCommissions(affiliateCommissions);
+                        $('#affiliate-commissions-container').show();
+                        $('#no-affiliates-found').hide();
+                    } else {
+                        $('#affiliate-commissions-container').hide();
+                        $('#no-affiliates-found').show();
+                    }
+
+                    updateAffiliateOrderTotals(subtotal, shippingTotal, discountTotal, totalAffiliateCommission);
+                } else {
+                    $('#no-affiliates-found').show();
+                    updateAffiliateOrderTotals(subtotal, shippingTotal, discountTotal, 0);
+                }
+            },
+            error: function() {
+                $('#affiliate-loading').hide();
+                $('#no-affiliates-found').show();
+                updateAffiliateOrderTotals(subtotal, shippingTotal, discountTotal, 0);
+            }
+        });
+    }
+
+    // Render affiliate commissions table
+    function renderAffiliateCommissions(commissions) {
+        let html = '';
+
+        commissions.forEach(function(item) {
+            html += `
+                <tr>
+                    <td class="text-dark">
+                        <i class="mdi mdi-store me-1 text-primary"></i>
+                        ${escapeHtml(item.storeName)}
+                    </td>
+                    <td class="text-dark">
+                        <i class="mdi mdi-account me-1 text-success"></i>
+                        ${escapeHtml(item.affiliateName)}
+                        <br><small class="text-secondary">${escapeHtml(item.affiliatePhone || '')}</small>
+                    </td>
+                    <td class="text-dark">
+                        ${escapeHtml(item.productName)}
+                        <br><small class="text-secondary">${escapeHtml(item.variantName)}</small>
+                    </td>
+                    <td class="text-center text-dark">${item.quantity}</td>
+                    <td class="text-end text-dark">₱${formatNumber(item.affiliateRate)}</td>
+                    <td class="text-end text-success fw-bold">₱${formatNumber(item.commission)}</td>
+                </tr>
+            `;
+        });
+
+        $('#affiliate-commissions-tbody').html(html);
+        $('#total-affiliate-commission').text('₱' + formatNumber(totalAffiliateCommission));
+    }
+
+    // Update affiliate product summary
+    function updateAffiliateProductSummary() {
+        let html = '<table class="table table-sm table-bordered mb-0">';
+        html += '<thead class="table-light"><tr><th>Product</th><th>Variant</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th></tr></thead>';
+        html += '<tbody>';
+
+        selectedProducts.forEach(function(item) {
+            const itemTotal = parseFloat(item.price) * item.quantity;
+            html += `
+                <tr>
+                    <td class="text-dark">${escapeHtml(item.productName)}</td>
+                    <td class="text-dark">${escapeHtml(item.variantName)}</td>
+                    <td class="text-center text-dark">${item.quantity}</td>
+                    <td class="text-end text-dark">₱${formatNumber(item.price)}</td>
+                    <td class="text-end text-dark">₱${formatNumber(itemTotal)}</td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        $('#affiliate-product-summary').html(html);
+    }
+
+    // Update affiliate order totals
+    function updateAffiliateOrderTotals(subtotal, shippingTotal, discountTotal, commissionTotal) {
         const grandTotal = Math.max(0, subtotal - discountTotal + shippingTotal);
+        const netRevenue = grandTotal - commissionTotal;
 
         // Update affiliate summary
         $('#affiliate-subtotal').text('₱' + formatNumber(subtotal));
@@ -2898,6 +4227,16 @@ $(document).ready(function() {
             $('#affiliate-discount-row').show();
         } else {
             $('#affiliate-discount-row').hide();
+        }
+
+        if (commissionTotal > 0) {
+            $('#affiliate-commission-display').text('₱' + formatNumber(commissionTotal));
+            $('#affiliate-commission-row').show();
+            $('#affiliate-net-revenue').html('<small>₱' + formatNumber(netRevenue) + '</small>');
+            $('#affiliate-net-revenue-row').show();
+        } else {
+            $('#affiliate-commission-row').hide();
+            $('#affiliate-net-revenue-row').hide();
         }
 
         $('#affiliate-grand-total').text('₱' + formatNumber(grandTotal));
@@ -2921,8 +4260,8 @@ $(document).ready(function() {
                 $field.removeClass('is-invalid');
                 $field.siblings('.invalid-feedback').text('');
 
-                // Basic client-side validation
-                if ($field.prop('required') && !value.trim()) {
+                // Basic client-side validation (skip disabled fields)
+                if ($field.prop('required') && !$field.prop('disabled') && (!value || !value.trim())) {
                     $field.addClass('is-invalid');
                     $field.siblings('.invalid-feedback').text('This field is required.');
                     isValid = false;
@@ -2980,8 +4319,33 @@ $(document).ready(function() {
                 product.productType === 'ship' || product.productType === 'Ship'
             );
 
-            // Validate ship coverage for ship products
+            // Check if shipping type is selected when there are ship products
+            const shippingType = $('#shipping_type').val();
+            if (shipProducts.length > 0 && !shippingType) {
+                showErrorAlertModal('Please select a Shipping Type (Regular, Cash on Delivery, or Cash on Pickup) before proceeding.');
+                return false;
+            }
+
+            // Check if province is selected when there are ship products
             const province = $('#shipping_province').val();
+            if (shipProducts.length > 0 && !province) {
+                showErrorAlertModal('Please select a shipping province to view available shipping options for your products.');
+                return false;
+            }
+
+            // Check if still loading shipping options
+            if (shipProducts.length > 0 && (shippingOptionsLoading || pendingShippingLoads > 0)) {
+                showErrorAlertModal('Please wait for shipping options to finish loading before proceeding.');
+                return false;
+            }
+
+            // Check if any ship products have shipping errors (no shipping method available)
+            if (shipProducts.length > 0 && hasShippingErrors) {
+                showErrorAlertModal('One or more products do not have shipping methods configured for the selected province. Please configure shipping settings before proceeding.');
+                return false;
+            }
+
+            // Validate ship coverage for ship products
             const shipCoverageErrors = [];
 
             shipProducts.forEach(product => {
@@ -3004,12 +4368,11 @@ $(document).ready(function() {
             }
 
             if (shipProducts.length > 0) {
-                // Validate all required shipping address fields
+                // Validate all required shipping address fields (middle name, house number, street are optional)
                 const requiredFields = [
-                    'shipping_first_name', 'shipping_middle_name', 'shipping_last_name',
-                    'shipping_phone', 'shipping_email', 'shipping_house_number',
-                    'shipping_street', 'shipping_province', 'shipping_municipality',
-                    'shipping_barangay', 'shipping_zip_code'
+                    'shipping_first_name', 'shipping_last_name',
+                    'shipping_phone', 'shipping_email', 'shipping_province',
+                    'shipping_municipality', 'shipping_barangay', 'shipping_zip_code'
                 ];
 
                 const missingFields = [];
@@ -3062,6 +4425,7 @@ $(document).ready(function() {
             shipping_house_number: $('#shipping_house_number').val(),
             shipping_street: $('#shipping_street').val(),
             shipping_zone: $('#shipping_zone').val(),
+            shipping_type: $('#shipping_type').val(),
             shipping_province: $('#shipping_province').val(),
             shipping_municipality: $('#shipping_municipality').val(),
             shipping_barangay: $('#shipping_barangay').val(),
@@ -3084,6 +4448,12 @@ $(document).ready(function() {
                 $('#shipping_street').val(shippingFormData.shipping_street || '');
                 $('#shipping_zone').val(shippingFormData.shipping_zone || '');
                 $('#shipping_zip_code').val(shippingFormData.shipping_zip_code || '');
+
+                // Restore shipping type and trigger info update
+                if (shippingFormData.shipping_type) {
+                    $('#shipping_type').val(shippingFormData.shipping_type);
+                    updateShippingTypeInfo(shippingFormData.shipping_type);
+                }
 
                 // Restore province and trigger municipality load
                 $('#shipping_province').val(shippingFormData.shipping_province);
@@ -3154,7 +4524,12 @@ $(document).ready(function() {
         } catch (error) {
             $btn.prop('disabled', false).html(originalHtml);
             console.error('Validation error:', error);
-            showErrorAlertModal('An error occurred while validating. Please try again.');
+            // Show more detailed error message
+            let errorMsg = 'An error occurred while validating. Please try again.';
+            if (error && error.message) {
+                errorMsg = error.message;
+            }
+            showErrorAlertModal(errorMsg);
         }
 
         return false;
@@ -3240,15 +4615,31 @@ $(document).ready(function() {
 
     // Validate shipping rates (Step 4 → Step 5)
     async function validateShippingBeforeNext() {
+        // Filter only ship products for validation
+        const shipProducts = selectedProducts.filter(item =>
+            item.productType === 'ship' || item.productType === 'Ship'
+        );
+
+        // Skip validation if no ship products - only access products don't need shipping validation
+        if (shipProducts.length === 0) {
+            return {
+                hasChanges: false,
+                changes: [],
+                updatedData: { newShipping: 0 },
+                updateCallback: null
+            };
+        }
+
         const cartItems = selectedProducts.map(item => ({
             productId: item.productId,
+            variantId: item.variantId,
             productType: item.productType,
             quantity: item.quantity
         }));
 
-        // Get current shipping value from the display
+        // Get current shipping value from the display (only for ship products)
         let currentShipping = 0;
-        const shippingText = $('#shipping_total_calculated').text();
+        const shippingText = $('#total-shipping').text();
         if (shippingText) {
             currentShipping = parseFloat(shippingText.replace(/[₱,]/g, '')) || 0;
         }
@@ -3274,7 +4665,7 @@ $(document).ready(function() {
                             updateCallback: function(updatedData) {
                                 // Update shipping display
                                 const newShipping = updatedData.newShipping || 0;
-                                $('#shipping_total_calculated').text('₱' + formatNumber(newShipping));
+                                $('#total-shipping').text('₱' + formatNumber(newShipping));
                                 orderShipping = newShipping;
                             }
                         });
@@ -3282,8 +4673,8 @@ $(document).ready(function() {
                         reject(new Error(response.message || 'Validation failed'));
                     }
                 },
-                error: function(xhr) {
-                    reject(new Error(xhr.responseJSON?.message || 'Network error'));
+                error: function(xhr, status, errorThrown) {
+                    reject(new Error(xhr.responseJSON?.message || 'Shipping validation failed: ' + (errorThrown || 'Network error')));
                 }
             });
         });
@@ -3451,21 +4842,15 @@ $(document).ready(function() {
         }
     }
 
-    // Phone number validation function
+    // Phone number validation function (only accepts 09XXXXXXXXX format)
     function isValidPhoneNumber(phone) {
         // Remove any spaces or dashes
         const cleanPhone = phone.replace(/[\s-]/g, '');
 
-        // Check for 09XXXXXXXXX format (11 digits starting with 09)
+        // Only accept 09XXXXXXXXX format (11 digits starting with 09)
         const format09 = /^09\d{9}$/;
 
-        // Check for +63XXXXXXXXX format (13 characters starting with +63)
-        const formatPlus63 = /^\+63\d{9}$/;
-
-        // Check for 63XXXXXXXXX format (12 characters starting with 63)
-        const format63 = /^63\d{9}$/;
-
-        return format09.test(cleanPhone) || formatPlus63.test(cleanPhone) || format63.test(cleanPhone);
+        return format09.test(cleanPhone);
     }
 
     // Email validation function
@@ -3474,13 +4859,30 @@ $(document).ready(function() {
         return emailRegex.test(email);
     }
 
-    // Check phone number uniqueness
+    // Check phone number uniqueness for clients
     function checkPhoneNumberUniqueness(phoneNumber) {
         return new Promise(function(resolve, reject) {
             $.ajax({
                 url: '{{ route("ecom-orders-custom-add.check-client-phone") }}',
                 type: 'GET',
                 data: { phone_number: phoneNumber },
+                success: function(response) {
+                    resolve(response);
+                },
+                error: function() {
+                    resolve({ success: false, exists: false });
+                }
+            });
+        });
+    }
+
+    // Check email uniqueness for clients
+    function checkClientEmailUniqueness(email) {
+        return new Promise(function(resolve, reject) {
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.check-client-email") }}',
+                type: 'GET',
+                data: { email: email },
                 success: function(response) {
                     resolve(response);
                 },
@@ -3511,7 +4913,7 @@ $(document).ready(function() {
         if (fieldId === 'newClientPhoneNumber') {
             if (!isValidPhoneNumber(value)) {
                 field.addClass('is-invalid');
-                feedback.text('Phone number must be in format: 09XXXXXXXXX, +63XXXXXXXXX, or 63XXXXXXXXX');
+                feedback.text('Phone number must be in format: 09XXXXXXXXX (11 digits starting with 09)');
                 return false;
             } else {
                 // Check phone number uniqueness
@@ -3529,6 +4931,14 @@ $(document).ready(function() {
                 field.addClass('is-invalid');
                 feedback.text('Please enter a valid email address.');
                 return false;
+            } else {
+                // Check email uniqueness
+                const uniquenessResult = await checkClientEmailUniqueness(value);
+                if (uniquenessResult.success && uniquenessResult.exists) {
+                    field.addClass('is-invalid');
+                    feedback.text('This email address already exists in the database.');
+                    return false;
+                }
             }
         }
 
@@ -3822,6 +5232,17 @@ $(document).ready(function() {
             const fullName = `${client.clientFirstName || ''} ${client.clientMiddleName || ''} ${client.clientLastName || ''}`.trim();
             const isSelected = selectedClient && selectedClient.id === client.id;
 
+            // Store client data as JSON for onclick
+            const clientDataJson = JSON.stringify({
+                id: client.id,
+                firstName: client.clientFirstName || '',
+                middleName: client.clientMiddleName || '',
+                lastName: client.clientLastName || '',
+                fullName: fullName,
+                phone: client.clientPhoneNumber || '',
+                email: client.clientEmailAddress || ''
+            }).replace(/"/g, '&quot;');
+
             html += `
                 <tr class="client-row ${isSelected ? 'table-primary' : ''}" data-client-id="${client.id}">
                     <td>
@@ -3835,7 +5256,7 @@ $(document).ready(function() {
                     </td>
                     <td>
                         <button class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-outline-primary'}"
-                                onclick="selectClient(${client.id}, '${fullName.replace(/'/g, "\\'")}', '${client.clientPhoneNumber || ''}', '${client.clientEmailAddress || ''}')"
+                                onclick="selectClient('${clientDataJson}')"
                                 title="${isSelected ? 'Selected' : 'Select Client'}">
                             <i class="mdi ${isSelected ? 'mdi-check' : 'mdi-account-plus'}"></i>
                         </button>
@@ -3849,7 +5270,11 @@ $(document).ready(function() {
     }
 
     // Select/Unselect client
-    window.selectClient = function(clientId, fullName, phone, email) {
+    window.selectClient = function(clientDataJson) {
+        // Parse the JSON string to get client data
+        const clientData = typeof clientDataJson === 'string' ? JSON.parse(clientDataJson) : clientDataJson;
+        const clientId = clientData.id;
+
         const selectedRow = $(`.client-row[data-client-id="${clientId}"]`);
         const isCurrentlySelected = selectedClient && selectedClient.id === clientId;
 
@@ -3878,14 +5303,16 @@ $(document).ready(function() {
             selectBtn.find('i').removeClass('mdi-account-plus').addClass('mdi-check');
             selectBtn.attr('title', 'Selected');
 
-            // Store selected client
+            // Store selected client with all name fields
             selectedClient = {
-                id: clientId,
-                fullName: fullName,
-                phone: phone,
-                email: email
+                id: clientData.id,
+                firstName: clientData.firstName || '',
+                middleName: clientData.middleName || '',
+                lastName: clientData.lastName || '',
+                fullName: clientData.fullName || '',
+                phone: clientData.phone || '',
+                email: clientData.email || ''
             };
-
 
             // Update hidden input
             $('#selectedClient').val(JSON.stringify(selectedClient));
@@ -4115,15 +5542,31 @@ $(document).ready(function() {
 
     // Load ship products by store for step 4
     function loadShipProductsStores() {
+        // Reset shipping error state
+        hasShippingErrors = false;
+        selectedShippingMethods = {};
+        pendingShippingLoads = 0;
+        shippingOptionsLoading = false;
+        $('#shipping-error-banner').hide();
+
+        // Filter ship products
         const shipProducts = selectedProducts.filter(product => {
-            // Check if product type is 'ship' - you may need to adjust this based on your data structure
             return product.productType === 'ship' || product.productType === 'Ship';
         });
+
+        // Filter access products
+        const accessProducts = selectedProducts.filter(product => {
+            return product.productType === 'access' || product.productType === 'Access';
+        });
+
+        // Display access products section if any exist
+        loadAccessProducts(accessProducts);
 
         if (shipProducts.length === 0) {
             $('#no-ship-products').show();
             $('#ship-stores-container').hide();
             $('#shipping-address-section').hide();
+            $('#shipping-type-section').hide();
 
             // Remove required attribute from shipping fields when hidden
             $('#shipping-address-section input[required], #shipping-address-section select[required]').each(function() {
@@ -4149,6 +5592,7 @@ $(document).ready(function() {
             $('#no-ship-products').hide();
             $('#ship-stores-container').show();
             $('#shipping-address-section').show();
+            $('#shipping-type-section').show();
 
             // Restore required attribute to shipping fields when shown
             $('#shipping-address-section input[data-was-required], #shipping-address-section select[data-was-required]').each(function() {
@@ -4216,6 +5660,22 @@ $(document).ready(function() {
         $('#no-ship-products').hide();
         $('#ship-stores-container').show();
 
+        // Set loading state - count stores with ship products that will need shipping options
+        const storesWithProducts = uniqueStores.filter(store => {
+            const storeShipProducts = selectedProducts.filter(product =>
+                product.productStore === store &&
+                (product.productType === 'ship' || product.productType === 'Ship')
+            );
+            return storeShipProducts.length > 0;
+        });
+
+        if (storesWithProducts.length > 0) {
+            pendingShippingLoads = storesWithProducts.length;
+            shippingOptionsLoading = true;
+            // Disable Next button while loading
+            updateNextButtonState();
+        }
+
         // Load ship products for each store
         uniqueStores.forEach(store => {
             loadShipProductsForStore(store);
@@ -4256,48 +5716,674 @@ $(document).ready(function() {
             return;
         }
 
-        // Generate products HTML
+        // Get the selected province and shipping type
+        const province = $('#shipping_province').val() || '';
+        const shippingType = $('#shipping_type').val() || '';
+
+        // If no province or shipping type selected, show message prompting user to select
+        if (!province || !shippingType) {
+            let missingFields = [];
+            if (!shippingType) missingFields.push('Shipping Type');
+            if (!province) missingFields.push('Province');
+
+            $(containerId).html(`
+                <div class="alert alert-info mb-0">
+                    <i class="mdi mdi-information-outline me-2"></i>
+                    <strong>Selection Required:</strong> Please select ${missingFields.join(' and ')} above to view available shipping options for these products.
+                </div>
+                <div class="mt-3">
+                    <h6 class="text-dark mb-2">Products awaiting shipping configuration (${storeShipProducts.length})</h6>
+                    ${storeShipProducts.map(product => `
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <span class="text-dark">${product.productName || 'Unnamed Product'}</span>
+                                <small class="text-secondary ms-2">${product.variantName || 'Default'}</small>
+                            </div>
+                            <span class="badge bg-secondary">Qty: ${product.quantity || 1}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `);
+            // Decrement pending loads since we're not making an AJAX call
+            decrementPendingShippingLoads();
+            return;
+        }
+
+        // Show loading state while fetching shipping options
+        $(containerId).html(`
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading shipping options...</p>
+            </div>
+        `);
+
+        // Get shipping options for these products
+        loadShippingOptionsForStore(store, storeShipProducts, province, shippingType);
+    }
+
+    // Load shipping options for products in a store
+    function loadShippingOptionsForStore(store, storeShipProducts, province, shippingType) {
+        const storeId = store.replace(/\s+/g, '-').toLowerCase();
+        const containerId = `#ship-products-${storeId}`;
+
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.get-shipping-options") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                selectedProducts: storeShipProducts,
+                province: province,
+                shippingType: shippingType
+            },
+            success: function(response) {
+                if (response.success) {
+                    displayShipProductsWithShipping(containerId, storeShipProducts, response.data);
+                } else {
+                    $(containerId).html(`
+                        <div class="alert alert-danger">
+                            <i class="mdi mdi-alert-circle me-2"></i>
+                            Error loading shipping options: ${response.message}
+                        </div>
+                    `);
+                    // Mark as having errors and decrement pending counter
+                    hasShippingErrors = true;
+                    decrementPendingShippingLoads();
+                }
+            },
+            error: function(xhr) {
+                $(containerId).html(`
+                    <div class="alert alert-danger">
+                        <i class="mdi mdi-alert-circle me-2"></i>
+                        Error loading shipping options. Please try again.
+                    </div>
+                `);
+                // Mark as having errors and decrement pending counter
+                hasShippingErrors = true;
+                decrementPendingShippingLoads();
+            }
+        });
+    }
+
+    // Helper function to decrement pending shipping loads and update state
+    function decrementPendingShippingLoads() {
+        pendingShippingLoads--;
+        if (pendingShippingLoads <= 0) {
+            pendingShippingLoads = 0;
+            shippingOptionsLoading = false;
+
+            // Show shipping method selection if multiple methods available
+            updateShippingMethodSelection();
+
+            // Recalculate shipping costs when all loads are complete
+            // This ensures the Shipping & Total Calculation section is updated
+            calculateShippingCosts();
+        }
+        updateNextButtonState();
+    }
+
+    // Update the shipping method selection UI
+    function updateShippingMethodSelection() {
+        const methodIds = Object.keys(availableShippingMethods);
+        const $section = $('#shipping-method-section');
+        const $list = $('#shipping-methods-list');
+
+        // Only show if there are 2 or more shipping methods available
+        if (methodIds.length >= 2) {
+            let methodsHtml = '';
+
+            methodIds.forEach(methodId => {
+                const method = availableShippingMethods[methodId];
+                const isSelected = selectedGlobalShippingMethod == methodId;
+
+                // Count how many products can use this method
+                let applicableCount = 0;
+                Object.keys(allProductShippingData).forEach(variantId => {
+                    const data = allProductShippingData[variantId];
+                    if (data.shippingOptions.some(o => o.shippingId == methodId)) {
+                        applicableCount++;
+                    }
+                });
+
+                const totalProducts = Object.keys(allProductShippingData).length;
+                const applicableText = applicableCount === totalProducts
+                    ? 'All products'
+                    : `${applicableCount} of ${totalProducts} products`;
+
+                methodsHtml += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card shipping-method-card h-100 ${isSelected ? 'border-primary selected' : 'border-secondary'}"
+                             data-method-id="${method.shippingId}"
+                             style="cursor: pointer; transition: all 0.2s ease;">
+                            <div class="card-body text-center py-3">
+                                <div class="mb-2">
+                                    <i class="mdi mdi-truck-delivery text-primary" style="font-size: 2rem;"></i>
+                                </div>
+                                <h6 class="card-title text-dark mb-1">${escapeHtml(method.shippingName)}</h6>
+                                <p class="text-secondary small mb-2">${escapeHtml(method.shippingType || 'Regular')}</p>
+                                <div class="mb-2">
+                                    <span class="badge bg-success">₱${parseFloat(method.pricePerBatch).toFixed(2)} per ${method.maxQuantity} items</span>
+                                </div>
+                                <small class="text-muted">${applicableText}</small>
+                                ${isSelected ? '<div class="mt-2"><i class="mdi mdi-check-circle text-primary" style="font-size: 1.5rem;"></i></div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $list.html(methodsHtml);
+            $section.show();
+
+            // Bind click events for method cards
+            $('.shipping-method-card').on('click', function() {
+                const methodId = parseInt($(this).data('method-id'));
+                selectGlobalShippingMethod(methodId);
+            });
+
+            // Update the selected info display
+            if (selectedGlobalShippingMethod) {
+                const method = availableShippingMethods[selectedGlobalShippingMethod];
+                if (method) {
+                    $('#selected-method-name').text(method.shippingName);
+                    $('#selected-method-price').text('₱' + parseFloat(method.pricePerBatch).toFixed(2) + ' per ' + method.maxQuantity + ' items');
+                    $('#selected-shipping-method-info').show();
+                }
+            }
+        } else {
+            // Hide the section if only 0 or 1 method available
+            $section.hide();
+            selectedGlobalShippingMethod = null;
+        }
+    }
+
+    // Select a global shipping method
+    function selectGlobalShippingMethod(methodId) {
+        selectedGlobalShippingMethod = methodId;
+        const method = availableShippingMethods[methodId];
+
+        // Update card styling
+        $('.shipping-method-card').removeClass('border-primary selected').addClass('border-secondary');
+        $(`.shipping-method-card[data-method-id="${methodId}"]`).removeClass('border-secondary').addClass('border-primary selected');
+
+        // Add checkmark to selected card
+        $('.shipping-method-card .mdi-check-circle').parent().remove();
+        $(`.shipping-method-card[data-method-id="${methodId}"] .card-body`).append(
+            '<div class="mt-2"><i class="mdi mdi-check-circle text-primary" style="font-size: 1.5rem;"></i></div>'
+        );
+
+        // Update selected info display
+        $('#selected-method-name').text(method.shippingName);
+        $('#selected-method-price').text('₱' + parseFloat(method.pricePerBatch).toFixed(2) + ' per ' + method.maxQuantity + ' items');
+        $('#selected-shipping-method-info').show();
+
+        // Apply to all products that support this method
+        Object.keys(allProductShippingData).forEach(variantId => {
+            const data = allProductShippingData[variantId];
+            const hasMethod = data.shippingOptions.some(o => o.shippingId == methodId);
+
+            if (hasMethod) {
+                selectedShippingMethods[variantId] = methodId;
+
+                // Update the display for this product
+                const $card = $(`[data-variant-id="${variantId}"]`);
+                const option = data.shippingOptions.find(o => o.shippingId == methodId);
+                if ($card.length && option) {
+                    // Update shipping method column to show display instead of selector
+                    $card.find('.shipping-method-column').html(generateShippingDisplay(option));
+
+                    // Update shipping cost display
+                    $card.find('.shipping-cost-display').text('₱' + option.shippingCost.toFixed(2));
+                }
+            }
+        });
+
+        // Recalculate shipping costs
+        calculateShippingCosts();
+
+        toastr.success(`Shipping method "${method.shippingName}" applied to all applicable products.`, 'Shipping Method Selected');
+    }
+
+    // Display ship products with shipping options
+    function displayShipProductsWithShipping(containerId, storeShipProducts, shippingData) {
+        // Check if this is a package purchase
+        const isPackagePurchase = activePackage !== null;
+
         let productsHtml = `
             <div class="mb-3">
-                <h6>Selected Ship Products (${storeShipProducts.length})</h6>
+                <h6 class="text-dark">Selected Ship Products (${storeShipProducts.length})</h6>
             </div>
         `;
+
+        // If package purchase, show package info banner
+        if (isPackagePurchase) {
+            productsHtml += `
+                <div class="alert alert-info mb-3">
+                    <i class="mdi mdi-package-variant-closed me-2"></i>
+                    <strong>Package Purchase:</strong> ${escapeHtml(activePackage.packageName)}
+                    <span class="badge bg-success ms-2">Package Price: ₱${parseFloat(activePackage.packagePrice).toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        let storeHasShippingErrors = false;
 
         storeShipProducts.forEach((product, index) => {
             const quantity = product.quantity || 1;
             const price = parseFloat(product.price) || 0;
             const subtotal = quantity * price;
+            const variantId = product.variantId;
 
-            productsHtml += `
-                <div class="card mb-2">
-                    <div class="card-body py-2">
-                        <div class="row align-items-center">
-                            <div class="col-md-3">
-                                <h6 class="mb-1">${product.productName || 'Unnamed Product'}</h6>
-                            </div>
-                            <div class="col-md-3">
-                                <small class="text-muted">Variant:</small>
-                                <div class="fw-medium">${product.variantName || 'Default'}</div>
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <small class="text-muted">Quantity:</small>
-                                <div class="fw-bold text-primary">${quantity}</div>
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <small class="text-muted">Price:</small>
-                                <div class="fw-medium">$${price.toFixed(2)}</div>
-                            </div>
-                            <div class="col-md-2 text-end">
-                                <small class="text-muted">Subtotal:</small>
-                                <div class="fw-bold text-success">$${subtotal.toFixed(2)}</div>
+            // Find shipping data for this product
+            const productShipping = shippingData.products.find(p => p.variantId == variantId);
+            const hasShipping = productShipping && productShipping.hasShippingOptions;
+            const shippingOptions = productShipping ? productShipping.shippingOptions : [];
+
+            if (!hasShipping) {
+                storeHasShippingErrors = true;
+                hasShippingErrors = true;
+            }
+
+            // Store shipping options for this variant (for global method selection)
+            allProductShippingData[variantId] = {
+                product: product,
+                shippingOptions: shippingOptions,
+                hasShipping: hasShipping
+            };
+
+            // Collect all unique shipping methods for global selection
+            shippingOptions.forEach(option => {
+                if (!availableShippingMethods[option.shippingId]) {
+                    availableShippingMethods[option.shippingId] = {
+                        shippingId: option.shippingId,
+                        shippingName: option.shippingName,
+                        shippingType: option.shippingType,
+                        shippingDescription: option.shippingDescription,
+                        pricePerBatch: option.pricePerBatch,
+                        maxQuantity: option.maxQuantity
+                    };
+                }
+            });
+
+            // Initialize selected shipping method
+            // If global method is selected and available for this product, use it
+            // Otherwise use first available option
+            if (hasShipping) {
+                if (selectedGlobalShippingMethod && shippingOptions.find(o => o.shippingId == selectedGlobalShippingMethod)) {
+                    selectedShippingMethods[variantId] = selectedGlobalShippingMethod;
+                } else if (!selectedShippingMethods[variantId]) {
+                    selectedShippingMethods[variantId] = shippingOptions[0].shippingId;
+                }
+            }
+
+            const selectedShippingId = selectedShippingMethods[variantId];
+            const selectedOption = shippingOptions.find(o => o.shippingId == selectedShippingId);
+            const shippingCost = selectedOption ? selectedOption.shippingCost : 0;
+
+            // Determine if we should show the selector (hide if global method is selected)
+            const showSelector = !selectedGlobalShippingMethod || shippingOptions.length <= 1;
+
+            if (isPackagePurchase) {
+                // Package purchase - hide price column, show only product info and shipping
+                productsHtml += `
+                    <div class="card mb-2 ${!hasShipping ? 'border-danger' : ''}" data-variant-id="${variantId}">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <h6 class="mb-1 text-dark">${product.productName || 'Unnamed Product'}</h6>
+                                    <small class="text-secondary">${product.variantName || 'Default'}</small>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <small class="text-secondary d-block">Qty</small>
+                                    <span class="fw-bold text-primary">${quantity}</span>
+                                </div>
+                                <div class="col-md-4 shipping-method-column">
+                                    ${hasShipping ? (showSelector ? generateShippingSelector(variantId, shippingOptions, selectedShippingId) : generateShippingDisplay(selectedOption)) : `
+                                        <div class="alert alert-danger mb-0 py-1 px-2">
+                                            <small><i class="mdi mdi-alert-circle me-1"></i>No shipping method configured</small>
+                                        </div>
+                                    `}
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <small class="text-secondary d-block">Shipping</small>
+                                    <span class="fw-bold shipping-cost-display ${hasShipping ? 'text-success' : 'text-danger'}">
+                                        ${hasShipping ? '₱' + shippingCost.toFixed(2) : 'N/A'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
+                `;
+            } else {
+                // Regular purchase - show all columns including price
+                productsHtml += `
+                    <div class="card mb-2 ${!hasShipping ? 'border-danger' : ''}" data-variant-id="${variantId}">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <h6 class="mb-1 text-dark">${product.productName || 'Unnamed Product'}</h6>
+                                    <small class="text-secondary">${product.variantName || 'Default'}</small>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <small class="text-secondary d-block">Qty</small>
+                                    <span class="fw-bold text-primary">${quantity}</span>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <small class="text-secondary d-block">Price</small>
+                                    <span class="text-dark">₱${price.toFixed(2)}</span>
+                                </div>
+                                <div class="col-md-3 shipping-method-column">
+                                    ${hasShipping ? (showSelector ? generateShippingSelector(variantId, shippingOptions, selectedShippingId) : generateShippingDisplay(selectedOption)) : `
+                                        <div class="alert alert-danger mb-0 py-1 px-2">
+                                            <small><i class="mdi mdi-alert-circle me-1"></i>No shipping method configured</small>
+                                        </div>
+                                    `}
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <small class="text-secondary d-block">Shipping</small>
+                                    <span class="fw-bold shipping-cost-display ${hasShipping ? 'text-success' : 'text-danger'}">
+                                        ${hasShipping ? '₱' + shippingCost.toFixed(2) : 'N/A'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        // Add error message if any product has no shipping
+        if (storeHasShippingErrors) {
+            productsHtml = `
+                <div class="alert alert-danger mb-3">
+                    <i class="mdi mdi-alert-circle me-2"></i>
+                    <strong>Shipping Configuration Required:</strong> Some products do not have shipping methods configured.
+                    Please <a href="{{ route('ecom-shipping') }}" target="_blank">configure shipping settings</a> before proceeding.
                 </div>
+            ` + productsHtml;
+        }
+
+        $(containerId).html(productsHtml);
+
+        // Decrement pending loads counter and update Next button state
+        decrementPendingShippingLoads();
+
+        // Bind change events for shipping selectors
+        $(containerId).find('.shipping-method-select').on('change', function() {
+            const variantId = $(this).data('variant-id');
+            const shippingId = $(this).val();
+            selectedShippingMethods[variantId] = parseInt(shippingId);
+
+            // Clear global selection since user is manually selecting per product
+            selectedGlobalShippingMethod = null;
+            $('.shipping-method-card').removeClass('border-primary selected');
+            $('#selected-shipping-method-info').hide();
+
+            // Recalculate shipping costs
+            calculateShippingCosts();
+        });
+    }
+
+    // Generate a display-only shipping method badge (when global method is selected)
+    function generateShippingDisplay(option) {
+        if (!option) return '<span class="text-muted">-</span>';
+        return `
+            <div class="small">
+                <span class="badge bg-info text-white">${option.shippingName}</span>
+                <div class="text-secondary mt-1">₱${option.pricePerBatch.toFixed(2)} per ${option.maxQuantity} items</div>
+            </div>
+        `;
+    }
+
+    // Generate shipping method selector HTML
+    function generateShippingSelector(variantId, shippingOptions, selectedShippingId) {
+        if (shippingOptions.length === 0) {
+            return '<span class="text-danger">No shipping available</span>';
+        }
+
+        if (shippingOptions.length === 1) {
+            // Single option - just display it
+            const option = shippingOptions[0];
+            return `
+                <div class="small">
+                    <span class="badge bg-info text-white">${option.shippingName}</span>
+                    <div class="text-secondary mt-1">₱${option.pricePerBatch.toFixed(2)} per ${option.maxQuantity} items</div>
+                </div>
+            `;
+        }
+
+        // Multiple options - show selector
+        let selectHtml = `
+            <select class="form-select form-select-sm shipping-method-select" data-variant-id="${variantId}">
+        `;
+
+        shippingOptions.forEach(option => {
+            const selected = option.shippingId == selectedShippingId ? 'selected' : '';
+            selectHtml += `
+                <option value="${option.shippingId}" ${selected}>
+                    ${option.shippingName} - ₱${option.shippingCost.toFixed(2)}
+                </option>
             `;
         });
 
-        $(containerId).html(productsHtml);
+        selectHtml += '</select>';
+        selectHtml += `<small class="text-secondary">${shippingOptions.length} methods available</small>`;
+
+        return selectHtml;
+    }
+
+    // Update shipping type info display
+    function updateShippingTypeInfo(shippingType) {
+        const $infoDiv = $('#shipping-type-info');
+
+        if (!shippingType) {
+            $infoDiv.html('');
+            return;
+        }
+
+        let infoHtml = '';
+        switch (shippingType) {
+            case 'Regular':
+                infoHtml = `
+                    <div class="alert alert-primary mb-0 py-2">
+                        <i class="mdi mdi-truck me-2"></i>
+                        <strong>Regular Shipping</strong>
+                        <p class="mb-0 small mt-1">Standard delivery to your address. Payment is made during checkout.</p>
+                    </div>
+                `;
+                break;
+            case 'Cash on Delivery':
+                infoHtml = `
+                    <div class="alert alert-info mb-0 py-2">
+                        <i class="mdi mdi-cash-multiple me-2"></i>
+                        <strong>Cash on Delivery (COD)</strong>
+                        <p class="mb-0 small mt-1">Pay in cash when the order is delivered to your doorstep.</p>
+                    </div>
+                `;
+                break;
+            case 'Cash on Pickup':
+                infoHtml = `
+                    <div class="alert alert-warning mb-0 py-2">
+                        <i class="mdi mdi-store me-2"></i>
+                        <strong>Cash on Pickup</strong>
+                        <p class="mb-0 small mt-1">Pick up your order at a designated location and pay in cash.</p>
+                    </div>
+                `;
+                break;
+        }
+
+        $infoDiv.html(infoHtml);
+    }
+
+    // Update Next button state based on shipping errors and loading state
+    function updateNextButtonState() {
+        if (currentStep !== 4) {
+            return; // Only manage button state for Step 4
+        }
+
+        const $nextBtn = $('#next-btn');
+        const province = $('#shipping_province').val();
+        const shippingType = $('#shipping_type').val();
+
+        // Check if there are ship products
+        const shipProducts = selectedProducts.filter(product =>
+            product.productType === 'ship' || product.productType === 'Ship'
+        );
+
+        // Check if shipping type or province is not selected when there are ship products
+        if (shipProducts.length > 0 && (!province || !shippingType)) {
+            $nextBtn.prop('disabled', true)
+                .addClass('btn-secondary')
+                .removeClass('btn-primary')
+                .html('<i class="bx bx-right-arrow-alt me-1"></i>Next');
+            $('#shipping-error-banner').hide();
+            return;
+        }
+
+        // Check if still loading shipping options
+        if (shippingOptionsLoading || pendingShippingLoads > 0) {
+            $nextBtn.prop('disabled', true)
+                .addClass('btn-secondary')
+                .removeClass('btn-primary')
+                .html('<i class="bx bx-loader-alt bx-spin me-1"></i>Loading Shipping...');
+            $('#shipping-error-banner').hide();
+            return;
+        }
+
+        // Check if there are shipping errors
+        if (hasShippingErrors) {
+            $nextBtn.prop('disabled', true)
+                .addClass('btn-secondary')
+                .removeClass('btn-primary')
+                .html('<i class="bx bx-right-arrow-alt me-1"></i>Next');
+            $('#shipping-error-banner').show();
+        } else {
+            $nextBtn.prop('disabled', false)
+                .addClass('btn-primary')
+                .removeClass('btn-secondary')
+                .html('<i class="bx bx-right-arrow-alt me-1"></i>Next');
+            $('#shipping-error-banner').hide();
+        }
+    }
+
+    // Load access products (digital/non-shipping products) for step 4
+    function loadAccessProducts(accessProducts) {
+        const $section = $('#access-products-section');
+        const $list = $('#access-products-list');
+        const $subtotal = $('#access-products-subtotal');
+        const $subtotalRow = $section.find('.border-top');
+
+        if (!accessProducts || accessProducts.length === 0) {
+            $section.hide();
+            $list.html('');
+            $subtotal.text('₱0.00');
+            return;
+        }
+
+        // Show the section
+        $section.show();
+
+        // Check if this is a package purchase
+        const isPackagePurchase = activePackage !== null;
+
+        // Calculate subtotal (only used for non-package purchases)
+        let totalSubtotal = 0;
+
+        // Generate products HTML
+        let productsHtml = '';
+
+        // If package purchase, show package info banner
+        if (isPackagePurchase) {
+            productsHtml += `
+                <div class="alert alert-info mb-3">
+                    <i class="mdi mdi-package-variant-closed me-2"></i>
+                    <strong>Package Purchase:</strong> ${escapeHtml(activePackage.packageName)}
+                    <span class="badge bg-success ms-2">Package Price: ₱${parseFloat(activePackage.packagePrice).toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        accessProducts.forEach((product, index) => {
+            const quantity = product.quantity || 1;
+            const price = parseFloat(product.price) || 0;
+            const subtotal = quantity * price;
+            totalSubtotal += subtotal;
+
+            if (isPackagePurchase) {
+                // Package purchase - hide price and subtotal, show only product info
+                productsHtml += `
+                    <div class="card mb-2 border-0 bg-light">
+                        <div class="card-body py-2 px-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="mdi mdi-key-variant text-primary me-2"></i>
+                                        <div>
+                                            <h6 class="mb-0 text-dark">${product.productName || 'Unnamed Product'}</h6>
+                                            <small class="text-secondary">${product.variantName || 'Default Variant'}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-secondary d-block">Store</small>
+                                    <span class="text-dark">${product.productStore || 'N/A'}</span>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <small class="text-secondary d-block">Quantity</small>
+                                    <span class="badge bg-info text-white">${quantity}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Regular purchase - show all columns including price and subtotal
+                productsHtml += `
+                    <div class="card mb-2 border-0 bg-light">
+                        <div class="card-body py-2 px-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="mdi mdi-key-variant text-primary me-2"></i>
+                                        <div>
+                                            <h6 class="mb-0 text-dark">${product.productName || 'Unnamed Product'}</h6>
+                                            <small class="text-secondary">${product.variantName || 'Default Variant'}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <small class="text-secondary d-block">Store</small>
+                                    <span class="text-dark">${product.productStore || 'N/A'}</span>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <small class="text-secondary d-block">Quantity</small>
+                                    <span class="badge bg-info text-white">${quantity}</span>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <small class="text-secondary d-block">Price</small>
+                                    <span class="text-dark">₱${price.toFixed(2)}</span>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <small class="text-secondary d-block">Subtotal</small>
+                                    <span class="fw-bold text-success">₱${subtotal.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        $list.html(productsHtml);
+
+        // Hide subtotal row for package purchases, show for regular
+        if (isPackagePurchase) {
+            $subtotalRow.hide();
+        } else {
+            $subtotalRow.show();
+            $subtotal.text('₱' + totalSubtotal.toFixed(2));
+        }
     }
 
     // Philippine Location Data and Functions
@@ -4370,34 +6456,23 @@ $(document).ready(function() {
             provinceSelect.append(`<option value="${province}">${province}</option>`);
         });
 
-        // Set Pangasinan as default if there are ship products and no saved province
-        const shipProducts = selectedProducts && selectedProducts.length > 0
-            ? selectedProducts.filter(product =>
-                product.productType === 'ship' || product.productType === 'Ship'
-            )
-            : [];
-
-        // Check if there's no saved province or saved province is empty
-        const currentProvinceValue = provinceSelect.val();
+        // Only restore saved province if available - otherwise leave as "Select Province"
         const hasSavedProvince = shippingFormData.shipping_province && shippingFormData.shipping_province !== '';
 
-        // Auto-select Pangasinan if:
-        // 1. There are ship products
-        // 2. No saved province data
-        // 3. Province dropdown is currently empty
-        if (shipProducts.length > 0 && !hasSavedProvince && !currentProvinceValue) {
-            console.log('Auto-selecting Pangasinan for ship products');
-            provinceSelect.val('Pangasinan');
+        if (hasSavedProvince) {
+            console.log('Restoring saved province:', shippingFormData.shipping_province);
+            provinceSelect.val(shippingFormData.shipping_province);
 
-            // Load municipalities for Pangasinan
-            loadMunicipalities('Pangasinan', function() {
-                console.log('Municipalities loaded, triggering calculation');
-                // Trigger shipping calculation after setting default province
+            // Load municipalities for saved province
+            loadMunicipalities(shippingFormData.shipping_province, function() {
+                console.log('Municipalities loaded for saved province');
+                // Trigger shipping calculation after restoring province
                 if (selectedProducts && selectedProducts.length > 0) {
                     calculateShippingCosts();
                 }
             });
         }
+        // If no saved province, leave dropdown at "Select Province" - user must select to trigger validation
     }
 
     // Load municipalities for selected province
@@ -4406,7 +6481,6 @@ $(document).ready(function() {
 
         if (!province) {
             municipalitySelect.html('<option value="">Select Municipality/City</option>').prop('disabled', true);
-            $('#shipping_barangay').prop('disabled', true).val('');
             return;
         }
 
@@ -4467,9 +6541,10 @@ $(document).ready(function() {
     }
 
     function isValidPhone(phone) {
-        // Accept various Philippine phone formats
-        const phoneRegex = /^(\+63|0)?[0-9]{10}$/;
-        return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+        // Accept Philippine mobile format: 09XXXXXXXXX (11 digits starting with 09)
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+        const phoneRegex = /^09\d{9}$/;
+        return phoneRegex.test(cleanPhone);
     }
 
     // Dynamic validation for shipping address fields
@@ -4513,9 +6588,104 @@ $(document).ready(function() {
             // Validate ship coverage when province changes
             validateShipCoverage(selectedProvince);
 
-            // Recalculate shipping when province changes (only if products exist)
+            // Reload shipping options when province changes (pricing may vary by province)
             if (selectedProducts && selectedProducts.length > 0) {
-                calculateShippingCosts();
+                // Reset shipping selections since pricing may have changed
+                hasShippingErrors = false;
+                selectedShippingMethods = {};
+                pendingShippingLoads = 0;
+                shippingOptionsLoading = false;
+                // Reset global shipping method selection
+                availableShippingMethods = {};
+                allProductShippingData = {};
+                selectedGlobalShippingMethod = null;
+                $('#shipping-method-section').hide();
+                $('#selected-shipping-method-info').hide();
+                $('#shipping-error-banner').hide();
+
+                // Show loading state in Shipping & Total Calculation section immediately
+                $('#shipping-calculation-loading').show();
+                $('#shipping-calculation-results').hide();
+                $('#no-province-selected').hide();
+                $('#no-ship-products-calculation').hide();
+
+                // Reload ship products to get new shipping options for this province
+                const shipProducts = selectedProducts.filter(product =>
+                    product.productType === 'ship' || product.productType === 'Ship'
+                );
+
+                if (shipProducts.length > 0) {
+                    const uniqueStores = [...new Set(shipProducts.map(product => product.productStore || 'Unknown Store'))];
+
+                    // Set loading state
+                    pendingShippingLoads = uniqueStores.length;
+                    shippingOptionsLoading = true;
+                    updateNextButtonState();
+
+                    uniqueStores.forEach(store => {
+                        loadShipProductsForStore(store);
+                    });
+
+                    // Note: calculateShippingCosts() will be called automatically
+                    // when all loads complete via decrementPendingShippingLoads()
+                } else {
+                    // No ship products, just recalculate for access products
+                    calculateShippingCosts();
+                }
+            }
+        });
+
+        // Shipping Type change event
+        $(document).on('change', '#shipping_type', function() {
+            const selectedType = $(this).val();
+
+            // Update shipping type info display
+            updateShippingTypeInfo(selectedType);
+
+            // Reload shipping options when shipping type changes
+            if (selectedProducts && selectedProducts.length > 0) {
+                // Reset shipping selections since available methods may have changed
+                hasShippingErrors = false;
+                selectedShippingMethods = {};
+                pendingShippingLoads = 0;
+                shippingOptionsLoading = false;
+                // Reset global shipping method selection
+                availableShippingMethods = {};
+                allProductShippingData = {};
+                selectedGlobalShippingMethod = null;
+                $('#shipping-method-section').hide();
+                $('#selected-shipping-method-info').hide();
+                $('#shipping-error-banner').hide();
+
+                // Show loading state in Shipping & Total Calculation section immediately
+                $('#shipping-calculation-loading').show();
+                $('#shipping-calculation-results').hide();
+                $('#no-province-selected').hide();
+                $('#no-ship-products-calculation').hide();
+
+                // Reload ship products to get new shipping options for this type
+                const shipProducts = selectedProducts.filter(product =>
+                    product.productType === 'ship' || product.productType === 'Ship'
+                );
+
+                if (shipProducts.length > 0) {
+                    const uniqueStores = [...new Set(shipProducts.map(product => product.productStore || 'Unknown Store'))];
+
+                    // Set loading state
+                    pendingShippingLoads = uniqueStores.length;
+                    shippingOptionsLoading = true;
+                    updateNextButtonState();
+
+                    uniqueStores.forEach(store => {
+                        loadShipProductsForStore(store);
+                    });
+
+                    // Note: calculateShippingCosts() will be called automatically
+                    // when all loads complete via decrementPendingShippingLoads()
+                } else {
+                    // No ship products, just recalculate for access products
+                    calculateShippingCosts();
+                }
             }
         });
 
@@ -4542,14 +6712,7 @@ $(document).ready(function() {
         });
 
         // Municipality change event
-        $(document).on('change', '#shipping_municipality', function() {
-            const selectedMunicipality = $(this).val();
-            if (selectedMunicipality) {
-                $('#shipping_barangay').prop('disabled', false);
-            } else {
-                $('#shipping_barangay').prop('disabled', true).val('');
-            }
-        });
+        // Municipality change - no longer controls barangay (barangay is now independent)
 
         // Dynamic validation on input/change
         const shippingFields = [
@@ -4565,6 +6728,145 @@ $(document).ready(function() {
                 validateShippingField(fieldId);
             });
         });
+
+        // Shipping Address Autocomplete - monitor recipient fields
+        let shippingSearchTimeout = null;
+        const recipientFields = ['#shipping_first_name', '#shipping_last_name', '#shipping_phone', '#shipping_email'];
+
+        recipientFields.forEach(field => {
+            $(document).on('input', field, function() {
+                clearTimeout(shippingSearchTimeout);
+                shippingSearchTimeout = setTimeout(function() {
+                    checkShippingAddressMatch();
+                }, 500);
+            });
+        });
+
+        // Function to check for matching shipping addresses
+        function checkShippingAddressMatch() {
+            const firstName = $('#shipping_first_name').val().trim();
+            const lastName = $('#shipping_last_name').val().trim();
+            const phone = $('#shipping_phone').val().trim();
+            const email = $('#shipping_email').val().trim();
+
+            // Count filled fields
+            let filledCount = 0;
+            if (firstName) filledCount++;
+            if (lastName) filledCount++;
+            if (phone) filledCount++;
+            if (email) filledCount++;
+
+            // Need at least 3 fields
+            if (filledCount < 3) {
+                $('#shippingAddressSuggestions').hide();
+                return;
+            }
+
+            // Search for matching addresses
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.search-shipping-address") }}',
+                type: 'GET',
+                data: {
+                    firstName: firstName,
+                    lastName: lastName,
+                    phone: phone,
+                    email: email
+                },
+                success: function(response) {
+                    if (response.success && response.matches && response.matches.length > 0) {
+                        displayShippingSuggestions(response.matches);
+                    } else {
+                        $('#shippingAddressSuggestions').hide();
+                    }
+                },
+                error: function() {
+                    $('#shippingAddressSuggestions').hide();
+                }
+            });
+        }
+
+        // Display shipping address suggestions
+        function displayShippingSuggestions(matches) {
+            const container = $('#suggestionsList');
+            container.empty();
+
+            matches.forEach(function(match) {
+                const labelHtml = match.addressLabel ? `<span class="suggestion-label">${escapeHtml(match.addressLabel)}</span>` : '';
+                const html = `
+                    <div class="shipping-suggestion-item" data-address='${JSON.stringify(match)}'>
+                        <div class="suggestion-name">
+                            ${escapeHtml(match.recipientName)}${labelHtml}
+                        </div>
+                        <div class="suggestion-address">
+                            <i class="mdi mdi-map-marker-outline me-1"></i>${escapeHtml(match.fullAddress)}
+                        </div>
+                    </div>
+                `;
+                container.append(html);
+            });
+
+            $('#shippingAddressSuggestions').show();
+        }
+
+        // Handle suggestion click
+        $(document).on('click', '.shipping-suggestion-item', function() {
+            const addressData = $(this).data('address');
+
+            if (addressData) {
+                // Fill in recipient fields
+                if (addressData.firstName) $('#shipping_first_name').val(addressData.firstName);
+                if (addressData.middleName) $('#shipping_middle_name').val(addressData.middleName);
+                if (addressData.lastName) $('#shipping_last_name').val(addressData.lastName);
+                if (addressData.phoneNumber) $('#shipping_phone').val(addressData.phoneNumber);
+                if (addressData.emailAddress) $('#shipping_email').val(addressData.emailAddress);
+
+                // Fill in address fields
+                if (addressData.houseNumber) $('#shipping_house_number').val(addressData.houseNumber);
+                if (addressData.street) $('#shipping_street').val(addressData.street);
+                if (addressData.zone) $('#shipping_zone').val(addressData.zone);
+                if (addressData.zipCode) $('#shipping_zip_code').val(addressData.zipCode);
+
+                // Handle province and municipality (dropdowns)
+                if (addressData.province) {
+                    // Try to find and select the province
+                    const $provinceSelect = $('#shipping_province');
+                    const provinceOption = $provinceSelect.find(`option`).filter(function() {
+                        return $(this).text().toLowerCase() === addressData.province.toLowerCase();
+                    });
+
+                    if (provinceOption.length > 0) {
+                        $provinceSelect.val(provinceOption.val()).trigger('change');
+
+                        // After province loads municipalities, try to select municipality
+                        setTimeout(function() {
+                            if (addressData.municipality) {
+                                const $municipalitySelect = $('#shipping_municipality');
+                                const municipalityOption = $municipalitySelect.find(`option`).filter(function() {
+                                    return $(this).text().toLowerCase() === addressData.municipality.toLowerCase();
+                                });
+                                if (municipalityOption.length > 0) {
+                                    $municipalitySelect.val(municipalityOption.val()).trigger('change');
+                                }
+                            }
+                        }, 800);
+                    }
+                }
+
+                // Hide suggestions
+                $('#shippingAddressSuggestions').hide();
+
+                // Show success message
+                toastr.success('Address details auto-filled from saved address', 'Auto-fill Complete');
+            }
+        });
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
     });
 
     // Track if shipping form has been initialized
@@ -4655,6 +6957,7 @@ $(document).ready(function() {
 
     function calculateShippingCosts() {
         const province = $('#shipping_province').val();
+        const shippingType = $('#shipping_type').val();
 
         // Early return if no products selected
         if (!selectedProducts || selectedProducts.length === 0) {
@@ -4665,23 +6968,68 @@ $(document).ready(function() {
             return;
         }
 
+        // Check if there are ship products that require shipping type selection
+        const shipProducts = selectedProducts.filter(product =>
+            product.productType === 'ship' || product.productType === 'Ship'
+        );
+
+        // If there are ship products but no shipping type selected, show message instead of calculating
+        if (shipProducts.length > 0 && !shippingType) {
+            $('#shipping-calculation-loading').hide();
+            $('#shipping-calculation-results').hide();
+            $('#no-ship-products-calculation').hide();
+            $('#no-province-selected').show().html(`
+                <div class="alert alert-info mb-0">
+                    <i class="mdi mdi-information-outline me-2"></i>
+                    <strong>Selection Required:</strong> Please select a <strong>Shipping Type</strong> above to calculate shipping costs.
+                </div>
+            `);
+            // Reset totals display
+            $('#order-subtotal').text('₱0.00');
+            $('#total-shipping').text('₱0.00');
+            $('#order-total').text('₱0.00');
+            return;
+        }
+
+        // If there are ship products but no province selected, show message
+        if (shipProducts.length > 0 && !province) {
+            $('#shipping-calculation-loading').hide();
+            $('#shipping-calculation-results').hide();
+            $('#no-ship-products-calculation').hide();
+            $('#no-province-selected').show().html(`
+                <div class="alert alert-info mb-0">
+                    <i class="mdi mdi-information-outline me-2"></i>
+                    <strong>Selection Required:</strong> Please select a <strong>Province</strong> in the shipping address above to calculate shipping costs.
+                </div>
+            `);
+            // Reset totals display
+            $('#order-subtotal').text('₱0.00');
+            $('#total-shipping').text('₱0.00');
+            $('#order-total').text('₱0.00');
+            return;
+        }
+
         // Show loading state with spinner
         $('#shipping-calculation-loading').show();
         $('#shipping-calculation-results').hide();
         $('#no-province-selected').hide();
         $('#no-ship-products-calculation').hide();
 
-        // Prepare data for API call - send ALL selected products
+        // Prepare data for API call - send ALL selected products with selected shipping methods
         const requestData = {
             selectedProducts: selectedProducts,
-            province: province || '' // Send empty string if no province selected
+            province: province || '', // Send empty string if no province selected
+            shippingType: shippingType || '', // Send selected shipping type
+            selectedShippingMethods: selectedShippingMethods // Include user-selected shipping methods
         };
 
         // Debug log
         console.log('Calculating shipping with data:', {
             province: province,
+            shippingType: shippingType,
             productsCount: selectedProducts.length,
-            products: selectedProducts
+            products: selectedProducts,
+            selectedShippingMethods: selectedShippingMethods
         });
 
         $.ajax({
@@ -4718,116 +7066,294 @@ $(document).ready(function() {
         // Hide loading state
         $('#shipping-calculation-loading').hide();
 
+        // Check if this is a package purchase
+        const isPackagePurchase = activePackage !== null;
+
         // Debug: Log the received data
         console.log('Shipping calculation data received:', data);
-        console.log('Product stores found:', data.completeBreakdown.map(item => ({
-            productName: item.productName,
-            productStore: item.productStore,
-            productType: item.productType
-        })));
-        console.log('All product data:', data.completeBreakdown);
+        console.log('Is package purchase:', isPackagePurchase);
+        if (isPackagePurchase) {
+            console.log('Package info:', activePackage);
+        }
+
+        // Calculate values based on purchase type
+        let displaySubtotal, displayTotal;
+
+        if (isPackagePurchase) {
+            // Package purchase: use package price as subtotal
+            displaySubtotal = parseFloat(activePackage.packagePrice);
+            displayTotal = displaySubtotal + data.totalShipping;
+        } else {
+            // Regular purchase: use calculated subtotal
+            displaySubtotal = data.subtotal;
+            displayTotal = data.total;
+        }
 
         // Update order summary
-        $('#order-subtotal').text('₱' + data.subtotal.toFixed(2));
-        $('#total-shipping').text('₱' + data.totalShipping.toFixed(2));
-        $('#order-total').text('₱' + data.total.toFixed(2));
+        $('#order-subtotal').text('₱' + displaySubtotal.toFixed(2));
+
+        // Show shipping total with warning if there are errors
+        if (data.hasShippingErrors) {
+            $('#total-shipping').html(`<span class="text-danger">₱${data.totalShipping.toFixed(2)} <i class="mdi mdi-alert-circle" title="Some products have no shipping configured"></i></span>`);
+            $('#order-total').html(`<span class="text-warning">₱${displayTotal.toFixed(2)} *</span>`);
+        } else {
+            $('#total-shipping').text('₱' + data.totalShipping.toFixed(2));
+            $('#order-total').text('₱' + displayTotal.toFixed(2));
+        }
 
         // Generate complete breakdown with all products
         let breakdownHtml = '';
         let productSummaryHtml = '';
 
-        if (data.completeBreakdown && data.completeBreakdown.length > 0) {
+        // Show warning banner if there are shipping errors
+        if (data.hasShippingErrors) {
             breakdownHtml += `
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-success">
-                            <tr>
-                                <th>Type</th>
-                                <th>Product</th>
-                                <th>Variant</th>
-                                <th>Qty</th>
-                                <th>Subtotal</th>
-                                <th>Shipping</th>
-                                <th>Total</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div class="alert alert-danger mb-3">
+                    <i class="mdi mdi-alert-circle me-2"></i>
+                    <strong>Shipping Configuration Required:</strong> ${data.productsWithShippingErrors} product(s) do not have shipping configured for the selected shipping type or province.
+                    <a href="{{ route('ecom-shipping') }}" target="_blank" class="alert-link">Configure shipping settings</a> to resolve this issue.
+                </div>
             `;
+        }
 
-            let shipCount = 0;
-            let accessCount = 0;
-            let shipTotal = 0;
-            let accessTotal = 0;
-
-            data.completeBreakdown.forEach(item => {
-                const total = item.subtotal + item.shippingPrice;
-                const typeBadge = item.productType === 'ship' ?
-                    '<span class="badge bg-primary">Ship</span>' :
-                    '<span class="badge bg-primary">Access</span>';
-
-                let detailsHtml = '';
-                if (item.shippingDetails) {
-                    const shippingDetails = item.shippingDetails;
-                    detailsHtml = `
-                        <div class="small">
-                            <div><strong>${shippingDetails.shippingName || 'Default Shipping'}</strong></div>
-                            <div><strong>${shippingDetails.pricingType || 'N/A'}</strong></div>
-                            <div>Max Qty: ${shippingDetails.maxQuantity || 'N/A'}</div>
-                            <div>Price/Batch: ₱${parseFloat(shippingDetails.pricePerBatch || 0).toFixed(2)}</div>
-                            <div>Batches: ${shippingDetails.batches || 'N/A'}</div>
-                            <div class="text-muted">${shippingDetails.province || 'N/A'}</div>
-                        </div>
-                    `;
-                } else {
-                    detailsHtml = '<div class="small text-muted">No shipping required</div>';
-                }
-
+        if (data.completeBreakdown && data.completeBreakdown.length > 0) {
+            // Different display for package vs regular purchases
+            if (isPackagePurchase) {
+                // Package purchase: simplified display without individual pricing
                 breakdownHtml += `
-                    <tr>
-                        <td class="align-middle">${typeBadge}</td>
-                        <td class="align-middle">${item.productName}</td>
-                        <td class="align-middle">${item.variantName}</td>
-                        <td class="text-center align-middle">${item.quantity}</td>
-                        <td class="text-end align-middle">₱${item.subtotal.toFixed(2)}</td>
-                        <td class="text-end align-middle">₱${item.shippingPrice.toFixed(2)}</td>
-                        <td class="text-end align-middle fw-bold">₱${total.toFixed(2)}</td>
-                        <td class="align-middle">${detailsHtml}</td>
-                    </tr>
+                    <div class="alert alert-info mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="mdi mdi-package-variant-closed me-2"></i>
+                                <strong>Package Purchase:</strong> ${escapeHtml(activePackage.packageName)}
+                            </div>
+                            <div>
+                                ${activePackage.discountAmount > 0 ? `<span class="badge bg-success me-2">Save ₱${parseFloat(activePackage.discountAmount).toFixed(2)}</span>` : ''}
+                                <span class="badge bg-primary fs-6">₱${parseFloat(activePackage.packagePrice).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
                 `;
 
-                // Update counters for summary
-                if (item.productType === 'ship') {
-                    shipCount += item.quantity;
-                    shipTotal += item.subtotal;
-                } else {
-                    accessCount += item.quantity;
-                    accessTotal += item.subtotal;
-                }
-            });
+                // Show items in a simplified table (no price/subtotal columns)
+                breakdownHtml += `
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Product</th>
+                                    <th>Variant</th>
+                                    <th>Qty</th>
+                                    <th>Shipping</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
 
-            breakdownHtml += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+                let totalShippingForItems = 0;
+                let errorCount = 0;
 
-            // Generate product summary
-            productSummaryHtml = `
+                data.completeBreakdown.forEach(item => {
+                    const hasError = item.hasShippingError === true;
+
+                    // Type badge
+                    let typeBadge = '';
+                    if (item.productType === 'ship') {
+                        typeBadge = hasError ?
+                            '<span class="badge bg-danger">Ship <i class="mdi mdi-alert"></i></span>' :
+                            '<span class="badge bg-primary">Ship</span>';
+                        totalShippingForItems += item.shippingPrice || 0;
+                    } else {
+                        typeBadge = '<span class="badge bg-info text-white">Access</span>';
+                    }
+
+                    let detailsHtml = '';
+                    if (hasError) {
+                        detailsHtml = `
+                            <div class="small text-danger">
+                                <i class="mdi mdi-alert-circle me-1"></i>
+                                <strong>No Shipping Available</strong>
+                            </div>
+                        `;
+                        errorCount++;
+                    } else if (item.shippingDetails) {
+                        const shippingDetails = item.shippingDetails;
+                        detailsHtml = `
+                            <div class="small">
+                                <div><strong class="text-dark">${shippingDetails.shippingName || 'Default Shipping'}</strong></div>
+                                <div class="text-secondary">${shippingDetails.pricingType || 'N/A'}</div>
+                            </div>
+                        `;
+                    } else {
+                        detailsHtml = '<div class="small text-secondary">No shipping required</div>';
+                    }
+
+                    const rowClass = hasError ? 'table-danger' : '';
+
+                    breakdownHtml += `
+                        <tr class="${rowClass}">
+                            <td class="align-middle">${typeBadge}</td>
+                            <td class="align-middle text-dark">${item.productName}</td>
+                            <td class="align-middle text-dark">${item.variantName}</td>
+                            <td class="text-center align-middle">${item.quantity}</td>
+                            <td class="text-end align-middle ${hasError ? 'text-danger fw-bold' : ''}">${item.productType === 'ship' ? (hasError ? '<i class="mdi mdi-alert-circle"></i> N/A' : '₱' + item.shippingPrice.toFixed(2)) : '-'}</td>
+                            <td class="align-middle">${detailsHtml}</td>
+                        </tr>
+                    `;
+                });
+
+                breakdownHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Package-specific product summary
+                productSummaryHtml = `
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-dark"><i class="mdi mdi-package-variant-closed me-1"></i>Package:</span>
+                        <span class="text-dark">${escapeHtml(activePackage.packageName)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-dark">Total Items:</span>
+                        <span class="text-dark">${data.completeBreakdown.length} items</span>
+                    </div>
+                    ${errorCount > 0 ? `
+                    <div class="d-flex justify-content-between mb-2 text-danger">
+                        <span><i class="mdi mdi-alert-circle me-1"></i>Shipping Errors:</span>
+                        <span>${errorCount} items</span>
+                    </div>
+                    ` : ''}
+                    <hr>
+                    <div class="d-flex justify-content-between fw-bold text-primary">
+                        <span>Package Price:</span>
+                        <span>₱${parseFloat(activePackage.packagePrice).toFixed(2)}</span>
+                    </div>
+                `;
+            } else {
+                // Regular purchase: original detailed display
+                breakdownHtml += `
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Product</th>
+                                    <th>Variant</th>
+                                    <th>Qty</th>
+                                    <th>Subtotal</th>
+                                    <th>Shipping</th>
+                                    <th>Total</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                let shipCount = 0;
+                let accessCount = 0;
+                let shipTotal = 0;
+                let accessTotal = 0;
+                let errorCount = 0;
+
+                data.completeBreakdown.forEach(item => {
+                    const total = item.subtotal + item.shippingPrice;
+                    const hasError = item.hasShippingError === true;
+
+                    // Type badge with error indication if needed
+                    let typeBadge = '';
+                    if (item.productType === 'ship') {
+                        typeBadge = hasError ?
+                            '<span class="badge bg-danger">Ship <i class="mdi mdi-alert"></i></span>' :
+                            '<span class="badge bg-primary">Ship</span>';
+                    } else {
+                        typeBadge = '<span class="badge bg-info text-white">Access</span>';
+                    }
+
+                    let detailsHtml = '';
+                    if (hasError) {
+                        // Show error message for products without shipping
+                        detailsHtml = `
+                            <div class="small text-danger">
+                                <i class="mdi mdi-alert-circle me-1"></i>
+                                <strong>No Shipping Available</strong>
+                                <div class="text-muted">${item.shippingErrorReason || 'Shipping not configured'}</div>
+                            </div>
+                        `;
+                        errorCount++;
+                    } else if (item.shippingDetails) {
+                        const shippingDetails = item.shippingDetails;
+                        detailsHtml = `
+                            <div class="small">
+                                <div><strong class="text-dark">${shippingDetails.shippingName || 'Default Shipping'}</strong></div>
+                                <div><strong class="text-dark">${shippingDetails.pricingType || 'N/A'}</strong></div>
+                                <div class="text-secondary">Max Qty: ${shippingDetails.maxQuantity || 'N/A'}</div>
+                                <div class="text-secondary">Price/Batch: ₱${parseFloat(shippingDetails.pricePerBatch || 0).toFixed(2)}</div>
+                                <div class="text-secondary">Batches: ${shippingDetails.batches || 'N/A'}</div>
+                                <div class="text-muted">${shippingDetails.province || 'N/A'}</div>
+                            </div>
+                        `;
+                    } else {
+                        detailsHtml = '<div class="small text-secondary">No shipping required</div>';
+                    }
+
+                    // Row class for error highlighting
+                    const rowClass = hasError ? 'table-danger' : '';
+
+                    breakdownHtml += `
+                        <tr class="${rowClass}">
+                            <td class="align-middle">${typeBadge}</td>
+                            <td class="align-middle ${hasError ? 'text-danger' : 'text-dark'}">${item.productName}</td>
+                            <td class="align-middle ${hasError ? 'text-danger' : 'text-dark'}">${item.variantName}</td>
+                            <td class="text-center align-middle">${item.quantity}</td>
+                            <td class="text-end align-middle">₱${item.subtotal.toFixed(2)}</td>
+                            <td class="text-end align-middle ${hasError ? 'text-danger fw-bold' : ''}">${hasError ? '<i class="mdi mdi-alert-circle"></i> N/A' : '₱' + item.shippingPrice.toFixed(2)}</td>
+                            <td class="text-end align-middle fw-bold ${hasError ? 'text-danger' : ''}">${hasError ? 'N/A' : '₱' + total.toFixed(2)}</td>
+                            <td class="align-middle">${detailsHtml}</td>
+                        </tr>
+                    `;
+
+                    // Update counters for summary
+                    if (item.productType === 'ship') {
+                        shipCount += item.quantity;
+                        shipTotal += item.subtotal;
+                    } else {
+                        accessCount += item.quantity;
+                        accessTotal += item.subtotal;
+                    }
+                });
+
+                breakdownHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Generate product summary with error count
+                productSummaryHtml = `
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-dark">Ship Products:</span>
+                        <span class="text-dark">${shipCount} items - ₱${shipTotal.toFixed(2)}</span>
+                    </div>
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Ship Products:</span>
-                    <span>${shipCount} items - ₱${shipTotal.toFixed(2)}</span>
+                    <span class="text-dark">Access Products:</span>
+                    <span class="text-dark">${accessCount} items - ₱${accessTotal.toFixed(2)}</span>
                 </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Access Products:</span>
-                    <span>${accessCount} items - ₱${accessTotal.toFixed(2)}</span>
+                ${errorCount > 0 ? `
+                <div class="d-flex justify-content-between mb-2 text-danger">
+                    <span><i class="mdi mdi-alert-circle me-1"></i>Products with Shipping Errors:</span>
+                    <span>${errorCount} items</span>
                 </div>
+                ` : ''}
                 <hr>
                 <div class="d-flex justify-content-between fw-bold">
-                    <span>Total Items:</span>
-                    <span>${shipCount + accessCount} items</span>
+                    <span class="text-dark">Total Items:</span>
+                    <span class="text-dark">${shipCount + accessCount} items</span>
                 </div>
             `;
+            }
         } else {
             breakdownHtml = `
                 <div class="alert alert-info">
@@ -5277,6 +7803,33 @@ $(document).ready(function() {
         });
     }
 
+    // Check if email already exists for access login
+    function checkAccessEmailExists(email, storeName) {
+        return new Promise((resolve) => {
+            $.ajax({
+                url: '{{ route("ecom-orders-custom-add.check-access-email") }}',
+                type: 'GET',
+                data: {
+                    email: email,
+                    store: storeName
+                },
+                success: function(response) {
+                    resolve(response.exists || false);
+                },
+                error: function() {
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    // Validate phone format for access (09XXXXXXXXX format)
+    function isValidAccessPhoneFormat(phone) {
+        const normalizedPhone = normalizePhoneNumber(phone);
+        // Should be 11 digits starting with 09
+        return normalizedPhone.length === 11 && normalizedPhone.startsWith('09');
+    }
+
     // Validate form field
     function validateField(fieldName, value, storeName) {
         const field = $(`#access${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}`);
@@ -5357,24 +7910,60 @@ $(document).ready(function() {
         return isValid;
     }
 
-    // Real-time validation for phone number
+    // Real-time validation for phone number with format and uniqueness check
     $('#accessPhoneNumber').on('blur', async function() {
         const phoneNumber = $(this).val();
         const storeName = $('#createAccessModal').data('store-name');
 
         if (phoneNumber.trim()) {
-            const exists = await checkPhoneExists(phoneNumber, storeName);
-            if (exists) {
+            // First validate format (09XXXXXXXXX)
+            if (!isValidAccessPhoneFormat(phoneNumber)) {
                 $(this).removeClass('is-valid').addClass('is-invalid');
-                $(this).siblings('.invalid-feedback').text('Phone number already exists for this store').show();
+                $(this).siblings('.invalid-feedback').text('Phone must be in format: 09XXXXXXXXX (11 digits starting with 09)').show();
             } else {
-                validateField('phoneNumber', phoneNumber, storeName);
+                // Check uniqueness
+                const exists = await checkPhoneExists(phoneNumber, storeName);
+                if (exists) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                    $(this).siblings('.invalid-feedback').text('Phone number already exists for this store').show();
+                } else {
+                    $(this).removeClass('is-invalid').addClass('is-valid');
+                    $(this).siblings('.invalid-feedback').text('').hide();
+                }
             }
+        } else {
+            validateField('phoneNumber', phoneNumber, storeName);
+        }
+    });
+
+    // Real-time validation for email with uniqueness check
+    $('#accessEmail').on('blur', async function() {
+        const email = $(this).val();
+        const storeName = $('#createAccessModal').data('store-name');
+
+        if (email.trim()) {
+            // First validate format
+            if (!isValidEmail(email.trim())) {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Please enter a valid email address').show();
+            } else {
+                // Check uniqueness
+                const exists = await checkAccessEmailExists(email.trim(), storeName);
+                if (exists) {
+                    $(this).removeClass('is-valid').addClass('is-invalid');
+                    $(this).siblings('.invalid-feedback').text('Email address already exists for this store').show();
+                } else {
+                    $(this).removeClass('is-invalid').addClass('is-valid');
+                    $(this).siblings('.invalid-feedback').text('').hide();
+                }
+            }
+        } else {
+            validateField('email', email, storeName);
         }
     });
 
     // Real-time validation for other fields
-    $('#accessEmail, #accessFirstName, #accessMiddleName, #accessLastName, #accessPassword, #accessConfirmPassword').on('blur', function() {
+    $('#accessFirstName, #accessMiddleName, #accessLastName, #accessPassword, #accessConfirmPassword').on('blur', function() {
         const fieldName = $(this).attr('name');
         const value = $(this).val();
         const storeName = $('#createAccessModal').data('store-name');
@@ -5405,14 +7994,41 @@ $(document).ready(function() {
             if (!isValid) isFormValid = false;
         }
 
-        // Check phone number existence
+        // Check phone number format and existence
         const phoneNumber = $('#accessPhoneNumber').val();
         if (phoneNumber.trim()) {
-            const exists = await checkPhoneExists(phoneNumber, storeName);
-            if (exists) {
+            // Validate phone format first (09XXXXXXXXX)
+            if (!isValidAccessPhoneFormat(phoneNumber)) {
                 $('#accessPhoneNumber').removeClass('is-valid').addClass('is-invalid');
-                $('#accessPhoneNumber').siblings('.invalid-feedback').text('Phone number already exists for this store').show();
+                $('#accessPhoneNumber').siblings('.invalid-feedback').text('Phone must be in format: 09XXXXXXXXX (11 digits starting with 09)').show();
                 isFormValid = false;
+            } else {
+                // Check uniqueness
+                const phoneExists = await checkPhoneExists(phoneNumber, storeName);
+                if (phoneExists) {
+                    $('#accessPhoneNumber').removeClass('is-valid').addClass('is-invalid');
+                    $('#accessPhoneNumber').siblings('.invalid-feedback').text('Phone number already exists for this store').show();
+                    isFormValid = false;
+                }
+            }
+        }
+
+        // Check email format and existence
+        const email = $('#accessEmail').val();
+        if (email.trim()) {
+            // Validate email format first
+            if (!isValidEmail(email.trim())) {
+                $('#accessEmail').removeClass('is-valid').addClass('is-invalid');
+                $('#accessEmail').siblings('.invalid-feedback').text('Please enter a valid email address').show();
+                isFormValid = false;
+            } else {
+                // Check uniqueness
+                const emailExists = await checkAccessEmailExists(email.trim(), storeName);
+                if (emailExists) {
+                    $('#accessEmail').removeClass('is-valid').addClass('is-invalid');
+                    $('#accessEmail').siblings('.invalid-feedback').text('Email address already exists for this store').show();
+                    isFormValid = false;
+                }
             }
         }
 
@@ -5522,6 +8138,8 @@ $(document).ready(function() {
     let autoApplyDiscountsData = [];
     let orderSubtotal = 0;
     let orderShipping = 0;
+    let calculatedDiscountBreakdown = []; // Store calculated discount amounts for review
+    let calculatedTotalDiscount = 0; // Store total discount for review
 
     // Load auto-apply discounts
     function loadAutoApplyDiscounts() {
@@ -5602,9 +8220,10 @@ $(document).ready(function() {
 
         let html = '';
         appliedDiscounts.forEach(function(discount) {
-            const sourceLabel = discount.trigger === 'auto'
-                ? '<span class="badge bg-success"><i class="mdi mdi-auto-fix me-1"></i>Auto-Apply</span>'
-                : '<span class="badge bg-primary"><i class="mdi mdi-ticket-percent me-1"></i>Code</span>';
+            // Check for 'Auto Apply' (from database) - discount trigger values are "Auto Apply" or "Discount Code"
+            const sourceLabel = discount.trigger === 'Auto Apply'
+                ? '<span class="badge bg-success"><i class="mdi mdi-auto-fix me-1"></i>Auto Apply</span>'
+                : '<span class="badge bg-primary"><i class="mdi mdi-ticket-percent me-1"></i>Discount Code</span>';
 
             const codeDisplay = discount.discountCode
                 ? `<br><small class="text-secondary">Code: <code class="text-dark">${escapeHtml(discount.discountCode)}</code></small>`
@@ -5643,8 +8262,10 @@ $(document).ready(function() {
     }
 
     // Add a discount to applied list
-    function addAppliedDiscount(discount, trigger) {
+    function addAppliedDiscount(discount, triggerOverride) {
         if (!isDiscountApplied(discount.id)) {
+            // Use discountTrigger from API response, or fall back to the override parameter
+            const trigger = discount.discountTrigger || triggerOverride || 'Auto Apply';
             appliedDiscounts.push({
                 id: discount.id,
                 discountName: discount.discountName,
@@ -5811,15 +8432,21 @@ $(document).ready(function() {
 
     // Update discount order summary
     function updateDiscountOrderSummary() {
-        // Calculate subtotal from selected products
+        // Calculate subtotal - use package price if package is active, otherwise sum individual prices
         orderSubtotal = 0;
         orderShipping = 0;
 
-        selectedProducts.forEach(function(product) {
-            const price = parseFloat(product.price) || 0;
-            const quantity = parseInt(product.quantity) || 1;
-            orderSubtotal += price * quantity;
-        });
+        if (activePackage) {
+            // Package purchase: use package price as subtotal
+            orderSubtotal = parseFloat(activePackage.packagePrice) || 0;
+        } else {
+            // Regular purchase: calculate from selected products
+            selectedProducts.forEach(function(product) {
+                const price = parseFloat(product.price) || 0;
+                const quantity = parseInt(product.quantity) || 1;
+                orderSubtotal += price * quantity;
+            });
+        }
 
         // Get shipping from Step 4 calculation (if available)
         const shippingText = $('#total-shipping').text();
@@ -5841,39 +8468,95 @@ $(document).ready(function() {
             return;
         }
 
-        let html = '<table class="table table-sm table-bordered mb-0">';
-        html += '<thead class="table-light"><tr><th class="text-dark">Product</th><th class="text-dark">Variant</th><th class="text-dark">Type</th><th class="text-dark text-center">Qty</th><th class="text-dark text-end">Price</th><th class="text-dark text-end">Subtotal</th></tr></thead>';
-        html += '<tbody>';
+        // Check if this is a package purchase
+        const isPackagePurchase = activePackage !== null;
 
-        selectedProducts.forEach(function(product) {
-            const price = parseFloat(product.price) || 0;
-            const quantity = parseInt(product.quantity) || 1;
-            const subtotal = price * quantity;
+        let html = '';
 
-            // Determine product type and badge
-            const productType = (product.productType || 'unknown').toLowerCase();
-            let typeBadge = '';
-            if (productType === 'access') {
-                typeBadge = '<span class="badge bg-primary text-white"><i class="mdi mdi-key me-1"></i>Access</span>';
-            } else if (productType === 'ship') {
-                typeBadge = '<span class="badge bg-warning text-dark"><i class="mdi mdi-truck me-1"></i>Ship</span>';
-            } else {
-                typeBadge = '<span class="badge bg-secondary text-white">' + escapeHtml(product.productType || 'N/A') + '</span>';
-            }
-
+        // If package purchase, show package info banner
+        if (isPackagePurchase) {
             html += `
-                <tr>
-                    <td class="text-dark">${escapeHtml(product.productName || 'Unknown')}</td>
-                    <td class="text-dark">${escapeHtml(product.variantName || 'Default')}</td>
-                    <td>${typeBadge}</td>
-                    <td class="text-dark text-center">${quantity}</td>
-                    <td class="text-dark text-end">₱${formatNumber(price)}</td>
-                    <td class="text-dark text-end fw-semibold">₱${formatNumber(subtotal)}</td>
-                </tr>
+                <div class="alert alert-info mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="mdi mdi-package-variant-closed me-2"></i>
+                            <strong>Package Purchase:</strong> ${escapeHtml(activePackage.packageName)}
+                        </div>
+                        <div>
+                            ${activePackage.discountAmount > 0 ? `<span class="badge bg-success me-2">Save ₱${parseFloat(activePackage.discountAmount).toFixed(2)}</span>` : ''}
+                            <span class="badge bg-primary fs-6">₱${parseFloat(activePackage.packagePrice).toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
             `;
-        });
 
-        html += '</tbody></table>';
+            // Package purchase - simplified table without Price and Subtotal columns
+            html += '<table class="table table-sm table-bordered mb-0">';
+            html += '<thead class="table-info"><tr><th class="text-dark">Product</th><th class="text-dark">Variant</th><th class="text-dark">Type</th><th class="text-dark text-center">Qty</th></tr></thead>';
+            html += '<tbody>';
+
+            selectedProducts.forEach(function(product) {
+                const quantity = parseInt(product.quantity) || 1;
+
+                // Determine product type and badge
+                const productType = (product.productType || 'unknown').toLowerCase();
+                let typeBadge = '';
+                if (productType === 'access') {
+                    typeBadge = '<span class="badge bg-primary text-white"><i class="mdi mdi-key me-1"></i>Access</span>';
+                } else if (productType === 'ship') {
+                    typeBadge = '<span class="badge bg-warning text-dark"><i class="mdi mdi-truck me-1"></i>Ship</span>';
+                } else {
+                    typeBadge = '<span class="badge bg-secondary text-white">' + escapeHtml(product.productType || 'N/A') + '</span>';
+                }
+
+                html += `
+                    <tr>
+                        <td class="text-dark">${escapeHtml(product.productName || 'Unknown')}</td>
+                        <td class="text-dark">${escapeHtml(product.variantName || 'Default')}</td>
+                        <td>${typeBadge}</td>
+                        <td class="text-dark text-center">${quantity}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+        } else {
+            // Regular purchase - show all columns including Price and Subtotal
+            html += '<table class="table table-sm table-bordered mb-0">';
+            html += '<thead class="table-light"><tr><th class="text-dark">Product</th><th class="text-dark">Variant</th><th class="text-dark">Type</th><th class="text-dark text-center">Qty</th><th class="text-dark text-end">Price</th><th class="text-dark text-end">Subtotal</th></tr></thead>';
+            html += '<tbody>';
+
+            selectedProducts.forEach(function(product) {
+                const price = parseFloat(product.price) || 0;
+                const quantity = parseInt(product.quantity) || 1;
+                const subtotal = price * quantity;
+
+                // Determine product type and badge
+                const productType = (product.productType || 'unknown').toLowerCase();
+                let typeBadge = '';
+                if (productType === 'access') {
+                    typeBadge = '<span class="badge bg-primary text-white"><i class="mdi mdi-key me-1"></i>Access</span>';
+                } else if (productType === 'ship') {
+                    typeBadge = '<span class="badge bg-warning text-dark"><i class="mdi mdi-truck me-1"></i>Ship</span>';
+                } else {
+                    typeBadge = '<span class="badge bg-secondary text-white">' + escapeHtml(product.productType || 'N/A') + '</span>';
+                }
+
+                html += `
+                    <tr>
+                        <td class="text-dark">${escapeHtml(product.productName || 'Unknown')}</td>
+                        <td class="text-dark">${escapeHtml(product.variantName || 'Default')}</td>
+                        <td>${typeBadge}</td>
+                        <td class="text-dark text-center">${quantity}</td>
+                        <td class="text-dark text-end">₱${formatNumber(price)}</td>
+                        <td class="text-dark text-end fw-semibold">₱${formatNumber(subtotal)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+        }
+
         $('#discount-product-summary').html(html);
     }
 
@@ -5926,11 +8609,664 @@ $(document).ready(function() {
         $('#discount-shipping').text('₱' + formatNumber(shipping));
         $('#discount-grand-total').text('₱' + formatNumber(grandTotal));
 
+        // Store for Step 7 review
+        calculatedDiscountBreakdown = breakdown || [];
+        calculatedTotalDiscount = totalDiscount || 0;
+
         if (totalDiscount > 0) {
             $('#discount-row').show();
             $('#discount-amount').text('-₱' + formatNumber(totalDiscount));
         } else {
             $('#discount-row').hide();
+        }
+    }
+
+    // =====================================================
+    // STEP 7: ORDER REVIEW FUNCTIONS
+    // =====================================================
+
+    /**
+     * Populate the order review (Step 7) with all order details
+     */
+    function populateOrderReview() {
+        console.log('Populating order review...');
+
+        // 1. Populate Products Table
+        populateReviewProducts();
+
+        // 2. Populate Client Information
+        populateReviewClient();
+
+        // 3. Populate Access Logins (if any access products)
+        populateReviewLogins();
+
+        // 4. Populate Shipping Details (if any ship products)
+        populateReviewShipping();
+
+        // 5. Populate Discounts (if any applied)
+        populateReviewDiscounts();
+
+        // 6. Populate Affiliate Commissions (if any)
+        populateReviewAffiliates();
+
+        // 7. Calculate and display totals
+        populateReviewTotals();
+    }
+
+    /**
+     * Populate the products table in the review
+     */
+    function populateReviewProducts() {
+        // Check if this is a package purchase
+        const isPackagePurchase = activePackage !== null;
+
+        let html = '';
+        let totalItems = 0;
+        let calculatedSubtotal = 0; // Sum of individual prices (for savings calculation)
+
+        if (isPackagePurchase) {
+            // Package purchase - show package info and simplified product list
+
+            // Calculate totals for display
+            selectedProducts.forEach(function(product) {
+                calculatedSubtotal += parseFloat(product.price) * product.quantity;
+                totalItems += product.quantity;
+            });
+
+            const packagePrice = parseFloat(activePackage.packagePrice) || 0;
+            const packageSavings = calculatedSubtotal - packagePrice;
+
+            // Package info banner (inserted before table)
+            const packageBannerHtml = `
+                <div class="alert alert-info mb-0 rounded-0 border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="mdi mdi-package-variant-closed me-2 fs-5"></i>
+                            <strong class="fs-5">${escapeHtml(activePackage.packageName)}</strong>
+                            ${activePackage.packageDescription ? `<div class="small text-secondary mt-1">${escapeHtml(activePackage.packageDescription)}</div>` : ''}
+                        </div>
+                        <div class="text-end">
+                            ${packageSavings > 0 ? `
+                                <div class="mb-1">
+                                    <span class="badge bg-success fs-6">
+                                        <i class="mdi mdi-tag me-1"></i>Save ₱${formatNumber(packageSavings)}
+                                    </span>
+                                </div>
+                                <small class="text-muted text-decoration-line-through">₱${formatNumber(calculatedSubtotal)}</small>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Update the card header to show package badge
+            const $cardHeader = $('#review-products-tbody').closest('.card').find('.card-header');
+            if (!$cardHeader.find('.package-purchase-badge').length) {
+                $cardHeader.find('.badge').after('<span class="badge bg-info text-white ms-2 package-purchase-badge"><i class="mdi mdi-package-variant me-1"></i>Package</span>');
+            }
+
+            // Build simplified table rows (no Price/Subtotal columns)
+            selectedProducts.forEach(function(product) {
+                const typeClass = (product.productType || '').toLowerCase() === 'ship' ? 'bg-success' : 'bg-primary';
+                const typeLabel = (product.productType || '').toLowerCase() === 'ship' ? 'Ship' : 'Access';
+
+                html += `
+                    <tr>
+                        <td>
+                            <div class="fw-medium text-dark">${escapeHtml(product.productName)}</div>
+                            <small class="text-secondary">${escapeHtml(product.variantName || 'Default')}</small>
+                            <br><small class="text-muted">${escapeHtml(product.productStore || '')}</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge ${typeClass}">${typeLabel}</span>
+                        </td>
+                        <td class="text-center text-dark">${product.quantity}</td>
+                    </tr>
+                `;
+            });
+
+            if (html === '') {
+                html = '<tr><td colspan="3" class="text-center text-muted py-3">No products in package</td></tr>';
+            }
+
+            // Update table structure for package display
+            const $table = $('#review-products-tbody').closest('table');
+
+            // Update thead for package (3 columns instead of 5)
+            $table.find('thead').html(`
+                <tr class="table-info">
+                    <th style="width: 60%;">Product</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Qty</th>
+                </tr>
+            `);
+
+            // Add package banner before table if not exists
+            const $cardBody = $table.closest('.card-body');
+            if (!$cardBody.find('.package-banner-container').length) {
+                $table.before(`<div class="package-banner-container">${packageBannerHtml}</div>`);
+            } else {
+                $cardBody.find('.package-banner-container').html(packageBannerHtml);
+            }
+
+            // Update tfoot for package
+            $table.find('tfoot').html(`
+                <tr class="table-info">
+                    <td colspan="2" class="text-end fw-bold">
+                        <i class="mdi mdi-package-variant me-1"></i>Package Price:
+                    </td>
+                    <td class="text-center fw-bold text-primary fs-5" id="review-products-subtotal">₱${formatNumber(packagePrice)}</td>
+                </tr>
+                ${packageSavings > 0 ? `
+                <tr class="table-success">
+                    <td colspan="2" class="text-end text-success">
+                        <i class="mdi mdi-piggy-bank me-1"></i>You Save:
+                    </td>
+                    <td class="text-center fw-bold text-success">₱${formatNumber(packageSavings)}</td>
+                </tr>
+                ` : ''}
+            `);
+
+            $('#review-products-tbody').html(html);
+            $('#review-products-count').text(totalItems + ' item' + (totalItems !== 1 ? 's' : '') + ' (Package)');
+
+        } else {
+            // Regular purchase - show all columns including Price and Subtotal
+
+            // Remove package banner if exists
+            const $table = $('#review-products-tbody').closest('table');
+            const $cardBody = $table.closest('.card-body');
+            $cardBody.find('.package-banner-container').remove();
+
+            // Remove package badge from header if exists
+            const $cardHeader = $cardBody.closest('.card').find('.card-header');
+            $cardHeader.find('.package-purchase-badge').remove();
+
+            // Restore original thead
+            $table.find('thead').html(`
+                <tr class="table-light">
+                    <th style="width: 40%;">Product</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Subtotal</th>
+                </tr>
+            `);
+
+            // Restore original tfoot
+            $table.find('tfoot').html(`
+                <tr class="table-light">
+                    <td colspan="4" class="text-end fw-bold">Products Subtotal:</td>
+                    <td class="text-end fw-bold text-primary" id="review-products-subtotal">₱0.00</td>
+                </tr>
+            `);
+
+            selectedProducts.forEach(function(product) {
+                const productSubtotal = parseFloat(product.price) * product.quantity;
+                calculatedSubtotal += productSubtotal;
+                totalItems += product.quantity;
+
+                const typeClass = (product.productType || '').toLowerCase() === 'ship' ? 'bg-success' : 'bg-primary';
+                const typeLabel = (product.productType || '').toLowerCase() === 'ship' ? 'Ship' : 'Access';
+
+                html += `
+                    <tr>
+                        <td>
+                            <div class="fw-medium text-dark">${escapeHtml(product.productName)}</div>
+                            <small class="text-secondary">${escapeHtml(product.variantName || 'Default')}</small>
+                            <br><small class="text-muted">${escapeHtml(product.productStore || '')}</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge ${typeClass}">${typeLabel}</span>
+                        </td>
+                        <td class="text-center text-dark">${product.quantity}</td>
+                        <td class="text-end text-dark">₱${formatNumber(product.price)}</td>
+                        <td class="text-end fw-medium text-dark">₱${formatNumber(productSubtotal)}</td>
+                    </tr>
+                `;
+            });
+
+            if (html === '') {
+                html = '<tr><td colspan="5" class="text-center text-muted py-3">No products selected</td></tr>';
+            }
+
+            $('#review-products-tbody').html(html);
+            $('#review-products-count').text(totalItems + ' item' + (totalItems !== 1 ? 's' : ''));
+            $('#review-products-subtotal').text('₱' + formatNumber(calculatedSubtotal));
+        }
+    }
+
+    /**
+     * Populate client information in the review
+     */
+    function populateReviewClient() {
+        if (!selectedClient) {
+            $('#review-client-info').html('<p class="text-muted mb-0">No client selected</p>');
+            return;
+        }
+
+        // Use the fields that are actually stored when client is selected
+        // selectedClient has: id, fullName, phone, email
+        const fullName = selectedClient.fullName || [
+            selectedClient.firstName || selectedClient.clientFirstName,
+            selectedClient.middleName || selectedClient.clientMiddleName,
+            selectedClient.lastName || selectedClient.clientLastName
+        ].filter(Boolean).join(' ') || 'N/A';
+
+        const phone = selectedClient.phone || selectedClient.phoneNumber || selectedClient.clientPhoneNumber || 'N/A';
+        const email = selectedClient.email || selectedClient.emailAddress || selectedClient.clientEmailAddress || 'N/A';
+
+        const html = `
+            <div class="col-md-6 mb-2">
+                <small class="text-secondary d-block">Full Name</small>
+                <span class="text-dark fw-medium">${escapeHtml(fullName)}</span>
+            </div>
+            <div class="col-md-6 mb-2">
+                <small class="text-secondary d-block">Client ID</small>
+                <span class="text-dark">#${selectedClient.id}</span>
+            </div>
+            <div class="col-md-6 mb-2">
+                <small class="text-secondary d-block">Phone Number</small>
+                <span class="text-dark">${escapeHtml(phone)}</span>
+            </div>
+            <div class="col-md-6 mb-2">
+                <small class="text-secondary d-block">Email Address</small>
+                <span class="text-dark">${escapeHtml(email)}</span>
+            </div>
+        `;
+
+        $('#review-client-info').html(html);
+    }
+
+    /**
+     * Populate access logins in the review (if any access products)
+     */
+    function populateReviewLogins() {
+        const accessProducts = selectedProducts.filter(p =>
+            (p.productType || '').toLowerCase() === 'access'
+        );
+
+        if (accessProducts.length === 0) {
+            $('#review-logins-section').hide();
+            return;
+        }
+
+        // Check if there are selected access clients (from Step 3)
+        const hasSelectedAccessClients = selectedAccessClients && Object.keys(selectedAccessClients).length > 0;
+
+        if (!hasSelectedAccessClients) {
+            $('#review-logins-section').hide();
+            return;
+        }
+
+        let html = '';
+
+        // Group access products by store
+        const productsByStore = {};
+        accessProducts.forEach(function(product) {
+            const store = product.productStore || 'Unknown Store';
+            if (!productsByStore[store]) {
+                productsByStore[store] = [];
+            }
+            productsByStore[store].push(product);
+        });
+
+        // Display selected access client for each store
+        Object.keys(selectedAccessClients).forEach(function(store) {
+            const client = selectedAccessClients[store];
+            const storeProducts = productsByStore[store] || [];
+
+            html += `
+                <div class="mb-3 pb-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-primary mb-0"><i class="mdi mdi-store me-1"></i>${escapeHtml(store)}</h6>
+                        <span class="badge bg-info text-white">${storeProducts.length} product${storeProducts.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <small class="text-secondary d-block">Account Holder</small>
+                            <span class="text-dark fw-medium">${escapeHtml(client.fullName) || 'N/A'}</span>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <small class="text-secondary d-block">Phone Number</small>
+                            <span class="text-dark">${escapeHtml(client.phone) || 'N/A'}</span>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <small class="text-secondary d-block">Email Address</small>
+                            <span class="text-dark">${escapeHtml(client.email) || 'N/A'}</span>
+                        </div>
+                    </div>
+            `;
+
+            // Show products for this store
+            if (storeProducts.length > 0) {
+                html += `<div class="mt-2"><small class="text-secondary">Products:</small>`;
+                storeProducts.forEach(function(product) {
+                    html += `
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <small class="text-dark">${escapeHtml(product.productName)} <span class="text-muted">${escapeHtml(product.variantName || '')}</span></small>
+                            <span class="badge bg-secondary">x${product.quantity}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+        });
+
+        // Remove last border
+        html = html.replace(/border-bottom">([^<]*?)$/, '">$1');
+
+        $('#review-logins-info').html(html);
+        $('#review-logins-section').show();
+    }
+
+    /**
+     * Populate shipping details in the review (if any ship products)
+     */
+    function populateReviewShipping() {
+        const shipProducts = selectedProducts.filter(p =>
+            (p.productType || '').toLowerCase() === 'ship'
+        );
+
+        if (shipProducts.length === 0) {
+            $('#review-shipping-section').hide();
+            return;
+        }
+
+        // Get shipping data from form
+        const firstName = $('#shipping_first_name').val() || '';
+        const middleName = $('#shipping_middle_name').val() || '';
+        const lastName = $('#shipping_last_name').val() || '';
+        const phone = $('#shipping_phone').val() || '';
+        const email = $('#shipping_email').val() || '';
+
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+
+        // Recipient info
+        const recipientHtml = `
+            <p class="mb-1"><strong class="text-dark">${escapeHtml(fullName)}</strong></p>
+            <p class="mb-1 text-secondary"><i class="mdi mdi-phone me-1"></i>${escapeHtml(phone)}</p>
+            ${email ? `<p class="mb-0 text-secondary"><i class="mdi mdi-email me-1"></i>${escapeHtml(email)}</p>` : ''}
+        `;
+        $('#review-shipping-recipient').html(recipientHtml);
+
+        // Address info
+        const houseNumber = $('#shipping_house_number').val() || '';
+        const street = $('#shipping_street').val() || '';
+        const zone = $('#shipping_zone').val() || '';
+        const municipality = $('#shipping_municipality').val() || '';
+        const province = $('#shipping_province').val() || '';
+        const zipCode = $('#shipping_zip_code').val() || '';
+
+        // Format zone with "Zone" prefix if it has a value
+        const zoneDisplay = zone ? 'Zone ' + zone : '';
+        const addressParts = [houseNumber, street, zoneDisplay].filter(Boolean).join(', ');
+        const locationParts = [municipality, province, zipCode].filter(Boolean).join(', ');
+
+        const addressHtml = `
+            <p class="mb-1 text-dark">${escapeHtml(addressParts) || 'N/A'}</p>
+            <p class="mb-0 text-secondary">${escapeHtml(locationParts) || 'N/A'}</p>
+        `;
+        $('#review-shipping-address').html(addressHtml);
+
+        // Shipping type and method
+        const shippingType = $('#shipping_type').val() || 'Regular';
+
+        // Get selected shipping methods from Step 4
+        let methodHtml = `<p class="mb-1"><span class="badge bg-info text-white">${escapeHtml(shippingType)}</span></p>`;
+
+        // Check if we have selected shipping methods stored
+        if (Object.keys(selectedShippingMethods).length > 0) {
+            // Group by shipping method
+            const methodGroups = {};
+            shipProducts.forEach(function(product) {
+                const methodId = selectedShippingMethods[product.variantId];
+                if (methodId) {
+                    if (!methodGroups[methodId]) {
+                        methodGroups[methodId] = [];
+                    }
+                    methodGroups[methodId].push(product);
+                }
+            });
+
+            // Display methods
+            Object.keys(methodGroups).forEach(function(methodId) {
+                const products = methodGroups[methodId];
+                // Try to find method name from allProductShippingData
+                let methodName = 'Shipping Method #' + methodId;
+                for (let variantId in allProductShippingData) {
+                    const data = allProductShippingData[variantId];
+                    if (data && data.shippingOptions) {
+                        const method = data.shippingOptions.find(m => m.shippingId == methodId);
+                        if (method) {
+                            methodName = method.shippingName;
+                            break;
+                        }
+                    }
+                }
+                methodHtml += `<p class="mb-0 text-dark"><i class="mdi mdi-check-circle text-success me-1"></i>${escapeHtml(methodName)}</p>`;
+            });
+        } else if (selectedGlobalShippingMethod) {
+            // Use global shipping method
+            methodHtml += `<p class="mb-0 text-dark"><i class="mdi mdi-check-circle text-success me-1"></i>Method ID: ${selectedGlobalShippingMethod}</p>`;
+        }
+
+        $('#review-shipping-method').html(methodHtml);
+
+        // Shipping cost breakdown
+        const shippingText = $('#total-shipping').text() || '₱0.00';
+        const shippingTotal = parseFloat(shippingText.replace(/[^\d.]/g, '')) || 0;
+
+        let costHtml = `
+            <div class="d-flex justify-content-between mb-1">
+                <span class="text-secondary">Ship Products:</span>
+                <span class="text-dark">${shipProducts.length} item(s)</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-secondary fw-bold">Total Shipping:</span>
+                <span class="text-success fw-bold">₱${formatNumber(shippingTotal)}</span>
+            </div>
+        `;
+        $('#review-shipping-cost').html(costHtml);
+
+        $('#review-shipping-section').show();
+    }
+
+    /**
+     * Populate applied discounts in the review
+     */
+    function populateReviewDiscounts() {
+        // Use the calculated discount breakdown from Step 5
+        if ((!calculatedDiscountBreakdown || calculatedDiscountBreakdown.length === 0) &&
+            (!appliedDiscounts || appliedDiscounts.length === 0)) {
+            $('#review-discounts-section').hide();
+            $('#review-discount-row').hide();
+            return;
+        }
+
+        let html = '';
+
+        // If we have calculated breakdown from API, use it (most accurate)
+        if (calculatedDiscountBreakdown && calculatedDiscountBreakdown.length > 0) {
+            calculatedDiscountBreakdown.forEach(function(discount) {
+                const discountAmount = parseFloat(discount.calculatedAmount) || 0;
+
+                html += `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="text-dark fw-medium">${escapeHtml(discount.name)}</span>
+                            <br><small class="text-secondary">${escapeHtml(discount.displayValue)} ${discount.code ? '(Code: ' + escapeHtml(discount.code) + ')' : ''}</small>
+                        </div>
+                        <span class="text-danger fw-medium">-₱${formatNumber(discountAmount)}</span>
+                    </div>
+                `;
+            });
+
+            $('#review-discounts-list').html(html);
+            $('#review-total-discount').text('-₱' + formatNumber(calculatedTotalDiscount));
+            $('#review-discounts-section').show();
+            $('#review-discount-row').show();
+            $('#review-discount-total').text('-₱' + formatNumber(calculatedTotalDiscount));
+        }
+        // Fallback to appliedDiscounts if no calculated breakdown yet
+        else if (appliedDiscounts && appliedDiscounts.length > 0) {
+            appliedDiscounts.forEach(function(discount) {
+                html += `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="text-dark fw-medium">${escapeHtml(discount.discountName)}</span>
+                            <br><small class="text-secondary">${escapeHtml(discount.displayValue || '')} ${discount.discountCode ? '(Code: ' + escapeHtml(discount.discountCode) + ')' : ''}</small>
+                        </div>
+                        <span class="text-secondary">Calculating...</span>
+                    </div>
+                `;
+            });
+
+            $('#review-discounts-list').html(html);
+            $('#review-total-discount').text('Calculating...');
+            $('#review-discounts-section').show();
+            $('#review-discount-row').show();
+            $('#review-discount-total').text('Calculating...');
+        }
+    }
+
+    /**
+     * Populate affiliate commissions in the review
+     */
+    function populateReviewAffiliates() {
+        if (!affiliateCommissions || affiliateCommissions.length === 0) {
+            $('#review-affiliates-section').hide();
+            $('#review-commission-row').hide();
+            $('#review-net-row').hide();
+            return;
+        }
+
+        // Group commissions by affiliate
+        const affiliateGroups = {};
+        affiliateCommissions.forEach(function(comm) {
+            const key = comm.affiliateId + '-' + comm.storeId;
+            if (!affiliateGroups[key]) {
+                affiliateGroups[key] = {
+                    affiliateName: comm.affiliateName,
+                    storeName: comm.storeName,
+                    totalCommission: 0,
+                    items: []
+                };
+            }
+            affiliateGroups[key].totalCommission += parseFloat(comm.commission) || 0;
+            affiliateGroups[key].items.push(comm);
+        });
+
+        let html = '';
+
+        Object.values(affiliateGroups).forEach(function(group) {
+            html += `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <span class="text-dark fw-medium">${escapeHtml(group.affiliateName)}</span>
+                        <br><small class="text-secondary">${escapeHtml(group.storeName)} (${group.items.length} item${group.items.length > 1 ? 's' : ''})</small>
+                    </div>
+                    <span class="text-warning fw-medium">₱${formatNumber(group.totalCommission)}</span>
+                </div>
+            `;
+        });
+
+        $('#review-affiliates-list').html(html);
+        $('#review-total-commission').text('₱' + formatNumber(totalAffiliateCommission));
+        $('#review-affiliates-section').show();
+        $('#review-commission-row').show();
+        $('#review-commission-deduct').text('-₱' + formatNumber(totalAffiliateCommission));
+        $('#review-net-row').show();
+    }
+
+    /**
+     * Calculate and display order totals in the review
+     */
+    function populateReviewTotals() {
+        // Check if this is a package purchase
+        const isPackagePurchase = activePackage !== null;
+
+        // Calculate subtotal (uses package price if package is active)
+        const subtotal = getOrderSubtotal();
+
+        // Get shipping total
+        const shipProducts = selectedProducts.filter(p =>
+            (p.productType || '').toLowerCase() === 'ship'
+        );
+        let shippingTotal = 0;
+        if (shipProducts.length > 0) {
+            const shippingText = $('#total-shipping').text() || '₱0.00';
+            shippingTotal = parseFloat(shippingText.replace(/[^\d.]/g, '')) || 0;
+        }
+
+        // Use the calculated discount total from Step 5
+        const discountTotal = calculatedTotalDiscount || 0;
+
+        // Calculate grand total
+        const grandTotal = Math.max(0, subtotal + shippingTotal - discountTotal);
+
+        // Update subtotal label and value based on purchase type
+        const $subtotalRow = $('#review-subtotal').closest('.d-flex');
+        if (isPackagePurchase) {
+            // Change label to "Package Price" and add package icon
+            $subtotalRow.find('span').first().html('<i class="mdi mdi-package-variant me-1"></i>Package Price:');
+
+            // Add package savings row if not exists and there are savings
+            const calculatedPrice = selectedProducts.reduce((sum, p) => sum + (parseFloat(p.price) * p.quantity), 0);
+            const packageSavings = calculatedPrice - subtotal;
+
+            if (packageSavings > 0) {
+                // Add or update savings row
+                if (!$('#review-package-savings-row').length) {
+                    $subtotalRow.after(`
+                        <div class="d-flex justify-content-between mb-3 text-success" id="review-package-savings-row">
+                            <span class="fs-6"><i class="mdi mdi-piggy-bank me-1"></i>Package Savings:</span>
+                            <span class="fs-6 fw-medium" id="review-package-savings">₱${formatNumber(packageSavings)}</span>
+                        </div>
+                    `);
+                } else {
+                    $('#review-package-savings').text('₱' + formatNumber(packageSavings));
+                }
+            } else {
+                $('#review-package-savings-row').remove();
+            }
+        } else {
+            // Restore original label
+            $subtotalRow.find('span').first().text('Products Subtotal:');
+            // Remove package savings row if exists
+            $('#review-package-savings-row').remove();
+        }
+
+        $('#review-subtotal').text('₱' + formatNumber(subtotal));
+
+        if (shippingTotal > 0) {
+            $('#review-shipping-row').show();
+            $('#review-shipping-total').text('₱' + formatNumber(shippingTotal));
+        } else {
+            $('#review-shipping-row').hide();
+        }
+
+        if (discountTotal > 0) {
+            $('#review-discount-row').show();
+            $('#review-discount-total').text('-₱' + formatNumber(discountTotal));
+        } else {
+            $('#review-discount-row').hide();
+        }
+
+        $('#review-grand-total').text('₱' + formatNumber(grandTotal));
+
+        // Net revenue calculation (if affiliates exist)
+        if (totalAffiliateCommission > 0) {
+            $('#review-commission-row').show();
+            $('#review-commission-deduct').text('-₱' + formatNumber(totalAffiliateCommission));
+            $('#review-net-row').show();
+            const netRevenue = grandTotal - totalAffiliateCommission;
+            $('#review-net-revenue').text('₱' + formatNumber(netRevenue));
+        } else {
+            $('#review-commission-row').hide();
+            $('#review-net-row').hide();
         }
     }
 
@@ -5950,10 +9286,282 @@ $(document).ready(function() {
         return div.innerHTML;
     }
 
+    // Confirm Order Button Handler
+    $('#confirm-order-btn').on('click', function() {
+        const $btn = $(this);
+        const originalText = $btn.html();
+
+        console.log('=== CONFIRM ORDER CLICKED ===');
+
+        // Disable button and show loading
+        $btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-2"></i>Processing...');
+
+        // Gather all order data
+        const orderData = gatherOrderData();
+        console.log('Order data gathered:', orderData);
+
+        // Send to server
+        $.ajax({
+            url: '{{ route("ecom-orders-custom-add.store-order") }}',
+            type: 'POST',
+            data: JSON.stringify(orderData),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                console.log('Order creation response:', response);
+                if (response.success) {
+                    toastr.success(response.message || 'Order created successfully!', 'Success');
+                    // Store success message in session storage for the orders page
+                    sessionStorage.setItem('orderSuccess', 'Order #' + response.orderNumber + ' has been created and is pending.');
+                    // Redirect to orders page
+                    setTimeout(function() {
+                        window.location.href = '{{ route("ecom-orders") }}';
+                    }, 500);
+                } else {
+                    console.error('Order creation failed:', response);
+                    toastr.error(response.message || 'Failed to create order', 'Error');
+                    $btn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', { xhr: xhr, status: status, error: error });
+                console.error('Response text:', xhr.responseText);
+                let errorMessage = 'Failed to create order';
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    if (xhr.responseJSON.errors) {
+                        const errors = Object.values(xhr.responseJSON.errors).flat();
+                        errorMessage += ': ' + errors.join(', ');
+                    }
+                }
+                toastr.error(errorMessage, 'Error');
+                $btn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+
+    // Gather all order data for submission
+    function gatherOrderData() {
+        // Products data
+        const products = selectedProducts.map(function(product) {
+            return {
+                productId: product.productId,
+                productName: product.productName,
+                productStore: product.storeName || product.productStore,
+                productType: product.productType,
+                variantId: product.variantId,
+                variantName: product.variantName,
+                variantSku: product.sku || '',
+                variantImage: product.image || '',
+                unitPrice: parseFloat(product.price) || 0,
+                quantity: parseInt(product.quantity) || 1
+            };
+        });
+
+        // Client data
+        const client = selectedClient ? {
+            id: selectedClient.id,
+            firstName: selectedClient.firstName || '',
+            middleName: selectedClient.middleName || '',
+            lastName: selectedClient.lastName || '',
+            phone: selectedClient.phone || '',
+            email: selectedClient.email || ''
+        } : null;
+
+        // Shipping type
+        const shippingType = $('#shipping_type').val() || null;
+
+        // Check if there are any ship-type products
+        const hasShipProducts = selectedProducts.some(p => p.productType === 'ship');
+
+        // Shipping recipient - always read from Step 4 form fields
+        let shippingRecipient = {};
+        if (hasShipProducts) {
+            shippingRecipient = {
+                firstName: $('#shipping_first_name').val() || '',
+                middleName: $('#shipping_middle_name').val() || '',
+                lastName: $('#shipping_last_name').val() || '',
+                phone: $('#shipping_phone').val() || '',
+                email: $('#shipping_email').val() || ''
+            };
+        }
+
+        // Shipping address - only if there are ship products
+        let shippingAddress = {};
+        if (hasShipProducts) {
+            shippingAddress = {
+                houseNumber: $('#shipping_house_number').val() || '',
+                street: $('#shipping_street').val() || '',
+                zone: $('#shipping_zone').val() || '',
+                municipality: $('#shipping_municipality').val() || '',
+                province: $('#shipping_province').val() || '',
+                zipCode: $('#shipping_zip_code').val() || ''
+            };
+        }
+
+        // Access clients - format for server (map by variantId)
+        const accessClients = {};
+        // selectedAccessClients is keyed by store name with structure: { id, fullName, phone, email, store }
+        // We need to map each access product's variantId to the access client for that store
+        selectedProducts.forEach(function(product) {
+            if (product.productType === 'access') {
+                const storeName = product.productStore;
+                const ac = selectedAccessClients[storeName];
+                if (ac && ac.id) {
+                    accessClients[product.variantId] = {
+                        id: ac.id,
+                        name: ac.fullName || '',
+                        phone: ac.phone || '',
+                        email: ac.email || ''
+                    };
+                }
+            }
+        });
+
+        // Shipping methods - format for server
+        // selectedShippingMethods maps variantId -> shippingId (integer)
+        // availableShippingMethods maps shippingId -> method object with full details
+        // allProductShippingData maps variantId -> { shippingOptions: [...] }
+        const shippingMethods = {};
+        const uniqueShippingNames = new Set();
+
+        Object.keys(selectedShippingMethods).forEach(function(variantId) {
+            const shippingId = selectedShippingMethods[variantId];
+            if (shippingId) {
+                let shippingCost = 0;
+                let shippingMethodName = null;
+
+                // Try to get shipping details from allProductShippingData first (most reliable)
+                const productData = allProductShippingData[variantId];
+                if (productData && productData.shippingOptions) {
+                    const option = productData.shippingOptions.find(o => o.shippingId == shippingId);
+                    if (option) {
+                        shippingCost = parseFloat(option.shippingCost || 0);
+                        shippingMethodName = option.shippingName || null;
+                    }
+                }
+
+                // Fallback to availableShippingMethods if name not found
+                if (!shippingMethodName && availableShippingMethods[shippingId]) {
+                    shippingMethodName = availableShippingMethods[shippingId].shippingName || null;
+                }
+
+                shippingMethods[variantId] = {
+                    id: shippingId,
+                    name: shippingMethodName || 'Default Shipping',
+                    cost: shippingCost
+                };
+
+                // Collect unique shipping names
+                if (shippingMethodName) {
+                    uniqueShippingNames.add(shippingMethodName);
+                }
+            }
+        });
+
+        // Get the primary shipping name (comma-separated if multiple)
+        const shippingName = Array.from(uniqueShippingNames).join(', ') || null;
+
+        // Discounts - format for server
+        // Note: discountTrigger values from DB are "Auto Apply" or "Discount Code"
+        const discounts = calculatedDiscountBreakdown.map(function(disc) {
+            return {
+                id: disc.id || disc.discountId,
+                name: disc.name || disc.discountName,
+                code: disc.code || disc.discountCode || null,
+                type: disc.type || disc.discountType || 'percentage',
+                value: parseFloat(disc.value || disc.discountValue || 0),
+                calculatedAmount: parseFloat(disc.calculatedAmount || 0),
+                isAutoApplied: disc.trigger === 'Auto Apply' || disc.isAutoApplied === true
+            };
+        });
+
+        // Affiliate commissions - format for server
+        const affCommissions = affiliateCommissions.map(function(comm) {
+            return {
+                affiliateId: comm.affiliateId || comm.id,
+                affiliateName: comm.affiliateName || comm.name,
+                affiliateEmail: comm.affiliateEmail || '',
+                affiliatePhone: comm.affiliatePhone || '',
+                storeId: comm.storeId || null,
+                storeName: comm.storeName || '',
+                percentage: parseFloat(comm.percentage || comm.commissionPercentage || 0),
+                baseAmount: parseFloat(comm.baseAmount || 0),
+                commissionAmount: parseFloat(comm.commission || comm.commissionAmount || 0)
+            };
+        });
+
+        // Calculate totals - use package price if package is active
+        const calculatedSubtotal = products.reduce((sum, p) => sum + (p.unitPrice * p.quantity), 0);
+        const isPackagePurchase = activePackage !== null;
+
+        // For package purchases, use package price as subtotal
+        const subtotal = isPackagePurchase ? parseFloat(activePackage.packagePrice) : calculatedSubtotal;
+
+        let shippingTotal = 0;
+        Object.values(shippingMethods).forEach(function(m) {
+            shippingTotal += parseFloat(m.cost || 0);
+        });
+
+        const discountTotal = calculatedTotalDiscount || 0;
+
+        let affiliateCommissionTotal = 0;
+        affCommissions.forEach(function(c) {
+            affiliateCommissionTotal += parseFloat(c.commissionAmount || 0);
+        });
+
+        const grandTotal = subtotal + shippingTotal - discountTotal;
+        const netRevenue = grandTotal - affiliateCommissionTotal;
+
+        // Package data (if applicable)
+        let packageData = null;
+        if (isPackagePurchase) {
+            packageData = {
+                id: activePackage.id,
+                name: activePackage.packageName,
+                description: activePackage.packageDescription || null,
+                calculatedPrice: calculatedSubtotal, // Sum of individual item prices
+                packagePrice: parseFloat(activePackage.packagePrice),
+                savings: calculatedSubtotal - parseFloat(activePackage.packagePrice)
+            };
+        }
+
+        return {
+            products: products,
+            client: client,
+            hasShipProducts: hasShipProducts,
+            shippingType: hasShipProducts ? shippingType : null,
+            shippingName: hasShipProducts ? shippingName : null,
+            shippingRecipient: shippingRecipient,
+            shippingAddress: shippingAddress,
+            accessClients: accessClients,
+            shippingMethods: shippingMethods,
+            discounts: discounts,
+            affiliateCommissions: affCommissions,
+            // Package purchase data
+            isPackage: isPackagePurchase,
+            package: packageData,
+            totals: {
+                subtotal: subtotal,
+                calculatedSubtotal: calculatedSubtotal, // Always include for reference
+                shippingTotal: shippingTotal,
+                discountTotal: discountTotal,
+                grandTotal: grandTotal,
+                affiliateCommissionTotal: affiliateCommissionTotal,
+                netRevenue: netRevenue
+            }
+        };
+    }
+
     // Initialize
     showStep(1);
     showProductsLoading(); // Show loading indicator
     loadProducts(); // Load products on page load
+    loadPackages(); // Load packages on page load
 });
 </script>
 

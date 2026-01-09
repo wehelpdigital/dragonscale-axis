@@ -3,6 +3,9 @@
 @section('title') Product Variants @endsection
 
 @section('css')
+<!-- DataTables -->
+<link href="{{ URL::asset('build/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
+<link href="{{ URL::asset('build/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
 <!-- Toastr -->
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
 
@@ -112,6 +115,7 @@
     top: 20px !important;
     right: 20px !important;
 }
+
 </style>
 @endsection
 
@@ -164,7 +168,7 @@
 
                 <!-- Variants Table -->
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
+                    <table class="table table-bordered table-striped" id="variants-datatable">
                         <thead class="table-light">
                             <tr>
                                 <th>Variant Name</th>
@@ -221,13 +225,6 @@
                                                class="btn btn-sm btn-outline-purple badge-style" title="Triggers">
                                                 <i class="bx bx-bulb me-1"></i>Triggers
                                             </a>
-                                            @if($product->productType === 'ship')
-                                                <button type="button" class="btn btn-sm btn-outline-info badge-style shipping-btn" title="Shipping"
-                                                        data-variant-id="{{ $variant->id }}"
-                                                        data-variant-name="{{ $variant->ecomVariantName }}">
-                                                    <i class="bx bx-package me-1"></i>Shipping
-                                                </button>
-                                            @endif
                                             <button type="button" class="btn btn-sm btn-outline-danger badge-style delete-variant-btn"
                                                     title="Delete"
                                                     data-variant-id="{{ $variant->id }}"
@@ -322,6 +319,11 @@
 @endsection
 
 @section('script')
+<!-- DataTables -->
+<script src="{{ URL::asset('build/libs/datatables.net/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net-responsive/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js') }}"></script>
 <!-- Toastr -->
 <script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
 
@@ -337,6 +339,30 @@ toastr.options = {
 };
 
 $(document).ready(function() {
+    // Initialize DataTable for variants
+    $('#variants-datatable').DataTable({
+        responsive: true,
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        order: [[0, 'asc']], // Sort by Variant Name ascending
+        columnDefs: [
+            { orderable: false, targets: 4 } // Disable sorting on Actions column
+        ],
+        language: {
+            search: "Search:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ variants",
+            infoEmpty: "Showing 0 to 0 of 0 variants",
+            infoFiltered: "(filtered from _MAX_ total variants)",
+            paginate: {
+                first: '<i class="bx bx-chevrons-left"></i>',
+                previous: '<i class="bx bx-chevron-left"></i>',
+                next: '<i class="bx bx-chevron-right"></i>',
+                last: '<i class="bx bx-chevrons-right"></i>'
+            },
+            emptyTable: "No variants found for this product"
+        }
+    });
     // Variant status update functionality
     let variantToUpdateStatus = null;
 
@@ -584,15 +610,6 @@ $(document).ready(function() {
     // Reset variantToUpdateStocks when modal is hidden
     $('#variantStocksModal').on('hidden.bs.modal', function() {
         variantToUpdateStocks = null;
-    });
-
-    // Shipping button functionality
-    $('.shipping-btn').on('click', function() {
-        const variantId = $(this).data('variant-id');
-        const variantName = $(this).data('variant-name');
-
-        // Redirect to shipping page
-        window.location.href = '/ecom-products-variants-shipping?id=' + variantId;
     });
 });
 </script>

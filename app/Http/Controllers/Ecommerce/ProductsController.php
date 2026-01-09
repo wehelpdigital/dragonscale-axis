@@ -10,6 +10,7 @@ use App\Models\EcomProductsShipping;
 use App\Models\EcomProductsShippingOptions;
 use App\Models\EcomProductsVariantsShipping;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ProductsController extends Controller
@@ -1134,15 +1135,17 @@ class ProductsController extends Controller
         }
 
         // Get variant tags from ecom_products_variants_tags table where ecomVariantsId matches the current variant id
-        // and deleteStatus is 1, then join with axis_tags to get tagName and expirationLength
+        // and deleteStatus is 1, then join with ecom_trigger_tags to get triggerTagName and triggerTagDescription
         $variantTags = DB::table('ecom_products_variants_tags')
-            ->join('axis_tags', 'ecom_products_variants_tags.axisTagId', '=', 'axis_tags.id')
+            ->join('ecom_trigger_tags', 'ecom_products_variants_tags.ecomTriggerTagId', '=', 'ecom_trigger_tags.id')
             ->where('ecom_products_variants_tags.ecomVariantsId', $variantId)
             ->where('ecom_products_variants_tags.deleteStatus', 1)
+            ->where('ecom_trigger_tags.deleteStatus', 1)
             ->select(
                 'ecom_products_variants_tags.id',
-                'axis_tags.tagName',
-                'axis_tags.expirationLength',
+                'ecom_trigger_tags.id as triggerTagId',
+                'ecom_trigger_tags.triggerTagName',
+                'ecom_trigger_tags.triggerTagDescription',
                 'ecom_products_variants_tags.ecomVariantsId'
             )
             ->get();
@@ -1166,26 +1169,22 @@ class ProductsController extends Controller
     {
         $variantId = $request->query('id');
 
-        // Get available tags from axis_tags that are not yet in ecom_products_variants_tags for this variant
-        $availableTags = DB::table('axis_tags')
+        // Get available trigger tags from ecom_trigger_tags that are not yet in ecom_products_variants_tags for this variant
+        $availableTags = DB::table('ecom_trigger_tags')
             ->leftJoin('ecom_products_variants_tags', function($join) use ($variantId) {
-                $join->on('axis_tags.id', '=', 'ecom_products_variants_tags.axisTagId')
+                $join->on('ecom_trigger_tags.id', '=', 'ecom_products_variants_tags.ecomTriggerTagId')
                      ->where('ecom_products_variants_tags.ecomVariantsId', '=', $variantId)
                      ->where('ecom_products_variants_tags.deleteStatus', '=', 1);
             })
-            ->leftJoin('as_courses', function($join) {
-                $join->on('axis_tags.targetId', '=', 'as_courses.id')
-                     ->where('axis_tags.tagType', '=', 'course');
-            })
-            ->where('axis_tags.deleteStatus', 1)
+            ->where('ecom_trigger_tags.deleteStatus', 1)
             ->whereNull('ecom_products_variants_tags.id') // Only tags not yet assigned to this variant
             ->select(
-                'axis_tags.id',
-                'axis_tags.tagName',
-                'axis_tags.expirationLength',
-                'axis_tags.tagType',
-                'as_courses.courseName'
+                'ecom_trigger_tags.id',
+                'ecom_trigger_tags.triggerTagName',
+                'ecom_trigger_tags.triggerTagDescription',
+                'ecom_trigger_tags.created_at'
             )
+            ->orderBy('ecom_trigger_tags.triggerTagName', 'asc')
             ->get();
 
         return response()->json([
@@ -1207,7 +1206,7 @@ class ProductsController extends Controller
             $request->validate([
                 'variantId' => 'required|integer|exists:ecom_products_variants,id',
                 'tagIds' => 'required|array',
-                'tagIds.*' => 'integer|exists:axis_tags,id'
+                'tagIds.*' => 'integer|exists:ecom_trigger_tags,id'
             ], [
                 'variantId.required' => 'Variant ID is required.',
                 'variantId.integer' => 'Variant ID must be an integer.',
@@ -1215,7 +1214,7 @@ class ProductsController extends Controller
                 'tagIds.required' => 'Tag IDs are required.',
                 'tagIds.array' => 'Tag IDs must be an array.',
                 'tagIds.*.integer' => 'Tag ID must be an integer.',
-                'tagIds.*.exists' => 'Tag not found.'
+                'tagIds.*.exists' => 'Trigger tag not found.'
             ]);
 
             $variantId = $request->variantId;
@@ -1226,7 +1225,7 @@ class ProductsController extends Controller
             foreach ($tagIds as $tagId) {
                 $insertData[] = [
                     'ecomVariantsId' => $variantId,
-                    'axisTagId' => $tagId,
+                    'ecomTriggerTagId' => $tagId,
                     'deleteStatus' => 1,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -1237,13 +1236,72 @@ class ProductsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Tags have been successfully added to the variant!'
+                'message' => 'Trigger tags have been successfully added to the variant!'
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while saving the tags: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a new trigger tag.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function createTriggerTag(Request $request)
+    {
+        try {
+            // Validate the request
+            $request->validate([
+                'triggerTagName' => 'required|string|max:255',
+                'triggerTagDescription' => 'nullable|string'
+            ], [
+                'triggerTagName.required' => 'Trigger tag name is required.',
+                'triggerTagName.max' => 'Trigger tag name cannot exceed 255 characters.'
+            ]);
+
+            // Check if a trigger tag with the same name already exists
+            $existingTag = DB::table('ecom_trigger_tags')
+                ->where('triggerTagName', $request->triggerTagName)
+                ->where('deleteStatus', 1)
+                ->first();
+
+            if ($existingTag) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A trigger tag with this name already exists.'
+                ], 400);
+            }
+
+            // Create the new trigger tag
+            $tagId = DB::table('ecom_trigger_tags')->insertGetId([
+                'usersId' => Auth::id(),
+                'triggerTagName' => $request->triggerTagName,
+                'triggerTagDescription' => $request->triggerTagDescription,
+                'deleteStatus' => 1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Trigger tag created successfully!',
+                'tag' => [
+                    'id' => $tagId,
+                    'triggerTagName' => $request->triggerTagName,
+                    'triggerTagDescription' => $request->triggerTagDescription
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while creating the trigger tag: ' . $e->getMessage()
             ], 500);
         }
     }

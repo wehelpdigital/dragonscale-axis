@@ -9,16 +9,7 @@
         box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
     }
 
-    .form-control.is-valid {
-        border-color: #198754;
-        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
-    }
-
     .invalid-feedback {
-        display: block;
-    }
-
-    .valid-feedback {
         display: block;
     }
 </style>
@@ -62,7 +53,6 @@
                                        value="{{ old('ecomVariantName', $variant->ecomVariantName) }}"
                                        placeholder="Enter variant name">
                                 <div class="invalid-feedback" id="ecomVariantName-error"></div>
-                                <div class="valid-feedback" id="ecomVariantName-success">Looks good!</div>
                                 @error('ecomVariantName')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -82,8 +72,26 @@
                                            placeholder="0.00">
                                 </div>
                                 <div class="invalid-feedback" id="ecomVariantPrice-error"></div>
-                                <div class="valid-feedback" id="ecomVariantPrice-success">Looks good!</div>
                                 @error('ecomVariantPrice')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label for="rawPrice" class="form-label">Raw Price <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₱</span>
+                                    <input type="text" class="form-control @error('rawPrice') is-invalid @enderror"
+                                           id="rawPrice" name="rawPrice"
+                                           value="{{ old('rawPrice', number_format($variant->ecomRawVariantPrice ?? 0, 2)) }}"
+                                           placeholder="0.00">
+                                </div>
+                                <div class="invalid-feedback" id="rawPrice-error"></div>
+                                @error('rawPrice')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -102,7 +110,6 @@
                                            placeholder="0.00">
                                 </div>
                                 <div class="invalid-feedback" id="costPrice-error"></div>
-                                <div class="valid-feedback" id="costPrice-success">Looks good!</div>
                                 @error('costPrice')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -119,7 +126,6 @@
                                            placeholder="0.00">
                                 </div>
                                 <div class="invalid-feedback" id="affiliatePrice-error"></div>
-                                <div class="valid-feedback" id="affiliatePrice-success">Looks good!</div>
                                 @error('affiliatePrice')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -136,7 +142,6 @@
                                        value="{{ old('stocksAvailable', $variant->stocksAvailable) }}"
                                        placeholder="0">
                                 <div class="invalid-feedback" id="stocksAvailable-error"></div>
-                                <div class="valid-feedback" id="stocksAvailable-success">Looks good!</div>
                                 @error('stocksAvailable')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -153,7 +158,6 @@
                                        value="{{ old('maxOrderPerTransaction', $variant->maxOrderPerTransaction ?? 1) }}"
                                        min="1" placeholder="1">
                                 <div class="invalid-feedback" id="maxOrderPerTransaction-error"></div>
-                                <div class="valid-feedback" id="maxOrderPerTransaction-success">Looks good!</div>
                                 @error('maxOrderPerTransaction')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -169,7 +173,6 @@
                                           id="ecomVariantDescription" name="ecomVariantDescription"
                                           rows="3" placeholder="Enter variant description">{{ old('ecomVariantDescription', $variant->ecomVariantDescription) }}</textarea>
                                 <div class="invalid-feedback" id="ecomVariantDescription-error"></div>
-                                <div class="valid-feedback" id="ecomVariantDescription-success">Looks good!</div>
                                 @error('ecomVariantDescription')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -203,6 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('variantForm');
     const variantNameInput = document.getElementById('ecomVariantName');
     const variantPriceInput = document.getElementById('ecomVariantPrice');
+    const rawPriceInput = document.getElementById('rawPrice');
     const costPriceInput = document.getElementById('costPrice');
     const affiliatePriceInput = document.getElementById('affiliatePrice');
     const stocksAvailableInput = document.getElementById('stocksAvailable');
@@ -219,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(variantNameInput, 'ecomVariantName-error', 'Variant name must not exceed 255 characters.');
             return false;
         } else {
-            showSuccess(variantNameInput, 'ecomVariantName-success');
+            clearError(variantNameInput);
             return true;
         }
     }
@@ -242,7 +246,30 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(variantPriceInput, 'ecomVariantPrice-error', 'Variant price must be greater than or equal to 0.');
             return false;
         } else {
-            showSuccess(variantPriceInput, 'ecomVariantPrice-success');
+            clearError(variantPriceInput);
+            return true;
+        }
+    }
+
+    function validateRawPrice() {
+        const value = rawPriceInput.value.trim();
+        if (value === '') {
+            showError(rawPriceInput, 'rawPrice-error', 'Raw price is required.');
+            return false;
+        }
+
+        // Remove currency symbol and commas, then validate
+        const cleanValue = value.replace(/[₱,\s]/g, '');
+        const price = parseFloat(cleanValue);
+
+        if (isNaN(price)) {
+            showError(rawPriceInput, 'rawPrice-error', 'Raw price must be a valid number.');
+            return false;
+        } else if (price < 0) {
+            showError(rawPriceInput, 'rawPrice-error', 'Raw price must be greater than or equal to 0.');
+            return false;
+        } else {
+            clearError(rawPriceInput);
             return true;
         }
     }
@@ -265,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(costPriceInput, 'costPrice-error', 'Cost price must be greater than or equal to 0.');
             return false;
         } else {
-            showSuccess(costPriceInput, 'costPrice-success');
+            clearError(costPriceInput);
             return true;
         }
     }
@@ -288,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(affiliatePriceInput, 'affiliatePrice-error', 'Affiliate price must be greater than or equal to 0.');
             return false;
         } else {
-            showSuccess(affiliatePriceInput, 'affiliatePrice-success');
+            clearError(affiliatePriceInput);
             return true;
         }
     }
@@ -311,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(stocksAvailableInput, 'stocksAvailable-error', 'Stocks available must be greater than or equal to 0.');
             return false;
         } else {
-            showSuccess(stocksAvailableInput, 'stocksAvailable-success');
+            clearError(stocksAvailableInput);
             return true;
         }
     }
@@ -335,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'Maximum order per transaction must be a whole number.');
             return false;
         } else {
-            showSuccess(maxOrderPerTransactionInput, 'maxOrderPerTransaction-success');
+            clearError(maxOrderPerTransactionInput);
             return true;
         }
     }
@@ -349,66 +376,134 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(variantDescriptionInput, 'ecomVariantDescription-error', 'Variant description must not exceed 1000 characters.');
             return false;
         } else {
-            showSuccess(variantDescriptionInput, 'ecomVariantDescription-success');
+            clearError(variantDescriptionInput);
             return true;
         }
     }
 
     function showError(input, errorId, message) {
-        input.classList.remove('is-valid');
         input.classList.add('is-invalid');
         document.getElementById(errorId).textContent = message;
         document.getElementById(errorId).style.display = 'block';
-        document.getElementById(errorId.replace('-error', '-success')).style.display = 'none';
     }
 
-    function showSuccess(input, successId) {
+    function clearError(input) {
         input.classList.remove('is-invalid');
-        input.classList.add('is-valid');
-        document.getElementById(successId).style.display = 'block';
-        document.getElementById(successId.replace('-success', '-error')).style.display = 'none';
+        // Find and hide the error feedback element
+        const errorElement = input.closest('.mb-3').querySelector('.invalid-feedback');
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
     }
 
-    function clearValidation(input, errorId, successId) {
-        input.classList.remove('is-valid', 'is-invalid');
-        document.getElementById(errorId).style.display = 'none';
-        document.getElementById(successId).style.display = 'none';
+    // Restrict price fields to only accept numbers, decimal point, and commas (max 2 decimal places)
+    function restrictToNumbers(e) {
+        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+
+        // Allow control keys
+        if (allowedKeys.includes(e.key)) {
+            return;
+        }
+
+        // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        if (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+            return;
+        }
+
+        // Allow numbers, decimal point, and comma
+        if (!/^[0-9.,]$/.test(e.key)) {
+            e.preventDefault();
+            return;
+        }
+
+        // Prevent multiple decimal points
+        if (e.key === '.' && e.target.value.includes('.')) {
+            e.preventDefault();
+            return;
+        }
+
+        // Limit to 2 decimal places
+        const value = e.target.value;
+        const cursorPos = e.target.selectionStart;
+        const selectionEnd = e.target.selectionEnd;
+        const hasSelection = cursorPos !== selectionEnd;
+        const decimalIndex = value.indexOf('.');
+
+        if (decimalIndex !== -1 && /^[0-9]$/.test(e.key)) {
+            const decimals = value.substring(decimalIndex + 1);
+            // If cursor is after decimal and already has 2 decimal places, prevent input
+            // But allow if user has selected text (replacing)
+            if (cursorPos > decimalIndex && decimals.length >= 2 && !hasSelection) {
+                e.preventDefault();
+            }
+        }
     }
+
+    // Apply number restriction to all price fields
+    variantPriceInput.addEventListener('keydown', restrictToNumbers);
+    rawPriceInput.addEventListener('keydown', restrictToNumbers);
+    costPriceInput.addEventListener('keydown', restrictToNumbers);
+    affiliatePriceInput.addEventListener('keydown', restrictToNumbers);
+
+    // Also handle paste events to strip non-numeric characters and limit to 2 decimal places
+    function handlePaste(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        let cleanedText = pastedText.replace(/[^0-9.,]/g, '');
+
+        // Limit to 2 decimal places
+        if (cleanedText.includes('.')) {
+            const parts = cleanedText.split('.');
+            cleanedText = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+
+        document.execCommand('insertText', false, cleanedText);
+    }
+
+    variantPriceInput.addEventListener('paste', handlePaste);
+    rawPriceInput.addEventListener('paste', handlePaste);
+    costPriceInput.addEventListener('paste', handlePaste);
+    affiliatePriceInput.addEventListener('paste', handlePaste);
 
     // Event listeners for real-time validation
     variantNameInput.addEventListener('blur', validateVariantName);
     variantNameInput.addEventListener('input', function() {
-        clearValidation(variantNameInput, 'ecomVariantName-error', 'ecomVariantName-success');
+        clearError(variantNameInput);
     });
 
     variantPriceInput.addEventListener('blur', validateVariantPrice);
     variantPriceInput.addEventListener('input', function() {
-        clearValidation(variantPriceInput, 'ecomVariantPrice-error', 'ecomVariantPrice-success');
+        clearError(variantPriceInput);
+    });
+
+    rawPriceInput.addEventListener('blur', validateRawPrice);
+    rawPriceInput.addEventListener('input', function() {
+        clearError(rawPriceInput);
     });
 
     costPriceInput.addEventListener('blur', validateCostPrice);
     costPriceInput.addEventListener('input', function() {
-        clearValidation(costPriceInput, 'costPrice-error', 'costPrice-success');
+        clearError(costPriceInput);
     });
 
     affiliatePriceInput.addEventListener('blur', validateAffiliatePrice);
     affiliatePriceInput.addEventListener('input', function() {
-        clearValidation(affiliatePriceInput, 'affiliatePrice-error', 'affiliatePrice-success');
+        clearError(affiliatePriceInput);
     });
 
     stocksAvailableInput.addEventListener('blur', validateStocksAvailable);
     stocksAvailableInput.addEventListener('input', function() {
-        clearValidation(stocksAvailableInput, 'stocksAvailable-error', 'stocksAvailable-success');
+        clearError(stocksAvailableInput);
     });
 
     maxOrderPerTransactionInput.addEventListener('blur', validateMaxOrderPerTransaction);
     maxOrderPerTransactionInput.addEventListener('input', function() {
-        clearValidation(maxOrderPerTransactionInput, 'maxOrderPerTransaction-error', 'maxOrderPerTransaction-success');
+        clearError(maxOrderPerTransactionInput);
     });
 
     variantDescriptionInput.addEventListener('blur', validateVariantDescription);
     variantDescriptionInput.addEventListener('input', function() {
-        clearValidation(variantDescriptionInput, 'ecomVariantDescription-error', 'ecomVariantDescription-success');
+        clearError(variantDescriptionInput);
     });
 
     // Form submission validation
@@ -417,21 +512,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const isVariantNameValid = validateVariantName();
         const isVariantPriceValid = validateVariantPrice();
+        const isRawPriceValid = validateRawPrice();
         const isCostPriceValid = validateCostPrice();
         const isAffiliatePriceValid = validateAffiliatePrice();
         const isStocksAvailableValid = validateStocksAvailable();
         const isMaxOrderPerTransactionValid = validateMaxOrderPerTransaction();
         const isVariantDescriptionValid = validateVariantDescription();
 
-        if (isVariantNameValid && isVariantPriceValid && isCostPriceValid && isAffiliatePriceValid && isStocksAvailableValid && isMaxOrderPerTransactionValid && isVariantDescriptionValid) {
+        if (isVariantNameValid && isVariantPriceValid && isRawPriceValid && isCostPriceValid && isAffiliatePriceValid && isStocksAvailableValid && isMaxOrderPerTransactionValid && isVariantDescriptionValid) {
             // Clean up the values before submission
             const cleanPrice = variantPriceInput.value.replace(/[₱,\s]/g, '');
+            const cleanRawPrice = rawPriceInput.value.replace(/[₱,\s]/g, '');
             const cleanCostPrice = costPriceInput.value.replace(/[₱,\s]/g, '');
             const cleanAffiliatePrice = affiliatePriceInput.value.replace(/[₱,\s]/g, '');
             const cleanStocks = stocksAvailableInput.value.replace(/[,]/g, '');
 
             // Set the cleaned values directly to the inputs
             variantPriceInput.value = cleanPrice;
+            rawPriceInput.value = cleanRawPrice;
             costPriceInput.value = cleanCostPrice;
             affiliatePriceInput.value = cleanAffiliatePrice;
             stocksAvailableInput.value = cleanStocks;
@@ -444,6 +542,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 variantNameInput.focus();
             } else if (!isVariantPriceValid) {
                 variantPriceInput.focus();
+            } else if (!isRawPriceValid) {
+                rawPriceInput.focus();
             } else if (!isCostPriceValid) {
                 costPriceInput.focus();
             } else if (!isAffiliatePriceValid) {
