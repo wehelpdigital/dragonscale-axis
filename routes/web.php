@@ -107,6 +107,7 @@ Route::post('/anisenso-courses', [App\Http\Controllers\aniSensoAdmin\AniSensoCou
 Route::get('/anisenso-courses/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'edit'])->name('anisenso-courses.edit')->middleware('auth');
 Route::put('/anisenso-courses/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'update'])->name('anisenso-courses.update')->middleware('auth');
 Route::delete('/anisenso-courses/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroy'])->name('anisenso-courses.destroy')->middleware('auth');
+Route::put('/anisenso-courses/{id}/status', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'toggleStatus'])->name('anisenso-courses.status')->middleware('auth');
 
 // Ani-Senso Course Contents routes
 Route::get('/anisenso-courses-contents', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'contents'])->name('anisenso-courses.contents')->middleware('auth');
@@ -138,6 +139,43 @@ Route::put('/anisenso-courses-topics/{id}', [App\Http\Controllers\aniSensoAdmin\
 Route::delete('/anisenso-courses-topics/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroyTopic'])->name('anisenso-courses-topics.destroy')->middleware('auth');
 Route::put('/anisenso-topics-order', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateTopicOrder'])->name('anisenso-topics.order')->middleware('auth');
 
+// Ani-Senso Course Students routes
+Route::get('/anisenso-courses/{courseId}/students', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'getStudents'])->name('anisenso-courses.students')->middleware('auth');
+Route::get('/anisenso-courses/{courseId}/students/search', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'searchAvailableStudents'])->name('anisenso-courses.students.search')->middleware('auth');
+Route::post('/anisenso-courses/students/enroll', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'enrollStudent'])->name('anisenso-courses.students.enroll')->middleware('auth');
+Route::get('/anisenso-courses/enrollments/{enrollmentId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'getEnrollment'])->name('anisenso-courses.enrollments.get')->middleware('auth');
+Route::put('/anisenso-courses/enrollments/{enrollmentId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'updateEnrollment'])->name('anisenso-courses.enrollments.update')->middleware('auth');
+Route::delete('/anisenso-courses/enrollments/{enrollmentId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'removeStudent'])->name('anisenso-courses.enrollments.delete')->middleware('auth');
+Route::post('/anisenso-courses/enrollments/{enrollmentId}/reset-progress', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'resetProgress'])->name('anisenso-courses.enrollments.reset-progress')->middleware('auth');
+Route::post('/anisenso-courses/students/{accessClientId}/send-password-reset', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'sendPasswordResetEmail'])->name('anisenso-courses.students.send-password-reset')->middleware('auth');
+
+// Ani-Senso Course Audit routes
+Route::get('/anisenso-courses/{courseId}/audit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseAuditController::class, 'getAuditLogs'])->name('anisenso-courses.audit')->middleware('auth');
+Route::get('/anisenso-courses/{courseId}/audit/users', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseAuditController::class, 'getUsers'])->name('anisenso-courses.audit.users')->middleware('auth');
+
+// Ani-Senso Course Reviews routes
+Route::get('/anisenso-courses/{courseId}/reviews', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'getReviews'])->name('anisenso-courses.reviews')->middleware('auth');
+Route::delete('/anisenso-courses/reviews/{reviewId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'deleteReview'])->name('anisenso-courses.reviews.delete')->middleware('auth');
+Route::put('/anisenso-courses/reviews/{reviewId}/approval', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'toggleApproval'])->name('anisenso-courses.reviews.approval')->middleware('auth');
+Route::put('/anisenso-courses/reviews/{reviewId}/featured', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'toggleFeatured'])->name('anisenso-courses.reviews.featured')->middleware('auth');
+Route::post('/anisenso-courses/reviews/{reviewId}/reply', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'addReply'])->name('anisenso-courses.reviews.reply')->middleware('auth');
+Route::delete('/anisenso-courses/review-replies/{replyId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'deleteReply'])->name('anisenso-courses.reviews.reply.delete')->middleware('auth');
+
+// Ani-Senso Course Settings routes
+Route::get('/anisenso-courses/{courseId}/settings', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseSettingsController::class, 'getSettings'])->name('anisenso-courses.settings')->middleware('auth');
+Route::put('/anisenso-courses/{courseId}/settings/course-flow', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseSettingsController::class, 'updateCourseFlow'])->name('anisenso-courses.settings.course-flow')->middleware('auth');
+
+// Ani-Senso Course Certificate routes
+Route::get('/anisenso-courses-certificate-designer', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'designer'])->name('anisenso-courses.certificate.designer')->middleware('auth');
+Route::get('/anisenso-courses/{courseId}/certificate', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'getTemplate'])->name('anisenso-courses.certificate.get')->middleware('auth');
+Route::put('/anisenso-courses/{courseId}/certificate', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'saveTemplate'])->name('anisenso-courses.certificate.save')->middleware('auth');
+Route::post('/anisenso-courses/{courseId}/certificate/background', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'uploadBackground'])->name('anisenso-courses.certificate.background')->middleware('auth');
+Route::delete('/anisenso-courses/{courseId}/certificate/background', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'removeBackground'])->name('anisenso-courses.certificate.background.remove')->middleware('auth');
+Route::post('/anisenso-courses/{courseId}/certificate/assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'uploadAsset'])->name('anisenso-courses.certificate.assets.upload')->middleware('auth');
+Route::get('/anisenso-courses/{courseId}/certificate/assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'getAssets'])->name('anisenso-courses.certificate.assets')->middleware('auth');
+Route::delete('/anisenso-courses/certificate/assets/{assetId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'deleteAsset'])->name('anisenso-courses.certificate.assets.delete')->middleware('auth');
+Route::put('/anisenso-courses/{courseId}/certificate/toggle-status', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'toggleStatus'])->name('anisenso-courses.certificate.toggle-status')->middleware('auth');
+
 // Image upload route for TinyMCE
 Route::post('/upload-image', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'uploadImage'])->name('upload-image')->middleware('auth');
 
@@ -160,6 +198,12 @@ Route::get('/ecom-store-settings', [App\Http\Controllers\Ecommerce\StoreSettings
 Route::post('/ecom-store-settings/smtp', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'saveSmtp'])->name('ecom-store-settings.smtp.save')->middleware('auth');
 Route::post('/ecom-store-settings/smtp/test', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'testSmtp'])->name('ecom-store-settings.smtp.test')->middleware('auth');
 Route::post('/ecom-store-settings/smtp/toggle', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'toggleSmtpStatus'])->name('ecom-store-settings.smtp.toggle')->middleware('auth');
+
+// Payment Settings
+Route::post('/ecom-store-settings/payment', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'savePayment'])->name('ecom-store-settings.payment.save')->middleware('auth');
+Route::post('/ecom-store-settings/payment/upload', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'uploadPaymentImage'])->name('ecom-store-settings.payment.upload')->middleware('auth');
+Route::post('/ecom-store-settings/payment/remove-image', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'removePaymentImage'])->name('ecom-store-settings.payment.remove-image')->middleware('auth');
+Route::post('/ecom-store-settings/payment/toggle', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'togglePaymentMethod'])->name('ecom-store-settings.payment.toggle')->middleware('auth');
 
 // Store Logins
 Route::get('/ecom-store-logins', [App\Http\Controllers\Ecommerce\StoreLoginsController::class, 'index'])->name('ecom-store-logins')->middleware('auth');
@@ -348,6 +392,20 @@ Route::put('/ecom-triggers-update', [App\Http\Controllers\Ecommerce\TriggersCont
 Route::put('/ecom-triggers-toggle-status', [App\Http\Controllers\Ecommerce\TriggersController::class, 'toggleStatus'])->name('ecom-triggers.toggle-status')->middleware('auth');
 Route::post('/ecom-triggers-duplicate', [App\Http\Controllers\Ecommerce\TriggersController::class, 'duplicate'])->name('ecom-triggers.duplicate')->middleware('auth');
 Route::delete('/ecom-triggers-delete', [App\Http\Controllers\Ecommerce\TriggersController::class, 'destroy'])->name('ecom-triggers.destroy')->middleware('auth');
+
+// E-commerce Sales Reports routes
+Route::get('/ecom-reports-sales', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'index'])->name('ecom-reports.sales')->middleware('auth');
+Route::get('/ecom-reports-sales/overview', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getOverview'])->name('ecom-reports.sales.overview')->middleware('auth');
+Route::get('/ecom-reports-sales/by-store', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getSalesByStore'])->name('ecom-reports.sales.by-store')->middleware('auth');
+Route::get('/ecom-reports-sales/by-product', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getSalesByProduct'])->name('ecom-reports.sales.by-product')->middleware('auth');
+Route::get('/ecom-reports-sales/trend', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getSalesTrend'])->name('ecom-reports.sales.trend')->middleware('auth');
+Route::get('/ecom-reports-sales/discount', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getDiscountReport'])->name('ecom-reports.sales.discount')->middleware('auth');
+Route::get('/ecom-reports-sales/commission', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getCommissionReport'])->name('ecom-reports.sales.commission')->middleware('auth');
+Route::post('/ecom-reports-sales/save', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'saveReport'])->name('ecom-reports.sales.save')->middleware('auth');
+Route::get('/ecom-reports-sales/saved', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getSavedReports'])->name('ecom-reports.sales.saved')->middleware('auth');
+Route::get('/ecom-reports-sales/load/{id}', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'loadReport'])->name('ecom-reports.sales.load')->middleware('auth');
+Route::delete('/ecom-reports-sales/{id}', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'deleteReport'])->name('ecom-reports.sales.delete')->middleware('auth');
+Route::get('/ecom-reports-sales/export', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'exportReport'])->name('ecom-reports.sales.export')->middleware('auth');
 Route::post('/ecom-triggers-upload-image', [App\Http\Controllers\Ecommerce\TriggersController::class, 'uploadImage'])->name('ecom-triggers.upload-image')->middleware('auth');
 Route::get('/ecom-shipping-options/available-provinces', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getAvailableProvinces'])->name('ecom-shipping-options.available-provinces')->middleware('auth');
 Route::get('/ecom-shipping-options/{id}/edit', [App\Http\Controllers\Ecommerce\ShippingController::class, 'editShippingOption'])->name('ecom-shipping-options.edit')->middleware('auth');
@@ -355,6 +413,19 @@ Route::post('/ecom-shipping-options', [App\Http\Controllers\Ecommerce\ShippingCo
 Route::put('/ecom-shipping-options/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'updateShippingOption'])->name('ecom-shipping-options.update')->middleware('auth');
 Route::put('/ecom-shipping-options/{id}/status', [App\Http\Controllers\Ecommerce\ShippingController::class, 'updateShippingOptionStatus'])->name('ecom-shipping-options.status')->middleware('auth');
 Route::delete('/ecom-shipping-options/{id}', [App\Http\Controllers\Ecommerce\ShippingController::class, 'deleteShippingOption'])->name('ecom-shipping-options.delete')->middleware('auth');
+
+// E-commerce refunds routes
+Route::get('/ecom-refunds', [App\Http\Controllers\Ecommerce\RefundsController::class, 'index'])->name('ecom-refunds')->middleware('auth');
+Route::get('/ecom-refunds/data', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getData'])->name('ecom-refunds.data')->middleware('auth');
+Route::get('/ecom-refunds/summary', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getSummary'])->name('ecom-refunds.summary')->middleware('auth');
+Route::get('/ecom-refunds/get-order', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getOrderForRefund'])->name('ecom-refunds.get-order')->middleware('auth');
+Route::get('/ecom-refunds/products', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getProducts'])->name('ecom-refunds.products')->middleware('auth');
+Route::post('/ecom-refunds', [App\Http\Controllers\Ecommerce\RefundsController::class, 'store'])->name('ecom-refunds.store')->middleware('auth');
+Route::get('/ecom-refunds/{id}', [App\Http\Controllers\Ecommerce\RefundsController::class, 'show'])->name('ecom-refunds.show')->middleware('auth');
+Route::post('/ecom-refunds/{id}/process', [App\Http\Controllers\Ecommerce\RefundsController::class, 'process'])->name('ecom-refunds.process')->middleware('auth');
+Route::delete('/ecom-refunds/{id}', [App\Http\Controllers\Ecommerce\RefundsController::class, 'destroy'])->name('ecom-refunds.destroy')->middleware('auth');
+Route::get('/ecom-refunds/{id}/audit-trail', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getAuditTrail'])->name('ecom-refunds.audit-trail')->middleware('auth');
+Route::get('/ecom-refunds-audit-logs', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getAllAuditLogs'])->name('ecom-refunds.all-audit-logs')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

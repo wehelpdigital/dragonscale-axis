@@ -100,7 +100,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="costPrice" class="form-label">Cost Price <span class="text-danger">*</span></label>
+                                <label for="costPrice" class="form-label">Showed Before Cost Price</label>
                                 <div class="input-group">
                                     <span class="input-group-text">₱</span>
                                     <input type="text" class="form-control @error('costPrice') is-invalid @enderror"
@@ -275,9 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function validateCostPrice() {
         const value = costPriceInput.value.trim();
-        if (value === '') {
-            showError(costPriceInput, 'costPrice-error', 'Cost price is required.');
-            return false;
+        // Cost price is optional - if empty, it's valid
+        if (value === '' || value === '0.00') {
+            clearError(costPriceInput);
+            return true;
         }
 
         // Remove peso symbol and commas, then validate as number

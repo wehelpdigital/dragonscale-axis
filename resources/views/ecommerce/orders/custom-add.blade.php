@@ -1260,6 +1260,47 @@
                         </div>
                     </div>
 
+                    <!-- Profit Analysis -->
+                    <div class="card border-success mb-3" id="review-profit-section">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="card-title mb-0 text-white">
+                                <i class="mdi mdi-chart-line me-2 text-white"></i>Profit Analysis
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary small">Total Raw Cost:</span>
+                                <span class="text-dark small" id="review-total-raw-cost">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary small">Total Revenue (Selling Price):</span>
+                                <span class="text-dark small" id="review-total-revenue">₱0.00</span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-success fw-medium">Gross Profit:</span>
+                                <span class="text-success fw-medium" id="review-gross-profit">₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary small">Profit Margin:</span>
+                                <span class="text-secondary small" id="review-profit-margin">0%</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-danger" id="review-profit-discount-row" style="display: none;">
+                                <span class="small">Less: Discounts</span>
+                                <span class="small" id="review-profit-discounts">-₱0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-warning" id="review-profit-commission-row" style="display: none;">
+                                <span class="small">Less: Affiliate Commission</span>
+                                <span class="small" id="review-profit-commission">-₱0.00</span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between py-2 bg-light rounded px-2">
+                                <span class="fw-bold text-dark">Net Profit:</span>
+                                <span class="fw-bold text-success" id="review-net-profit">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Order Totals -->
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white">
@@ -2574,10 +2615,20 @@ $(document).ready(function() {
                 ? 'Remove the active package first'
                 : (isInCart ? 'Left click: Add quantity | Right click: Remove from cart' : 'Add to cart');
 
+            // Check if there's a costPrice to show as "before" price
+            const costPrice = parseFloat(variant.costPrice || 0);
+            const variantPrice = parseFloat(variant.ecomVariantPrice);
+            let priceDisplay = '';
+            if (costPrice > 0) {
+                priceDisplay = `<span class="text-danger text-decoration-line-through me-1">₱${costPrice.toFixed(2)}</span><span class="text-success fw-bold">₱${variantPrice.toFixed(2)}</span>`;
+            } else {
+                priceDisplay = `₱${variantPrice.toFixed(2)}`;
+            }
+
             html += `
                 <tr data-variant-name="${variant.ecomVariantName.toLowerCase()}">
                     <td>${variant.ecomVariantName}</td>
-                    <td>₱${parseFloat(variant.ecomVariantPrice).toFixed(2)}</td>
+                    <td>${priceDisplay}</td>
                     <td>
                         <span class="badge ${variant.stocksAvailable > 0 ? 'bg-success' : 'bg-danger'}">
                             ${variant.stocksAvailable}
@@ -2707,6 +2758,8 @@ $(document).ready(function() {
                                     variantId: variant.id,
                                     variantName: variant.ecomVariantName,
                                     price: variant.ecomVariantPrice,
+                                    rawPrice: variant.ecomRawVariantPrice || 0,
+                                    costPrice: variant.costPrice || 0,
                                     productId: productId,
             productName: variant.productName,
             productStore: variant.productStore || 'Unknown Store',
@@ -2873,7 +2926,10 @@ $(document).ready(function() {
                             </div>
                             <div class="text-end">
                                 <span class="badge bg-secondary">Qty: ${item.quantity}</span>
-                                <div class="text-muted small">₱${parseFloat(item.price).toFixed(2)} each</div>
+                                <div class="small">${parseFloat(item.costPrice || 0) > 0
+                                    ? `<span class="text-danger text-decoration-line-through me-1">₱${parseFloat(item.costPrice).toFixed(2)}</span><span class="text-success">₱${parseFloat(item.price).toFixed(2)}</span> each`
+                                    : `<span class="text-muted">₱${parseFloat(item.price).toFixed(2)} each</span>`
+                                }</div>
                             </div>
                         </div>
                     `;
@@ -2936,7 +2992,10 @@ $(document).ready(function() {
                                 </small>
                                 <span class="badge bg-info text-white" style="font-size: 0.7em;">${item.productType || 'N/A'}</span>
                             </div>
-                            <small class="text-success fw-bold">₱${parseFloat(item.price).toFixed(2)}</small>
+                            ${parseFloat(item.costPrice || 0) > 0
+                                ? `<small class="text-danger text-decoration-line-through me-1">₱${parseFloat(item.costPrice).toFixed(2)}</small><small class="text-success fw-bold">₱${parseFloat(item.price).toFixed(2)}</small>`
+                                : `<small class="text-success fw-bold">₱${parseFloat(item.price).toFixed(2)}</small>`
+                            }
                             <br><small class="text-info" title="Maximum quantity allowed for this product">Max: ${maxOrderPerTransaction}</small>
                         </div>
                         <div class="d-flex align-items-center">
@@ -3199,6 +3258,8 @@ $(document).ready(function() {
             variantId: currentVariantForModal.variant.id,
             variantName: currentVariantForModal.variant.ecomVariantName,
             price: currentVariantForModal.variant.ecomVariantPrice,
+            rawPrice: currentVariantForModal.variant.ecomRawVariantPrice || 0,
+            costPrice: currentVariantForModal.variant.costPrice || 0,
             productId: currentVariantForModal.productId,
             productName: currentVariantForModal.variant.productName,
             productStore: currentVariantForModal.variant.productStore || 'Unknown Store',
@@ -3360,7 +3421,13 @@ $(document).ready(function() {
                             <div class="row g-2">
                                 <div class="col-6">
                                     <label class="form-label fw-bold text-muted small mb-1">Price</label>
-                                    <div class="h5 text-success mb-0">₱${parseFloat(variant.ecomVariantPrice || 0).toFixed(2)}</div>
+                                    ${parseFloat(variant.costPrice || 0) > 0 ?
+                                        `<div class="mb-0">
+                                            <span class="text-danger text-decoration-line-through" style="font-size: 0.9rem;">₱${parseFloat(variant.costPrice).toFixed(2)}</span>
+                                            <div class="h5 text-success mb-0">₱${parseFloat(variant.ecomVariantPrice || 0).toFixed(2)}</div>
+                                        </div>` :
+                                        `<div class="h5 text-success mb-0">₱${parseFloat(variant.ecomVariantPrice || 0).toFixed(2)}</div>`
+                                    }
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label fw-bold text-muted small mb-1">Stock</label>
@@ -3825,6 +3892,8 @@ $(document).ready(function() {
                 variantId: item.variantId,
                 variantName: item.variantName,
                 price: item.unitPrice,
+                rawPrice: item.rawPrice || 0,
+                costPrice: item.costPrice || 0,
                 productId: item.productId,
                 productName: item.productName,
                 productStore: item.productStore,
@@ -8564,7 +8633,7 @@ $(document).ready(function() {
     function calculateDiscountTotals() {
         if (appliedDiscounts.length === 0) {
             // No discounts applied
-            updateDiscountDisplay(orderSubtotal, orderShipping, 0, orderSubtotal + orderShipping, []);
+            updateDiscountDisplay(orderSubtotal, orderShipping, 0, orderSubtotal + orderShipping, [], orderShipping, 0);
             return;
         }
 
@@ -8590,7 +8659,9 @@ $(document).ready(function() {
                         data.shippingTotal,
                         data.totalDiscount,
                         data.grandTotal,
-                        data.discountBreakdown
+                        data.discountBreakdown,
+                        data.discountedShipping,
+                        data.totalShippingDiscount
                     );
                 }
             },
@@ -8598,15 +8669,25 @@ $(document).ready(function() {
                 $('#discount-calculation-loading').hide();
                 console.error('Error calculating discounts:', xhr);
                 // Fall back to simple calculation
-                updateDiscountDisplay(orderSubtotal, orderShipping, 0, orderSubtotal + orderShipping, []);
+                updateDiscountDisplay(orderSubtotal, orderShipping, 0, orderSubtotal + orderShipping, [], orderShipping, 0);
             }
         });
     }
 
     // Update discount display
-    function updateDiscountDisplay(subtotal, shipping, totalDiscount, grandTotal, breakdown) {
+    function updateDiscountDisplay(subtotal, shipping, totalDiscount, grandTotal, breakdown, discountedShipping, shippingDiscount) {
         $('#discount-subtotal').text('₱' + formatNumber(subtotal));
-        $('#discount-shipping').text('₱' + formatNumber(shipping));
+
+        // Show discounted shipping if there's a shipping discount
+        if (shippingDiscount && shippingDiscount > 0) {
+            $('#discount-shipping').html(
+                '<span class="text-decoration-line-through text-muted me-1">₱' + formatNumber(shipping) + '</span>' +
+                '<span class="text-success">₱' + formatNumber(discountedShipping) + '</span>'
+            );
+        } else {
+            $('#discount-shipping').text('₱' + formatNumber(shipping));
+        }
+
         $('#discount-grand-total').text('₱' + formatNumber(grandTotal));
 
         // Store for Step 7 review
@@ -9191,6 +9272,23 @@ $(document).ready(function() {
         // Calculate subtotal (uses package price if package is active)
         const subtotal = getOrderSubtotal();
 
+        // ===== PROFIT ANALYSIS CALCULATIONS =====
+        // Calculate total raw cost (sum of rawPrice * quantity)
+        const totalRawCost = selectedProducts.reduce((sum, p) => {
+            return sum + (parseFloat(p.rawPrice || 0) * p.quantity);
+        }, 0);
+
+        // Calculate total revenue (sum of variant price * quantity)
+        const totalRevenue = selectedProducts.reduce((sum, p) => {
+            return sum + (parseFloat(p.price || 0) * p.quantity);
+        }, 0);
+
+        // Calculate gross profit (revenue - raw cost)
+        const grossProfit = totalRevenue - totalRawCost;
+
+        // Calculate profit margin percentage
+        const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100) : 0;
+
         // Get shipping total
         const shipProducts = selectedProducts.filter(p =>
             (p.productType || '').toLowerCase() === 'ship'
@@ -9201,11 +9299,60 @@ $(document).ready(function() {
             shippingTotal = parseFloat(shippingText.replace(/[^\d.]/g, '')) || 0;
         }
 
+        // Calculate shipping discounts separately from product discounts
+        let shippingDiscountTotal = 0;
+        let productDiscountTotal = 0;
+        if (calculatedDiscountBreakdown && calculatedDiscountBreakdown.length > 0) {
+            calculatedDiscountBreakdown.forEach(function(disc) {
+                const amount = parseFloat(disc.calculatedAmount) || 0;
+                if (disc.isShippingDiscount || disc.discountType === 'Shipping Discount') {
+                    shippingDiscountTotal += amount;
+                } else {
+                    productDiscountTotal += amount;
+                }
+            });
+        }
+
         // Use the calculated discount total from Step 5
         const discountTotal = calculatedTotalDiscount || 0;
 
-        // Calculate grand total
-        const grandTotal = Math.max(0, subtotal + shippingTotal - discountTotal);
+        // Calculate grand total: (subtotal - product discounts) + (shipping - shipping discounts)
+        const discountedShipping = Math.max(0, shippingTotal - shippingDiscountTotal);
+        const grandTotal = Math.max(0, subtotal - productDiscountTotal + discountedShipping);
+
+        // Calculate net profit (gross profit - product discounts - affiliate commission)
+        // Note: Shipping discounts don't affect profit since shipping is a pass-through cost
+        const netProfit = grossProfit - productDiscountTotal - totalAffiliateCommission;
+
+        // ===== UPDATE PROFIT ANALYSIS DISPLAY =====
+        $('#review-total-raw-cost').text('₱' + formatNumber(totalRawCost));
+        $('#review-total-revenue').text('₱' + formatNumber(totalRevenue));
+        $('#review-gross-profit').text('₱' + formatNumber(grossProfit));
+        $('#review-profit-margin').text(profitMargin.toFixed(1) + '%');
+
+        // Show/hide discount row in profit analysis
+        if (productDiscountTotal > 0) {
+            $('#review-profit-discount-row').show();
+            $('#review-profit-discounts').text('-₱' + formatNumber(productDiscountTotal));
+        } else {
+            $('#review-profit-discount-row').hide();
+        }
+
+        // Show/hide commission row in profit analysis
+        if (totalAffiliateCommission > 0) {
+            $('#review-profit-commission-row').show();
+            $('#review-profit-commission').text('-₱' + formatNumber(totalAffiliateCommission));
+        } else {
+            $('#review-profit-commission-row').hide();
+        }
+
+        // Update net profit with color coding
+        $('#review-net-profit').text('₱' + formatNumber(netProfit));
+        if (netProfit < 0) {
+            $('#review-net-profit').removeClass('text-success').addClass('text-danger');
+        } else {
+            $('#review-net-profit').removeClass('text-danger').addClass('text-success');
+        }
 
         // Update subtotal label and value based on purchase type
         const $subtotalRow = $('#review-subtotal').closest('.d-flex');
@@ -9243,7 +9390,15 @@ $(document).ready(function() {
 
         if (shippingTotal > 0) {
             $('#review-shipping-row').show();
-            $('#review-shipping-total').text('₱' + formatNumber(shippingTotal));
+            // Show discounted shipping if there's a shipping discount
+            if (shippingDiscountTotal > 0) {
+                $('#review-shipping-total').html(
+                    '<span class="text-decoration-line-through text-muted me-1">₱' + formatNumber(shippingTotal) + '</span>' +
+                    '<span class="text-success">₱' + formatNumber(discountedShipping) + '</span>'
+                );
+            } else {
+                $('#review-shipping-total').text('₱' + formatNumber(shippingTotal));
+            }
         } else {
             $('#review-shipping-row').hide();
         }
@@ -9258,13 +9413,17 @@ $(document).ready(function() {
         $('#review-grand-total').text('₱' + formatNumber(grandTotal));
 
         // Net revenue calculation (if affiliates exist)
-        if (totalAffiliateCommission > 0) {
+        // Always calculate net revenue = grandTotal - commission (even if commission is 0)
+        const netRevenue = grandTotal - totalAffiliateCommission;
+        $('#review-net-revenue').text('₱' + formatNumber(netRevenue));
+
+        if (affiliateCommissions.length > 0) {
+            // Show commission and net revenue rows when affiliates exist
             $('#review-commission-row').show();
             $('#review-commission-deduct').text('-₱' + formatNumber(totalAffiliateCommission));
             $('#review-net-row').show();
-            const netRevenue = grandTotal - totalAffiliateCommission;
-            $('#review-net-revenue').text('₱' + formatNumber(netRevenue));
         } else {
+            // Hide rows when no affiliates
             $('#review-commission-row').hide();
             $('#review-net-row').hide();
         }
@@ -9507,6 +9666,20 @@ $(document).ready(function() {
             shippingTotal += parseFloat(m.cost || 0);
         });
 
+        // Calculate product and shipping discounts separately
+        let productDiscountTotal = 0;
+        let shippingDiscountTotal = 0;
+        if (calculatedDiscountBreakdown && calculatedDiscountBreakdown.length > 0) {
+            calculatedDiscountBreakdown.forEach(function(disc) {
+                const amount = parseFloat(disc.calculatedAmount) || 0;
+                if (disc.isShippingDiscount || disc.discountType === 'Shipping Discount') {
+                    shippingDiscountTotal += amount;
+                } else {
+                    productDiscountTotal += amount;
+                }
+            });
+        }
+
         const discountTotal = calculatedTotalDiscount || 0;
 
         let affiliateCommissionTotal = 0;
@@ -9514,7 +9687,9 @@ $(document).ready(function() {
             affiliateCommissionTotal += parseFloat(c.commissionAmount || 0);
         });
 
-        const grandTotal = subtotal + shippingTotal - discountTotal;
+        // Calculate grand total: (subtotal - product discounts) + (shipping - shipping discounts)
+        const discountedShipping = Math.max(0, shippingTotal - shippingDiscountTotal);
+        const grandTotal = Math.max(0, subtotal - productDiscountTotal) + discountedShipping;
         const netRevenue = grandTotal - affiliateCommissionTotal;
 
         // Package data (if applicable)

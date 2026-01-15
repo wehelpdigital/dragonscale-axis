@@ -2310,7 +2310,8 @@ class OrdersCustomAddController extends Controller
             $appliedDiscounts = $request->input('appliedDiscounts', []);
 
             $discountBreakdown = [];
-            $totalDiscount = 0;
+            $totalProductDiscount = 0;
+            $totalShippingDiscount = 0;
 
             foreach ($appliedDiscounts as $discountData) {
                 $discountId = $discountData['id'] ?? null;
@@ -2320,15 +2321,21 @@ class OrdersCustomAddController extends Controller
                 if (!$discount || $discount->isExpired()) continue;
 
                 $discountAmount = 0;
+                $isShippingDiscount = ($discount->discountType === 'Shipping Discount');
+
+                // Determine base amount for calculation
+                // Shipping discounts apply to shipping total, product discounts apply to subtotal
+                $baseAmount = $isShippingDiscount ? $shippingTotal : $subtotal;
+                $currentTotalDiscount = $isShippingDiscount ? $totalShippingDiscount : $totalProductDiscount;
 
                 // Calculate based on amount type
                 if ($discount->amountType === 'Percentage') {
-                    $discountAmount = ($subtotal * $discount->valuePercent) / 100;
+                    $discountAmount = ($baseAmount * $discount->valuePercent) / 100;
                 } elseif ($discount->amountType === 'Specific Amount') {
                     $discountAmount = $discount->valueAmount;
                 } elseif ($discount->amountType === 'Price Replacement') {
-                    // Price replacement is handled differently - it replaces the total
-                    $discountAmount = max(0, $subtotal - $discount->valueReplacement);
+                    // Price replacement - replaces the base amount
+                    $discountAmount = max(0, $baseAmount - $discount->valueReplacement);
                 }
 
                 // Apply discount cap if set
@@ -2336,11 +2343,16 @@ class OrdersCustomAddController extends Controller
                     $discountAmount = min($discountAmount, $discount->discountCapValue);
                 }
 
-                // Ensure discount doesn't exceed subtotal
-                $discountAmount = min($discountAmount, $subtotal - $totalDiscount);
+                // Ensure discount doesn't exceed the applicable base amount
+                $discountAmount = min($discountAmount, $baseAmount - $currentTotalDiscount);
                 $discountAmount = max(0, $discountAmount);
 
-                $totalDiscount += $discountAmount;
+                // Add to appropriate total
+                if ($isShippingDiscount) {
+                    $totalShippingDiscount += $discountAmount;
+                } else {
+                    $totalProductDiscount += $discountAmount;
+                }
 
                 // Map amountType to database enum: 'percentage' or 'fixed'
                 $dbDiscountType = 'fixed'; // Default to fixed
@@ -2363,6 +2375,8 @@ class OrdersCustomAddController extends Controller
                     'name' => $discount->discountName,
                     'type' => $dbDiscountType,  // Use mapped enum value
                     'amountType' => $discount->amountType,  // Keep original for display
+                    'discountType' => $discount->discountType,  // Product Discount or Shipping Discount
+                    'isShippingDiscount' => $isShippingDiscount,
                     'displayValue' => $discount->getDisplayValue(),
                     'value' => $discountValue,  // Original discount value
                     'calculatedAmount' => $discountAmount,
@@ -2371,7 +2385,11 @@ class OrdersCustomAddController extends Controller
                 ];
             }
 
-            $grandTotal = max(0, $subtotal - $totalDiscount + $shippingTotal);
+            // Calculate grand total: (subtotal - product discounts) + (shipping - shipping discounts)
+            $totalDiscount = $totalProductDiscount + $totalShippingDiscount;
+            $discountedSubtotal = max(0, $subtotal - $totalProductDiscount);
+            $discountedShipping = max(0, $shippingTotal - $totalShippingDiscount);
+            $grandTotal = $discountedSubtotal + $discountedShipping;
 
             return response()->json([
                 'success' => true,
@@ -2379,6 +2397,9 @@ class OrdersCustomAddController extends Controller
                     'subtotal' => $subtotal,
                     'shippingTotal' => $shippingTotal,
                     'totalDiscount' => $totalDiscount,
+                    'totalProductDiscount' => $totalProductDiscount,
+                    'totalShippingDiscount' => $totalShippingDiscount,
+                    'discountedShipping' => $discountedShipping,
                     'grandTotal' => $grandTotal,
                     'discountBreakdown' => $discountBreakdown,
                 ]
@@ -3438,6 +3459,8 @@ class OrdersCustomAddController extends Controller
                         'productType' => $product->productType ?? 'Unknown',
                         'shipCoverage' => $product->shipCoverage ?? 'n/a',
                         'unitPrice' => floatval($variant->ecomVariantPrice),
+                        'rawPrice' => floatval($variant->ecomRawVariantPrice ?? 0),
+                        'costPrice' => floatval($variant->costPrice ?? 0),
                         'quantity' => $item->quantity,
                         'subtotal' => $currentSubtotal,
                         'stocksAvailable' => $variant->stocksAvailable,
