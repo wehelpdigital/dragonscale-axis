@@ -98,17 +98,139 @@
                                 <span key="t-ani-senso-course">Course</span>
                             </a>
                         </li>
-                        <li>
-                            <a href="javascript: void(0);" class="waves-effect">
-                                <i class="bx bx-wrench"></i>
-                                <span key="t-ani-senso-tools">Tools</span>
+                        <li class="{{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-bot"></i>
+                                <span key="t-ai-technician">AI Technician</span>
                             </a>
+                            <ul class="sub-menu {{ request()->is('ai-technician*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('ai-technician*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('ai-technician-chat*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.chat') }}" class="waves-effect {{ request()->is('ai-technician-chat*') ? 'active' : '' }}">
+                                        <i class="bx bx-chat"></i>
+                                        <span key="t-ai-chat">Chat</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('ai-technician-kb*') || request()->is('ai-technician-knowledge-base*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.knowledge-base') }}" class="waves-effect {{ request()->is('ai-technician-kb*') || request()->is('ai-technician-knowledge-base*') ? 'active' : '' }}">
+                                        <i class="bx bx-data"></i>
+                                        <span key="t-ai-knowledgebase">Knowledge Base</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('ai-technician-reply-flow*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.reply-flow') }}" class="waves-effect {{ request()->is('ai-technician-reply-flow*') ? 'active' : '' }}">
+                                        <i class="bx bx-git-branch"></i>
+                                        <span key="t-ai-reply-flow">Reply Flow</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('ai-technician-query-rules*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.query-rules') }}" class="waves-effect {{ request()->is('ai-technician-query-rules*') ? 'active' : '' }}">
+                                        <i class="bx bx-list-check"></i>
+                                        <span key="t-ai-query-rules">Query Rules</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('ai-technician-clients*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.clients') }}" class="waves-effect {{ request()->is('ai-technician-clients*') ? 'active' : '' }}">
+                                        <i class="bx bx-user"></i>
+                                        <span key="t-ai-clients">Clients</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('ai-technician-settings*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.settings') }}" class="waves-effect {{ request()->is('ai-technician-settings*') ? 'active' : '' }}">
+                                        <i class="bx bx-wrench"></i>
+                                        <span key="t-ai-settings">Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        <li>
-                            <a href="javascript: void(0);" class="waves-effect">
-                                <i class="bx bx-group"></i>
-                                <span key="t-ani-senso-clients">Clients</span>
+                        <li class="{{ request()->is('recommendation*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('recommendation*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-bulb"></i>
+                                <span key="t-recommendations">Recommendations</span>
                             </a>
+                            <ul class="sub-menu {{ request()->is('recommendation*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('recommendation*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('recommendation-generate*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-generate*') ? 'active' : '' }}">
+                                        <i class="bx bx-layer"></i>
+                                        <span key="t-rec-generate">Generate Recom.</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('recommendation-scheduler*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-scheduler*') ? 'active' : '' }}">
+                                        <i class="bx bx-calendar"></i>
+                                        <span key="t-rec-scheduler">Dynamic Scheduler</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('recommendation-roi*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-roi*') ? 'active' : '' }}">
+                                        <i class="bx bx-calculator"></i>
+                                        <span key="t-rec-roi">ROI Calculator</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('recommendation-labor*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('recommendation-labor*') ? 'mm-active' : '' }}">
+                                        <i class="bx bx-hard-hat"></i>
+                                        <span key="t-rec-labor">Labor Manager</span>
+                                    </a>
+                                    <ul class="sub-menu {{ request()->is('recommendation-labor*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('recommendation-labor*') ? 'true' : 'false' }}">
+                                        <li class="{{ request()->is('recommendation-labor-compliance*') ? 'mm-active' : '' }}">
+                                            <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-labor-compliance*') ? 'active' : '' }}">
+                                                <i class="bx bx-check-shield"></i>
+                                                <span key="t-rec-labor-compliance">Compliance</span>
+                                            </a>
+                                        </li>
+                                        <li class="{{ request()->is('recommendation-labor-reporter*') ? 'mm-active' : '' }}">
+                                            <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-labor-reporter*') ? 'active' : '' }}">
+                                                <i class="bx bx-file"></i>
+                                                <span key="t-rec-labor-reporter">Reporter</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="{{ request()->is('recommendation-analysis*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-analysis*') ? 'active' : '' }}">
+                                        <i class="bx bx-analyse"></i>
+                                        <span key="t-rec-analysis">Analysis</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('recommendation-clients*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-clients*') ? 'active' : '' }}">
+                                        <i class="bx bx-group"></i>
+                                        <span key="t-rec-clients">Clients</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('recommendation-settings*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-settings*') ? 'active' : '' }}">
+                                        <i class="bx bx-cog"></i>
+                                        <span key="t-rec-settings">Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="{{ request()->is('photo-analysis*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('photo-analysis*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-camera"></i>
+                                <span key="t-photo-analysis">Photo Analysis</span>
+                            </a>
+                            <ul class="sub-menu {{ request()->is('photo-analysis*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('photo-analysis*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('photo-analysis-analyze*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('photo-analysis-analyze*') ? 'active' : '' }}">
+                                        <i class="bx bx-search-alt"></i>
+                                        <span key="t-pa-analysis">Analysis</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('photo-analysis-clients*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('photo-analysis-clients*') ? 'active' : '' }}">
+                                        <i class="bx bx-group"></i>
+                                        <span key="t-pa-clients">Clients</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('photo-analysis-settings*') ? 'mm-active' : '' }}">
+                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('photo-analysis-settings*') ? 'active' : '' }}">
+                                        <i class="bx bx-cog"></i>
+                                        <span key="t-pa-settings">Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                 </li>
@@ -141,14 +263,8 @@
                                 <span key="t-client-shippings">Client Shippings</span>
                             </a>
                         </li>
-                        <li>
-                            <a href="javascript: void(0);" class="waves-effect">
-                                <i class="bx bx-receipt"></i>
-                                <span key="t-reports">Reports</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="javascript: void(0);" class="waves-effect">
+                        <li class="{{ request()->is('ecom-refunds*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('ecom-refunds') }}" class="waves-effect {{ request()->is('ecom-refunds*') ? 'active' : '' }}">
                                 <i class="bx bx-undo"></i>
                                 <span key="t-refunds">Refunds</span>
                             </a>
@@ -192,7 +308,82 @@
                         <li class="{{ request()->is('ecom-triggers*') ? 'mm-active' : '' }}">
                             <a href="{{ route('ecom-triggers') }}" class="waves-effect {{ request()->is('ecom-triggers*') ? 'active' : '' }}">
                                 <i class="bx bx-key"></i>
-                                <span key="t-triggers">Triggers</span>
+                                <span key="t-triggers">Trigger Flows</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
+                <!-- CRM Navigation -->
+                <li class="{{ request()->is('crm-*') ? 'mm-active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('crm-*') ? 'mm-active' : '' }}">
+                        <i class="bx bx-briefcase"></i>
+                        <span key="t-crm">CRM</span>
+                    </a>
+                    <ul class="sub-menu {{ request()->is('crm-*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('crm-*') ? 'true' : 'false' }}">
+                        <li class="{{ request()->is('crm-leads*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('crm-leads') }}" class="waves-effect {{ request()->is('crm-leads*') ? 'active' : '' }}">
+                                <i class="bx bx-user-plus"></i>
+                                <span key="t-crm-leads">Leads</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('crm-business-contacts*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('crm-business-contacts') }}" class="waves-effect {{ request()->is('crm-business-contacts*') ? 'active' : '' }}">
+                                <i class="bx bx-id-card"></i>
+                                <span key="t-crm-business-contacts">Business Contacts</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('crm-forms*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('crm-forms') }}" class="waves-effect {{ request()->is('crm-forms*') ? 'active' : '' }}">
+                                <i class="bx bx-list-ul"></i>
+                                <span key="t-crm-forms">Forms</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
+                <!-- Reports Navigation -->
+                <li class="{{ request()->is('ecom-reports*') ? 'mm-active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ecom-reports*') ? 'mm-active' : '' }}">
+                        <i class="bx bx-line-chart"></i>
+                        <span key="t-reports">Reports</span>
+                    </a>
+                    <ul class="sub-menu {{ request()->is('ecom-reports*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('ecom-reports*') ? 'true' : 'false' }}">
+                        <li class="{{ request()->is('ecom-reports-sales*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('ecom-reports.sales') }}" class="waves-effect {{ request()->is('ecom-reports-sales*') ? 'active' : '' }}">
+                                <i class="bx bx-receipt"></i>
+                                <span key="t-sales-report">Sales Report</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('ecom-reports-heatmap*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('ecom-reports.heatmap') }}" class="waves-effect {{ request()->is('ecom-reports-heatmap*') ? 'active' : '' }}">
+                                <i class="bx bx-map-alt"></i>
+                                <span key="t-heatmap">Heatmap</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
+                <!-- APIs Navigation -->
+                <li class="{{ request()->is('api-docs*') ? 'mm-active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('api-docs*') ? 'mm-active' : '' }}">
+                        <i class="bx bx-code-alt"></i>
+                        <span key="t-apis">APIs</span>
+                    </a>
+                    <ul class="sub-menu {{ request()->is('api-docs*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('api-docs*') ? 'true' : 'false' }}">
+                        <li class="{{ request()->is('api-docs-leads*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('api-docs.leads') }}" class="waves-effect {{ request()->is('api-docs-leads*') ? 'active' : '' }}">
+                                <i class="bx bx-user-plus"></i>
+                                <span key="t-api-leads">Leads</span>
                             </a>
                         </li>
                     </ul>

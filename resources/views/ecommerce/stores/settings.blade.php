@@ -62,6 +62,85 @@
     border-radius: 0.5rem;
     padding: 1.25rem;
 }
+
+/* Toggle Switch Styles */
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #34c38f;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+input:disabled + .toggle-slider {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    margin-top: 1rem;
+}
+
+.toggle-container.toggle-active {
+    background: #d4edda;
+}
+
+.toggle-container.toggle-disabled {
+    background: #f8f9fa;
+    opacity: 0.7;
+}
+
+.toggle-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.toggle-status {
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
 </style>
 @endsection
 
@@ -100,6 +179,13 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link {{ $activeTab === 'payment' ? 'active' : '' }}" id="payment-tab"
+                                data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab"
+                                aria-controls="payment" aria-selected="{{ $activeTab === 'payment' ? 'true' : 'false' }}">
+                            <i class="bx bx-credit-card"></i>Payment Settings
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link {{ $activeTab === 'notifications' ? 'active' : '' }}" id="notifications-tab"
                                 data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab"
                                 aria-controls="notifications" aria-selected="{{ $activeTab === 'notifications' ? 'true' : 'false' }}">
@@ -121,33 +207,6 @@
                     <div class="tab-pane fade {{ $activeTab === 'smtp' ? 'show active' : '' }}" id="smtp" role="tabpanel" aria-labelledby="smtp-tab">
                         <div class="row">
                             <div class="col-lg-8">
-                                <!-- SMTP Status Card -->
-                                <div class="alert {{ $smtpSettings && $smtpSettings->isActive ? 'alert-success' : 'alert-secondary' }} d-flex align-items-center mb-4">
-                                    <div class="flex-grow-1">
-                                        <strong class="text-dark">SMTP Status:</strong>
-                                        @if($smtpSettings && $smtpSettings->isActive)
-                                            <span class="badge bg-success smtp-status-badge ms-2">
-                                                <i class="bx bx-check-circle me-1"></i>Active
-                                            </span>
-                                            @if($smtpSettings->isVerified)
-                                                <span class="badge bg-info smtp-status-badge ms-1">
-                                                    <i class="bx bx-badge-check me-1"></i>Verified
-                                                </span>
-                                            @endif
-                                        @else
-                                            <span class="badge bg-secondary smtp-status-badge ms-2">
-                                                <i class="bx bx-stop-circle me-1"></i>Inactive
-                                            </span>
-                                        @endif
-                                    </div>
-                                    @if($smtpSettings && $smtpSettings->isConfigured())
-                                        <button type="button" class="btn btn-sm {{ $smtpSettings->isActive ? 'btn-outline-danger' : 'btn-outline-success' }}"
-                                                id="toggleSmtpStatus">
-                                            <i class="bx {{ $smtpSettings->isActive ? 'bx-stop' : 'bx-play' }} me-1"></i>
-                                            {{ $smtpSettings->isActive ? 'Disable' : 'Enable' }}
-                                        </button>
-                                    @endif
-                                </div>
 
                                 <!-- SMTP Configuration Form -->
                                 <form id="smtpForm">
@@ -218,9 +277,31 @@
                                                        placeholder="{{ $store->storeName }}">
                                             </div>
                                         </div>
+
+                                        <!-- SMTP Toggle Switch -->
+                                        @php
+                                            $smtpConfigured = $smtpSettings && $smtpSettings->isConfigured();
+                                            $smtpActive = $smtpSettings && $smtpSettings->isActive;
+                                        @endphp
+                                        <div class="toggle-container {{ $smtpActive ? 'toggle-active' : '' }} {{ !$smtpConfigured ? 'toggle-disabled' : '' }}" id="smtpToggleContainer">
+                                            <div>
+                                                <span class="toggle-label text-dark">
+                                                    <i class="bx bx-power-off me-1"></i>Enable SMTP
+                                                </span>
+                                                @if(!$smtpConfigured)
+                                                    <span class="toggle-status text-secondary">(Complete all fields first)</span>
+                                                @elseif($smtpSettings && $smtpSettings->isVerified)
+                                                    <span class="toggle-status text-success"><i class="bx bx-badge-check"></i> Verified</span>
+                                                @endif
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="smtpToggle" {{ $smtpActive ? 'checked' : '' }} {{ !$smtpConfigured ? 'disabled' : '' }}>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
                                     </div>
 
-                                    <div class="d-flex gap-2">
+                                    <div class="d-flex gap-2 mt-4">
                                         <button type="submit" class="btn btn-primary" id="saveSmtpBtn">
                                             <i class="bx bx-save me-1"></i>Save Settings
                                         </button>
@@ -276,6 +357,211 @@
                                             <small class="text-dark">
                                                 <i class="bx bx-info-circle me-1"></i>
                                                 For Gmail, you may need to use an App Password instead of your regular password.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Settings Tab -->
+                    <div class="tab-pane fade {{ $activeTab === 'payment' ? 'show active' : '' }}" id="payment" role="tabpanel" aria-labelledby="payment-tab">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                <!-- Payment Configuration Form -->
+                                <form id="paymentForm">
+                                    <!-- Bank Account Section -->
+                                    @php
+                                        $bankComplete = $paymentSettings && $paymentSettings->isBankComplete();
+                                        $bankActive = $paymentSettings && $paymentSettings->isBankActive;
+                                    @endphp
+                                    <div class="form-section">
+                                        <div class="form-section-title">
+                                            <i class="bx bx-building me-1"></i>Bank Account Details
+                                            @if($bankActive)
+                                                <span class="badge bg-success ms-2">Active</span>
+                                            @endif
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12 mb-3">
+                                                <label for="bankName" class="form-label text-dark">Bank Name</label>
+                                                <input type="text" class="form-control bank-field" id="bankName" name="bankName"
+                                                       value="{{ $paymentSettings->bankName ?? '' }}"
+                                                       placeholder="e.g., BDO, BPI, Metrobank">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="bankAccountName" class="form-label text-dark">Account Name</label>
+                                                <input type="text" class="form-control bank-field" id="bankAccountName" name="bankAccountName"
+                                                       value="{{ $paymentSettings->bankAccountName ?? '' }}"
+                                                       placeholder="e.g., Juan Dela Cruz">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="bankAccountNumber" class="form-label text-dark">Account Number</label>
+                                                <input type="text" class="form-control bank-field" id="bankAccountNumber" name="bankAccountNumber"
+                                                       value="{{ $paymentSettings->bankAccountNumber ?? '' }}"
+                                                       placeholder="e.g., 1234567890">
+                                            </div>
+                                        </div>
+
+                                        <!-- Bank Toggle Switch -->
+                                        <div class="toggle-container {{ $bankActive ? 'toggle-active' : '' }} {{ !$bankComplete ? 'toggle-disabled' : '' }}" id="bankToggleContainer">
+                                            <div>
+                                                <span class="toggle-label text-dark">
+                                                    <i class="bx bx-credit-card me-1"></i>Enable Bank Transfer
+                                                </span>
+                                                @if(!$bankComplete)
+                                                    <span class="toggle-status text-secondary" id="bankToggleHint">(Complete all fields first)</span>
+                                                @endif
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="bankToggle" data-method="bank" {{ $bankActive ? 'checked' : '' }} {{ !$bankComplete ? 'disabled' : '' }}>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- GCash Section -->
+                                    @php
+                                        $gcashComplete = $paymentSettings && $paymentSettings->isGcashComplete();
+                                        $gcashActive = $paymentSettings && $paymentSettings->isGcashActive;
+                                    @endphp
+                                    <div class="form-section">
+                                        <div class="form-section-title">
+                                            <i class="bx bx-mobile me-1"></i>GCash Details
+                                            @if($gcashActive)
+                                                <span class="badge bg-success ms-2">Active</span>
+                                            @endif
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="gcashNumber" class="form-label text-dark">GCash Number</label>
+                                                <input type="text" class="form-control gcash-field" id="gcashNumber" name="gcashNumber"
+                                                       value="{{ $paymentSettings->gcashNumber ?? '' }}"
+                                                       placeholder="e.g., 09171234567">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="gcashAccountName" class="form-label text-dark">GCash Account Name</label>
+                                                <input type="text" class="form-control gcash-field" id="gcashAccountName" name="gcashAccountName"
+                                                       value="{{ $paymentSettings->gcashAccountName ?? '' }}"
+                                                       placeholder="e.g., Juan D.">
+                                            </div>
+                                        </div>
+
+                                        <!-- GCash Images -->
+                                        <div class="row mt-3">
+                                            <!-- GCash Screenshot -->
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-dark">GCash Screenshot</label>
+                                                <small class="text-secondary d-block mb-2">Upload a screenshot of your GCash account details</small>
+                                                <div class="payment-image-container border rounded p-3 text-center" id="screenshotContainer">
+                                                    @if($paymentSettings && $paymentSettings->paymentScreenshot)
+                                                        <img src="{{ asset($paymentSettings->paymentScreenshot) }}" class="img-fluid mb-2" style="max-height: 150px;" id="screenshotPreview">
+                                                        <div>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentImage('screenshot')">
+                                                                <i class="bx bx-trash me-1"></i>Remove
+                                                            </button>
+                                                        </div>
+                                                    @else
+                                                        <div id="screenshotPlaceholder">
+                                                            <i class="bx bx-image-add text-secondary" style="font-size: 2rem;"></i>
+                                                            <p class="text-secondary mb-0 small">No screenshot uploaded</p>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <input type="file" class="form-control mt-2" id="screenshotUpload" accept="image/*">
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" id="uploadScreenshotBtn">
+                                                    <i class="bx bx-upload me-1"></i>Upload Screenshot
+                                                </button>
+                                            </div>
+
+                                            <!-- GCash QR Code -->
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label text-dark">GCash QR Code</label>
+                                                <small class="text-secondary d-block mb-2">Upload your GCash QR code for easy payment</small>
+                                                <div class="payment-image-container border rounded p-3 text-center" id="qrcodeContainer">
+                                                    @if($paymentSettings && $paymentSettings->qrCodeImage)
+                                                        <img src="{{ asset($paymentSettings->qrCodeImage) }}" class="img-fluid mb-2" style="max-height: 150px;" id="qrcodePreview">
+                                                        <div>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentImage('qrcode')">
+                                                                <i class="bx bx-trash me-1"></i>Remove
+                                                            </button>
+                                                        </div>
+                                                    @else
+                                                        <div id="qrcodePlaceholder">
+                                                            <i class="bx bx-qr text-secondary" style="font-size: 2rem;"></i>
+                                                            <p class="text-secondary mb-0 small">No QR code uploaded</p>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <input type="file" class="form-control mt-2" id="qrcodeUpload" accept="image/*">
+                                                <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" id="uploadQrcodeBtn">
+                                                    <i class="bx bx-upload me-1"></i>Upload QR Code
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- GCash Toggle Switch -->
+                                        <div class="toggle-container {{ $gcashActive ? 'toggle-active' : '' }} {{ !$gcashComplete ? 'toggle-disabled' : '' }}" id="gcashToggleContainer">
+                                            <div>
+                                                <span class="toggle-label text-dark">
+                                                    <i class="bx bx-wallet me-1"></i>Enable GCash
+                                                </span>
+                                                @if(!$gcashComplete)
+                                                    <span class="toggle-status text-secondary" id="gcashToggleHint">(Complete GCash Number and Account Name first)</span>
+                                                @endif
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="gcashToggle" data-method="gcash" {{ $gcashActive ? 'checked' : '' }} {{ !$gcashComplete ? 'disabled' : '' }}>
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Payment Instructions -->
+                                    <div class="form-section">
+                                        <div class="form-section-title">
+                                            <i class="bx bx-info-circle me-1"></i>Payment Instructions (Optional)
+                                        </div>
+                                        <div class="mb-0">
+                                            <label for="paymentInstructions" class="form-label text-dark">Instructions for Customers</label>
+                                            <textarea class="form-control" id="paymentInstructions" name="paymentInstructions" rows="3"
+                                                      placeholder="e.g., Please include your order number in the payment reference...">{{ $paymentSettings->paymentInstructions ?? '' }}</textarea>
+                                            <small class="text-secondary">These instructions will be shown to customers during checkout.</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary" id="savePaymentBtn">
+                                            <i class="bx bx-save me-1"></i>Save Settings
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <!-- Help Card -->
+                                <div class="card bg-light border-0">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-dark">
+                                            <i class="bx bx-help-circle me-1"></i>Payment Settings Help
+                                        </h6>
+                                        <p class="text-secondary small mb-3">
+                                            Configure payment methods that customers can use to pay for their orders.
+                                        </p>
+
+                                        <h6 class="text-dark small fw-bold">Recommended:</h6>
+                                        <ul class="text-secondary small ps-3 mb-3">
+                                            <li>Add bank account details for bank transfers</li>
+                                            <li>Add GCash number and account name</li>
+                                            <li>Upload GCash screenshot and QR code</li>
+                                            <li>Include clear payment instructions</li>
+                                        </ul>
+
+                                        <div class="alert alert-info mb-0 py-2">
+                                            <small class="text-dark">
+                                                <i class="bx bx-info-circle me-1"></i>
+                                                GCash screenshot and QR code help customers easily send payments to your account.
                                             </small>
                                         </div>
                                     </div>
@@ -416,10 +702,49 @@ $(document).ready(function() {
         });
     });
 
-    // Toggle SMTP status
-    $('#toggleSmtpStatus').on('click', function() {
-        const $btn = $(this);
-        $btn.prop('disabled', true);
+    // Check if SMTP fields are complete
+    function isSmtpComplete() {
+        return $('#smtpHost').val().trim() !== '' &&
+               $('#smtpPort').val().trim() !== '' &&
+               $('#smtpFromEmail').val().trim() !== '' &&
+               $('#smtpFromName').val().trim() !== '';
+    }
+
+    // Update SMTP toggle state based on field completion
+    function updateSmtpToggleState() {
+        const complete = isSmtpComplete();
+        const $toggle = $('#smtpToggle');
+        const $container = $('#smtpToggleContainer');
+        const $hint = $container.find('.toggle-status');
+
+        if (complete) {
+            $toggle.prop('disabled', false);
+            $container.removeClass('toggle-disabled');
+            $hint.hide();
+        } else {
+            $toggle.prop('disabled', true).prop('checked', false);
+            $container.removeClass('toggle-active').addClass('toggle-disabled');
+            // Show hint if it doesn't exist or is hidden
+            if ($hint.length === 0 || $hint.text().indexOf('Verified') >= 0) {
+                // Don't replace verified badge
+            } else {
+                $hint.show();
+            }
+        }
+    }
+
+    // Listen for changes on SMTP fields
+    $('#smtpHost, #smtpPort, #smtpFromEmail, #smtpFromName').on('input', function() {
+        updateSmtpToggleState();
+    });
+
+    // Toggle SMTP status via switch
+    $('#smtpToggle').on('change', function() {
+        const $toggle = $(this);
+        const isChecked = $toggle.prop('checked');
+
+        // Revert immediately while we check
+        $toggle.prop('disabled', true);
 
         $.ajax({
             url: `/ecom-store-settings-smtp-toggle?id=${storeId}`,
@@ -428,16 +753,215 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
-                    location.reload();
+                    // Update container styling
+                    if (response.isActive) {
+                        $('#smtpToggleContainer').addClass('toggle-active');
+                    } else {
+                        $('#smtpToggleContainer').removeClass('toggle-active');
+                    }
                 } else {
                     toastr.error(response.message || 'Failed to toggle status.');
+                    // Revert the toggle
+                    $toggle.prop('checked', !isChecked);
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'An error occurred.');
+                // Revert the toggle
+                $toggle.prop('checked', !isChecked);
+            },
+            complete: function() {
+                $toggle.prop('disabled', false);
+            }
+        });
+    });
+
+    // =====================
+    // Payment Settings
+    // =====================
+
+    // Save Payment settings
+    $('#paymentForm').on('submit', function(e) {
+        e.preventDefault();
+
+        const $btn = $('#savePaymentBtn');
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
+
+        $.ajax({
+            url: `/ecom-store-settings/payment?id=${storeId}`,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                bankName: $('#bankName').val(),
+                bankAccountName: $('#bankAccountName').val(),
+                bankAccountNumber: $('#bankAccountNumber').val(),
+                gcashNumber: $('#gcashNumber').val(),
+                gcashAccountName: $('#gcashAccountName').val(),
+                paymentInstructions: $('#paymentInstructions').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                } else {
+                    toastr.error(response.message || 'Failed to save settings.');
                 }
             },
             error: function(xhr) {
                 toastr.error(xhr.responseJSON?.message || 'An error occurred.');
             },
             complete: function() {
-                $btn.prop('disabled', false);
+                $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Settings');
+            }
+        });
+    });
+
+    // Upload Screenshot
+    $('#uploadScreenshotBtn').on('click', function() {
+        uploadPaymentImage('screenshot', '#screenshotUpload', '#uploadScreenshotBtn');
+    });
+
+    // Upload QR Code
+    $('#uploadQrcodeBtn').on('click', function() {
+        uploadPaymentImage('qrcode', '#qrcodeUpload', '#uploadQrcodeBtn');
+    });
+
+    // Check if bank fields are complete
+    function isBankComplete() {
+        return $('#bankName').val().trim() !== '' &&
+               $('#bankAccountName').val().trim() !== '' &&
+               $('#bankAccountNumber').val().trim() !== '';
+    }
+
+    // Check if GCash fields are complete
+    function isGcashComplete() {
+        return $('#gcashNumber').val().trim() !== '' &&
+               $('#gcashAccountName').val().trim() !== '';
+    }
+
+    // Update bank toggle state based on field completion
+    function updateBankToggleState() {
+        const complete = isBankComplete();
+        const $toggle = $('#bankToggle');
+        const $container = $('#bankToggleContainer');
+        const $hint = $('#bankToggleHint');
+
+        if (complete) {
+            $toggle.prop('disabled', false);
+            $container.removeClass('toggle-disabled');
+            $hint.hide();
+        } else {
+            $toggle.prop('disabled', true).prop('checked', false);
+            $container.removeClass('toggle-active').addClass('toggle-disabled');
+            if ($hint.length === 0) {
+                $container.find('.toggle-label').parent().append('<span class="toggle-status text-secondary" id="bankToggleHint">(Complete all fields first)</span>');
+            } else {
+                $hint.show();
+            }
+        }
+    }
+
+    // Update GCash toggle state based on field completion
+    function updateGcashToggleState() {
+        const complete = isGcashComplete();
+        const $toggle = $('#gcashToggle');
+        const $container = $('#gcashToggleContainer');
+        const $hint = $('#gcashToggleHint');
+
+        if (complete) {
+            $toggle.prop('disabled', false);
+            $container.removeClass('toggle-disabled');
+            $hint.hide();
+        } else {
+            $toggle.prop('disabled', true).prop('checked', false);
+            $container.removeClass('toggle-active').addClass('toggle-disabled');
+            if ($hint.length === 0) {
+                $container.find('.toggle-label').parent().append('<span class="toggle-status text-secondary" id="gcashToggleHint">(Complete GCash Number and Account Name first)</span>');
+            } else {
+                $hint.show();
+            }
+        }
+    }
+
+    // Listen for changes on bank fields
+    $('.bank-field').on('input', function() {
+        updateBankToggleState();
+    });
+
+    // Listen for changes on GCash fields
+    $('.gcash-field').on('input', function() {
+        updateGcashToggleState();
+    });
+
+    // Toggle Bank payment method
+    $('#bankToggle').on('change', function() {
+        const $toggle = $(this);
+        const isChecked = $toggle.prop('checked');
+
+        $toggle.prop('disabled', true);
+
+        $.ajax({
+            url: `/ecom-store-settings/payment/toggle?id=${storeId}`,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                method: 'bank'
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    if (response.isActive) {
+                        $('#bankToggleContainer').addClass('toggle-active');
+                    } else {
+                        $('#bankToggleContainer').removeClass('toggle-active');
+                    }
+                } else {
+                    toastr.error(response.message || 'Failed to toggle status.');
+                    $toggle.prop('checked', !isChecked);
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'An error occurred.');
+                $toggle.prop('checked', !isChecked);
+            },
+            complete: function() {
+                $toggle.prop('disabled', false);
+            }
+        });
+    });
+
+    // Toggle GCash payment method
+    $('#gcashToggle').on('change', function() {
+        const $toggle = $(this);
+        const isChecked = $toggle.prop('checked');
+
+        $toggle.prop('disabled', true);
+
+        $.ajax({
+            url: `/ecom-store-settings/payment/toggle?id=${storeId}`,
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                method: 'gcash'
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                    if (response.isActive) {
+                        $('#gcashToggleContainer').addClass('toggle-active');
+                    } else {
+                        $('#gcashToggleContainer').removeClass('toggle-active');
+                    }
+                } else {
+                    toastr.error(response.message || 'Failed to toggle status.');
+                    $toggle.prop('checked', !isChecked);
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'An error occurred.');
+                $toggle.prop('checked', !isChecked);
+            },
+            complete: function() {
+                $toggle.prop('disabled', false);
             }
         });
     });
@@ -450,5 +974,99 @@ $(document).ready(function() {
         window.history.replaceState({}, '', url);
     });
 });
+
+// Upload payment image helper function
+function uploadPaymentImage(imageType, inputSelector, btnSelector) {
+    const fileInput = $(inputSelector)[0];
+    const $btn = $(btnSelector);
+
+    if (!fileInput.files || !fileInput.files[0]) {
+        toastr.error('Please select an image to upload.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('_token', '{{ csrf_token() }}');
+    formData.append('image', fileInput.files[0]);
+    formData.append('imageType', imageType);
+
+    $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Uploading...');
+
+    $.ajax({
+        url: `/ecom-store-settings/payment/upload?id={{ $store->id }}`,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+
+                // Update the image preview
+                const containerId = imageType === 'screenshot' ? '#screenshotContainer' : '#qrcodeContainer';
+                const placeholderId = imageType === 'screenshot' ? '#screenshotPlaceholder' : '#qrcodePlaceholder';
+                const previewId = imageType === 'screenshot' ? 'screenshotPreview' : 'qrcodePreview';
+
+                $(containerId).html(`
+                    <img src="${response.imageUrl}" class="img-fluid mb-2" style="max-height: 150px;" id="${previewId}">
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaymentImage('${imageType}')">
+                            <i class="bx bx-trash me-1"></i>Remove
+                        </button>
+                    </div>
+                `);
+
+                // Clear the file input
+                $(inputSelector).val('');
+            } else {
+                toastr.error(response.message || 'Failed to upload image.');
+            }
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON?.message || 'An error occurred while uploading.');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html(`<i class="bx bx-upload me-1"></i>Upload ${imageType === 'screenshot' ? 'Screenshot' : 'QR Code'}`);
+        }
+    });
+}
+
+// Remove payment image helper function
+function removePaymentImage(imageType) {
+    if (!confirm(`Are you sure you want to remove this ${imageType === 'screenshot' ? 'screenshot' : 'QR code'}?`)) {
+        return;
+    }
+
+    $.ajax({
+        url: `/ecom-store-settings/payment/remove-image?id={{ $store->id }}`,
+        type: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            imageType: imageType
+        },
+        success: function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+
+                // Update the container to show placeholder
+                const containerId = imageType === 'screenshot' ? '#screenshotContainer' : '#qrcodeContainer';
+                const iconClass = imageType === 'screenshot' ? 'bx-image-add' : 'bx-qr';
+                const placeholderText = imageType === 'screenshot' ? 'No screenshot uploaded' : 'No QR code uploaded';
+
+                $(containerId).html(`
+                    <div id="${imageType}Placeholder">
+                        <i class="bx ${iconClass} text-secondary" style="font-size: 2rem;"></i>
+                        <p class="text-secondary mb-0 small">${placeholderText}</p>
+                    </div>
+                `);
+            } else {
+                toastr.error(response.message || 'Failed to remove image.');
+            }
+        },
+        error: function(xhr) {
+            toastr.error(xhr.responseJSON?.message || 'An error occurred.');
+        }
+    });
+}
 </script>
 @endsection

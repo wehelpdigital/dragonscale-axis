@@ -1,0 +1,142 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Support\Facades\Crypt;
+
+class AiImageSearchSetting extends BaseModel
+{
+    protected $table = 'ai_image_search_settings';
+
+    const PROVIDER_GOOGLE = 'google';
+    const PROVIDER_SERPER = 'serper';
+
+    protected $fillable = [
+        'usersId',
+        'provider',
+        'apiKey',  // Used for Serper API key
+        'googleCseId',
+        'isEnabled',
+        'maxImagesPerRequest',
+        'delete_status',
+    ];
+
+    protected $casts = [
+        'isEnabled' => 'boolean',
+        'maxImagesPerRequest' => 'integer',
+    ];
+
+    /**
+     * Encrypt the API key when setting it.
+     */
+    public function setApiKeyAttribute($value)
+    {
+        if ($value) {
+            $this->attributes['apiKey'] = Crypt::encryptString($value);
+        } else {
+            $this->attributes['apiKey'] = null;
+        }
+    }
+
+    /**
+     * Decrypt the API key when getting it.
+     */
+    public function getApiKeyAttribute($value)
+    {
+        if ($value) {
+            try {
+                return Crypt::decryptString($value);
+            } catch (\Exception $e) {
+                return $value;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get masked API key for display.
+     */
+    public function getMaskedApiKeyAttribute()
+    {
+        $key = $this->apiKey;
+        if ($key && strlen($key) > 12) {
+            return substr($key, 0, 8) . '...' . substr($key, -4);
+        }
+        return $key ? '********' : null;
+    }
+
+    /**
+     * Scope for active records.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('delete_status', 'active');
+    }
+
+    /**
+     * Scope for user's records.
+     */
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where('usersId', $userId);
+    }
+
+    /**
+     * Get the user that owns the settings.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'usersId');
+    }
+
+    /**
+     * Get or create settings for a user.
+     */
+    public static function getOrCreateForUser($userId)
+    {
+        $settings = static::active()->forUser($userId)->first();
+
+        if (!$settings) {
+            $settings = static::create([
+                'usersId' => $userId,
+                'provider' => self::PROVIDER_SERPER,
+                'isEnabled' => true,
+                'maxImagesPerRequest' => 4, // 2 AI + 2 web
+                'delete_status' => 'active',
+            ]);
+        }
+
+        return $settings;
+    }
+
+    /**
+     * Check if settings are configured.
+     * AI generation uses Gemini (always available if enabled).
+     * Web search requires Serper API key.
+     */
+    public function isConfigured(): bool
+    {
+        return $this->isEnabled;
+    }
+
+    /**
+     * Check if Serper web search is configured.
+     */
+    public function isSerperConfigured(): bool
+    {
+        return $this->isEnabled &&
+               $this->provider === self::PROVIDER_SERPER &&
+               !empty($this->apiKey);
+    }
+
+    /**
+     * Get provider options for dropdown.
+     */
+    public static function getProviderOptions(): array
+    {
+        return [
+            self::PROVIDER_SERPER => 'Serper (Google Images)',
+            self::PROVIDER_GOOGLE => 'Google Custom Search (Legacy)',
+        ];
+    }
+}

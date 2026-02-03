@@ -343,6 +343,86 @@
                 </div>
             </div>
 
+            <!-- Location Information Card -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="bx bx-map me-2"></i>Location Information</h5>
+                    <p class="text-muted small mb-3">Province and Municipality/City are required fields.</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="province" class="form-label">Province <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('province') is-invalid @enderror"
+                                       id="province" name="province" value="{{ old('province', $affiliate->province) }}"
+                                       placeholder="e.g., Cebu, Metro Manila" required>
+                                @error('province')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="municipality" class="form-label">Municipality/City <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('municipality') is-invalid @enderror"
+                                       id="municipality" name="municipality" value="{{ old('municipality', $affiliate->municipality) }}"
+                                       placeholder="e.g., Cebu City, Makati" required>
+                                @error('municipality')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="barangay" class="form-label">Barangay</label>
+                                <input type="text" class="form-control @error('barangay') is-invalid @enderror"
+                                       id="barangay" name="barangay" value="{{ old('barangay', $affiliate->barangay) }}"
+                                       placeholder="Enter barangay">
+                                @error('barangay')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="zone" class="form-label">Zone/Purok</label>
+                                <input type="text" class="form-control @error('zone') is-invalid @enderror"
+                                       id="zone" name="zone" value="{{ old('zone', $affiliate->zone) }}"
+                                       placeholder="Enter zone">
+                                @error('zone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="zipCode" class="form-label">Zip Code</label>
+                                <input type="text" class="form-control @error('zipCode') is-invalid @enderror"
+                                       id="zipCode" name="zipCode" value="{{ old('zipCode', $affiliate->zipCode) }}"
+                                       placeholder="e.g., 6000" maxlength="10">
+                                @error('zipCode')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="houseNumber" class="form-label">House/Unit Number</label>
+                                <input type="text" class="form-control @error('houseNumber') is-invalid @enderror"
+                                       id="houseNumber" name="houseNumber" value="{{ old('houseNumber', $affiliate->houseNumber) }}"
+                                       placeholder="e.g., 123, Unit 4B">
+                                @error('houseNumber')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="street" class="form-label">Street</label>
+                                <input type="text" class="form-control @error('street') is-invalid @enderror"
+                                       id="street" name="street" value="{{ old('street', $affiliate->street) }}"
+                                       placeholder="Enter street name">
+                                @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Payment Information Card -->
             <div class="card">
                 <div class="card-body">

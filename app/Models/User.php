@@ -23,6 +23,7 @@ class User extends Authenticatable
         'dob',
         'avatar',
         'delete_status',
+        'api_key',
     ];
 
     /**
@@ -33,6 +34,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'api_key',
     ];
 
     /**

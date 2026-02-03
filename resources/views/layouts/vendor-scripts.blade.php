@@ -49,4 +49,28 @@
 <!-- App js -->
 <script src="{{ URL::asset('build/js/app.js')}}"></script>
 
+<!-- Sidebar state persistence -->
+<script>
+(function() {
+    // Apply body classes for sidebar state (after app.js initializes)
+    var sidebarState = localStorage.getItem('sidebar-collapsed');
+    if (sidebarState === 'true') {
+        document.body.classList.add('vertical-collpsed');
+    }
+
+    // Save sidebar state when toggled
+    var menuBtn = document.getElementById('vertical-menu-btn');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', function() {
+            setTimeout(function() {
+                var isCollapsed = document.body.classList.contains('vertical-collpsed');
+                localStorage.setItem('sidebar-collapsed', isCollapsed);
+                // Remove the initial collapse class after first interaction
+                document.documentElement.classList.remove('sidebar-will-collapse');
+            }, 100);
+        });
+    }
+})();
+</script>
+
 @yield('script-bottom')

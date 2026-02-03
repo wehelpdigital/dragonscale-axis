@@ -27,6 +27,16 @@ class AsCourse extends Model
         return $this->hasMany(AsCourseChapter::class, 'asCoursesId', 'id');
     }
 
+    /**
+     * Get active questionnaires for this course
+     */
+    public function questionnaires()
+    {
+        return $this->hasMany(AsQuestionnaire::class, 'asCoursesId', 'id')
+                    ->where('deleteStatus', true)
+                    ->orderBy('itemOrder');
+    }
+
     // Accessor for first letter of course name
     public function getFirstLetterAttribute()
     {

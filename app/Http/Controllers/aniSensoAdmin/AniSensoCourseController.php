@@ -4,6 +4,7 @@ namespace App\Http\Controllers\aniSensoAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AsCourse;
+use App\Models\AsCourseAuditLog;
 use App\Models\AsCourseChapter;
 use App\Models\AsTopic;
 use App\Models\AsTopicResource;
@@ -17,12 +18,62 @@ class AniSensoCourseController extends Controller
     /**
      * Display the Ani-Senso Course page
      */
-    public function index()
+    public function index(Request $request)
     {
-        $courses = AsCourse::where('isActive', true)
-                          ->where('deleteStatus', true)
-                          ->get();
+        $query = AsCourse::where('deleteStatus', true);
+
+        // Search filter by course name
+        if ($request->filled('search')) {
+            $query->where('courseName', 'like', '%' . $request->search . '%');
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('isActive', $request->status === 'active');
+        }
+
+        $courses = $query->orderBy('created_at', 'desc')->get();
+
         return view('aniSensoAdmin.courses', compact('courses'));
+    }
+
+    /**
+     * Toggle the status of a course (active/inactive)
+     */
+    public function toggleStatus($id)
+    {
+        try {
+            $course = AsCourse::findOrFail($id);
+            $previousStatus = $course->isActive ? 'Active' : 'Inactive';
+            $course->isActive = !$course->isActive;
+            $course->save();
+            $newStatus = $course->isActive ? 'Active' : 'Inactive';
+
+            // Log audit
+            AsCourseAuditLog::logAction(
+                $course->id,
+                'course_status_changed',
+                'course',
+                $course->id,
+                $course->courseName,
+                'isActive',
+                $previousStatus,
+                $newStatus,
+                "Course status changed from {$previousStatus} to {$newStatus}"
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Course status updated successfully!',
+                'isActive' => $course->isActive
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error toggling course status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update course status.'
+            ], 500);
+        }
     }
 
     /**
@@ -61,6 +112,19 @@ class AniSensoCourseController extends Controller
 
         $course->save();
 
+        // Log audit
+        AsCourseAuditLog::logAction(
+            $course->id,
+            'course_created',
+            'course',
+            $course->id,
+            $course->courseName,
+            null,
+            null,
+            null,
+            "Course '{$course->courseName}' created"
+        );
+
         return redirect()->route('anisenso-courses')->with('success', 'Course saved successfully!');
     }
 
@@ -77,6 +141,16 @@ class AniSensoCourseController extends Controller
         ]);
 
         $course = AsCourse::findOrFail($id);
+
+        // Track changes for audit
+        $changes = [];
+        if ($course->courseName !== $request->courseName) {
+            $changes[] = ['field' => 'courseName', 'old' => $course->courseName, 'new' => $request->courseName];
+        }
+        if ($course->courseSmallDescription !== $request->courseSmallDescription) {
+            $changes[] = ['field' => 'courseSmallDescription', 'old' => $course->courseSmallDescription, 'new' => $request->courseSmallDescription];
+        }
+
         $course->courseName = $request->courseName;
         $course->courseSmallDescription = $request->courseSmallDescription;
         $course->courseBigDescription = $request->courseBigDescription;
@@ -91,9 +165,40 @@ class AniSensoCourseController extends Controller
             $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
             $image->move(public_path('images/courses'), $imageName);
             $course->courseImage = 'images/courses/' . $imageName;
+            $changes[] = ['field' => 'courseImage', 'old' => 'Previous image', 'new' => 'New image uploaded'];
         }
 
         $course->save();
+
+        // Log audit for each change
+        foreach ($changes as $change) {
+            AsCourseAuditLog::logAction(
+                $course->id,
+                'course_updated',
+                'course',
+                $course->id,
+                $course->courseName,
+                $change['field'],
+                $change['old'],
+                $change['new'],
+                "Course field '{$change['field']}' updated"
+            );
+        }
+
+        // If no specific field changes, log general update
+        if (empty($changes)) {
+            AsCourseAuditLog::logAction(
+                $course->id,
+                'course_updated',
+                'course',
+                $course->id,
+                $course->courseName,
+                null,
+                null,
+                null,
+                "Course '{$course->courseName}' updated"
+            );
+        }
 
         return redirect()->route('anisenso-courses')->with('success', 'Course updated successfully!');
     }
@@ -124,6 +229,20 @@ class AniSensoCourseController extends Controller
     {
         try {
             $course = AsCourse::findOrFail($id);
+            $courseName = $course->courseName;
+
+            // Log audit before deletion
+            AsCourseAuditLog::logAction(
+                $course->id,
+                'course_deleted',
+                'course',
+                $course->id,
+                $courseName,
+                null,
+                null,
+                null,
+                "Course '{$courseName}' deleted"
+            );
 
             // Soft delete by setting deleteStatus to false
             $course->deleteStatus = false;
@@ -142,20 +261,62 @@ class AniSensoCourseController extends Controller
     }
 
     /**
-     * Display the course contents page
+     * Display the course contents page with nested chapters, topics, and contents
      */
     public function contents(Request $request)
     {
         $courseId = $request->query('id');
         $course = AsCourse::findOrFail($courseId);
 
-        // Get chapters for this course, ordered by chapterOrder
+        // Get chapters with nested topics and contents
         $chapters = AsCourseChapter::where('asCoursesId', $courseId)
-                                  ->where('deleteStatus', 1)
+                                  ->where('deleteStatus', true)
                                   ->orderBy('chapterOrder', 'ASC')
+                                  ->with(['topics' => function($query) {
+                                      $query->where('deleteStatus', true)
+                                            ->orderBy('topicsOrder', 'ASC')
+                                            ->with(['contents' => function($q) {
+                                                $q->where('deleteStatus', true)
+                                                  ->orderBy('contentOrder', 'ASC')
+                                                  ->with('resources');
+                                            }]);
+                                  }])
                                   ->get();
 
-        return view('aniSensoAdmin.courses-contents', compact('course', 'chapters'));
+        // Get questionnaires with questions and answers
+        $questionnaires = \App\Models\AsQuestionnaire::where('asCoursesId', $courseId)
+                                                      ->where('deleteStatus', true)
+                                                      ->orderBy('itemOrder', 'ASC')
+                                                      ->with(['questions' => function($query) {
+                                                          $query->where('deleteStatus', true)
+                                                                ->orderBy('questionOrder', 'ASC')
+                                                                ->with('answers');
+                                                      }])
+                                                      ->get();
+
+        // Merge chapters and questionnaires into a unified list, sorted by order
+        $courseItems = collect();
+
+        foreach ($chapters as $chapter) {
+            $courseItems->push([
+                'type' => 'chapter',
+                'order' => $chapter->chapterOrder,
+                'data' => $chapter
+            ]);
+        }
+
+        foreach ($questionnaires as $questionnaire) {
+            $courseItems->push([
+                'type' => 'questionnaire',
+                'order' => $questionnaire->itemOrder,
+                'data' => $questionnaire
+            ]);
+        }
+
+        // Sort by order
+        $courseItems = $courseItems->sortBy('order')->values();
+
+        return view('aniSensoAdmin.courses-contents', compact('course', 'chapters', 'questionnaires', 'courseItems'));
     }
 
     /**
@@ -215,6 +376,19 @@ class AniSensoCourseController extends Controller
 
         $chapter->save();
 
+        // Log audit
+        AsCourseAuditLog::logAction(
+            $request->courseId,
+            'chapter_created',
+            'chapter',
+            $chapter->id,
+            $chapter->chapterTitle,
+            null,
+            null,
+            null,
+            "Chapter '{$chapter->chapterTitle}' created"
+        );
+
         return redirect()->route('anisenso-courses.contents', ['id' => $request->courseId])
                         ->with('success', 'Chapter added successfully!');
     }
@@ -233,6 +407,15 @@ class AniSensoCourseController extends Controller
 
             $chapter = AsCourseChapter::findOrFail($id);
 
+            // Track changes for audit
+            $changes = [];
+            if ($chapter->chapterTitle !== $request->chapterTitle) {
+                $changes[] = ['field' => 'chapterTitle', 'old' => $chapter->chapterTitle, 'new' => $request->chapterTitle];
+            }
+            if ($chapter->chapterDescription !== $request->chapterDescription) {
+                $changes[] = ['field' => 'chapterDescription', 'old' => 'Previous description', 'new' => 'Updated description'];
+            }
+
             $chapter->chapterTitle = $request->chapterTitle;
             $chapter->chapterDescription = $request->chapterDescription;
 
@@ -247,9 +430,40 @@ class AniSensoCourseController extends Controller
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('images/chapters'), $imageName);
                 $chapter->chapterCoverPhoto = 'images/chapters/' . $imageName;
+                $changes[] = ['field' => 'chapterCoverPhoto', 'old' => 'Previous image', 'new' => 'New image uploaded'];
             }
 
             $chapter->save();
+
+            // Log audit for each change
+            foreach ($changes as $change) {
+                AsCourseAuditLog::logAction(
+                    $chapter->asCoursesId,
+                    'chapter_updated',
+                    'chapter',
+                    $chapter->id,
+                    $chapter->chapterTitle,
+                    $change['field'],
+                    $change['old'],
+                    $change['new'],
+                    "Chapter field '{$change['field']}' updated"
+                );
+            }
+
+            // If no specific field changes, log general update
+            if (empty($changes)) {
+                AsCourseAuditLog::logAction(
+                    $chapter->asCoursesId,
+                    'chapter_updated',
+                    'chapter',
+                    $chapter->id,
+                    $chapter->chapterTitle,
+                    null,
+                    null,
+                    null,
+                    "Chapter '{$chapter->chapterTitle}' updated"
+                );
+            }
 
             Log::info('Chapter updated successfully', [
                 'chapter_id' => $chapter->id,
@@ -277,9 +491,29 @@ class AniSensoCourseController extends Controller
             'chapters.*.order' => 'required|integer|min:1'
         ]);
 
+        $courseId = null;
         foreach ($request->chapters as $chapterData) {
+            $chapter = AsCourseChapter::find($chapterData['id']);
+            if ($chapter && $courseId === null) {
+                $courseId = $chapter->asCoursesId;
+            }
             AsCourseChapter::where('id', $chapterData['id'])
                           ->update(['chapterOrder' => $chapterData['order']]);
+        }
+
+        // Log audit for order change
+        if ($courseId) {
+            AsCourseAuditLog::logAction(
+                $courseId,
+                'chapter_order_changed',
+                'chapter',
+                null,
+                null,
+                'chapterOrder',
+                'Previous order',
+                'New order',
+                'Chapter order was reordered'
+            );
         }
 
         return response()->json([
@@ -485,6 +719,19 @@ class AniSensoCourseController extends Controller
 
             $topic->save();
 
+            // Log audit
+            AsCourseAuditLog::logAction(
+                $request->courseId,
+                'topic_created',
+                'topic',
+                $topic->id,
+                $topic->topicTitle,
+                null,
+                null,
+                null,
+                "Topic '{$topic->topicTitle}' created"
+            );
+
             Log::info('Topic saved successfully', [
                 'topic_id' => $topic->id,
                 'chapter_id' => $request->chapterId,
@@ -515,11 +762,53 @@ class AniSensoCourseController extends Controller
 
             $topic = AsTopic::findOrFail($id);
 
+            // Track changes for audit
+            $changes = [];
+            if ($topic->topicTitle !== $request->topicTitle) {
+                $changes[] = ['field' => 'topicTitle', 'old' => $topic->topicTitle, 'new' => $request->topicTitle];
+            }
+            if ($topic->topicDescription !== $request->topicDescription) {
+                $changes[] = ['field' => 'topicDescription', 'old' => 'Previous description', 'new' => 'Updated description'];
+            }
+            if ($topic->topicContent !== $request->topicContent) {
+                $changes[] = ['field' => 'topicContent', 'old' => 'Previous content', 'new' => 'Updated content'];
+            }
+
             $topic->topicTitle = $request->topicTitle;
             $topic->topicDescription = $request->topicDescription;
             $topic->topicContent = $request->topicContent;
 
             $topic->save();
+
+            // Log audit for each change
+            foreach ($changes as $change) {
+                AsCourseAuditLog::logAction(
+                    $request->courseId,
+                    'topic_updated',
+                    'topic',
+                    $topic->id,
+                    $topic->topicTitle,
+                    $change['field'],
+                    $change['old'],
+                    $change['new'],
+                    "Topic field '{$change['field']}' updated"
+                );
+            }
+
+            // If no specific field changes, log general update
+            if (empty($changes)) {
+                AsCourseAuditLog::logAction(
+                    $request->courseId,
+                    'topic_updated',
+                    'topic',
+                    $topic->id,
+                    $topic->topicTitle,
+                    null,
+                    null,
+                    null,
+                    "Topic '{$topic->topicTitle}' updated"
+                );
+            }
 
             Log::info('Topic updated successfully', [
                 'topic_id' => $topic->id,
@@ -543,6 +832,21 @@ class AniSensoCourseController extends Controller
     {
         try {
             $chapter = AsCourseChapter::findOrFail($id);
+            $chapterTitle = $chapter->chapterTitle;
+            $courseId = $chapter->asCoursesId;
+
+            // Log audit before deletion
+            AsCourseAuditLog::logAction(
+                $courseId,
+                'chapter_deleted',
+                'chapter',
+                $chapter->id,
+                $chapterTitle,
+                null,
+                null,
+                null,
+                "Chapter '{$chapterTitle}' deleted"
+            );
 
             // Soft delete - update deleteStatus to 0
             $chapter->deleteStatus = 0;
@@ -550,7 +854,7 @@ class AniSensoCourseController extends Controller
 
             Log::info('Chapter soft deleted successfully', [
                 'chapter_id' => $chapter->id,
-                'course_id' => $chapter->asCoursesId
+                'course_id' => $courseId
             ]);
 
             return response()->json([
@@ -577,9 +881,29 @@ class AniSensoCourseController extends Controller
             'topics.*.order' => 'required|integer|min:1'
         ]);
 
+        $courseId = null;
         foreach ($request->topics as $topicData) {
+            $topic = AsTopic::with('chapter')->find($topicData['id']);
+            if ($topic && $topic->chapter && $courseId === null) {
+                $courseId = $topic->chapter->asCoursesId;
+            }
             AsTopic::where('id', $topicData['id'])
                   ->update(['topicsOrder' => $topicData['order']]);
+        }
+
+        // Log audit for order change
+        if ($courseId) {
+            AsCourseAuditLog::logAction(
+                $courseId,
+                'topic_order_changed',
+                'topic',
+                null,
+                null,
+                'topicsOrder',
+                'Previous order',
+                'New order',
+                'Topic order was reordered'
+            );
         }
 
         return response()->json([
@@ -594,7 +918,24 @@ class AniSensoCourseController extends Controller
     public function destroyTopic($id)
     {
         try {
-            $topic = AsTopic::findOrFail($id);
+            $topic = AsTopic::with('chapter')->findOrFail($id);
+            $topicTitle = $topic->topicTitle;
+            $courseId = $topic->chapter ? $topic->chapter->asCoursesId : null;
+
+            // Log audit before deletion
+            if ($courseId) {
+                AsCourseAuditLog::logAction(
+                    $courseId,
+                    'topic_deleted',
+                    'topic',
+                    $topic->id,
+                    $topicTitle,
+                    null,
+                    null,
+                    null,
+                    "Topic '{$topicTitle}' deleted"
+                );
+            }
 
             // Soft delete - update deleteStatus to 0
             $topic->deleteStatus = 0;

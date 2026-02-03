@@ -7,26 +7,6 @@
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
 
 <style>
-    .search-box {
-        position: relative;
-        width: 100%;
-    }
-    .search-box .form-control {
-        padding-left: 38px;
-        height: 38px;
-        width: 100%;
-    }
-    .search-box .bx-search {
-        position: absolute;
-        left: 13px;
-        top: 0;
-        height: 38px;
-        display: flex;
-        align-items: center;
-        color: #74788d;
-        font-size: 16px;
-        z-index: 1;
-    }
     .address-row {
         transition: background-color 0.15s ease;
     }
@@ -88,13 +68,10 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-4">
                                 <label class="form-label text-dark fw-medium">Search</label>
-                                <div class="search-box">
-                                    <i class="bx bx-search"></i>
-                                    <input type="text" class="form-control" id="searchInput"
-                                           placeholder="Search name, phone, address...">
-                                </div>
+                                <input type="text" class="form-control" id="searchInput"
+                                       placeholder="Search name, phone, address...">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label text-dark fw-medium">Province</label>
                                 <select class="form-select" id="filterProvince">
                                     <option value="">All Provinces</option>
@@ -103,17 +80,19 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label text-dark fw-medium">Municipality</label>
                                 <input type="text" class="form-control" id="filterMunicipality"
                                        placeholder="Filter municipality...">
                             </div>
-                            <div class="col-md-2 text-end">
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 text-end">
                                 <button type="button" class="btn btn-secondary me-2" id="clearFilters">
-                                    <i class="bx bx-reset me-1"></i>Clear
+                                    <i class="bx bx-reset me-1"></i>Clear Filters
                                 </button>
                                 <button type="button" class="btn btn-success" id="addShippingBtn">
-                                    <i class="bx bx-plus me-1"></i>Add
+                                    <i class="bx bx-plus me-1"></i>Add New Address
                                 </button>
                             </div>
                         </div>
@@ -138,7 +117,7 @@
 
                     <!-- Table -->
                     <div class="table-container">
-                        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                        <div id="loadingOverlay" class="loading-overlay">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -156,13 +135,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="addressTableBody">
-                                    <tr>
-                                        <td colspan="5" class="text-center py-4">
-                                            <div class="spinner-border text-primary" role="status">
-                                                <span class="visually-hidden">Loading...</span>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <!-- Data will be loaded via AJAX -->
                                 </tbody>
                             </table>
                         </div>

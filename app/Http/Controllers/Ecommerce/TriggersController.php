@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
+use App\Models\AsCourse;
 use App\Models\EcomProductStore;
 use App\Models\EcomTriggerFlow;
 use App\Models\EcomTriggerTag;
@@ -52,9 +53,15 @@ class TriggersController extends Controller
             ->orderBy('storeName', 'asc')
             ->get();
 
+        // Get Ani-Senso courses for subscription management
+        $courses = AsCourse::where('deleteStatus', 1)
+            ->where('isActive', 1)
+            ->orderBy('courseName', 'asc')
+            ->get();
+
         $mergeTags = EcomTriggerFlow::getMergeTags();
 
-        return view('ecommerce.triggers.builder', compact('triggerTags', 'courseAccessTags', 'stores', 'mergeTags'));
+        return view('ecommerce.triggers.builder', compact('triggerTags', 'courseAccessTags', 'stores', 'courses', 'mergeTags'));
     }
 
     /**
@@ -86,9 +93,15 @@ class TriggersController extends Controller
             ->orderBy('storeName', 'asc')
             ->get();
 
+        // Get Ani-Senso courses for subscription management
+        $courses = AsCourse::where('deleteStatus', 1)
+            ->where('isActive', 1)
+            ->orderBy('courseName', 'asc')
+            ->get();
+
         $mergeTags = EcomTriggerFlow::getMergeTags();
 
-        return view('ecommerce.triggers.builder', compact('flow', 'triggerTags', 'courseAccessTags', 'stores', 'mergeTags'));
+        return view('ecommerce.triggers.builder', compact('flow', 'triggerTags', 'courseAccessTags', 'stores', 'courses', 'mergeTags'));
     }
 
     /**

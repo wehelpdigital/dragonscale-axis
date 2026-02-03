@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ecommerce;
 use App\Http\Controllers\Controller;
 use App\Models\EcomProductStore;
 use App\Models\EcomStoreSmtpSetting;
+use App\Models\EcomStorePaymentSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -36,10 +37,15 @@ class StoreSettingsController extends Controller
             ->where('deleteStatus', 1)
             ->first();
 
+        // Get Payment settings for this store
+        $paymentSettings = EcomStorePaymentSetting::where('storeId', $storeId)
+            ->where('deleteStatus', 1)
+            ->first();
+
         // Get the active tab from query string, default to 'smtp'
         $activeTab = $request->query('tab', 'smtp');
 
-        return view('ecommerce.stores.settings', compact('store', 'smtpSettings', 'activeTab'));
+        return view('ecommerce.stores.settings', compact('store', 'smtpSettings', 'paymentSettings', 'activeTab'));
     }
 
     /**
@@ -288,6 +294,318 @@ class StoreSettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while toggling SMTP status.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Save Payment settings.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function savePayment(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            $store = EcomProductStore::where('deleteStatus', 1)->find($storeId);
+
+            if (!$store) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store not found.'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'bankName' => 'nullable|string|max:255',
+                'bankAccountName' => 'nullable|string|max:255',
+                'bankAccountNumber' => 'nullable|string|max:100',
+                'gcashNumber' => 'nullable|string|max:20',
+                'gcashAccountName' => 'nullable|string|max:255',
+                'paymentInstructions' => 'nullable|string|max:2000',
+            ], [
+                'bankAccountNumber.max' => 'Bank account number is too long.',
+                'gcashNumber.max' => 'GCash number should not exceed 20 characters.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Find or create payment settings for this store
+            $paymentSettings = EcomStorePaymentSetting::firstOrNew([
+                'storeId' => $storeId,
+                'deleteStatus' => 1
+            ]);
+
+            $paymentSettings->bankName = $request->bankName;
+            $paymentSettings->bankAccountName = $request->bankAccountName;
+            $paymentSettings->bankAccountNumber = $request->bankAccountNumber;
+            $paymentSettings->gcashNumber = $request->gcashNumber;
+            $paymentSettings->gcashAccountName = $request->gcashAccountName;
+            $paymentSettings->paymentInstructions = $request->paymentInstructions;
+            $paymentSettings->save();
+
+            Log::info('Payment settings saved', [
+                'store_id' => $storeId
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment settings saved successfully!',
+                'data' => [
+                    'isConfigured' => $paymentSettings->isConfigured()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error saving payment settings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while saving payment settings.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload payment image (screenshot or QR code).
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadPaymentImage(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+            $imageType = $request->input('imageType'); // 'screenshot' or 'qrcode'
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            if (!in_array($imageType, ['screenshot', 'qrcode'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid image type.'
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120' // 5MB max
+            ], [
+                'image.required' => 'Please select an image to upload.',
+                'image.image' => 'The file must be an image.',
+                'image.max' => 'Image size should not exceed 5MB.'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first()
+                ], 422);
+            }
+
+            // Find or create payment settings
+            $paymentSettings = EcomStorePaymentSetting::firstOrNew([
+                'storeId' => $storeId,
+                'deleteStatus' => 1
+            ]);
+
+            // Determine the field to update
+            $fieldName = $imageType === 'screenshot' ? 'paymentScreenshot' : 'qrCodeImage';
+
+            // Delete old image if exists
+            if ($paymentSettings->$fieldName && file_exists(public_path($paymentSettings->$fieldName))) {
+                unlink(public_path($paymentSettings->$fieldName));
+            }
+
+            // Save new image
+            $file = $request->file('image');
+            $filename = 'payment_' . $imageType . '_' . $storeId . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = 'images/ecommerce/payments/' . $filename;
+
+            // Ensure directory exists
+            $dir = public_path('images/ecommerce/payments');
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            $file->move($dir, $filename);
+
+            $paymentSettings->$fieldName = $path;
+            $paymentSettings->save();
+
+            Log::info('Payment image uploaded', [
+                'store_id' => $storeId,
+                'image_type' => $imageType
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst($imageType) . ' uploaded successfully!',
+                'imageUrl' => asset($path)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading payment image: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while uploading image.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove payment image.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function removePaymentImage(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+            $imageType = $request->input('imageType'); // 'screenshot' or 'qrcode'
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            if (!in_array($imageType, ['screenshot', 'qrcode'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid image type.'
+                ], 400);
+            }
+
+            $paymentSettings = EcomStorePaymentSetting::where('storeId', $storeId)
+                ->where('deleteStatus', 1)
+                ->first();
+
+            if (!$paymentSettings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment settings not found.'
+                ], 404);
+            }
+
+            // Determine the field to update
+            $fieldName = $imageType === 'screenshot' ? 'paymentScreenshot' : 'qrCodeImage';
+
+            // Delete file if exists
+            if ($paymentSettings->$fieldName && file_exists(public_path($paymentSettings->$fieldName))) {
+                unlink(public_path($paymentSettings->$fieldName));
+            }
+
+            $paymentSettings->$fieldName = null;
+            $paymentSettings->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst($imageType) . ' removed successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error removing payment image: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while removing image.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle individual payment method status (bank or gcash).
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function togglePaymentMethod(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+            $method = $request->input('method'); // 'bank' or 'gcash'
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            if (!in_array($method, ['bank', 'gcash'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid payment method.'
+                ], 400);
+            }
+
+            $paymentSettings = EcomStorePaymentSetting::where('storeId', $storeId)
+                ->where('deleteStatus', 1)
+                ->first();
+
+            if (!$paymentSettings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment settings not found.'
+                ], 404);
+            }
+
+            // Check if the method details are complete before enabling
+            if ($method === 'bank') {
+                if (!$paymentSettings->isBankComplete()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please complete all bank details (Bank Name, Account Name, Account Number) before enabling.'
+                    ], 400);
+                }
+                $paymentSettings->isBankActive = !$paymentSettings->isBankActive;
+                $status = $paymentSettings->isBankActive ? 'enabled' : 'disabled';
+                $methodName = 'Bank Transfer';
+            } else {
+                if (!$paymentSettings->isGcashComplete()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please complete GCash details (Number and Account Name) before enabling.'
+                    ], 400);
+                }
+                $paymentSettings->isGcashActive = !$paymentSettings->isGcashActive;
+                $status = $paymentSettings->isGcashActive ? 'enabled' : 'disabled';
+                $methodName = 'GCash';
+            }
+
+            $paymentSettings->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$methodName} has been {$status}.",
+                'isActive' => $method === 'bank' ? $paymentSettings->isBankActive : $paymentSettings->isGcashActive
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error toggling payment method: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while toggling payment method.'
             ], 500);
         }
     }

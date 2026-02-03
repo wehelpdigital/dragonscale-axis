@@ -233,10 +233,12 @@
     .node-type-send_sms .node-icon { background: #34c38f; color: #fff; }
     .node-type-send_whatsapp .node-icon { background: #25D366; color: #fff; }
     .node-type-y_flow .node-icon { background: #f46a6a; color: #fff; }
+    .node-type-if_else .node-icon { background: #0891B2; color: #fff; }
     .node-type-course_access .node-icon { background: #74788d; color: #fff; }
     .node-type-remove_access .node-icon { background: #343a40; color: #fff; }
     .node-type-ai_add_referral .node-icon { background: #8B5CF6; color: #fff; }
     .node-type-add_as_affiliate .node-icon { background: #F59E0B; color: #fff; }
+    .node-type-course_subscription .node-icon { background: #EC4899; color: #fff; }
 
     /* Expiration flow start node styling */
     .flow-node.expiration-start-node {
@@ -643,6 +645,16 @@
                             </div>
                         </div>
 
+                        <div class="flow-element" draggable="true" data-node-type="if_else">
+                            <div class="flow-element-icon text-white" style="background-color: #0891B2;">
+                                <i class="bx bx-git-compare"></i>
+                            </div>
+                            <div class="flow-element-info">
+                                <h6 class="text-dark">If / Else</h6>
+                                <small>Conditional branching</small>
+                            </div>
+                        </div>
+
                         <!-- Course Access: Only for Trigger Flow -->
                         <div class="flow-element flow-element-trigger-only" draggable="true" data-node-type="course_access">
                             <div class="flow-element-icon bg-secondary text-white">
@@ -684,6 +696,17 @@
                             <div class="flow-element-info">
                                 <h6 class="text-dark">Add as Affiliate</h6>
                                 <small>Register as affiliate</small>
+                            </div>
+                        </div>
+
+                        <!-- Course Subscription -->
+                        <div class="flow-element" draggable="true" data-node-type="course_subscription">
+                            <div class="flow-element-icon text-white" style="background-color: #EC4899;">
+                                <i class="bx bx-book-reader"></i>
+                            </div>
+                            <div class="flow-element-info">
+                                <h6 class="text-dark">Course Subscription</h6>
+                                <small>Add/Remove course access</small>
                             </div>
                         </div>
                     </div>
@@ -888,6 +911,9 @@ $(document).ready(function() {
 
     // Course access tags data
     const courseAccessTags = @json($courseAccessTags);
+
+    // Ani-Senso courses data
+    const aniSensoCourses = @json($courses ?? []);
 
     // Trigger tags data
     const triggerTags = @json($triggerTags);
@@ -1339,8 +1365,8 @@ $(document).ready(function() {
         }
         console.log('Node added:', nodeId, 'at position:', x, y, 'type:', type);
 
-        // Auto-connect from last node if it exists and is not a y_flow (y_flow needs manual connection)
-        if (lastNode && lastNode.type !== 'y_flow') {
+        // Auto-connect from last node if it exists and is not a y_flow or if_else (these need manual connection due to multiple outputs)
+        if (lastNode && lastNode.type !== 'y_flow' && lastNode.type !== 'if_else') {
             // Check if last node doesn't already have an outgoing connection
             const hasConnection = state.connections.some(c => c.source === lastNode.id && c.type === 'default');
             if (!hasConnection) {
@@ -1417,6 +1443,19 @@ $(document).ready(function() {
                 return { message: '' };
             case 'y_flow':
                 return { label: 'Decision Split' };
+            case 'if_else':
+                return {
+                    conditionType: 'has_tag',
+                    conditionOperator: 'equals',
+                    conditionValue: '',
+                    conditionValueLabel: '',
+                    storeId: '',
+                    storeName: '',
+                    tagId: '',
+                    tagName: '',
+                    orderTotal: '',
+                    orderOperator: 'greater_than'
+                };
             case 'course_access':
                 return { tagId: '', tagName: '' };
             case 'remove_access':
@@ -1425,6 +1464,15 @@ $(document).ready(function() {
                 return { affiliateId: '', affiliateName: '' };
             case 'add_as_affiliate':
                 return { storeId: '', storeName: '', commissionRate: '10' };
+            case 'course_subscription':
+                return {
+                    action: 'add', // add or remove
+                    courseId: '',
+                    courseName: '',
+                    durationType: 'days', // days or expire
+                    durationDays: 30,
+                    expireImmediately: false
+                };
             default:
                 return {};
         }
@@ -1452,10 +1500,12 @@ $(document).ready(function() {
             'send_sms': 'bx-message-rounded-dots',
             'send_whatsapp': 'bxl-whatsapp',
             'y_flow': 'bx-git-branch',
+            'if_else': 'bx-git-compare',
             'course_access': 'bx-key',
             'remove_access': 'bx-block',
             'ai_add_referral': 'bx-bot',
-            'add_as_affiliate': 'bx-user-plus'
+            'add_as_affiliate': 'bx-user-plus',
+            'course_subscription': 'bx-book-reader'
         };
 
         // Dynamic title based on flow type for course_tag_start
@@ -1480,10 +1530,12 @@ $(document).ready(function() {
             'send_sms': 'Send SMS',
             'send_whatsapp': 'Send WhatsApp',
             'y_flow': 'Y-Flow Split',
+            'if_else': 'If / Else',
             'course_access': 'Course Access',
             'remove_access': 'Remove Access',
             'ai_add_referral': 'AI Add to Referral',
-            'add_as_affiliate': 'Add as Affiliate'
+            'add_as_affiliate': 'Add as Affiliate',
+            'course_subscription': 'Course Subscription'
         };
 
         const bodyContent = getNodeBodyContent(node);
@@ -1497,6 +1549,10 @@ $(document).ready(function() {
             connectorsHtml = '<div class="flow-node-connector input"></div>';
             connectorsHtml += '<div class="flow-node-connector output-left" data-output="left"></div>';
             connectorsHtml += '<div class="flow-node-connector output-right" data-output="right"></div>';
+        } else if (node.type === 'if_else') {
+            connectorsHtml = '<div class="flow-node-connector input"></div>';
+            connectorsHtml += '<div class="flow-node-connector output-left" data-output="left" title="YES - Condition Met"></div>';
+            connectorsHtml += '<div class="flow-node-connector output-right" data-output="right" title="NO - Condition Not Met"></div>';
         } else {
             connectorsHtml = '<div class="flow-node-connector input"></div>';
             connectorsHtml += '<div class="flow-node-connector output"></div>';
@@ -1590,6 +1646,25 @@ $(document).ready(function() {
                 return '<span class="text-secondary">No message configured</span>';
             case 'y_flow':
                 return '<span class="text-dark">Split into 2 paths</span>';
+            case 'if_else':
+                const conditionLabels = {
+                    'has_tag': 'Has Tag',
+                    'not_has_tag': 'Does Not Have Tag',
+                    'store_in_order': 'Store in Order',
+                    'product_in_order': 'Product in Order',
+                    'order_total': 'Order Total',
+                    'has_course_access': 'Has Course Access',
+                    'is_affiliate': 'Is Affiliate',
+                    'client_province': 'Client Province',
+                    'payment_method': 'Payment Method',
+                    'has_discount': 'Has Discount Applied'
+                };
+                const condLabel = conditionLabels[node.data.conditionType] || 'Condition';
+                if (node.data.conditionValueLabel || node.data.tagName || node.data.storeName) {
+                    const valueLabel = node.data.conditionValueLabel || node.data.tagName || node.data.storeName || node.data.conditionValue || '';
+                    return `<span class="text-dark"><strong>IF</strong> ${condLabel}: ${escapeHtml(valueLabel.substring(0, 20))}${valueLabel.length > 20 ? '...' : ''}</span>`;
+                }
+                return `<span class="text-secondary">IF ${condLabel}...</span>`;
             case 'course_access':
                 if (node.data.tagName) {
                     return `<span class="text-dark">${escapeHtml(node.data.tagName)}</span>`;
@@ -1610,6 +1685,17 @@ $(document).ready(function() {
                     return `<span class="badge text-white" style="background-color: #F59E0B;"><i class="bx bx-store me-1"></i>${escapeHtml(node.data.storeName)} (${node.data.commissionRate || 10}%)</span>`;
                 }
                 return '<span class="text-secondary">No store selected</span>';
+            case 'course_subscription':
+                if (node.data.courseName) {
+                    const actionIcon = node.data.action === 'add' ? 'bx-plus-circle' : 'bx-minus-circle';
+                    const actionLabel = node.data.action === 'add' ? 'Add' : 'Remove';
+                    let durationText = '';
+                    if (node.data.action === 'add') {
+                        durationText = node.data.durationType === 'expire' ? ' (Expire Now)' : ` (${node.data.durationDays} days)`;
+                    }
+                    return `<span class="badge text-white" style="background-color: #EC4899;"><i class="bx ${actionIcon} me-1"></i>${actionLabel}: ${escapeHtml(node.data.courseName.substring(0, 15))}${node.data.courseName.length > 15 ? '...' : ''}${durationText}</span>`;
+                }
+                return '<span class="text-secondary">No course selected</span>';
             default:
                 return '';
         }
@@ -1866,6 +1952,119 @@ $(document).ready(function() {
                 `;
                 break;
 
+            case 'if_else':
+                // Build tag options
+                let ifElseTagOptions = '<option value="">Select Tag...</option>';
+                triggerTags.forEach(tag => {
+                    const selected = node.data.tagId == tag.id ? 'selected' : '';
+                    ifElseTagOptions += `<option value="${tag.id}" data-name="${escapeHtml(tag.triggerTagName)}" ${selected}>${escapeHtml(tag.triggerTagName)}</option>`;
+                });
+
+                // Build course access tag options
+                let ifElseCourseOptions = '<option value="">Select Course Tag...</option>';
+                courseAccessTags.forEach(tag => {
+                    const selected = node.data.tagId == tag.id ? 'selected' : '';
+                    ifElseCourseOptions += `<option value="${tag.id}" data-name="${escapeHtml(tag.tagName)}" ${selected}>${escapeHtml(tag.tagName)}</option>`;
+                });
+
+                // Build store options
+                let ifElseStoreOptions = '<option value="">Select Store...</option>';
+                @if(isset($stores))
+                @foreach($stores as $store)
+                ifElseStoreOptions += `<option value="{{ $store->id }}" data-name="{{ $store->storeName }}" ${node.data.storeId == '{{ $store->id }}' ? 'selected' : ''}>{{ $store->storeName }}</option>`;
+                @endforeach
+                @endif
+
+                html = `
+                    <div class="alert mb-3" style="background-color: rgba(8, 145, 178, 0.1); border-color: #0891B2;">
+                        <small class="text-dark"><i class="bx bx-git-compare me-1" style="color: #0891B2;"></i>
+                            <strong>YES path (left):</strong> Condition is true<br>
+                            <strong>NO path (right):</strong> Condition is false
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-dark">Condition Type</label>
+                        <select class="form-select" id="propIfElseConditionType">
+                            <option value="has_tag" ${node.data.conditionType === 'has_tag' ? 'selected' : ''}>Has Trigger Tag</option>
+                            <option value="not_has_tag" ${node.data.conditionType === 'not_has_tag' ? 'selected' : ''}>Does Not Have Trigger Tag</option>
+                            <option value="store_in_order" ${node.data.conditionType === 'store_in_order' ? 'selected' : ''}>Store in Order</option>
+                            <option value="has_course_access" ${node.data.conditionType === 'has_course_access' ? 'selected' : ''}>Has Course Access</option>
+                            <option value="no_course_access" ${node.data.conditionType === 'no_course_access' ? 'selected' : ''}>Does Not Have Course Access</option>
+                            <option value="order_total" ${node.data.conditionType === 'order_total' ? 'selected' : ''}>Order Total</option>
+                            <option value="is_affiliate" ${node.data.conditionType === 'is_affiliate' ? 'selected' : ''}>Is Affiliate</option>
+                            <option value="is_not_affiliate" ${node.data.conditionType === 'is_not_affiliate' ? 'selected' : ''}>Is Not Affiliate</option>
+                            <option value="client_province" ${node.data.conditionType === 'client_province' ? 'selected' : ''}>Client Province</option>
+                            <option value="has_discount" ${node.data.conditionType === 'has_discount' ? 'selected' : ''}>Has Discount Applied</option>
+                            <option value="payment_method" ${node.data.conditionType === 'payment_method' ? 'selected' : ''}>Payment Method</option>
+                        </select>
+                    </div>
+
+                    <!-- Tag Selection (for has_tag, not_has_tag) -->
+                    <div class="mb-3 if-else-field" id="ifElseTagField" style="display: ${['has_tag', 'not_has_tag'].includes(node.data.conditionType) ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Select Trigger Tag</label>
+                        <select class="form-select" id="propIfElseTag">${ifElseTagOptions}</select>
+                    </div>
+
+                    <!-- Course Access Selection (for has_course_access, no_course_access) -->
+                    <div class="mb-3 if-else-field" id="ifElseCourseField" style="display: ${['has_course_access', 'no_course_access'].includes(node.data.conditionType) ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Select Course Tag</label>
+                        <select class="form-select" id="propIfElseCourseTag">${ifElseCourseOptions}</select>
+                    </div>
+
+                    <!-- Store Selection (for store_in_order) -->
+                    <div class="mb-3 if-else-field" id="ifElseStoreField" style="display: ${node.data.conditionType === 'store_in_order' ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Select Store</label>
+                        <select class="form-select" id="propIfElseStore">${ifElseStoreOptions}</select>
+                    </div>
+
+                    <!-- Order Total (for order_total) -->
+                    <div class="mb-3 if-else-field" id="ifElseOrderTotalField" style="display: ${node.data.conditionType === 'order_total' ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Order Total Condition</label>
+                        <div class="input-group">
+                            <select class="form-select" id="propIfElseOrderOperator" style="max-width: 150px;">
+                                <option value="greater_than" ${node.data.orderOperator === 'greater_than' ? 'selected' : ''}>Greater than</option>
+                                <option value="less_than" ${node.data.orderOperator === 'less_than' ? 'selected' : ''}>Less than</option>
+                                <option value="equals" ${node.data.orderOperator === 'equals' ? 'selected' : ''}>Equals</option>
+                                <option value="greater_equal" ${node.data.orderOperator === 'greater_equal' ? 'selected' : ''}>Greater or equal</option>
+                                <option value="less_equal" ${node.data.orderOperator === 'less_equal' ? 'selected' : ''}>Less or equal</option>
+                            </select>
+                            <span class="input-group-text">₱</span>
+                            <input type="number" class="form-control" id="propIfElseOrderTotal" value="${node.data.orderTotal || ''}" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Province Selection (for client_province) -->
+                    <div class="mb-3 if-else-field" id="ifElseProvinceField" style="display: ${node.data.conditionType === 'client_province' ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Province Name</label>
+                        <input type="text" class="form-control" id="propIfElseProvince" value="${node.data.conditionValue || ''}" placeholder="e.g., Metro Manila">
+                    </div>
+
+                    <!-- Payment Method (for payment_method) -->
+                    <div class="mb-3 if-else-field" id="ifElsePaymentField" style="display: ${node.data.conditionType === 'payment_method' ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Payment Method</label>
+                        <select class="form-select" id="propIfElsePayment">
+                            <option value="">Select Payment Method...</option>
+                            <option value="cod" ${node.data.conditionValue === 'cod' ? 'selected' : ''}>Cash on Delivery (COD)</option>
+                            <option value="gcash" ${node.data.conditionValue === 'gcash' ? 'selected' : ''}>GCash</option>
+                            <option value="bank_transfer" ${node.data.conditionValue === 'bank_transfer' ? 'selected' : ''}>Bank Transfer</option>
+                            <option value="credit_card" ${node.data.conditionValue === 'credit_card' ? 'selected' : ''}>Credit Card</option>
+                            <option value="paypal" ${node.data.conditionValue === 'paypal' ? 'selected' : ''}>PayPal</option>
+                        </select>
+                    </div>
+
+                    <!-- Info for boolean conditions -->
+                    <div class="mb-3 if-else-field" id="ifElseBooleanInfo" style="display: ${['is_affiliate', 'is_not_affiliate', 'has_discount'].includes(node.data.conditionType) ? 'block' : 'none'};">
+                        <div class="alert alert-secondary mb-0">
+                            <small><i class="bx bx-info-circle me-1"></i>This condition doesn't require additional configuration.</small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm w-100 text-white" style="background-color: #0891B2;" id="applyIfElseProps">
+                        <i class="bx bx-check me-1"></i>Apply Condition
+                    </button>
+                `;
+                break;
+
             case 'remove_access':
                 let removeOptionsHtml = '<option value="">Select Course Tag to Remove...</option>';
                 courseAccessTags.forEach(tag => {
@@ -1925,6 +2124,64 @@ $(document).ready(function() {
                         <input type="number" class="form-control" id="propCommissionRate" value="${node.data.commissionRate || 10}" min="0" max="100" step="0.5">
                     </div>
                     <button type="button" class="btn btn-sm w-100 text-white" style="background-color: #F59E0B;" id="applyAddAffiliateProps">
+                        <i class="bx bx-check me-1"></i>Apply
+                    </button>
+                `;
+                break;
+
+            case 'course_subscription':
+                // Build course options
+                let courseOptionsHtml = '<option value="">Select Course...</option>';
+                aniSensoCourses.forEach(course => {
+                    const selected = node.data.courseId == course.id ? 'selected' : '';
+                    courseOptionsHtml += `<option value="${course.id}" ${selected}>${escapeHtml(course.courseName)}</option>`;
+                });
+
+                html = `
+                    <div class="alert mb-3" style="background-color: rgba(236, 72, 153, 0.1); border-color: #EC4899;">
+                        <small class="text-dark"><i class="bx bx-book-reader me-1" style="color: #EC4899;"></i>Manage Ani-Senso course subscriptions for the customer.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-dark">Action</label>
+                        <select class="form-select" id="propCourseSubAction">
+                            <option value="add" ${node.data.action === 'add' ? 'selected' : ''}>Add Subscription</option>
+                            <option value="remove" ${node.data.action === 'remove' ? 'selected' : ''}>Remove Subscription</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-dark">Course</label>
+                        <select class="form-select" id="propCourseSubCourse">${courseOptionsHtml}</select>
+                    </div>
+
+                    <div class="mb-3 course-sub-duration-field" id="courseSubDurationField" style="display: ${node.data.action === 'add' ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Duration Type</label>
+                        <select class="form-select" id="propCourseSubDurationType">
+                            <option value="days" ${node.data.durationType === 'days' ? 'selected' : ''}>Set Number of Days</option>
+                            <option value="expire" ${node.data.durationType === 'expire' ? 'selected' : ''}>Set to Expire Immediately</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 course-sub-days-field" id="courseSubDaysField" style="display: ${node.data.action === 'add' && node.data.durationType === 'days' ? 'block' : 'none'};">
+                        <label class="form-label text-dark">Number of Days</label>
+                        <input type="number" class="form-control" id="propCourseSubDays" value="${node.data.durationDays || 30}" min="1" max="3650">
+                        <small class="text-secondary">How many days the subscription will be valid</small>
+                    </div>
+
+                    <div class="mb-3 course-sub-expire-info" id="courseSubExpireInfo" style="display: ${node.data.action === 'add' && node.data.durationType === 'expire' ? 'block' : 'none'};">
+                        <div class="alert alert-warning mb-0">
+                            <small><i class="bx bx-error-circle me-1"></i>This will set the subscription to expire immediately (useful for revoking access).</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 course-sub-remove-info" id="courseSubRemoveInfo" style="display: ${node.data.action === 'remove' ? 'block' : 'none'};">
+                        <div class="alert alert-danger mb-0">
+                            <small><i class="bx bx-trash me-1"></i>This will completely remove the course subscription from the customer.</small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm w-100 text-white" style="background-color: #EC4899;" id="applyCourseSubProps">
                         <i class="bx bx-check me-1"></i>Apply
                     </button>
                 `;
@@ -2093,6 +2350,217 @@ $(document).ready(function() {
             updateNodeBodyWithAnimation(node);
             closePropertiesPanel();
             toastr.success('Affiliate settings applied!');
+        });
+
+        // Course Subscription - Action change
+        $('#propCourseSubAction').on('change', function() {
+            const action = $(this).val();
+            if (action === 'add') {
+                $('#courseSubDurationField').show();
+                $('#courseSubRemoveInfo').hide();
+                // Show days field based on duration type
+                const durationType = $('#propCourseSubDurationType').val();
+                if (durationType === 'days') {
+                    $('#courseSubDaysField').show();
+                    $('#courseSubExpireInfo').hide();
+                } else {
+                    $('#courseSubDaysField').hide();
+                    $('#courseSubExpireInfo').show();
+                }
+            } else {
+                $('#courseSubDurationField').hide();
+                $('#courseSubDaysField').hide();
+                $('#courseSubExpireInfo').hide();
+                $('#courseSubRemoveInfo').show();
+            }
+        });
+
+        // Course Subscription - Duration type change
+        $('#propCourseSubDurationType').on('change', function() {
+            const durationType = $(this).val();
+            if (durationType === 'days') {
+                $('#courseSubDaysField').show();
+                $('#courseSubExpireInfo').hide();
+            } else {
+                $('#courseSubDaysField').hide();
+                $('#courseSubExpireInfo').show();
+            }
+        });
+
+        // Course Subscription - Apply properties
+        $('#applyCourseSubProps').on('click', function() {
+            const action = $('#propCourseSubAction').val();
+            const $courseSelect = $('#propCourseSubCourse');
+
+            if (!$courseSelect.val()) {
+                toastr.error('Please select a course.');
+                return;
+            }
+
+            node.data.action = action;
+            node.data.courseId = $courseSelect.val();
+            node.data.courseName = $courseSelect.find('option:selected').text();
+
+            if (action === 'add') {
+                node.data.durationType = $('#propCourseSubDurationType').val();
+                if (node.data.durationType === 'days') {
+                    node.data.durationDays = parseInt($('#propCourseSubDays').val()) || 30;
+                    node.data.expireImmediately = false;
+                } else {
+                    node.data.durationDays = 0;
+                    node.data.expireImmediately = true;
+                }
+            } else {
+                node.data.durationType = '';
+                node.data.durationDays = 0;
+                node.data.expireImmediately = false;
+            }
+
+            updateNodeBodyWithAnimation(node);
+            closePropertiesPanel();
+            toastr.success('Course subscription settings applied!');
+        });
+
+        // If/Else condition type change - show/hide relevant fields
+        $('#propIfElseConditionType').on('change', function() {
+            const conditionType = $(this).val();
+
+            // Hide all conditional fields first
+            $('.if-else-field').hide();
+
+            // Show relevant fields based on condition type
+            switch(conditionType) {
+                case 'has_tag':
+                case 'does_not_have_tag':
+                    $('#ifElseTagField').show();
+                    break;
+                case 'has_course_access':
+                case 'no_course_access':
+                    $('#ifElseCourseField').show();
+                    break;
+                case 'store_in_order':
+                    $('#ifElseStoreField').show();
+                    break;
+                case 'order_total':
+                    $('#ifElseOrderTotalField').show();
+                    break;
+                case 'client_province':
+                    $('#ifElseProvinceField').show();
+                    break;
+                case 'payment_method':
+                    $('#ifElsePaymentField').show();
+                    break;
+                case 'is_affiliate':
+                case 'is_not_affiliate':
+                case 'has_discount':
+                    $('#ifElseBooleanInfo').show();
+                    break;
+            }
+        });
+
+        // If/Else apply properties
+        $('#applyIfElseProps').on('click', function() {
+            const conditionType = $('#propIfElseConditionType').val();
+
+            if (!conditionType) {
+                toastr.error('Please select a condition type.');
+                return;
+            }
+
+            node.data.conditionType = conditionType;
+
+            // Save condition-specific data
+            switch(conditionType) {
+                case 'has_tag':
+                case 'does_not_have_tag':
+                    const $tagSelect = $('#propIfElseTag');
+                    if (!$tagSelect.val()) {
+                        toastr.error('Please select a tag.');
+                        return;
+                    }
+                    node.data.tagId = $tagSelect.val();
+                    node.data.tagName = $tagSelect.find('option:selected').text();
+                    node.data.conditionValue = node.data.tagId;
+                    node.data.conditionValueLabel = node.data.tagName;
+                    break;
+
+                case 'has_course_access':
+                case 'no_course_access':
+                    const $courseSelect = $('#propIfElseCourseTag');
+                    if (!$courseSelect.val()) {
+                        toastr.error('Please select a course access tag.');
+                        return;
+                    }
+                    node.data.tagId = $courseSelect.val();
+                    node.data.tagName = $courseSelect.find('option:selected').text();
+                    node.data.conditionValue = node.data.tagId;
+                    node.data.conditionValueLabel = node.data.tagName;
+                    break;
+
+                case 'store_in_order':
+                    const $storeSelect = $('#propIfElseStore');
+                    if (!$storeSelect.val()) {
+                        toastr.error('Please select a store.');
+                        return;
+                    }
+                    node.data.storeId = $storeSelect.val();
+                    node.data.storeName = $storeSelect.find('option:selected').text();
+                    node.data.conditionValue = node.data.storeId;
+                    node.data.conditionValueLabel = node.data.storeName;
+                    break;
+
+                case 'order_total':
+                    const orderTotal = $('#propIfElseOrderTotal').val();
+                    const orderOperator = $('#propIfElseOrderOperator').val();
+                    if (!orderTotal) {
+                        toastr.error('Please enter an order total amount.');
+                        return;
+                    }
+                    node.data.orderTotal = orderTotal;
+                    node.data.orderOperator = orderOperator;
+                    const operatorLabels = {
+                        'greater_than': '>',
+                        'less_than': '<',
+                        'equals': '=',
+                        'greater_or_equal': '≥',
+                        'less_or_equal': '≤'
+                    };
+                    node.data.conditionValue = orderTotal;
+                    node.data.conditionValueLabel = `${operatorLabels[orderOperator] || '>'} ₱${parseFloat(orderTotal).toLocaleString()}`;
+                    break;
+
+                case 'client_province':
+                    const province = $('#propIfElseProvince').val();
+                    if (!province) {
+                        toastr.error('Please enter a province name.');
+                        return;
+                    }
+                    node.data.conditionValue = province;
+                    node.data.conditionValueLabel = province;
+                    break;
+
+                case 'payment_method':
+                    const $paymentSelect = $('#propIfElsePayment');
+                    if (!$paymentSelect.val()) {
+                        toastr.error('Please select a payment method.');
+                        return;
+                    }
+                    node.data.conditionValue = $paymentSelect.val();
+                    node.data.conditionValueLabel = $paymentSelect.find('option:selected').text();
+                    break;
+
+                case 'is_affiliate':
+                case 'is_not_affiliate':
+                case 'has_discount':
+                    // Boolean conditions don't need additional values
+                    node.data.conditionValue = '';
+                    node.data.conditionValueLabel = '';
+                    break;
+            }
+
+            updateNodeBodyWithAnimation(node);
+            closePropertiesPanel();
+            toastr.success('Condition applied!');
         });
     }
 

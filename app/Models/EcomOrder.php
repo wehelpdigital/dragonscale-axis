@@ -125,6 +125,45 @@ class EcomOrder extends BaseModel
     }
 
     /**
+     * Get the refund requests for this order.
+     */
+    public function refundRequests()
+    {
+        return $this->hasMany(EcomRefundRequest::class, 'orderId');
+    }
+
+    /**
+     * Get the active refund request for this order.
+     */
+    public function activeRefund()
+    {
+        return $this->hasOne(EcomRefundRequest::class, 'orderId')
+            ->where('deleteStatus', 1)
+            ->whereIn('status', ['pending', 'approved', 'processed'])
+            ->latest();
+    }
+
+    /**
+     * Get total refunded amount for this order.
+     */
+    public function getTotalRefundedAttribute()
+    {
+        return $this->refundRequests()
+            ->where('deleteStatus', 1)
+            ->where('status', 'processed')
+            ->sum('approvedAmount');
+    }
+
+    /**
+     * Check if order has been fully refunded.
+     */
+    public function getIsFullyRefundedAttribute()
+    {
+        $refundableAmount = $this->subtotal - $this->discountTotal;
+        return $this->totalRefunded >= $refundableAmount;
+    }
+
+    /**
      * Get the user who created this order.
      */
     public function user()

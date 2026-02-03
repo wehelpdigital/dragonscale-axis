@@ -27,6 +27,13 @@ class EcomAffiliate extends BaseModel
         'lastName',
         'phoneNumber',
         'emailAddress',
+        'houseNumber',
+        'street',
+        'barangay',
+        'zone',
+        'municipality',
+        'province',
+        'zipCode',
         'bankDetails',
         'gcashNumber',
         'userPhoto',
@@ -159,6 +166,23 @@ class EcomAffiliate extends BaseModel
             return false;
         }
         return $this->expirationDate->isPast();
+    }
+
+    /**
+     * Get the full address of the affiliate
+     */
+    public function getFullAddressAttribute()
+    {
+        $parts = array_filter([
+            $this->houseNumber,
+            $this->street,
+            $this->barangay,
+            $this->zone,
+            $this->municipality,
+            $this->province,
+            $this->zipCode,
+        ]);
+        return implode(', ', $parts);
     }
 
     /**

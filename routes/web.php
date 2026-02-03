@@ -16,7 +16,9 @@ use Illuminate\Support\Facades\Route;
 
 Auth::routes(['verify' => true]);
 
-Route::get('/', [App\Http\Controllers\HomeController::class, 'root'])->name('root')->middleware('auth');
+Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('root')->middleware('auth');
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
+Route::get('/dashboard/data', [App\Http\Controllers\DashboardController::class, 'getData'])->name('dashboard.data')->middleware('auth');
 
 // welcome route
 Route::get('/welcome', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome')->middleware('auth');
@@ -406,6 +408,14 @@ Route::get('/ecom-reports-sales/saved', [App\Http\Controllers\Ecommerce\SalesRep
 Route::get('/ecom-reports-sales/load/{id}', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'loadReport'])->name('ecom-reports.sales.load')->middleware('auth');
 Route::delete('/ecom-reports-sales/{id}', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'deleteReport'])->name('ecom-reports.sales.delete')->middleware('auth');
 Route::get('/ecom-reports-sales/export', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'exportReport'])->name('ecom-reports.sales.export')->middleware('auth');
+Route::get('/ecom-reports-sales/profitability', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getProfitabilityData'])->name('ecom-reports.sales.profitability')->middleware('auth');
+Route::get('/ecom-reports-sales/refunds', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'getRefundsReport'])->name('ecom-reports.sales.refunds')->middleware('auth');
+
+// E-commerce Heatmap routes
+Route::get('/ecom-reports-heatmap', [App\Http\Controllers\Ecommerce\HeatmapController::class, 'index'])->name('ecom-reports.heatmap')->middleware('auth');
+Route::get('/ecom-reports-heatmap/data', [App\Http\Controllers\Ecommerce\HeatmapController::class, 'getData'])->name('ecom-reports.heatmap.data')->middleware('auth');
+Route::get('/ecom-reports-heatmap/export', [App\Http\Controllers\Ecommerce\HeatmapController::class, 'export'])->name('ecom-reports.heatmap.export')->middleware('auth');
+
 Route::post('/ecom-triggers-upload-image', [App\Http\Controllers\Ecommerce\TriggersController::class, 'uploadImage'])->name('ecom-triggers.upload-image')->middleware('auth');
 Route::get('/ecom-shipping-options/available-provinces', [App\Http\Controllers\Ecommerce\ShippingController::class, 'getAvailableProvinces'])->name('ecom-shipping-options.available-provinces')->middleware('auth');
 Route::get('/ecom-shipping-options/{id}/edit', [App\Http\Controllers\Ecommerce\ShippingController::class, 'editShippingOption'])->name('ecom-shipping-options.edit')->middleware('auth');
@@ -426,6 +436,218 @@ Route::post('/ecom-refunds/{id}/process', [App\Http\Controllers\Ecommerce\Refund
 Route::delete('/ecom-refunds/{id}', [App\Http\Controllers\Ecommerce\RefundsController::class, 'destroy'])->name('ecom-refunds.destroy')->middleware('auth');
 Route::get('/ecom-refunds/{id}/audit-trail', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getAuditTrail'])->name('ecom-refunds.audit-trail')->middleware('auth');
 Route::get('/ecom-refunds-audit-logs', [App\Http\Controllers\Ecommerce\RefundsController::class, 'getAllAuditLogs'])->name('ecom-refunds.all-audit-logs')->middleware('auth');
+
+// CRM Leads routes
+Route::get('/crm-leads', [App\Http\Controllers\CRM\LeadsController::class, 'index'])->name('crm-leads')->middleware('auth');
+Route::get('/crm-leads/data', [App\Http\Controllers\CRM\LeadsController::class, 'getData'])->name('crm-leads.data')->middleware('auth');
+Route::get('/crm-leads-add', [App\Http\Controllers\CRM\LeadsController::class, 'create'])->name('crm-leads.create')->middleware('auth');
+Route::post('/crm-leads-add', [App\Http\Controllers\CRM\LeadsController::class, 'store'])->name('crm-leads.store')->middleware('auth');
+Route::get('/crm-leads-view', [App\Http\Controllers\CRM\LeadsController::class, 'show'])->name('crm-leads.show')->middleware('auth');
+Route::get('/crm-leads-edit', [App\Http\Controllers\CRM\LeadsController::class, 'edit'])->name('crm-leads.edit')->middleware('auth');
+Route::put('/crm-leads', [App\Http\Controllers\CRM\LeadsController::class, 'update'])->name('crm-leads.update')->middleware('auth');
+Route::delete('/crm-leads', [App\Http\Controllers\CRM\LeadsController::class, 'destroy'])->name('crm-leads.destroy')->middleware('auth');
+Route::post('/crm-leads/update-status', [App\Http\Controllers\CRM\LeadsController::class, 'updateStatus'])->name('crm-leads.update-status')->middleware('auth');
+Route::post('/crm-leads/add-activity', [App\Http\Controllers\CRM\LeadsController::class, 'addActivity'])->name('crm-leads.add-activity')->middleware('auth');
+Route::get('/crm-leads/{id}/activities', [App\Http\Controllers\CRM\LeadsController::class, 'getActivities'])->name('crm-leads.activities')->middleware('auth');
+Route::get('/crm-leads/sources', [App\Http\Controllers\CRM\LeadsController::class, 'getSources'])->name('crm-leads.sources')->middleware('auth');
+Route::get('/crm-leads/potential-logins', [App\Http\Controllers\CRM\LeadsController::class, 'findPotentialLogins'])->name('crm-leads.potential-logins')->middleware('auth');
+Route::get('/crm-leads/potential-clients', [App\Http\Controllers\CRM\LeadsController::class, 'findPotentialClients'])->name('crm-leads.potential-clients')->middleware('auth');
+Route::post('/crm-leads/parse-import', [App\Http\Controllers\CRM\LeadsController::class, 'parseImportFile'])->name('crm-leads.parse-import')->middleware('auth');
+Route::post('/crm-leads/process-import', [App\Http\Controllers\CRM\LeadsController::class, 'processImport'])->name('crm-leads.process-import')->middleware('auth');
+Route::post('/crm-leads/custom-data', [App\Http\Controllers\CRM\LeadsController::class, 'addCustomData'])->name('crm-leads.add-custom-data')->middleware('auth');
+Route::put('/crm-leads/custom-data', [App\Http\Controllers\CRM\LeadsController::class, 'updateCustomData'])->name('crm-leads.update-custom-data')->middleware('auth');
+Route::delete('/crm-leads/custom-data', [App\Http\Controllers\CRM\LeadsController::class, 'deleteCustomData'])->name('crm-leads.delete-custom-data')->middleware('auth');
+Route::post('/crm-leads/link-store-login', [App\Http\Controllers\CRM\LeadsController::class, 'linkStoreLogin'])->name('crm-leads.link-store-login')->middleware('auth');
+Route::post('/crm-leads/unlink-store-login', [App\Http\Controllers\CRM\LeadsController::class, 'unlinkStoreLogin'])->name('crm-leads.unlink-store-login')->middleware('auth');
+Route::post('/crm-leads/link-client', [App\Http\Controllers\CRM\LeadsController::class, 'linkClient'])->name('crm-leads.link-client')->middleware('auth');
+Route::post('/crm-leads/unlink-client', [App\Http\Controllers\CRM\LeadsController::class, 'unlinkClient'])->name('crm-leads.unlink-client')->middleware('auth');
+Route::get('/crm-leads/linked-connections', [App\Http\Controllers\CRM\LeadsController::class, 'getLinkedConnections'])->name('crm-leads.linked-connections')->middleware('auth');
+
+// CRM Business Contacts routes
+Route::get('/crm-business-contacts', [App\Http\Controllers\CRM\BusinessContactsController::class, 'index'])->name('crm-business-contacts')->middleware('auth');
+Route::get('/crm-business-contacts-add', [App\Http\Controllers\CRM\BusinessContactsController::class, 'create'])->name('crm-business-contacts.create')->middleware('auth');
+Route::post('/crm-business-contacts-add', [App\Http\Controllers\CRM\BusinessContactsController::class, 'store'])->name('crm-business-contacts.store')->middleware('auth');
+Route::get('/crm-business-contacts-view', [App\Http\Controllers\CRM\BusinessContactsController::class, 'show'])->name('crm-business-contacts.show')->middleware('auth');
+Route::get('/crm-business-contacts-edit', [App\Http\Controllers\CRM\BusinessContactsController::class, 'edit'])->name('crm-business-contacts.edit')->middleware('auth');
+Route::put('/crm-business-contacts', [App\Http\Controllers\CRM\BusinessContactsController::class, 'update'])->name('crm-business-contacts.update')->middleware('auth');
+Route::delete('/crm-business-contacts/{id}', [App\Http\Controllers\CRM\BusinessContactsController::class, 'destroy'])->name('crm-business-contacts.destroy')->middleware('auth');
+Route::post('/crm-business-contacts/update-status', [App\Http\Controllers\CRM\BusinessContactsController::class, 'updateStatus'])->name('crm-business-contacts.update-status')->middleware('auth');
+Route::post('/crm-business-contacts/update-last-contact', [App\Http\Controllers\CRM\BusinessContactsController::class, 'updateLastContact'])->name('crm-business-contacts.update-last-contact')->middleware('auth');
+
+// CRM Forms routes
+Route::get('/crm-forms', [App\Http\Controllers\CRM\CrmFormsController::class, 'index'])->name('crm-forms')->middleware('auth');
+Route::get('/crm-forms-create', [App\Http\Controllers\CRM\CrmFormsController::class, 'create'])->name('crm-forms.create')->middleware('auth');
+Route::post('/crm-forms-store', [App\Http\Controllers\CRM\CrmFormsController::class, 'store'])->name('crm-forms.store')->middleware('auth');
+Route::get('/crm-forms-edit', [App\Http\Controllers\CRM\CrmFormsController::class, 'edit'])->name('crm-forms.edit')->middleware('auth');
+Route::put('/crm-forms-update', [App\Http\Controllers\CRM\CrmFormsController::class, 'update'])->name('crm-forms.update')->middleware('auth');
+Route::delete('/crm-forms-delete', [App\Http\Controllers\CRM\CrmFormsController::class, 'destroy'])->name('crm-forms.destroy')->middleware('auth');
+Route::post('/crm-forms-duplicate', [App\Http\Controllers\CRM\CrmFormsController::class, 'duplicate'])->name('crm-forms.duplicate')->middleware('auth');
+Route::post('/crm-forms-toggle-status', [App\Http\Controllers\CRM\CrmFormsController::class, 'toggleStatus'])->name('crm-forms.toggle-status')->middleware('auth');
+Route::get('/crm-forms-preview', [App\Http\Controllers\CRM\CrmFormsController::class, 'preview'])->name('crm-forms.preview')->middleware('auth');
+Route::get('/crm-forms-submissions', [App\Http\Controllers\CRM\CrmFormsController::class, 'submissions'])->name('crm-forms.submissions')->middleware('auth');
+Route::get('/crm-forms-submission', [App\Http\Controllers\CRM\CrmFormsController::class, 'getSubmission'])->name('crm-forms.submission')->middleware('auth');
+Route::delete('/crm-forms-submission-delete', [App\Http\Controllers\CRM\CrmFormsController::class, 'deleteSubmission'])->name('crm-forms.submission.delete')->middleware('auth');
+Route::get('/crm-forms-export', [App\Http\Controllers\CRM\CrmFormsController::class, 'exportSubmissions'])->name('crm-forms.export')->middleware('auth');
+Route::post('/crm-forms-upload-image', [App\Http\Controllers\CRM\CrmFormsController::class, 'uploadImage'])->name('crm-forms.upload-image')->middleware('auth');
+Route::post('/crm-forms-generate-api-key', [App\Http\Controllers\CRM\CrmFormsController::class, 'generateApiKey'])->name('crm-forms.generate-api-key')->middleware('auth');
+Route::post('/crm-forms-toggle-api', [App\Http\Controllers\CRM\CrmFormsController::class, 'toggleApi'])->name('crm-forms.toggle-api')->middleware('auth');
+Route::get('/crm-forms-lead-fields', [App\Http\Controllers\CRM\CrmFormsController::class, 'getLeadFields'])->name('crm-forms.lead-fields')->middleware('auth');
+
+// Public Form routes (no auth required)
+Route::get('/f/{slug}', [App\Http\Controllers\CRM\PublicFormController::class, 'show'])->name('public-form.show');
+Route::post('/f/{slug}/submit', [App\Http\Controllers\CRM\PublicFormController::class, 'submit'])->name('public-form.submit');
+
+// API Documentation routes
+Route::get('/api-docs-leads', [App\Http\Controllers\Api\ApiDocumentationController::class, 'leads'])->name('api-docs.leads')->middleware('auth');
+Route::post('/api-docs/regenerate-key', [App\Http\Controllers\Api\ApiDocumentationController::class, 'regenerateApiKey'])->name('api-docs.regenerate-key')->middleware('auth');
+
+// AI Technician KB Docs Settings routes (legacy - kept for backwards compatibility)
+Route::get('/ai-technician-kb-docs-settings', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'index'])->name('ai-technician.kb-docs-settings')->middleware('auth');
+Route::post('/ai-technician-kb-docs-settings/settings', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'storeSettings'])->name('ai-technician.kb-docs-settings.store')->middleware('auth');
+Route::post('/ai-technician-kb-docs-settings/test', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'testConnection'])->name('ai-technician.kb-docs-settings.test')->middleware('auth');
+Route::post('/ai-technician-kb-docs-settings/upload', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'uploadFile'])->name('ai-technician.kb-docs-settings.upload')->middleware('auth');
+Route::get('/ai-technician-kb-docs-settings/files', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'getFiles'])->name('ai-technician.kb-docs-settings.files')->middleware('auth');
+Route::delete('/ai-technician-kb-docs-settings/files/{id}', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'deleteFile'])->name('ai-technician.kb-docs-settings.delete')->middleware('auth');
+Route::post('/ai-technician-kb-docs-settings/files/{id}/retry', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'retryFile'])->name('ai-technician.kb-docs-settings.retry')->middleware('auth');
+Route::post('/ai-technician-kb-docs-settings/files/{id}/refresh', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'refreshFileStatus'])->name('ai-technician.kb-docs-settings.refresh')->middleware('auth');
+Route::post('/ai-technician-kb-docs-settings/sync', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'syncFiles'])->name('ai-technician.kb-docs-settings.sync')->middleware('auth');
+
+// AI Technician Unified Knowledge Base routes
+Route::get('/ai-technician-knowledge-base', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'unifiedIndex'])->name('ai-technician.knowledge-base')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/settings', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'saveUnifiedSettings'])->name('ai-technician.knowledge-base.settings.save')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/settings/test', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'testConnection'])->name('ai-technician.knowledge-base.settings.test')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/upload-doc', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'uploadFile'])->name('ai-technician.knowledge-base.upload-doc')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/add-website', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'store'])->name('ai-technician.knowledge-base.add-website')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/upload-image', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'store'])->name('ai-technician.knowledge-base.upload-image')->middleware('auth');
+Route::delete('/ai-technician-knowledge-base/docs/{id}', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'deleteFile'])->name('ai-technician.knowledge-base.delete-doc')->middleware('auth');
+Route::delete('/ai-technician-knowledge-base/websites/{id}', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'destroy'])->name('ai-technician.knowledge-base.delete-website')->middleware('auth');
+Route::delete('/ai-technician-knowledge-base/images/{id}', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'destroy'])->name('ai-technician.knowledge-base.delete-image')->middleware('auth');
+Route::put('/ai-technician-knowledge-base/images/{id}', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'update'])->name('ai-technician.knowledge-base.update-image')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/check-index-status', [App\Http\Controllers\AiTechnician\RagSettingsController::class, 'batchCheckIndexStatus'])->name('ai-technician.knowledge-base.check-index-status')->middleware('auth');
+
+// AI Technician External Products routes (for Knowledge Base)
+Route::get('/ai-technician-knowledge-base/products', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'index'])->name('ai-technician.knowledge-base.products')->middleware('auth');
+Route::get('/ai-technician-knowledge-base/products/types', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'getProductTypes'])->name('ai-technician.knowledge-base.products.types')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/products', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'store'])->name('ai-technician.knowledge-base.products.store')->middleware('auth');
+Route::get('/ai-technician-knowledge-base/products/{id}', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'show'])->name('ai-technician.knowledge-base.products.show')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/products/{id}/process', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'process'])->name('ai-technician.knowledge-base.products.process')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/products/{id}/retry', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'retry'])->name('ai-technician.knowledge-base.products.retry')->middleware('auth');
+Route::delete('/ai-technician-knowledge-base/products/{id}', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'destroy'])->name('ai-technician.knowledge-base.products.delete')->middleware('auth');
+// Product image management routes
+Route::post('/ai-technician-knowledge-base/products/{id}/images', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'addImages'])->name('ai-technician.knowledge-base.products.images.add')->middleware('auth');
+Route::delete('/ai-technician-knowledge-base/products/{productId}/images/{imageId}', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'deleteImage'])->name('ai-technician.knowledge-base.products.images.delete')->middleware('auth');
+Route::post('/ai-technician-knowledge-base/products/{productId}/images/{imageId}/primary', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'setPrimaryImage'])->name('ai-technician.knowledge-base.products.images.primary')->middleware('auth');
+
+// Product document management routes
+Route::post('/ai-technician-knowledge-base/products/{id}/documents', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'addDocuments'])->name('ai-technician.knowledge-base.products.documents.add')->middleware('auth');
+Route::delete('/ai-technician-knowledge-base/products/{productId}/documents/{documentId}', [App\Http\Controllers\AiTechnician\ExternalProductsController::class, 'deleteDocument'])->name('ai-technician.knowledge-base.products.documents.delete')->middleware('auth');
+
+// AI Technician Reply Flow routes (single settings page)
+Route::get('/ai-technician-reply-flow', [App\Http\Controllers\AiTechnician\AiReplyFlowsController::class, 'index'])->name('ai-technician.reply-flow')->middleware('auth');
+Route::post('/ai-technician-reply-flow/save', [App\Http\Controllers\AiTechnician\AiReplyFlowsController::class, 'save'])->name('ai-technician.reply-flow.save')->middleware('auth');
+Route::post('/ai-technician-reply-flow/toggle', [App\Http\Controllers\AiTechnician\AiReplyFlowsController::class, 'toggleStatus'])->name('ai-technician.reply-flow.toggle')->middleware('auth');
+Route::post('/ai-technician-reply-flow/reset', [App\Http\Controllers\AiTechnician\AiReplyFlowsController::class, 'reset'])->name('ai-technician.reply-flow.reset')->middleware('auth');
+
+// AI Technician Query Rules routes
+Route::get('/ai-technician-query-rules', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'index'])->name('ai-technician.query-rules')->middleware('auth');
+Route::get('/ai-technician-query-rules/create', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'create'])->name('ai-technician.query-rules.create')->middleware('auth');
+Route::post('/ai-technician-query-rules', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'store'])->name('ai-technician.query-rules.store')->middleware('auth');
+Route::get('/ai-technician-query-rules/compiled', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'getCompiled'])->name('ai-technician.query-rules.compiled')->middleware('auth');
+Route::post('/ai-technician-query-rules/reset', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'resetToDefaults'])->name('ai-technician.query-rules.reset')->middleware('auth');
+Route::get('/ai-technician-query-rules/{id}/edit', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'edit'])->name('ai-technician.query-rules.edit')->middleware('auth');
+Route::put('/ai-technician-query-rules/{id}', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'update'])->name('ai-technician.query-rules.update')->middleware('auth');
+Route::post('/ai-technician-query-rules/{id}/toggle', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'toggleStatus'])->name('ai-technician.query-rules.toggle')->middleware('auth');
+Route::delete('/ai-technician-query-rules/{id}', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'destroy'])->name('ai-technician.query-rules.destroy')->middleware('auth');
+
+// AI Technician KB Websites Settings routes
+Route::get('/ai-technician-kb-websites-settings', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'index'])->name('ai-technician.kb-websites-settings')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'store'])->name('ai-technician.kb-websites-settings.store')->middleware('auth');
+Route::get('/ai-technician-kb-websites-settings-active', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'getActiveWebsites'])->name('ai-technician.kb-websites-settings.active')->middleware('auth');
+// Settings routes must come BEFORE {id} routes to avoid "settings" being treated as an ID
+Route::post('/ai-technician-kb-websites-settings/settings', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'saveSettings'])->name('ai-technician.kb-websites-settings.settings.save')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/settings/test', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'testSettings'])->name('ai-technician.kb-websites-settings.settings.test')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/check-processing', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'checkProcessingStatus'])->name('ai-technician.kb-websites-settings.check-processing')->middleware('auth');
+// Routes with {id} parameter
+Route::get('/ai-technician-kb-websites-settings/{id}', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'show'])->name('ai-technician.kb-websites-settings.show')->middleware('auth');
+Route::put('/ai-technician-kb-websites-settings/{id}', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'update'])->name('ai-technician.kb-websites-settings.update')->middleware('auth');
+Route::delete('/ai-technician-kb-websites-settings/{id}', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'destroy'])->name('ai-technician.kb-websites-settings.destroy')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/{id}/toggle', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'toggleStatus'])->name('ai-technician.kb-websites-settings.toggle')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/{id}/test', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'testScrape'])->name('ai-technician.kb-websites-settings.test')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/{id}/scrape', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'scrape'])->name('ai-technician.kb-websites-settings.scrape')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/{id}/upload-pinecone', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'uploadToPinecone'])->name('ai-technician.kb-websites-settings.upload-pinecone')->middleware('auth');
+Route::post('/ai-technician-kb-websites-settings/{id}/refresh-pinecone', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'refreshPineconeStatus'])->name('ai-technician.kb-websites-settings.refresh-pinecone')->middleware('auth');
+Route::get('/ai-technician-kb-websites-settings/{id}/pages', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'getPages'])->name('ai-technician.kb-websites-settings.pages')->middleware('auth');
+Route::get('/ai-technician-kb-websites-settings/{websiteId}/pages/{pageId}', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'getPageContent'])->name('ai-technician.kb-websites-settings.page-content')->middleware('auth');
+Route::delete('/ai-technician-kb-websites-settings/{websiteId}/pages/{pageId}', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'deletePage'])->name('ai-technician.kb-websites-settings.delete-page')->middleware('auth');
+Route::delete('/ai-technician-kb-websites-settings/{id}/pages', [App\Http\Controllers\AiTechnician\AiWebsitesController::class, 'clearPages'])->name('ai-technician.kb-websites-settings.clear-pages')->middleware('auth');
+
+// AI Technician Settings routes
+Route::get('/ai-technician-settings', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'index'])->name('ai-technician.settings')->middleware('auth');
+Route::get('/ai-technician-settings/active-provider', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'getActiveProvider'])->name('ai-technician.settings.active')->middleware('auth');
+
+// AI Technician Image Search Settings routes (MUST be before {provider} wildcard)
+Route::put('/ai-technician-settings/image-search', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'updateImageSearchSettings'])->name('ai-technician.settings.image-search.update')->middleware('auth');
+Route::post('/ai-technician-settings/image-search/test', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'testImageSearchApi'])->name('ai-technician.settings.image-search.test')->middleware('auth');
+Route::post('/ai-technician-settings/image-search/test-serper', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'testSerperApi'])->name('ai-technician.settings.image-search.test-serper')->middleware('auth');
+
+// AI Technician Access Tags routes (MUST be before {provider} wildcard)
+Route::get('/ai-technician-settings/access-tags', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'getAccessTags'])->name('ai-technician.settings.access-tags.list')->middleware('auth');
+Route::post('/ai-technician-settings/access-tags', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'storeAccessTag'])->name('ai-technician.settings.access-tags.store')->middleware('auth');
+Route::get('/ai-technician-settings/access-tags/{id}', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'getAccessTag'])->name('ai-technician.settings.access-tags.show')->middleware('auth');
+Route::put('/ai-technician-settings/access-tags/{id}', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'updateAccessTag'])->name('ai-technician.settings.access-tags.update')->middleware('auth');
+Route::delete('/ai-technician-settings/access-tags/{id}', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'destroyAccessTag'])->name('ai-technician.settings.access-tags.destroy')->middleware('auth');
+
+// AI Technician Currency Settings routes
+Route::get('/ai-technician-settings/currency', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'getCurrencySettings'])->name('ai-technician.settings.currency.get')->middleware('auth');
+Route::put('/ai-technician-settings/currency', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'updateCurrencySettings'])->name('ai-technician.settings.currency.update')->middleware('auth');
+Route::post('/ai-technician-settings/currency/refresh', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'refreshExchangeRate'])->name('ai-technician.settings.currency.refresh')->middleware('auth');
+
+// AI Technician Avatar Settings routes
+Route::get('/ai-technician-settings/avatar', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'getAvatarSettings'])->name('ai-technician.settings.avatar.get')->middleware('auth');
+Route::post('/ai-technician-settings/avatar', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'updateAvatarSettings'])->name('ai-technician.settings.avatar.update')->middleware('auth');
+Route::delete('/ai-technician-settings/avatar', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'deleteAvatar'])->name('ai-technician.settings.avatar.delete')->middleware('auth');
+
+// AI Provider Settings (wildcard routes - MUST be AFTER specific routes)
+Route::put('/ai-technician-settings/{provider}', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'update'])->name('ai-technician.settings.update')->middleware('auth');
+Route::post('/ai-technician-settings/{provider}/default', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'setDefault'])->name('ai-technician.settings.default')->middleware('auth');
+Route::post('/ai-technician-settings/{provider}/test', [App\Http\Controllers\AiTechnician\AiSettingsController::class, 'testConnection'])->name('ai-technician.settings.test')->middleware('auth');
+
+// AI Technician Clients routes
+Route::get('/ai-technician-clients', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'index'])->name('ai-technician.clients')->middleware('auth');
+Route::get('/ai-technician-clients/data', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'getClients'])->name('ai-technician.clients.data')->middleware('auth');
+Route::get('/ai-technician-clients/search', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'searchAvailableClients'])->name('ai-technician.clients.search')->middleware('auth');
+Route::post('/ai-technician-clients/grant', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'grantAccess'])->name('ai-technician.clients.grant')->middleware('auth');
+Route::post('/ai-technician-clients/bulk-extend', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'bulkExtend'])->name('ai-technician.clients.bulk-extend')->middleware('auth');
+Route::get('/ai-technician-clients/{id}', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'getClient'])->name('ai-technician.clients.show')->middleware('auth');
+Route::put('/ai-technician-clients/{id}', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'updateAccess'])->name('ai-technician.clients.update')->middleware('auth');
+Route::delete('/ai-technician-clients/{id}', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'revokeAccess'])->name('ai-technician.clients.revoke')->middleware('auth');
+Route::post('/ai-technician-clients/{id}/toggle', [App\Http\Controllers\AiTechnician\AiTechnicianClientsController::class, 'toggleStatus'])->name('ai-technician.clients.toggle')->middleware('auth');
+
+// AI Technician KB Images routes
+Route::get('/ai-technician-kb-images-settings', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'index'])->name('ai-technician.kb-images-settings')->middleware('auth');
+Route::get('/ai-technician-kb-images-settings/images', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'getImages'])->name('ai-technician.kb-images-settings.images')->middleware('auth');
+Route::post('/ai-technician-kb-images-settings/upload', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'store'])->name('ai-technician.kb-images-settings.upload')->middleware('auth');
+Route::put('/ai-technician-kb-images-settings/images/{id}', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'update'])->name('ai-technician.kb-images-settings.update')->middleware('auth');
+Route::delete('/ai-technician-kb-images-settings/images/{id}', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'destroy'])->name('ai-technician.kb-images-settings.delete')->middleware('auth');
+Route::post('/ai-technician-kb-images-settings/images/{id}/upload-to-pinecone', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'uploadToPinecone'])->name('ai-technician.kb-images-settings.upload-to-pinecone')->middleware('auth');
+Route::post('/ai-technician-kb-images-settings/images/{id}/refresh-status', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'refreshPineconeStatus'])->name('ai-technician.kb-images-settings.refresh-status')->middleware('auth');
+Route::post('/ai-technician-kb-images-settings/images/{id}/retry', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'retryUpload'])->name('ai-technician.kb-images-settings.retry')->middleware('auth');
+Route::post('/ai-technician-kb-images-settings/settings', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'saveSettings'])->name('ai-technician.kb-images-settings.settings.save')->middleware('auth');
+Route::post('/ai-technician-kb-images-settings/settings/test', [App\Http\Controllers\AiTechnician\AiKbImagesController::class, 'testSettings'])->name('ai-technician.kb-images-settings.settings.test')->middleware('auth');
+
+// AI Technician - Chat Routes
+Route::get('/ai-technician-chat', [App\Http\Controllers\AiTechnician\AiChatController::class, 'index'])->name('ai-technician.chat')->middleware('auth');
+Route::post('/ai-technician-chat/session/create', [App\Http\Controllers\AiTechnician\AiChatController::class, 'createSession'])->name('ai-technician.chat.session.create')->middleware('auth');
+Route::get('/ai-technician-chat/session/{sessionId}/messages', [App\Http\Controllers\AiTechnician\AiChatController::class, 'getMessages'])->name('ai-technician.chat.messages')->middleware('auth');
+Route::post('/ai-technician-chat/message', [App\Http\Controllers\AiTechnician\AiChatController::class, 'sendMessage'])->name('ai-technician.chat.message.send')->middleware('auth');
+Route::post('/ai-technician-chat/message/stream', [App\Http\Controllers\AiTechnician\AiChatController::class, 'sendMessageStream'])->name('ai-technician.chat.message.stream')->middleware('auth');
+Route::put('/ai-technician-chat/session/{sessionId}/rename', [App\Http\Controllers\AiTechnician\AiChatController::class, 'renameSession'])->name('ai-technician.chat.session.rename')->middleware('auth');
+Route::delete('/ai-technician-chat/session/{sessionId}', [App\Http\Controllers\AiTechnician\AiChatController::class, 'deleteSession'])->name('ai-technician.chat.session.delete')->middleware('auth');
+Route::delete('/ai-technician-chat/message/{messageId}', [App\Http\Controllers\AiTechnician\AiChatController::class, 'deleteMessage'])->name('ai-technician.chat.message.delete')->middleware('auth');
+Route::delete('/ai-technician-chat/session/{sessionId}/clear', [App\Http\Controllers\AiTechnician\AiChatController::class, 'clearSession'])->name('ai-technician.chat.session.clear')->middleware('auth');
+Route::post('/ai-technician-chat/session/{sessionId}/generate-title', [App\Http\Controllers\AiTechnician\AiChatController::class, 'generateTitle'])->name('ai-technician.chat.session.generate-title')->middleware('auth');
+Route::get('/ai-technician-chat/search', [App\Http\Controllers\AiTechnician\AiChatController::class, 'searchSessions'])->name('ai-technician.chat.search')->middleware('auth');
+Route::get('/ai-technician-chat/sessions/load-more', [App\Http\Controllers\AiTechnician\AiChatController::class, 'loadMoreSessions'])->name('ai-technician.chat.sessions.load-more')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');
