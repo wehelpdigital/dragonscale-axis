@@ -19,3 +19,16 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Disable output compression for Server-Sent Events (SSE) endpoints
+# This prevents Apache from buffering streaming responses
+<IfModule mod_deflate.c>
+    SetEnvIf Request_URI "^/ai-technician-chat/message/stream" no-gzip
+</IfModule>
+
+# Set headers for SSE endpoints using SetEnvIf (htaccess compatible)
+<IfModule mod_headers.c>
+    SetEnvIf Request_URI "^/ai-technician-chat/message/stream" SSE_ENDPOINT
+    Header set Cache-Control "no-cache, no-store, must-revalidate" env=SSE_ENDPOINT
+    Header set X-Accel-Buffering "no" env=SSE_ENDPOINT
+</IfModule>

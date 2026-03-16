@@ -754,15 +754,29 @@ class OrdersCustomAddController extends Controller
 
         try {
             // Check if email exists in the database (only active clients)
-            $exists = ClientAllDatabase::active()
+            $client = ClientAllDatabase::active()
                 ->where('clientEmailAddress', $email)
-                ->exists();
+                ->first();
 
-            return response()->json([
+            $exists = $client !== null;
+
+            $response = [
                 'success' => true,
                 'exists' => $exists,
                 'message' => $exists ? 'Email already exists' : 'Email is available'
-            ]);
+            ];
+
+            // Include client info if exists
+            if ($client) {
+                $response['client'] = [
+                    'id' => $client->id,
+                    'fullName' => trim(($client->clientFirstName ?? '') . ' ' . ($client->clientLastName ?? '')),
+                    'clientEmailAddress' => $client->clientEmailAddress,
+                    'clientPhoneNumber' => $client->clientPhoneNumber,
+                ];
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

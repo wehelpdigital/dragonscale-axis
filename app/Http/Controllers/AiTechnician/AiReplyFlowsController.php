@@ -18,14 +18,13 @@ class AiReplyFlowsController extends Controller
      */
     public function index()
     {
-        $flow = AiReplyFlow::getOrCreateForUser(Auth::id());
+        $flow = AiReplyFlow::getOrCreate();
         $nodeTypes = AiReplyFlow::getNodeTypesByCategory();
         $mergeFields = AiReplyFlow::getMergeFields();
 
         // Get available AI APIs for the user
         $aiApis = AiApiSetting::active()
-            ->forUser(Auth::id())
-            ->orderBy('provider')
+                        ->orderBy('provider')
             ->get();
 
         return view('ai-technician.reply-flows.settings', [
@@ -55,7 +54,7 @@ class AiReplyFlowsController extends Controller
         }
 
         try {
-            $flow = AiReplyFlow::getOrCreateForUser(Auth::id());
+            $flow = AiReplyFlow::getOrCreate();
 
             $flow->update([
                 'flowData' => $request->flowData,
@@ -85,7 +84,7 @@ class AiReplyFlowsController extends Controller
     public function toggleStatus()
     {
         try {
-            $flow = AiReplyFlow::getOrCreateForUser(Auth::id());
+            $flow = AiReplyFlow::getOrCreate();
             $flow->update(['isActive' => !$flow->isActive]);
 
             return response()->json([
@@ -110,7 +109,7 @@ class AiReplyFlowsController extends Controller
     public function reset()
     {
         try {
-            $flow = AiReplyFlow::getOrCreateForUser(Auth::id());
+            $flow = AiReplyFlow::getOrCreate();
 
             $flow->update([
                 'flowData' => [

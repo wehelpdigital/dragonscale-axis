@@ -73,4 +73,57 @@
 })();
 </script>
 
+<!-- Ensure submenu visibility -->
+<script>
+$(document).ready(function() {
+    // Ensure initially active menus are shown properly
+    $('#sidebar-menu li.mm-active').each(function() {
+        $(this).children('ul.sub-menu').addClass('mm-show');
+    });
+});
+</script>
+
+<!-- Mobile sidebar overlay click handler -->
+<script>
+$(document).ready(function() {
+    // GLOBAL FIX: Move ALL modals to body to escape .page-content stacking context
+    // The .page-content has transform animation which creates a new stacking context,
+    // trapping modals inside and preventing proper z-index layering
+    $('.modal').appendTo('body');
+
+    // Close sidebar when clicking the overlay
+    $('#sidebar-overlay').on('click', function() {
+        $('body').removeClass('sidebar-enable');
+    });
+
+    // Close sidebar when pressing Escape key
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && $('body').hasClass('sidebar-enable')) {
+            $('body').removeClass('sidebar-enable');
+        }
+    });
+
+    // Close sidebar when clicking a menu item on mobile (optional - improves UX)
+    if ($(window).width() < 992) {
+        $('#sidebar-menu a:not(.has-arrow)').on('click', function() {
+            setTimeout(function() {
+                $('body').removeClass('sidebar-enable');
+            }, 150);
+        });
+    }
+
+    // IMPORTANT: Close navigation sidebar and hide overlay when ANY modal opens
+    // This prevents the overlay from blocking modal interactions on all devices
+    $(document).on('show.bs.modal', '.modal', function() {
+        $('body').removeClass('sidebar-enable');
+        $('#sidebar-overlay').css('visibility', 'hidden');
+    });
+
+    // Restore overlay visibility when modal closes
+    $(document).on('hidden.bs.modal', '.modal', function() {
+        $('#sidebar-overlay').css('visibility', '');
+    });
+});
+</script>
+
 @yield('script-bottom')

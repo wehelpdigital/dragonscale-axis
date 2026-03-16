@@ -107,6 +107,463 @@
             gap: 8px;
             align-items: center;
         }
+
+        /* =====================================================
+           MOBILE RESPONSIVE STYLES WITH ANIMATIONS
+           ===================================================== */
+
+        /* Smooth transitions for all interactive elements */
+        .nav-link, .btn, .form-control, .form-select, .provider-card, .tag-list-item {
+            transition: all 0.3s ease;
+        }
+
+        /* Card entrance animation */
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .provider-card {
+            animation: slideInUp 0.4s ease forwards;
+        }
+
+        .provider-card:nth-child(1) { animation-delay: 0.1s; }
+        .provider-card:nth-child(2) { animation-delay: 0.2s; }
+        .provider-card:nth-child(3) { animation-delay: 0.3s; }
+
+        .tab-pane.active {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Small monitors (1280px - 1400px) */
+        @media (max-width: 1400px) {
+            .provider-card {
+                margin-bottom: 20px;
+            }
+
+            .provider-header {
+                padding: 14px 18px;
+            }
+
+            .provider-body {
+                padding: 18px;
+            }
+
+            .provider-icon {
+                width: 38px;
+                height: 38px;
+                font-size: 18px;
+            }
+
+            .provider-title {
+                font-size: 15px;
+            }
+
+            .form-section-title {
+                font-size: 12.5px;
+            }
+
+            .api-key-input {
+                font-size: 13px;
+            }
+        }
+
+        /* iPad landscape / 1024px monitors */
+        @media (max-width: 1024px) {
+            .nav-tabs-custom .nav-link {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+
+            .nav-tabs-custom .nav-link .badge {
+                font-size: 10px;
+            }
+
+            .provider-header {
+                padding: 12px 14px;
+            }
+
+            .provider-body {
+                padding: 14px;
+            }
+
+            .provider-icon {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+                margin-right: 10px;
+            }
+
+            .provider-title {
+                font-size: 14px;
+            }
+
+            .provider-subtitle {
+                font-size: 11px;
+            }
+
+            .form-section-title {
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+
+            .form-label {
+                font-size: 12.5px;
+            }
+
+            .form-control, .form-select {
+                font-size: 13px;
+                padding: 8px 10px;
+            }
+
+            .api-key-input {
+                font-size: 12px;
+            }
+
+            .masked-key {
+                font-size: 11px;
+            }
+
+            .tag-list-item {
+                padding: 10px 12px;
+            }
+
+            .tag-list-item h6 {
+                font-size: 13px;
+            }
+
+            .btn-sm {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+        }
+
+        /* Tablet Styles (768px - 991px) */
+        @media (max-width: 991px) {
+            .nav-tabs-custom .nav-link {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            .provider-header {
+                padding: 12px 15px;
+            }
+
+            .provider-body {
+                padding: 15px;
+            }
+
+            .form-section-title {
+                font-size: 12px;
+            }
+
+            /* 2-column layout for providers on tablet */
+            .provider-card {
+                margin-bottom: 16px;
+            }
+        }
+
+        /* Mobile Styles (576px - 767px) */
+        @media (max-width: 767px) {
+            /* Tabs - make scrollable horizontally */
+            .nav-tabs-custom {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                padding-bottom: 2px;
+            }
+
+            .nav-tabs-custom::-webkit-scrollbar {
+                display: none;
+            }
+
+            .nav-tabs-custom .nav-item {
+                flex: 0 0 auto;
+            }
+
+            .nav-tabs-custom .nav-link {
+                padding: 10px 14px;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+
+            .nav-tabs-custom .nav-link .badge {
+                font-size: 10px;
+                padding: 2px 5px;
+            }
+
+            /* Provider cards */
+            .provider-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 15px;
+            }
+
+            .provider-header-left {
+                width: 100%;
+            }
+
+            .provider-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .provider-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .provider-title {
+                font-size: 14px;
+            }
+
+            .provider-body {
+                padding: 15px;
+            }
+
+            /* Form elements */
+            .row > [class*="col-"] {
+                margin-bottom: 15px;
+            }
+
+            .form-label {
+                font-size: 13px;
+            }
+
+            .form-control, .form-select {
+                font-size: 14px;
+                padding: 10px 12px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+
+            .btn-sm {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            /* Tag list items */
+            .tag-list-item {
+                padding: 12px;
+            }
+
+            .tag-list-item .d-flex {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            /* Avatar section */
+            .avatar-preview-container img {
+                width: 100px !important;
+                height: 100px !important;
+            }
+
+            /* Chat preview */
+            .card-body[style*="background: #f8f9fa"] {
+                padding: 12px !important;
+            }
+
+            /* Empty state */
+            .empty-state {
+                padding: 40px 15px;
+            }
+
+            .empty-state i {
+                font-size: 48px;
+            }
+
+            /* Tab content padding */
+            .tab-content {
+                padding: 15px 10px !important;
+            }
+
+            /* Breadcrumb */
+            .page-title-box {
+                padding: 15px 0;
+            }
+
+            .page-title-box h4 {
+                font-size: 16px;
+            }
+        }
+
+        /* Small Mobile Styles (under 576px) */
+        @media (max-width: 575px) {
+            /* Card body */
+            .card-body {
+                padding: 15px;
+            }
+
+            /* Tabs - icon only with label below */
+            .nav-tabs-custom .nav-link {
+                padding: 8px 10px;
+                font-size: 11px;
+                text-align: center;
+            }
+
+            .nav-tabs-custom .nav-link i {
+                display: block;
+                font-size: 18px;
+                margin-bottom: 4px;
+                margin-right: 0 !important;
+            }
+
+            .nav-tabs-custom .nav-link .d-none.d-sm-inline {
+                display: block !important;
+                font-size: 10px;
+            }
+
+            /* Provider header stacked */
+            .provider-header {
+                padding: 12px;
+            }
+
+            .provider-header-left {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .provider-icon {
+                margin-right: 0;
+                margin-bottom: 8px;
+            }
+
+            .provider-actions {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            /* Form rows */
+            .row.mb-3 > div[class*="col-"] {
+                margin-bottom: 12px;
+            }
+
+            /* API key input */
+            .api-key-input {
+                font-size: 12px;
+                letter-spacing: 0.5px;
+            }
+
+            /* Buttons full width on mobile */
+            .provider-body .btn:not(.btn-sm) {
+                width: 100%;
+                margin-top: 8px;
+            }
+
+            /* Range slider */
+            .form-range {
+                height: 8px;
+            }
+
+            /* Status badges */
+            .status-indicator .badge {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+
+            /* Modal adjustments */
+            .modal-dialog {
+                margin: 10px;
+            }
+
+            .modal-body {
+                padding: 15px;
+            }
+
+            /* Touch-friendly buttons */
+            .btn {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-sm {
+                min-height: 36px;
+            }
+
+            /* Better spacing for form groups */
+            .mb-3 {
+                margin-bottom: 1rem !important;
+            }
+
+            /* Avatar settings mobile */
+            .col-md-4.text-center {
+                margin-bottom: 20px;
+            }
+
+            /* Make masked key wrap */
+            .masked-key {
+                word-break: break-all;
+                font-size: 11px;
+            }
+        }
+
+        /* Touch device improvements */
+        @media (hover: none) and (pointer: coarse) {
+            .btn:active {
+                transform: scale(0.98);
+            }
+
+            .provider-card:active {
+                transform: scale(0.995);
+            }
+
+            .tag-list-item:active {
+                background-color: #f8f9fa;
+            }
+
+            /* Larger tap targets */
+            .form-check-input {
+                width: 20px;
+                height: 20px;
+            }
+
+            .form-switch .form-check-input {
+                width: 48px;
+                height: 24px;
+            }
+        }
+
+        /* Prevent text selection on buttons for mobile */
+        .btn, .nav-link {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        /* Smooth scrolling */
+        .tab-content {
+            scroll-behavior: smooth;
+        }
+
+        /* Loading animation for buttons */
+        .btn .bx-loader-alt {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 @endsection
 

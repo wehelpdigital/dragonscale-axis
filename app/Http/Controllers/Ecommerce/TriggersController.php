@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
 use App\Models\AsCourse;
+use App\Models\EcomProduct;
 use App\Models\EcomProductStore;
 use App\Models\EcomTriggerFlow;
 use App\Models\EcomTriggerTag;
+use App\Models\EcomStoreSpecialTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -59,9 +61,38 @@ class TriggersController extends Controller
             ->orderBy('courseName', 'asc')
             ->get();
 
+        // Get products with variants for pending payment flow
+        $products = EcomProduct::active()
+            ->where('isActive', 1)
+            ->with(['variants' => function($query) {
+                $query->where('deleteStatus', 1)
+                    ->where('isActive', 1)
+                    ->orderBy('ecomVariantName', 'asc');
+            }])
+            ->orderBy('productName', 'asc')
+            ->get();
+
+        // Get all active flows for Add/Remove to Flow action
+        $allFlows = EcomTriggerFlow::active()
+            ->orderBy('flowName', 'asc')
+            ->get(['id', 'flowName', 'flowType']);
+
+        // Get special tags grouped by store for special trigger flow
+        $specialTags = EcomStoreSpecialTag::active()
+            ->enabled()
+            ->with(['store' => function($query) {
+                $query->where('deleteStatus', 1)->where('isActive', 1);
+            }])
+            ->orderBy('tagName', 'asc')
+            ->get()
+            ->filter(function($tag) {
+                return $tag->store !== null; // Only include tags with active stores
+            })
+            ->groupBy('storeId');
+
         $mergeTags = EcomTriggerFlow::getMergeTags();
 
-        return view('ecommerce.triggers.builder', compact('triggerTags', 'courseAccessTags', 'stores', 'courses', 'mergeTags'));
+        return view('ecommerce.triggers.builder', compact('triggerTags', 'courseAccessTags', 'stores', 'courses', 'products', 'allFlows', 'specialTags', 'mergeTags'));
     }
 
     /**
@@ -99,9 +130,39 @@ class TriggersController extends Controller
             ->orderBy('courseName', 'asc')
             ->get();
 
+        // Get products with variants for pending payment flow
+        $products = EcomProduct::active()
+            ->where('isActive', 1)
+            ->with(['variants' => function($query) {
+                $query->where('deleteStatus', 1)
+                    ->where('isActive', 1)
+                    ->orderBy('ecomVariantName', 'asc');
+            }])
+            ->orderBy('productName', 'asc')
+            ->get();
+
+        // Get all active flows for Add/Remove to Flow action (exclude current flow)
+        $allFlows = EcomTriggerFlow::active()
+            ->where('id', '!=', $id)
+            ->orderBy('flowName', 'asc')
+            ->get(['id', 'flowName', 'flowType']);
+
+        // Get special tags grouped by store for special trigger flow
+        $specialTags = EcomStoreSpecialTag::active()
+            ->enabled()
+            ->with(['store' => function($query) {
+                $query->where('deleteStatus', 1)->where('isActive', 1);
+            }])
+            ->orderBy('tagName', 'asc')
+            ->get()
+            ->filter(function($tag) {
+                return $tag->store !== null; // Only include tags with active stores
+            })
+            ->groupBy('storeId');
+
         $mergeTags = EcomTriggerFlow::getMergeTags();
 
-        return view('ecommerce.triggers.builder', compact('flow', 'triggerTags', 'courseAccessTags', 'stores', 'courses', 'mergeTags'));
+        return view('ecommerce.triggers.builder', compact('flow', 'triggerTags', 'courseAccessTags', 'stores', 'courses', 'products', 'allFlows', 'specialTags', 'mergeTags'));
     }
 
     /**
@@ -119,7 +180,8 @@ class TriggersController extends Controller
             $rules = [
                 'flowName' => 'required|string|max:255',
                 'flowDescription' => 'nullable|string',
-                'flowType' => 'required|in:trigger,expiration,order_not_complete,shipping_complete,affiliate_earning',
+                'flowType' => 'required|in:trigger,expiration,shipping_complete,affiliate_earning,payments,shopping_abandonment,special_trigger,change_order_status',
+                'flowPriority' => 'nullable|in:mixed,main',
                 'flowData' => 'required|array',
             ];
 
@@ -136,9 +198,8 @@ class TriggersController extends Controller
                 $messages['triggerTagId.required'] = 'Please select a trigger tag to start the flow.';
                 $messages['triggerTagId.exists'] = 'Selected trigger tag not found.';
             } else {
-                // For expiration, order_not_complete, shipping_complete, affiliate_earning
-                // triggerTagId stores the course tag ID
-                $rules['triggerTagId'] = 'nullable|integer';
+                // For other flow types, triggerTagId is optional (can be null or empty)
+                $rules['triggerTagId'] = 'nullable';
             }
 
             $validator = Validator::make($request->all(), $rules, $messages);
@@ -153,9 +214,11 @@ class TriggersController extends Controller
 
             $flow = EcomTriggerFlow::create([
                 'usersId' => Auth::id(),
+                'storeId' => $request->storeId ?: null,
                 'flowName' => $request->flowName,
                 'flowDescription' => $request->flowDescription,
                 'flowType' => $flowType,
+                'flowPriority' => $request->flowPriority ?? 'mixed',
                 'triggerTagId' => $request->triggerTagId,
                 'flowData' => $request->flowData,
                 'isActive' => filter_var($request->isActive, FILTER_VALIDATE_BOOLEAN),
@@ -204,13 +267,14 @@ class TriggersController extends Controller
                 'flowData.required' => 'Flow data is required.',
             ];
 
-            // triggerTagId is required for trigger flows, optional for expiration flows
+            // triggerTagId is required for trigger flows, optional for other flow types
             if ($flowType === 'trigger') {
                 $rules['triggerTagId'] = 'required|integer|exists:ecom_trigger_tags,id';
                 $messages['triggerTagId.required'] = 'Please select a trigger tag to start the flow.';
                 $messages['triggerTagId.exists'] = 'Selected trigger tag not found.';
             } else {
-                $rules['triggerTagId'] = 'nullable|integer';
+                // For other flow types, triggerTagId is optional (can be null or empty)
+                $rules['triggerTagId'] = 'nullable';
             }
 
             $validator = Validator::make($request->all(), $rules, $messages);
@@ -224,8 +288,10 @@ class TriggersController extends Controller
             }
 
             $flow->update([
+                'storeId' => $request->storeId ?: null,
                 'flowName' => $request->flowName,
                 'flowDescription' => $request->flowDescription,
+                'flowPriority' => $request->flowPriority ?? 'mixed',
                 'triggerTagId' => $request->triggerTagId,
                 'flowData' => $request->flowData,
                 'isActive' => filter_var($request->isActive, FILTER_VALIDATE_BOOLEAN),
@@ -350,8 +416,11 @@ class TriggersController extends Controller
 
             $newFlow = EcomTriggerFlow::create([
                 'usersId' => Auth::id(),
+                'storeId' => $originalFlow->storeId,
                 'flowName' => $originalFlow->flowName . ' (Copy)',
                 'flowDescription' => $originalFlow->flowDescription,
+                'flowType' => $originalFlow->flowType,
+                'flowPriority' => $originalFlow->flowPriority ?? 'mixed',
                 'triggerTagId' => $originalFlow->triggerTagId,
                 'flowData' => $originalFlow->flowData,
                 'isActive' => false, // Start as inactive

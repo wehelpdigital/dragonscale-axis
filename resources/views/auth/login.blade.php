@@ -75,6 +75,14 @@
                                         <p class="text-muted">Sign in to continue to Axis.</p>
                                     </div>
 
+                                    @if(session('warning'))
+                                    <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
+                                        <i class="bx bx-info-circle me-2"></i>
+                                        {{ session('warning') }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                    @endif
+
                                     <div class="mt-4">
                                         <form class="form-horizontal" method="POST" action="{{ route('login') }}">
                                             @csrf

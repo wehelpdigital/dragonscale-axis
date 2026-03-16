@@ -20,6 +20,8 @@
     <div id="layout-wrapper">
         @include('layouts.topbar')
         @include('layouts.sidebar')
+        <!-- Mobile sidebar overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
         <!-- ============================================================== -->
         <!-- Start right Content here -->
         <!-- ============================================================== -->

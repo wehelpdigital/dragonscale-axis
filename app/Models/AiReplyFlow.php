@@ -270,6 +270,40 @@ class AiReplyFlow extends BaseModel
     }
 
     /**
+     * Get or create the GLOBAL reply flow (not user-specific).
+     */
+    public static function getOrCreate(): self
+    {
+        $flow = self::where('delete_status', 'active')->first();
+
+        if (!$flow) {
+            $flow = self::create([
+                'usersId' => null,
+                'flowName' => 'Reply Flow',
+                'flowDescription' => 'AI Reply Flow Configuration',
+                'flowData' => [
+                    'nodes' => [
+                        [
+                            'id' => 'node_start',
+                            'type' => 'start',
+                            'position' => ['x' => 300, 'y' => 50],
+                            'data' => []
+                        ]
+                    ],
+                    'connections' => [],
+                    'nodeIdCounter' => 0
+                ],
+                'priority' => 0,
+                'isActive' => true,
+                'isDefault' => true,
+                'delete_status' => 'active',
+            ]);
+        }
+
+        return $flow;
+    }
+
+    /**
      * Scope: Active flows only.
      */
     public function scopeActive($query)

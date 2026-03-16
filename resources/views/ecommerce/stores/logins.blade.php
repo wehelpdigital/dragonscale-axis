@@ -437,6 +437,34 @@
     </div>
 </div>
 
+<!-- Toggle Status Confirmation Modal -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1" aria-labelledby="toggleStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="toggleStatusModalLabel">
+                    <i class="bx bx-check-circle text-warning me-2" id="toggleStatusIcon"></i>
+                    <span id="toggleStatusTitle">Confirm Status Change</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-dark" id="toggleStatusMessage">Are you sure you want to change this user's status?</p>
+                <p class="text-secondary"><strong>Client:</strong> <span id="toggleLoginName"></span></p>
+                <p class="text-secondary small mb-0" id="toggleStatusDescription"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bx bx-x me-1"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-warning" id="confirmToggleStatus">
+                    <i class="bx bx-check me-1" id="confirmToggleIcon"></i> <span id="confirmToggleText">Confirm</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('script')
@@ -1136,6 +1164,8 @@ $(document).ready(function() {
     });
 
     // Toggle status
+    let loginToToggle = null;
+
     $('.toggle-status').on('click', function(e) {
         e.preventDefault();
         const loginId = $(this).data('login-id');
@@ -1143,16 +1173,52 @@ $(document).ready(function() {
         const isActive = $(this).data('is-active');
         const newStatus = isActive === '1' ? 'disable' : 'enable';
 
-        if (!confirm(`Are you sure you want to ${newStatus} "${loginName}"?`)) {
-            return;
+        loginToToggle = {
+            id: loginId,
+            name: loginName,
+            isActive: isActive,
+            action: newStatus
+        };
+
+        // Update modal content based on action
+        $('#toggleLoginName').text(loginName);
+
+        if (newStatus === 'disable') {
+            $('#toggleStatusIcon').removeClass('bx-check-circle text-success').addClass('bx-block text-danger');
+            $('#toggleStatusTitle').text('Disable Access Login');
+            $('#toggleStatusMessage').text('Are you sure you want to disable this user?');
+            $('#toggleStatusDescription').text('This user will no longer be able to access this store.');
+            $('#confirmToggleStatus').removeClass('btn-success').addClass('btn-danger');
+            $('#confirmToggleIcon').removeClass('bx-check').addClass('bx-block');
+            $('#confirmToggleText').text('Disable');
+        } else {
+            $('#toggleStatusIcon').removeClass('bx-block text-danger').addClass('bx-check-circle text-success');
+            $('#toggleStatusTitle').text('Enable Access Login');
+            $('#toggleStatusMessage').text('Are you sure you want to enable this user?');
+            $('#toggleStatusDescription').text('This user will be able to access this store again.');
+            $('#confirmToggleStatus').removeClass('btn-danger').addClass('btn-success');
+            $('#confirmToggleIcon').removeClass('bx-block').addClass('bx-check');
+            $('#confirmToggleText').text('Enable');
         }
 
+        $('#toggleStatusModal').modal('show');
+    });
+
+    $('#confirmToggleStatus').on('click', function() {
+        if (!loginToToggle) return;
+
+        const $btn = $(this);
+        const originalText = $btn.html();
+
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Processing...');
+
         $.ajax({
-            url: `${baseUrl}/ecom-store-logins/toggle?id=${storeId}&login_id=${loginId}`,
+            url: `${baseUrl}/ecom-store-logins/toggle?id=${storeId}&login_id=${loginToToggle.id}`,
             type: 'POST',
             data: { _token: '{{ csrf_token() }}' },
             success: function(response) {
                 if (response.success) {
+                    $('#toggleStatusModal').modal('hide');
                     toastr.success(response.message, 'Success!');
                     setTimeout(function() {
                         location.reload();
@@ -1163,6 +1229,10 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 toastr.error('An error occurred while updating status.', 'Error!');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html(originalText);
+                loginToToggle = null;
             }
         });
     });

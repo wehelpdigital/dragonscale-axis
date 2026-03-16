@@ -116,6 +116,12 @@
                                         <span key="t-ai-knowledgebase">Knowledge Base</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('ai-technician-chat-errors*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('ai-technician.chat-errors') }}" class="waves-effect {{ request()->is('ai-technician-chat-errors*') ? 'active' : '' }}">
+                                        <i class="bx bx-bug"></i>
+                                        <span key="t-ai-chat-errors">Chat Errors</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('ai-technician-reply-flow*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('ai-technician.reply-flow') }}" class="waves-effect {{ request()->is('ai-technician-reply-flow*') ? 'active' : '' }}">
                                         <i class="bx bx-git-branch"></i>
@@ -149,9 +155,9 @@
                             </a>
                             <ul class="sub-menu {{ request()->is('recommendation*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('recommendation*') ? 'true' : 'false' }}">
                                 <li class="{{ request()->is('recommendation-generate*') ? 'mm-active' : '' }}">
-                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-generate*') ? 'active' : '' }}">
-                                        <i class="bx bx-layer"></i>
-                                        <span key="t-rec-generate">Generate Recom.</span>
+                                    <a href="{{ route('recommendation-generate') }}" class="waves-effect {{ request()->is('recommendation-generate*') ? 'active' : '' }}">
+                                        <i class="bx bx-bulb"></i>
+                                        <span key="t-rec-generate">Recommendations</span>
                                     </a>
                                 </li>
                                 <li class="{{ request()->is('recommendation-scheduler*') ? 'mm-active' : '' }}">
@@ -198,12 +204,6 @@
                                         <span key="t-rec-clients">Clients</span>
                                     </a>
                                 </li>
-                                <li class="{{ request()->is('recommendation-settings*') ? 'mm-active' : '' }}">
-                                    <a href="javascript: void(0);" class="waves-effect {{ request()->is('recommendation-settings*') ? 'active' : '' }}">
-                                        <i class="bx bx-cog"></i>
-                                        <span key="t-rec-settings">Settings</span>
-                                    </a>
-                                </li>
                             </ul>
                         </li>
                         <li class="{{ request()->is('photo-analysis*') ? 'mm-active' : '' }}">
@@ -228,6 +228,33 @@
                                     <a href="javascript: void(0);" class="waves-effect {{ request()->is('photo-analysis-settings*') ? 'active' : '' }}">
                                         <i class="bx bx-cog"></i>
                                         <span key="t-pa-settings">Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="{{ request()->is('knowledgebase*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('knowledgebase*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-book-content"></i>
+                                <span key="t-knowledgebase">Knowledgebase</span>
+                            </a>
+                            <ul class="sub-menu {{ request()->is('knowledgebase*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('knowledgebase*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('knowledgebase-crop-breeds*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('knowledgebase.crop-breeds') }}" class="waves-effect {{ request()->is('knowledgebase-crop-breeds*') ? 'active' : '' }}">
+                                        <i class="bx bx-leaf"></i>
+                                        <span key="t-kb-crop-breeds">Crop Breeds</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="{{ request()->is('anisenso-website*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('anisenso-website*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-globe"></i>
+                                <span key="t-anisenso-website">Website</span>
+                            </a>
+                            <ul class="sub-menu {{ request()->is('anisenso-website*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('anisenso-website*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('anisenso-website-pages*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-website-pages') }}" class="waves-effect {{ request()->is('anisenso-website-pages*') ? 'active' : '' }}">
+                                        <span key="t-anisenso-website-pages">Pages</span>
                                     </a>
                                 </li>
                             </ul>
@@ -309,6 +336,12 @@
                             <a href="{{ route('ecom-triggers') }}" class="waves-effect {{ request()->is('ecom-triggers*') ? 'active' : '' }}">
                                 <i class="bx bx-key"></i>
                                 <span key="t-triggers">Trigger Flows</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('ecom-trigger-tasks*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('ecom-trigger-tasks') }}" class="waves-effect {{ request()->is('ecom-trigger-tasks*') ? 'active' : '' }}">
+                                <i class="bx bx-task"></i>
+                                <span key="t-trigger-tasks">Trigger Tasks</span>
                             </a>
                         </li>
                     </ul>

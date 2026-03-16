@@ -27,8 +27,7 @@ class ExternalProductsController extends Controller
     public function index()
     {
         $products = AiExternalProduct::active()
-            ->forUser(Auth::id())
-            ->with([
+                        ->with([
                 'images' => function ($q) {
                     $q->where('delete_status', 'active')->orderBy('isPrimary', 'desc')->orderBy('sortOrder');
                 },
@@ -215,8 +214,7 @@ class ExternalProductsController extends Controller
     public function addImages(Request $request, $id)
     {
         $product = AiExternalProduct::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$product) {
@@ -309,8 +307,7 @@ class ExternalProductsController extends Controller
     {
         $image = AiExternalProductImage::where('id', $imageId)
             ->where('productId', $productId)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$image) {
@@ -364,8 +361,7 @@ class ExternalProductsController extends Controller
     {
         $image = AiExternalProductImage::where('id', $imageId)
             ->where('productId', $productId)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$image) {
@@ -407,8 +403,7 @@ class ExternalProductsController extends Controller
     public function addDocuments(Request $request, $id)
     {
         $product = AiExternalProduct::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$product) {
@@ -502,8 +497,7 @@ class ExternalProductsController extends Controller
     {
         $document = AiExternalProductDocument::where('id', $documentId)
             ->where('productId', $productId)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$document) {
@@ -542,8 +536,7 @@ class ExternalProductsController extends Controller
     public function process($id)
     {
         $product = AiExternalProduct::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$product) {
@@ -1145,8 +1138,7 @@ class ExternalProductsController extends Controller
     public function destroy($id)
     {
         $product = AiExternalProduct::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$product) {
@@ -1238,8 +1230,7 @@ class ExternalProductsController extends Controller
     public function show($id)
     {
         $product = AiExternalProduct::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->with([
                 'images' => function ($q) {
                     $q->where('delete_status', 'active')->orderBy('isPrimary', 'desc')->orderBy('sortOrder');

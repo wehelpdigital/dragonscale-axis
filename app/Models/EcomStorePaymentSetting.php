@@ -13,12 +13,20 @@ class EcomStorePaymentSetting extends Model
         'bankName',
         'bankAccountName',
         'bankAccountNumber',
+        'bankQrCodeImage',
         'isBankActive',
         'gcashNumber',
         'gcashAccountName',
         'paymentScreenshot',
         'qrCodeImage',
         'isGcashActive',
+        'mayaNumber',
+        'mayaAccountName',
+        'mayaQrCodeImage',
+        'isMayaActive',
+        'paypalEmail',
+        'paypalAccountName',
+        'isPaypalActive',
         'paymentInstructions',
         'isActive',
         'deleteStatus'
@@ -28,6 +36,8 @@ class EcomStorePaymentSetting extends Model
         'storeId' => 'integer',
         'isBankActive' => 'boolean',
         'isGcashActive' => 'boolean',
+        'isMayaActive' => 'boolean',
+        'isPaypalActive' => 'boolean',
         'isActive' => 'boolean',
         'deleteStatus' => 'integer'
     ];
@@ -75,12 +85,30 @@ class EcomStorePaymentSetting extends Model
     }
 
     /**
+     * Check if Maya details are complete (number and name filled)
+     */
+    public function isMayaComplete(): bool
+    {
+        return !empty($this->mayaNumber) && !empty($this->mayaAccountName);
+    }
+
+    /**
+     * Check if PayPal details are complete (email filled)
+     */
+    public function isPaypalComplete(): bool
+    {
+        return !empty($this->paypalEmail);
+    }
+
+    /**
      * Check if any payment method is configured and active
      */
     public function isConfigured(): bool
     {
         return ($this->isBankComplete() && $this->isBankActive)
-            || ($this->isGcashComplete() && $this->isGcashActive);
+            || ($this->isGcashComplete() && $this->isGcashActive)
+            || ($this->isMayaComplete() && $this->isMayaActive)
+            || ($this->isPaypalComplete() && $this->isPaypalActive);
     }
 
     /**
@@ -91,10 +119,16 @@ class EcomStorePaymentSetting extends Model
         return !empty($this->bankName)
             || !empty($this->bankAccountName)
             || !empty($this->bankAccountNumber)
+            || !empty($this->bankQrCodeImage)
             || !empty($this->gcashNumber)
             || !empty($this->gcashAccountName)
             || !empty($this->paymentScreenshot)
-            || !empty($this->qrCodeImage);
+            || !empty($this->qrCodeImage)
+            || !empty($this->mayaNumber)
+            || !empty($this->mayaAccountName)
+            || !empty($this->mayaQrCodeImage)
+            || !empty($this->paypalEmail)
+            || !empty($this->paypalAccountName);
     }
 
     /**
@@ -111,6 +145,22 @@ class EcomStorePaymentSetting extends Model
     public function getQrCodeUrlAttribute()
     {
         return $this->qrCodeImage ? asset($this->qrCodeImage) : null;
+    }
+
+    /**
+     * Get Bank QR code URL
+     */
+    public function getBankQrCodeUrlAttribute()
+    {
+        return $this->bankQrCodeImage ? asset($this->bankQrCodeImage) : null;
+    }
+
+    /**
+     * Get Maya QR code URL
+     */
+    public function getMayaQrCodeUrlAttribute()
+    {
+        return $this->mayaQrCodeImage ? asset($this->mayaQrCodeImage) : null;
     }
 
     /**

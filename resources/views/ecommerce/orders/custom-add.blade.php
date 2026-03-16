@@ -421,9 +421,17 @@
                                                             <label for="newClientEmailAddress" class="form-label">Email Address <span class="text-danger">*</span></label>
                                                             <input type="email" class="form-control" id="newClientEmailAddress" name="clientEmailAddress" required>
                                                             <div class="invalid-feedback"></div>
+                                                            <!-- Existing user notification -->
+                                                            <div id="existingUserNotice" class="alert alert-info mt-2 mb-0 py-2 px-3" style="display: none;">
+                                                                <i class="mdi mdi-information-outline me-1"></i>
+                                                                <span id="existingUserMessage">This email is already registered. The product will be added under this existing account.</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <!-- Hidden field to track if using existing user -->
+                                                <input type="hidden" id="useExistingClient" name="useExistingClient" value="0">
+                                                <input type="hidden" id="existingClientId" name="existingClientId" value="">
                                             </form>
                                         </div>
                                         <div class="modal-footer">

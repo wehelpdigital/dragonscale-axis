@@ -16,18 +16,15 @@ class AiQueryRulesController extends Controller
      */
     public function index(Request $request)
     {
-        $userId = Auth::id();
-
-        // Ensure default rules exist for this user
-        AiQueryRule::createDefaultRulesForUser($userId);
+        // Ensure default rules exist (global, not per-user)
+        AiQueryRule::createDefaultRules();
 
         // Get query parameters for filtering
         $categoryFilter = $request->get('category');
         $enabledFilter = $request->get('enabled');
 
-        // Build query
+        // Build query - GLOBAL: no user filtering
         $query = AiQueryRule::active()
-            ->forUser($userId)
             ->byPriority();
 
         if ($categoryFilter) {
@@ -41,9 +38,9 @@ class AiQueryRulesController extends Controller
         $rules = $query->get();
         $categories = AiQueryRule::getCategories();
 
-        // Get stats
-        $totalRules = AiQueryRule::active()->forUser($userId)->count();
-        $enabledRules = AiQueryRule::active()->forUser($userId)->enabled()->count();
+        // Get stats - GLOBAL: no user filtering
+        $totalRules = AiQueryRule::active()->count();
+        $enabledRules = AiQueryRule::active()->enabled()->count();
 
         return view('ai-technician.query-rules.index', compact(
             'rules',
@@ -113,10 +110,18 @@ class AiQueryRulesController extends Controller
     /**
      * Show the edit rule form.
      */
-    public function edit($id)
+    public function edit(Request $request)
     {
+        $id = $request->get('id');
+
+        if (!$id) {
+            return redirect()
+                ->route('ai-technician.query-rules')
+                ->with('error', 'No rule ID specified.');
+        }
+
+        // GLOBAL: no user filtering - any user can edit
         $rule = AiQueryRule::where('id', $id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 
@@ -133,10 +138,18 @@ class AiQueryRulesController extends Controller
     /**
      * Update a rule.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
+        $id = $request->get('id');
+
+        if (!$id) {
+            return redirect()
+                ->route('ai-technician.query-rules')
+                ->with('error', 'No rule ID specified.');
+        }
+
+        // GLOBAL: no user filtering - any user can update
         $rule = AiQueryRule::where('id', $id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 
@@ -186,8 +199,8 @@ class AiQueryRulesController extends Controller
     public function toggleStatus($id)
     {
         try {
+            // GLOBAL: no user filtering - any user can toggle
             $rule = AiQueryRule::where('id', $id)
-                ->where('usersId', Auth::id())
                 ->where('delete_status', 'active')
                 ->first();
 
@@ -222,8 +235,8 @@ class AiQueryRulesController extends Controller
     public function destroy($id)
     {
         try {
+            // GLOBAL: no user filtering - any user can delete
             $rule = AiQueryRule::where('id', $id)
-                ->where('usersId', Auth::id())
                 ->where('delete_status', 'active')
                 ->first();
 
@@ -263,15 +276,12 @@ class AiQueryRulesController extends Controller
     public function resetToDefaults()
     {
         try {
-            $userId = Auth::id();
-
-            // Soft delete all existing rules for this user
-            AiQueryRule::where('usersId', $userId)
-                ->where('delete_status', 'active')
+            // GLOBAL: Soft delete ALL existing rules
+            AiQueryRule::where('delete_status', 'active')
                 ->update(['delete_status' => 'deleted']);
 
-            // Recreate default rules
-            AiQueryRule::createDefaultRulesForUser($userId);
+            // Recreate default rules (global)
+            AiQueryRule::createDefaultRules();
 
             return response()->json([
                 'success' => true,
@@ -292,7 +302,8 @@ class AiQueryRulesController extends Controller
     public function getCompiled()
     {
         try {
-            $compiled = AiQueryRule::getCompiledRulesForUser(Auth::id());
+            // GLOBAL: get all compiled rules, not per-user
+            $compiled = AiQueryRule::getCompiledRules();
 
             return response()->json([
                 'success' => true,

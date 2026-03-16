@@ -33,14 +33,13 @@ class AiSettingsController extends Controller
         $settings = [];
         foreach ($providers as $provider) {
             $setting = AiApiSetting::active()
-                ->forUser($userId)
-                ->forProvider($provider)
+                                ->forProvider($provider)
                 ->first();
 
             if (!$setting) {
-                // Create default setting for this provider
+                // Create default setting for this provider (global - no user)
                 $setting = AiApiSetting::create([
-                    'usersId' => $userId,
+                    'usersId' => null, // Global setting
                     'provider' => $provider,
                     'isActive' => false,
                     'isDefault' => $provider === AiApiSetting::PROVIDER_CLAUDE, // Claude as default
@@ -58,19 +57,18 @@ class AiSettingsController extends Controller
 
         // Get access tags for this user
         $accessTags = AiTechnicianAccessTag::active()
-            ->forUser($userId)
-            ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'desc')
             ->get();
 
         // Get image search settings
-        $imageSearchSettings = AiImageSearchSetting::getOrCreateForUser($userId);
+        $imageSearchSettings = AiImageSearchSetting::getOrCreate();
         $imageSearchProviders = AiImageSearchSetting::getProviderOptions();
 
         // Get currency settings
-        $currencySettings = AiCurrencySetting::getOrCreateForUser($userId);
+        $currencySettings = AiCurrencySetting::getOrCreate();
 
         // Get avatar settings
-        $avatarSettings = AiChatAvatarSetting::getOrCreateForUser($userId);
+        $avatarSettings = AiChatAvatarSetting::getOrCreate();
 
         return view('ai-technician.settings', compact(
             'settings',
@@ -112,8 +110,7 @@ class AiSettingsController extends Controller
         }
 
         $setting = AiApiSetting::active()
-            ->forUser(Auth::id())
-            ->forProvider($provider)
+                        ->forProvider($provider)
             ->first();
 
         if (!$setting) {
@@ -170,8 +167,7 @@ class AiSettingsController extends Controller
         $userId = Auth::id();
 
         $setting = AiApiSetting::active()
-            ->forUser($userId)
-            ->forProvider($provider)
+                        ->forProvider($provider)
             ->first();
 
         if (!$setting) {
@@ -184,8 +180,7 @@ class AiSettingsController extends Controller
         try {
             // Remove default from all other providers
             AiApiSetting::active()
-                ->forUser($userId)
-                ->update(['isDefault' => false]);
+                                ->update(['isDefault' => false]);
 
             // Set this one as default
             $setting->update(['isDefault' => true]);
@@ -209,8 +204,7 @@ class AiSettingsController extends Controller
     public function testConnection($provider)
     {
         $setting = AiApiSetting::active()
-            ->forUser(Auth::id())
-            ->forProvider($provider)
+                        ->forProvider($provider)
             ->first();
 
         if (!$setting) {
@@ -395,16 +389,14 @@ class AiSettingsController extends Controller
     public function getActiveProvider()
     {
         $setting = AiApiSetting::active()
-            ->forUser(Auth::id())
-            ->enabled()
+                        ->enabled()
             ->default()
             ->first();
 
         if (!$setting) {
             // Fallback to any enabled provider
             $setting = AiApiSetting::active()
-                ->forUser(Auth::id())
-                ->enabled()
+                                ->enabled()
                 ->first();
         }
 
@@ -449,7 +441,7 @@ class AiSettingsController extends Controller
         }
 
         try {
-            $settings = AiImageSearchSetting::getOrCreateForUser(Auth::id());
+            $settings = AiImageSearchSetting::getOrCreate();
 
             $updateData = [
                 'provider' => AiImageSearchSetting::PROVIDER_SERPER,
@@ -489,7 +481,7 @@ class AiSettingsController extends Controller
     public function testSerperApi(Request $request)
     {
         $userId = Auth::id();
-        $settings = AiImageSearchSetting::getOrCreateForUser($userId);
+        $settings = AiImageSearchSetting::getOrCreate();
 
         // Use provided API key or existing one
         $apiKey = $request->filled('apiKey') ? $request->apiKey : $settings->apiKey;
@@ -549,8 +541,7 @@ class AiSettingsController extends Controller
 
         // Check if Gemini is configured
         $geminiSetting = AiApiSetting::active()
-            ->forUser($userId)
-            ->forProvider(AiApiSetting::PROVIDER_GEMINI)
+                        ->forProvider(AiApiSetting::PROVIDER_GEMINI)
             ->first();
 
         if (!$geminiSetting || !$geminiSetting->hasApiKey()) {
@@ -630,8 +621,7 @@ class AiSettingsController extends Controller
     public function getAccessTags()
     {
         $tags = AiTechnicianAccessTag::active()
-            ->forUser(Auth::id())
-            ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($tag) {
                 return [
@@ -709,8 +699,7 @@ class AiSettingsController extends Controller
     public function getAccessTag($id)
     {
         $tag = AiTechnicianAccessTag::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$tag) {
@@ -737,8 +726,7 @@ class AiSettingsController extends Controller
     public function updateAccessTag(Request $request, $id)
     {
         $tag = AiTechnicianAccessTag::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$tag) {
@@ -794,8 +782,7 @@ class AiSettingsController extends Controller
     public function destroyAccessTag($id)
     {
         $tag = AiTechnicianAccessTag::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$tag) {
@@ -826,7 +813,7 @@ class AiSettingsController extends Controller
      */
     public function getCurrencySettings()
     {
-        $settings = AiCurrencySetting::getOrCreateForUser(Auth::id());
+        $settings = AiCurrencySetting::getOrCreate();
 
         return response()->json([
             'success' => true,
@@ -859,7 +846,7 @@ class AiSettingsController extends Controller
         }
 
         try {
-            $settings = AiCurrencySetting::getOrCreateForUser(Auth::id());
+            $settings = AiCurrencySetting::getOrCreate();
 
             if ($request->has('usdToPhpRate')) {
                 $settings->usdToPhpRate = $request->usdToPhpRate;
@@ -895,7 +882,7 @@ class AiSettingsController extends Controller
     public function refreshExchangeRate()
     {
         try {
-            $settings = AiCurrencySetting::getOrCreateForUser(Auth::id());
+            $settings = AiCurrencySetting::getOrCreate();
             $success = $settings->refreshRate();
 
             if ($success) {
@@ -931,7 +918,7 @@ class AiSettingsController extends Controller
      */
     public function getAvatarSettings()
     {
-        $settings = AiChatAvatarSetting::getOrCreateForUser(Auth::id());
+        $settings = AiChatAvatarSetting::getOrCreate();
 
         return response()->json([
             'success' => true,
@@ -969,7 +956,7 @@ class AiSettingsController extends Controller
 
         try {
             $userId = Auth::id();
-            $settings = AiChatAvatarSetting::getOrCreateForUser($userId);
+            $settings = AiChatAvatarSetting::getOrCreate();
 
             // Handle avatar upload
             if ($request->hasFile('avatar')) {
@@ -1028,7 +1015,7 @@ class AiSettingsController extends Controller
     public function deleteAvatar()
     {
         try {
-            $settings = AiChatAvatarSetting::getOrCreateForUser(Auth::id());
+            $settings = AiChatAvatarSetting::getOrCreate();
 
             // Delete the avatar file
             $settings->deleteOldAvatar();

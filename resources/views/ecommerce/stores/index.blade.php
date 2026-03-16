@@ -104,6 +104,16 @@
     color: white !important;
 }
 
+.btn-outline-warning.badge-style {
+    color: #f1b44c !important;
+    border-color: #f1b44c !important;
+}
+
+.btn-outline-warning.badge-style:hover {
+    background-color: #f1b44c !important;
+    color: white !important;
+}
+
 /* Loading Overlay Styles */
 .loading-overlay {
     position: absolute;
@@ -272,6 +282,11 @@
                                         <a href="{{ route('ecom-store-logins', ['id' => $store->id]) }}"
                                            class="btn btn-sm btn-outline-info badge-style" title="Logins">
                                             <i class="bx bx-key me-1"></i>Logins
+                                        </a>
+
+                                        <a href="{{ route('ecom-store-special-tags', ['id' => $store->id]) }}"
+                                           class="btn btn-sm btn-outline-warning badge-style" title="Special Tags">
+                                            <i class="bx bx-purchase-tag-alt me-1"></i>Special Tags
                                         </a>
 
                                         <button type="button"

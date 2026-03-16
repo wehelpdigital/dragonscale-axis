@@ -96,4 +96,22 @@ class AiRagSetting extends BaseModel
 
         return $settings;
     }
+
+    /**
+     * Get or create GLOBAL settings (not user-specific).
+     * Returns the first active settings record, creating one if none exists.
+     */
+    public static function getOrCreate()
+    {
+        $settings = static::active()->first();
+
+        if (!$settings) {
+            $settings = static::create([
+                'usersId' => null, // Global setting
+                'delete_status' => 'active',
+            ]);
+        }
+
+        return $settings;
+    }
 }

@@ -31,9 +31,9 @@ class RagSettingsController extends Controller
      */
     public function index()
     {
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL: Settings shared across all users
+        $settings = AiRagSetting::getOrCreate();
         $files = AiRagFile::active()
-            ->forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -45,33 +45,29 @@ class RagSettingsController extends Controller
      */
     public function unifiedIndex()
     {
-        // Main RAG settings (used for API key and documents index)
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL: Settings shared across all users
+        $settings = AiRagSetting::getOrCreate();
 
         // Website settings (for websites index name)
-        $websiteSettings = AiWebsiteSetting::getOrCreateForUser(Auth::id());
+        $websiteSettings = AiWebsiteSetting::getOrCreate();
 
-        // Get all documents
+        // Get all documents - GLOBAL
         $files = AiRagFile::active()
-            ->forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get all websites
+        // Get all websites - GLOBAL
         $websites = AiWebsite::active()
-            ->forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get all images
+        // Get all images - GLOBAL
         $images = AiKbImage::active()
-            ->forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get all external products
+        // Get all external products - GLOBAL
         $products = AiExternalProduct::active()
-            ->forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -111,8 +107,8 @@ class RagSettingsController extends Controller
         }
 
         try {
-            // Save main RAG settings (single source of truth)
-            $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+            // Save main RAG settings (single source of truth) - GLOBAL
+            $settings = AiRagSetting::getOrCreate();
             $settings->update([
                 'apiKey' => $request->apiKey,
                 'indexName' => $request->indexName,
@@ -120,8 +116,8 @@ class RagSettingsController extends Controller
                 'email' => $request->email,
             ]);
 
-            // Sync website settings to use the SAME index
-            $websiteSettings = AiWebsiteSetting::getOrCreateForUser(Auth::id());
+            // Sync website settings to use the SAME index - GLOBAL
+            $websiteSettings = AiWebsiteSetting::getOrCreate();
             $websiteSettings->update([
                 'apiKey' => $request->apiKey,
                 'indexName' => $request->indexName, // Same index as docs
@@ -129,8 +125,8 @@ class RagSettingsController extends Controller
                 'email' => $request->email,
             ]);
 
-            // Sync image settings to use the SAME index
-            $imageSettings = AiKbImageSetting::getOrCreateForUser(Auth::id());
+            // Sync image settings to use the SAME index - GLOBAL
+            $imageSettings = AiKbImageSetting::getOrCreate();
             $imageSettings->update([
                 'apiKey' => $request->apiKey,
                 'indexName' => $request->indexName, // Same index as docs
@@ -177,7 +173,8 @@ class RagSettingsController extends Controller
         }
 
         try {
-            $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+            // GLOBAL settings
+            $settings = AiRagSetting::getOrCreate();
 
             $settings->update([
                 'apiKey' => $request->apiKey,
@@ -208,7 +205,8 @@ class RagSettingsController extends Controller
      */
     public function testConnection(Request $request)
     {
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL settings
+        $settings = AiRagSetting::getOrCreate();
 
         if (!$settings->apiKey) {
             return response()->json([
@@ -268,7 +266,8 @@ class RagSettingsController extends Controller
             ], 422);
         }
 
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL settings
+        $settings = AiRagSetting::getOrCreate();
 
         if (!$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -287,9 +286,8 @@ class RagSettingsController extends Controller
             // Calculate file hash for duplicate detection
             $fileHash = hash_file('sha256', $file->getRealPath());
 
-            // Check for duplicate by file hash (same content, possibly different name)
+            // Check for duplicate by file hash (same content, possibly different name) - GLOBAL
             $duplicateByHash = AiRagFile::active()
-                ->forUser(Auth::id())
                 ->where('fileHash', $fileHash)
                 ->first();
 
@@ -306,9 +304,8 @@ class RagSettingsController extends Controller
                 ], 409);
             }
 
-            // Check for duplicate by original name (same name, possibly different content)
+            // Check for duplicate by original name (same name, possibly different content) - GLOBAL
             $duplicateByName = AiRagFile::active()
-                ->forUser(Auth::id())
                 ->where('originalName', $originalName)
                 ->first();
 
@@ -537,8 +534,8 @@ class RagSettingsController extends Controller
      */
     public function getFiles()
     {
+        // GLOBAL: Get all files
         $files = AiRagFile::active()
-            ->forUser(Auth::id())
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($file) {
@@ -569,8 +566,8 @@ class RagSettingsController extends Controller
      */
     public function deleteFile($id)
     {
+        // GLOBAL: Any user can delete files
         $file = AiRagFile::where('id', $id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 
@@ -584,7 +581,7 @@ class RagSettingsController extends Controller
         try {
             // Try to delete from Pinecone if it has a Pinecone file ID
             if ($file->pineconeFileId) {
-                $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+                $settings = AiRagSetting::getOrCreate();
                 if ($settings->apiKey && $settings->indexName) {
                     $deleteResult = $this->deleteFromPinecone($settings, $file->pineconeFileId);
                     if (!$deleteResult['success']) {
@@ -657,8 +654,8 @@ class RagSettingsController extends Controller
      */
     public function retryFile($id)
     {
+        // GLOBAL: Any user can retry files
         $file = AiRagFile::where('id', $id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->where('status', AiRagFile::STATUS_FAILED)
             ->first();
@@ -670,7 +667,8 @@ class RagSettingsController extends Controller
             ], 404);
         }
 
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL settings
+        $settings = AiRagSetting::getOrCreate();
 
         if (!$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -783,7 +781,8 @@ class RagSettingsController extends Controller
      */
     public function syncFiles()
     {
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL settings
+        $settings = AiRagSetting::getOrCreate();
 
         if (!$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -824,8 +823,8 @@ class RagSettingsController extends Controller
      */
     public function refreshFileStatus($id)
     {
+        // GLOBAL: Any user can refresh file status
         $file = AiRagFile::where('id', $id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 
@@ -843,7 +842,8 @@ class RagSettingsController extends Controller
             ], 400);
         }
 
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL settings
+        $settings = AiRagSetting::getOrCreate();
 
         if (!$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -914,7 +914,8 @@ class RagSettingsController extends Controller
      */
     public function batchCheckIndexStatus()
     {
-        $settings = AiRagSetting::getOrCreateForUser(Auth::id());
+        // GLOBAL settings
+        $settings = AiRagSetting::getOrCreate();
 
         if (!$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -950,8 +951,8 @@ class RagSettingsController extends Controller
                 }
             }
 
-            // Check documents
-            $docs = AiRagFile::active()->forUser(Auth::id())->whereNotNull('pineconeFileId')->get();
+            // Check documents - GLOBAL
+            $docs = AiRagFile::active()->whereNotNull('pineconeFileId')->get();
             foreach ($docs as $doc) {
                 $isIndexed = isset($pineconeFiles[$doc->pineconeFileId]);
                 $pineconeStatus = $pineconeFiles[$doc->pineconeFileId] ?? null;
@@ -984,8 +985,8 @@ class RagSettingsController extends Controller
                 }
             }
 
-            // Check websites
-            $websites = AiWebsite::active()->forUser(Auth::id())->whereNotNull('pineconeFileId')->get();
+            // Check websites - GLOBAL
+            $websites = AiWebsite::active()->whereNotNull('pineconeFileId')->get();
             foreach ($websites as $website) {
                 $isIndexed = isset($pineconeFiles[$website->pineconeFileId]);
                 $pineconeStatus = $pineconeFiles[$website->pineconeFileId] ?? null;
@@ -1013,8 +1014,8 @@ class RagSettingsController extends Controller
                 }
             }
 
-            // Check images
-            $images = AiKbImage::active()->forUser(Auth::id())->whereNotNull('pineconeFileId')->get();
+            // Check images - GLOBAL
+            $images = AiKbImage::active()->whereNotNull('pineconeFileId')->get();
             foreach ($images as $image) {
                 $isIndexed = isset($pineconeFiles[$image->pineconeFileId]);
                 $pineconeStatus = $pineconeFiles[$image->pineconeFileId] ?? null;

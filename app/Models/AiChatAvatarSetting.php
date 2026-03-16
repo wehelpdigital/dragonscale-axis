@@ -69,6 +69,25 @@ class AiChatAvatarSetting extends BaseModel
     }
 
     /**
+     * Get or create GLOBAL avatar settings (not user-specific)
+     */
+    public static function getOrCreate(): self
+    {
+        $setting = self::active()->first();
+
+        if (!$setting) {
+            $setting = self::create([
+                'usersId' => null,
+                'displayName' => 'AI Technician',
+                'useCustomAvatar' => false,
+                'delete_status' => 'active',
+            ]);
+        }
+
+        return $setting;
+    }
+
+    /**
      * Get the avatar URL
      */
     public function getAvatarUrlAttribute(): string

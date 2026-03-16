@@ -18,9 +18,11 @@ class EcomTriggerFlow extends BaseModel
      */
     protected $fillable = [
         'usersId',
+        'storeId',
         'flowName',
         'flowDescription',
         'flowType',
+        'flowPriority',
         'triggerTagId',
         'flowData',
         'isActive',
@@ -34,6 +36,7 @@ class EcomTriggerFlow extends BaseModel
      */
     protected $casts = [
         'usersId' => 'integer',
+        'storeId' => 'integer',
         'triggerTagId' => 'integer',
         'flowData' => 'array',
         'isActive' => 'boolean',
@@ -80,6 +83,29 @@ class EcomTriggerFlow extends BaseModel
     public function triggerTag()
     {
         return $this->belongsTo(EcomTriggerTag::class, 'triggerTagId');
+    }
+
+    /**
+     * Get the store associated with this flow (for SMTP settings).
+     */
+    public function store()
+    {
+        return $this->belongsTo(EcomProductStore::class, 'storeId');
+    }
+
+    /**
+     * Get the SMTP settings for this flow's store.
+     */
+    public function getSmtpSettings()
+    {
+        if (!$this->storeId) {
+            return null;
+        }
+
+        return EcomStoreSmtpSetting::where('storeId', $this->storeId)
+            ->where('deleteStatus', 1)
+            ->where('isActive', true)
+            ->first();
     }
 
     /**

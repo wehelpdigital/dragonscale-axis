@@ -237,19 +237,58 @@ class AiChatSession extends BaseModel
 
     /**
      * Get chat history as text for merge fields.
+     *
+     * @param int $limit Maximum number of messages to retrieve
+     * @param int|null $excludeMessageId Optional message ID to exclude (e.g., current message being processed)
      */
-    public function getChatHistoryText($limit = 10)
+    public function getChatHistoryText($limit = 10, $excludeMessageId = null)
     {
-        $messages = $this->messages()
+        $query = $this->messages()
             ->whereIn('role', ['user', 'assistant'])
             ->latest()
-            ->take($limit)
-            ->get()
-            ->reverse();
+            ->take($limit);
+
+        // Exclude specific message if provided (to prevent including the current message being processed)
+        if ($excludeMessageId) {
+            $query->where('id', '!=', $excludeMessageId);
+        }
+
+        $messages = $query->get()->reverse();
 
         $text = '';
+
+        // CRITICAL: Extract crop context from the FIRST assistant message with image analysis
+        // This ensures follow-up questions know what crop type was in the uploaded images
+        $cropContext = null;
+        foreach ($messages as $msg) {
+            if ($msg->role === 'assistant' && $msg->metadata) {
+                $metadata = is_array($msg->metadata) ? $msg->metadata : json_decode($msg->metadata, true);
+                if (!empty($metadata['detectedCropType'])) {
+                    $cropContext = $metadata['detectedCropType'];
+                    break; // Use the first (earliest) detection
+                }
+            }
+        }
+
+        // Prepend crop context if available - this is CRITICAL for follow-up questions
+        if ($cropContext) {
+            $cropName = $cropContext === 'corn' ? 'MAIS (CORN)' : ($cropContext === 'rice' ? 'PALAY (RICE)' : strtoupper($cropContext));
+            $text .= "[CRITICAL CROP CONTEXT: User uploaded images of {$cropName}. All follow-up questions are about this crop unless user explicitly mentions a different crop. DO NOT assume a different crop type.]\n\n";
+        }
+
         foreach ($messages as $msg) {
             $role = ucfirst($msg->role);
+
+            // For assistant messages with image analysis, add a note about what was analyzed
+            if ($msg->role === 'assistant' && $msg->metadata) {
+                $metadata = is_array($msg->metadata) ? $msg->metadata : json_decode($msg->metadata, true);
+                if (!empty($metadata['detectedCropType'])) {
+                    $cropType = $metadata['detectedCropType'] === 'corn' ? 'mais/corn' : ($metadata['detectedCropType'] === 'rice' ? 'palay/rice' : $metadata['detectedCropType']);
+                    $text .= "{$role} (analyzed user's {$cropType} images): {$msg->content}\n\n";
+                    continue;
+                }
+            }
+
             $text .= "{$role}: {$msg->content}\n\n";
         }
 

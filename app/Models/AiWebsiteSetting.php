@@ -98,6 +98,23 @@ class AiWebsiteSetting extends BaseModel
     }
 
     /**
+     * Get or create GLOBAL settings (not user-specific).
+     */
+    public static function getOrCreate()
+    {
+        $settings = static::active()->first();
+
+        if (!$settings) {
+            $settings = static::create([
+                'usersId' => null,
+                'delete_status' => 'active',
+            ]);
+        }
+
+        return $settings;
+    }
+
+    /**
      * Check if settings are configured.
      */
     public function isConfigured(): bool

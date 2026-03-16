@@ -125,6 +125,383 @@
         background: #e8edfa;
         border-color: #556ee6;
     }
+
+    /* =====================================================
+       MOBILE RESPONSIVE STYLES WITH ANIMATIONS
+       ===================================================== */
+
+    /* Smooth transitions */
+    .btn, .form-control, .form-select, .stats-card, .client-card {
+        transition: all 0.3s ease;
+    }
+
+    /* Card entrance animation */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .stats-card, .card {
+        animation: slideInUp 0.3s ease forwards;
+    }
+
+    /* Staggered stats animation */
+    #statsRow > div:nth-child(1) .stats-card { animation-delay: 0.05s; }
+    #statsRow > div:nth-child(2) .stats-card { animation-delay: 0.1s; }
+    #statsRow > div:nth-child(3) .stats-card { animation-delay: 0.15s; }
+    #statsRow > div:nth-child(4) .stats-card { animation-delay: 0.2s; }
+
+    /* Small monitors (1280px - 1400px) */
+    @media (max-width: 1400px) {
+        .stats-card .card-body {
+            padding: 14px 16px;
+        }
+
+        .stats-icon {
+            width: 42px;
+            height: 42px;
+            font-size: 1.3rem;
+        }
+
+        .stats-card h4 {
+            font-size: 1.4rem;
+        }
+
+        .client-avatar {
+            width: 42px;
+            height: 42px;
+        }
+
+        .client-table th {
+            font-size: 0.7rem;
+        }
+
+        .client-table td {
+            font-size: 13px;
+        }
+    }
+
+    /* iPad landscape / 1024px monitors */
+    @media (max-width: 1024px) {
+        .stats-card .card-body {
+            padding: 12px 14px;
+        }
+
+        .stats-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 1.2rem;
+        }
+
+        .stats-card h4 {
+            font-size: 1.25rem;
+        }
+
+        .stats-card p {
+            font-size: 12px;
+        }
+
+        .client-avatar {
+            width: 38px;
+            height: 38px;
+            font-size: 0.95rem;
+        }
+
+        .client-table th {
+            font-size: 0.65rem;
+            padding: 10px 8px;
+        }
+
+        .client-table td {
+            font-size: 12.5px;
+            padding: 10px 8px;
+        }
+
+        .client-table h6 {
+            font-size: 13px;
+        }
+
+        .client-table small {
+            font-size: 11px;
+        }
+
+        .action-btn {
+            padding: 4px 6px;
+            font-size: 0.75rem;
+        }
+
+        /* Search and filters */
+        .search-box input {
+            font-size: 13px;
+            padding: 8px 10px 8px 36px;
+        }
+
+        .form-select {
+            font-size: 13px;
+            padding: 8px 10px;
+        }
+
+        /* Stats row - 2 columns on 1024px */
+        #statsRow > div {
+            flex: 0 0 50%;
+            max-width: 50%;
+            margin-bottom: 12px;
+        }
+
+        /* Filter row adjustments */
+        .row.mb-4 > .col-md-4,
+        .row.mb-4 > .col-md-3 {
+            flex: 0 0 33.333%;
+            max-width: 33.333%;
+        }
+
+        .row.mb-4 > .col-md-2 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-top: 10px;
+        }
+    }
+
+    /* Tablet Styles */
+    @media (max-width: 991px) {
+        .stats-card .card-body {
+            padding: 12px 15px;
+        }
+
+        .stats-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+
+        .client-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+
+        .row.mb-4 .col-md-4,
+        .row.mb-4 .col-md-3,
+        .row.mb-4 .col-md-2 {
+            margin-bottom: 12px;
+        }
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 767px) {
+        /* Stats row - 2 columns */
+        #statsRow > div {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .stats-card .card-body {
+            padding: 10px 12px;
+        }
+
+        .stats-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+        }
+
+        .stats-card h4 {
+            font-size: 1.25rem;
+        }
+
+        .stats-card p {
+            font-size: 11px;
+        }
+
+        /* Search and filters */
+        .row.mb-4 > div {
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .row.mb-4 > div.text-end {
+            text-align: left !important;
+        }
+
+        .row.mb-4 .btn {
+            width: 100%;
+        }
+
+        /* Table */
+        .client-table thead {
+            display: none;
+        }
+
+        .client-table tbody tr {
+            display: block;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .client-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border: none;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .client-table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #495057;
+            font-size: 12px;
+        }
+
+        .client-table tbody td:first-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .client-table tbody td:last-child {
+            border-bottom: none;
+            justify-content: flex-end;
+            padding-top: 10px;
+            gap: 8px;
+        }
+
+        /* Client info in table */
+        .client-table .d-flex.align-items-center {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+
+        .client-table .client-avatar {
+            margin-bottom: 8px;
+            margin-right: 0 !important;
+        }
+
+        /* Bulk actions */
+        #bulkActionsCard .d-flex {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #bulkActionsCard .d-flex.gap-2 {
+            flex-direction: row;
+            width: 100%;
+        }
+
+        #bulkActionsCard .btn {
+            flex: 1;
+        }
+    }
+
+    /* Small Mobile */
+    @media (max-width: 575px) {
+        .card-body {
+            padding: 12px;
+        }
+
+        /* Stats as single column */
+        #statsRow > div {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .stats-card {
+            margin-bottom: 10px !important;
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 3rem 1rem;
+        }
+
+        .empty-state .empty-icon {
+            width: 60px;
+            height: 60px;
+        }
+
+        .empty-state .empty-icon i {
+            font-size: 2rem;
+        }
+
+        .empty-state h5 {
+            font-size: 16px;
+        }
+
+        /* Modal adjustments */
+        .modal-dialog {
+            margin: 8px;
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-footer {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .modal-footer .btn {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        /* Client search in modal */
+        #clientSearchResults {
+            max-height: 200px;
+        }
+
+        .select-client-item {
+            padding: 10px;
+        }
+
+        .select-client-item .client-avatar {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 0.8rem !important;
+        }
+    }
+
+    /* Touch device */
+    @media (hover: none) and (pointer: coarse) {
+        .stats-card:hover {
+            transform: none;
+        }
+
+        .client-card:active {
+            border-color: #556ee6;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .select-client-item:active {
+            background: #f8f9fa;
+            border-color: #556ee6;
+        }
+    }
+
+    /* Loading animation */
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .bx-spin, .bx-loader-alt {
+        animation: spin 1s linear infinite;
+    }
 </style>
 @endsection
 

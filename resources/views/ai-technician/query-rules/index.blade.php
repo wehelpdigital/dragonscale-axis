@@ -107,6 +107,341 @@
         width: 3em;
         height: 1.5em;
     }
+
+    /* =====================================================
+       MOBILE RESPONSIVE STYLES WITH ANIMATIONS
+       ===================================================== */
+
+    /* Smooth transitions */
+    .btn, .form-control, .form-select, .rule-card {
+        transition: all 0.3s ease;
+    }
+
+    /* Card entrance animation */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .rule-card, .stats-card, .card {
+        animation: slideInUp 0.3s ease forwards;
+    }
+
+    /* Staggered animations */
+    .rule-card:nth-child(1) { animation-delay: 0.05s; }
+    .rule-card:nth-child(2) { animation-delay: 0.1s; }
+    .rule-card:nth-child(3) { animation-delay: 0.15s; }
+    .rule-card:nth-child(4) { animation-delay: 0.2s; }
+    .rule-card:nth-child(5) { animation-delay: 0.25s; }
+
+    /* Small monitors (1280px - 1400px) */
+    @media (max-width: 1400px) {
+        .stats-card {
+            padding: 14px 16px;
+        }
+
+        .stats-card h3 {
+            font-size: 1.4rem;
+        }
+
+        .rule-card .card-body {
+            padding: 16px;
+        }
+
+        .rule-prompt-preview {
+            font-size: 0.8rem;
+            max-height: 70px;
+        }
+
+        .priority-badge {
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            min-height: 30px;
+            max-width: 30px;
+            max-height: 30px;
+            font-size: 0.75rem;
+        }
+    }
+
+    /* iPad landscape / 1024px monitors */
+    @media (max-width: 1024px) {
+        .stats-card {
+            padding: 12px 14px;
+        }
+
+        .stats-card h3 {
+            font-size: 1.25rem;
+        }
+
+        .stats-card p {
+            font-size: 12px;
+        }
+
+        .stats-card i {
+            font-size: 1.6rem !important;
+        }
+
+        .rule-card .card-body {
+            padding: 14px;
+        }
+
+        .rule-card h5 {
+            font-size: 14px;
+        }
+
+        .rule-card .text-secondary {
+            font-size: 13px;
+        }
+
+        .priority-badge {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+            min-height: 28px;
+            max-width: 28px;
+            max-height: 28px;
+            font-size: 0.7rem;
+            margin-right: 12px !important;
+        }
+
+        .rule-prompt-preview {
+            font-size: 0.75rem;
+            padding: 8px 10px;
+            max-height: 60px;
+        }
+
+        .category-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+        }
+
+        .form-select-sm {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        /* Stats row layout */
+        .row.mb-4 > .col-md-3 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .row.mb-4 > .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-top: 12px;
+        }
+    }
+
+    /* Tablet Styles */
+    @media (max-width: 991px) {
+        .stats-card {
+            padding: 12px 15px;
+            margin-bottom: 12px !important;
+        }
+
+        .stats-card h3 {
+            font-size: 1.5rem;
+        }
+
+        .rule-card .card-body {
+            padding: 15px;
+        }
+
+        .rule-prompt-preview {
+            max-height: 60px;
+        }
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 767px) {
+        /* Stats row */
+        .row.mb-4 > [class*="col-md-3"] {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .row.mb-4 > .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-top: 12px;
+        }
+
+        .stats-card {
+            padding: 10px 12px;
+        }
+
+        .stats-card h3 {
+            font-size: 1.25rem;
+        }
+
+        .stats-card p {
+            font-size: 11px;
+        }
+
+        .stats-card i {
+            font-size: 1.5rem !important;
+        }
+
+        /* Filter row */
+        .d-flex.justify-content-between.align-items-center.flex-wrap {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 12px !important;
+        }
+
+        .d-flex.gap-2.align-items-center {
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .d-flex.gap-2.align-items-center select {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        /* Rule cards */
+        .rule-card .card-body {
+            padding: 12px;
+        }
+
+        .rule-card .d-flex.justify-content-between {
+            flex-direction: column;
+        }
+
+        .rule-card .d-flex.align-items-start.flex-grow-1 {
+            width: 100%;
+        }
+
+        .priority-badge {
+            width: 28px;
+            height: 28px;
+            min-width: 28px;
+            min-height: 28px;
+            max-width: 28px;
+            max-height: 28px;
+            font-size: 0.75rem;
+        }
+
+        .rule-card h5 {
+            font-size: 15px;
+        }
+
+        .rule-card .d-flex.align-items-center.mb-2 {
+            flex-wrap: wrap;
+        }
+
+        .rule-prompt-preview {
+            max-height: 50px;
+            font-size: 12px;
+            padding: 8px 10px;
+        }
+
+        /* Actions always visible on mobile */
+        .rule-actions {
+            opacity: 1;
+            margin-top: 12px;
+            margin-left: 0 !important;
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .rule-actions .btn-group .btn {
+            padding: 6px 10px;
+        }
+
+        /* Category badge */
+        .category-badge {
+            font-size: 11px;
+            padding: 2px 6px;
+        }
+    }
+
+    /* Small Mobile */
+    @media (max-width: 575px) {
+        /* Stats as single column */
+        .row.mb-4 > [class*="col-md-3"] {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .stats-card {
+            margin-bottom: 10px !important;
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 50px 15px;
+        }
+
+        .empty-state-icon {
+            width: 60px;
+            height: 60px;
+        }
+
+        .empty-state-icon i {
+            font-size: 2rem;
+        }
+
+        .empty-state h5 {
+            font-size: 16px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        /* Compiled preview modal */
+        .compiled-preview {
+            font-size: 11px;
+            padding: 12px;
+            max-height: 300px;
+        }
+
+        /* Modal buttons */
+        .modal-footer .btn {
+            flex: 1;
+        }
+    }
+
+    /* Touch device */
+    @media (hover: none) and (pointer: coarse) {
+        .rule-card:active {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Make actions always visible on touch */
+        .rule-actions {
+            opacity: 1;
+        }
+    }
+
+    /* Loading animation */
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .bx-spin, .bx-loader-alt {
+        animation: spin 1s linear infinite;
+    }
 </style>
 @endsection
 
@@ -257,7 +592,7 @@
                                                    title="{{ $rule->isEnabled ? 'Click to disable' : 'Click to enable' }}">
                                         </div>
                                         <div class="btn-group">
-                                            <a href="{{ route('ai-technician.query-rules.edit', ['id' => $rule->id]) }}"
+                                            <a href="{{ route('ai-technician.query-rules.edit') }}?id={{ $rule->id }}"
                                                class="btn btn-sm btn-outline-primary" title="Edit">
                                                 <i class="bx bx-edit"></i>
                                             </a>

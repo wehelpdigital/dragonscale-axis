@@ -47,6 +47,7 @@ These skill files document the system architecture. **Always consult before deve
 | **codebase-architect** | System structure, patterns, conventions | `.claude/skills/codebase-architect.md` |
 | **database-architect** | Database schema, relationships, types | `.claude/skills/database-architect.md` |
 | **logic-architect** | Business logic, data flows, APIs | `.claude/skills/logic-architect.md` |
+| **anisenso-course-architect** | Ani-Senso frontend project architecture | `.claude/skills/anisenso-course-architect.md` |
 | **ds-axis-agent-harmony** | Agent collaboration rules | `.claude/skills/ds-axis-agent-harmony.md` |
 | **pact-skills-updater** | Skill synchronization guide | `.claude/skills/pact-skills-updater.md` |
 

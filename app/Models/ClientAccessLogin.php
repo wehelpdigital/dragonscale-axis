@@ -17,6 +17,7 @@ class ClientAccessLogin extends BaseModel
         'clientLastName',
         'clientPhoneNumber',
         'clientEmailAddress',
+        'clientPassword',
         'isActive',
         'deleteStatus',
     ];

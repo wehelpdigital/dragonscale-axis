@@ -110,6 +110,26 @@ class AiImageSearchSetting extends BaseModel
     }
 
     /**
+     * Get or create GLOBAL settings (not user-specific).
+     */
+    public static function getOrCreate()
+    {
+        $settings = static::active()->first();
+
+        if (!$settings) {
+            $settings = static::create([
+                'usersId' => null,
+                'provider' => self::PROVIDER_SERPER,
+                'isEnabled' => true,
+                'maxImagesPerRequest' => 4,
+                'delete_status' => 'active',
+            ]);
+        }
+
+        return $settings;
+    }
+
+    /**
      * Check if settings are configured.
      * AI generation uses Gemini (always available if enabled).
      * Web search requires Serper API key.

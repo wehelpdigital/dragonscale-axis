@@ -24,6 +24,9 @@ class User extends Authenticatable
         'avatar',
         'delete_status',
         'api_key',
+        'session_id',
+        'last_login_at',
+        'last_login_ip',
     ];
 
     /**
@@ -35,6 +38,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'api_key',
+        'session_id',
     ];
 
     /**
@@ -46,6 +50,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s',
+        'last_login_at' => 'datetime:Y-m-d H:i:s',
     ];
 
     /**

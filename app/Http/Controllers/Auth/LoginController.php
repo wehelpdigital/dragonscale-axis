@@ -127,6 +127,60 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
+        // Store the session ID for single-session enforcement
+        $this->updateUserSession($user, $request);
+
         return redirect()->route('welcome');
+    }
+
+    /**
+     * Update user's session information for single-session enforcement.
+     *
+     * @param  mixed  $user
+     * @param  \Illuminate\Http\Request  $request
+     * @return void
+     */
+    protected function updateUserSession($user, Request $request)
+    {
+        $user->update([
+            'session_id' => session()->getId(),
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ]);
+
+        Log::info('User session updated for single-session enforcement', [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'session_id' => substr(session()->getId(), 0, 10) . '...',
+            'ip' => $request->ip(),
+        ]);
+    }
+
+    /**
+     * Log the user out of the application.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function logout(Request $request)
+    {
+        $user = Auth::user();
+
+        // Clear the session ID from the database
+        if ($user) {
+            $user->update(['session_id' => null]);
+
+            Log::info('User logged out, session cleared', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+            ]);
+        }
+
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/');
     }
 }

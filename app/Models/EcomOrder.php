@@ -56,6 +56,20 @@ class EcomOrder extends BaseModel
         'packageCalculatedPrice',
         'packagePrice',
         'packageSavings',
+        // Payment verification fields
+        'paymentMethod',
+        'paymentVerificationStatus',
+        'paymentPayerName',
+        'paymentAmountSent',
+        'paymentReferenceNumber',
+        'paymentPhoneNumber',
+        'paymentBankName',
+        'paymentBankAccountName',
+        'paymentBankAccountNumber',
+        'paymentScreenshot',
+        'paymentVerifiedAt',
+        'paymentVerifiedBy',
+        'paymentNotes',
         'deleteStatus',
     ];
 
@@ -79,6 +93,10 @@ class EcomOrder extends BaseModel
         'packageCalculatedPrice' => 'decimal:2',
         'packagePrice' => 'decimal:2',
         'packageSavings' => 'decimal:2',
+        // Payment verification fields
+        'paymentAmountSent' => 'decimal:2',
+        'paymentVerifiedAt' => 'datetime:Y-m-d H:i:s',
+        'paymentVerifiedBy' => 'integer',
         'deleteStatus' => 'integer',
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s',
@@ -133,6 +151,60 @@ class EcomOrder extends BaseModel
     }
 
     /**
+     * Get the payments for this order.
+     */
+    public function payments()
+    {
+        return $this->hasMany(EcomOrderPayment::class, 'orderId');
+    }
+
+    /**
+     * Get active payments for this order.
+     */
+    public function activePayments()
+    {
+        return $this->hasMany(EcomOrderPayment::class, 'orderId')
+            ->where('deleteStatus', 1);
+    }
+
+    /**
+     * Get verified payments for this order.
+     */
+    public function verifiedPayments()
+    {
+        return $this->hasMany(EcomOrderPayment::class, 'orderId')
+            ->where('deleteStatus', 1)
+            ->where('paymentStatus', 'verified');
+    }
+
+    /**
+     * Get total verified payment amount.
+     */
+    public function getTotalVerifiedPaymentsAttribute()
+    {
+        return $this->verifiedPayments()->sum('amountVerified') ?:
+               $this->verifiedPayments()->sum('amountSent');
+    }
+
+    /**
+     * Get remaining balance to be paid.
+     */
+    public function getRemainingBalanceAttribute()
+    {
+        $totalPaid = $this->totalVerifiedPayments;
+        $remaining = $this->grandTotal - $totalPaid;
+        return max(0, $remaining);
+    }
+
+    /**
+     * Check if order is fully paid.
+     */
+    public function getIsFullyPaidAttribute()
+    {
+        return $this->remainingBalance <= 0;
+    }
+
+    /**
      * Get the active refund request for this order.
      */
     public function activeRefund()
@@ -177,6 +249,71 @@ class EcomOrder extends BaseModel
     public function package()
     {
         return $this->belongsTo(EcomPackage::class, 'packageId');
+    }
+
+    /**
+     * Get the user who verified the payment.
+     */
+    public function verifiedByUser()
+    {
+        return $this->belongsTo(User::class, 'paymentVerifiedBy');
+    }
+
+    /**
+     * Check if order requires payment verification.
+     */
+    public function requiresPaymentVerification()
+    {
+        $manualMethods = ['manual_gcash', 'manual_bank', 'manual_maya', 'manual_instapay', 'manual_other'];
+        return in_array($this->paymentMethod, $manualMethods);
+    }
+
+    /**
+     * Check if payment is verified.
+     */
+    public function isPaymentVerified()
+    {
+        return $this->paymentVerificationStatus === 'verified';
+    }
+
+    /**
+     * Get payment method label.
+     */
+    public function getPaymentMethodLabelAttribute()
+    {
+        $labels = [
+            'manual_gcash' => 'GCash (Manual)',
+            'manual_maya' => 'Maya (Manual)',
+            'manual_instapay' => 'Instapay (Manual)',
+            'manual_bank' => 'Bank Transfer (Manual)',
+            'manual_other' => 'Other Manual Payment',
+            'online_payment' => 'Online Payment',
+            'cod' => 'Cash on Delivery',
+            'cop' => 'Cash on Pickup',
+        ];
+        return $labels[$this->paymentMethod] ?? $this->paymentMethod;
+    }
+
+    /**
+     * Check if payment method is Instapay (shows bank fields).
+     */
+    public function isInstapayPayment()
+    {
+        return $this->paymentMethod === 'manual_instapay';
+    }
+
+    /**
+     * Get payment verification status label.
+     */
+    public function getPaymentVerificationStatusLabelAttribute()
+    {
+        $labels = [
+            'not_required' => 'Not Required',
+            'pending' => 'Pending Verification',
+            'verified' => 'Verified',
+            'rejected' => 'Rejected',
+        ];
+        return $labels[$this->paymentVerificationStatus] ?? $this->paymentVerificationStatus;
     }
 
     /**

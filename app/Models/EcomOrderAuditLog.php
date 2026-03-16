@@ -97,6 +97,10 @@ class EcomOrderAuditLog extends BaseModel
             'order_refunded' => 'Order Refunded',
             'tracking_updated' => 'Tracking Updated',
             'notes_updated' => 'Notes Updated',
+            'payment_details_updated' => 'Payment Details Updated',
+            'payment_details_submitted' => 'Payment Details Submitted (Customer)',
+            'payment_verified' => 'Payment Verified',
+            'payment_rejected' => 'Payment Rejected',
             default => ucfirst(str_replace('_', ' ', $this->actionType)),
         };
     }
@@ -135,6 +139,19 @@ class EcomOrderAuditLog extends BaseModel
             'refunded' => 'Refunded',
             'shipped' => 'Shipped',
             'not_applicable' => 'Not Applicable',
+            // Payment methods
+            'manual_gcash' => 'GCash (Manual)',
+            'manual_maya' => 'Maya (Manual)',
+            'manual_instapay' => 'Instapay (Manual)',
+            'manual_bank' => 'Bank Transfer (Manual)',
+            'manual_other' => 'Other Manual Payment',
+            'online_payment' => 'Online Payment',
+            'cod' => 'Cash on Delivery',
+            'cop' => 'Cash on Pickup',
+            // Payment verification statuses
+            'not_required' => 'Not Required',
+            'verified' => 'Verified',
+            'rejected' => 'Rejected',
             default => ucfirst($value),
         };
     }

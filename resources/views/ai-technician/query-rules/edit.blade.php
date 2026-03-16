@@ -68,7 +68,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('ai-technician.query-rules.update', ['id' => $rule->id]) }}" method="POST" id="ruleForm">
+                    <form action="{{ route('ai-technician.query-rules.update') }}?id={{ $rule->id }}" method="POST" id="ruleForm">
                         @csrf
                         @method('PUT')
 

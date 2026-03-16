@@ -76,6 +76,29 @@ class AiCurrencySetting extends BaseModel
     }
 
     /**
+     * Get or create GLOBAL currency setting (not user-specific)
+     */
+    public static function getOrCreate(): self
+    {
+        $setting = self::active()->first();
+
+        if (!$setting) {
+            $setting = self::create([
+                'usersId' => null,
+                'usdToPhpRate' => self::DEFAULT_USD_TO_PHP,
+                'autoUpdate' => true,
+                'apiSource' => 'exchangerate-api',
+                'delete_status' => 'active',
+            ]);
+
+            // Try to fetch current rate
+            $setting->refreshRate();
+        }
+
+        return $setting;
+    }
+
+    /**
      * Fetch the latest exchange rate from the API
      */
     public function refreshRate(): bool

@@ -103,6 +103,330 @@
     .upload-progress.active {
         display: block;
     }
+
+    /* =====================================================
+       MOBILE RESPONSIVE STYLES WITH ANIMATIONS
+       ===================================================== */
+
+    /* Smooth transitions */
+    .btn, .form-control, .form-select, .file-list-item, .nav-link {
+        transition: all 0.3s ease;
+    }
+
+    /* Card entrance animation */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .settings-card, .file-list-item {
+        animation: slideInUp 0.3s ease forwards;
+    }
+
+    /* Staggered animations */
+    .file-list-item:nth-child(1) { animation-delay: 0.05s; }
+    .file-list-item:nth-child(2) { animation-delay: 0.1s; }
+    .file-list-item:nth-child(3) { animation-delay: 0.15s; }
+    .file-list-item:nth-child(4) { animation-delay: 0.2s; }
+    .file-list-item:nth-child(5) { animation-delay: 0.25s; }
+
+    /* Small monitors (1280px - 1400px) */
+    @media (max-width: 1400px) {
+        .nav-tabs-custom .nav-link {
+            padding: 10px 16px;
+            font-size: 13.5px;
+        }
+
+        .upload-zone {
+            padding: 35px 18px;
+        }
+
+        .upload-zone i {
+            font-size: 44px;
+        }
+
+        .file-list-item {
+            padding: 11px 14px;
+        }
+
+        .file-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 16px;
+        }
+
+        .file-list-item h6 {
+            font-size: 13.5px;
+        }
+    }
+
+    /* iPad landscape / 1024px monitors */
+    @media (max-width: 1024px) {
+        .nav-tabs-custom .nav-link {
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+
+        .nav-tabs-custom .nav-link i {
+            font-size: 14px;
+        }
+
+        .upload-zone {
+            padding: 28px 15px;
+        }
+
+        .upload-zone i {
+            font-size: 38px;
+            margin-bottom: 12px;
+        }
+
+        .upload-zone h5 {
+            font-size: 14px;
+        }
+
+        .upload-zone p {
+            font-size: 12px;
+        }
+
+        .file-list-item {
+            padding: 10px 12px;
+        }
+
+        .file-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 15px;
+        }
+
+        .file-list-item h6 {
+            font-size: 13px;
+            max-width: 400px !important;
+        }
+
+        .file-list-item small {
+            font-size: 11px;
+        }
+
+        .connection-status {
+            font-size: 11px;
+            padding: 3px 10px;
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 3px 6px;
+        }
+
+        .btn-group .btn {
+            padding: 4px 8px;
+        }
+
+        .btn-group .btn i {
+            font-size: 13px;
+        }
+
+        /* Settings form */
+        .api-key-input {
+            font-size: 12px;
+        }
+
+        .form-label {
+            font-size: 12.5px;
+        }
+
+        .form-control, .form-select {
+            font-size: 13px;
+            padding: 7px 10px;
+        }
+
+        .alert {
+            padding: 10px 14px;
+            font-size: 12.5px;
+        }
+    }
+
+    /* Tablet Styles */
+    @media (max-width: 991px) {
+        .nav-tabs-custom.nav-justified .nav-item .nav-link {
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+
+        .upload-zone {
+            padding: 30px 15px;
+        }
+
+        .upload-zone i {
+            font-size: 40px;
+        }
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 767px) {
+        .nav-tabs-custom {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-tabs-custom .nav-link {
+            white-space: nowrap;
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+
+        .nav-tabs-custom .nav-link span {
+            display: inline !important;
+        }
+
+        .upload-zone {
+            padding: 25px 12px;
+        }
+
+        .upload-zone i {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone h5 {
+            font-size: 14px;
+        }
+
+        .upload-zone p {
+            font-size: 12px;
+        }
+
+        .file-list-item {
+            padding: 10px 12px;
+        }
+
+        .file-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 14px;
+        }
+
+        .file-list-item h6 {
+            font-size: 13px;
+            max-width: 180px !important;
+        }
+
+        .file-list-item small {
+            font-size: 11px;
+        }
+
+        .file-list-item .d-flex.align-items-center:last-child {
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        /* API settings form */
+        .tab-content {
+            padding: 12px !important;
+        }
+
+        .api-key-input {
+            font-size: 13px;
+        }
+
+        /* Buttons */
+        .btn-group .btn {
+            padding: 5px 8px;
+            font-size: 12px;
+        }
+
+        /* Header with sync button */
+        .d-flex.justify-content-between.align-items-center h5 {
+            font-size: 15px;
+        }
+    }
+
+    /* Small Mobile */
+    @media (max-width: 575px) {
+        .card-body {
+            padding: 12px;
+        }
+
+        .tab-content {
+            padding: 10px !important;
+        }
+
+        .file-list-item {
+            padding: 10px;
+        }
+
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 13px;
+            margin-right: 10px !important;
+        }
+
+        .file-list-item h6 {
+            font-size: 12px;
+            max-width: 140px !important;
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 40px 15px;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+        }
+
+        .empty-state h5 {
+            font-size: 15px;
+        }
+
+        /* Modal adjustments */
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-footer .btn {
+            flex: 1;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 12px;
+            font-size: 13px;
+        }
+    }
+
+    /* Touch device */
+    @media (hover: none) and (pointer: coarse) {
+        .file-list-item:active {
+            background-color: #f8f9fa;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .upload-zone:active {
+            border-color: #3c4ccf;
+            background-color: rgba(85, 110, 230, 0.1);
+        }
+    }
+
+    /* Loading animation */
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .bx-spin, .bx-loader-alt {
+        animation: spin 1s linear infinite;
+    }
 </style>
 @endsection
 

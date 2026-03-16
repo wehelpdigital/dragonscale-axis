@@ -22,8 +22,7 @@ class AiWebsitesController extends Controller
     public function index()
     {
         $websites = AiWebsite::active()
-            ->forUser(Auth::id())
-            ->byPriority()
+                        ->byPriority()
             ->get();
 
         $scrapeTypes = AiWebsite::getScrapeTypeLabels();
@@ -31,7 +30,7 @@ class AiWebsitesController extends Controller
         $frequencies = AiWebsite::getFrequencyLabels();
 
         // Load Pinecone settings for current user
-        $settings = AiWebsiteSetting::getOrCreateForUser(Auth::id());
+        $settings = AiWebsiteSetting::getOrCreate();
 
         return view('ai-technician.websites', compact(
             'websites',
@@ -124,8 +123,7 @@ class AiWebsitesController extends Controller
     public function show($id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -155,8 +153,7 @@ class AiWebsitesController extends Controller
     public function update(Request $request, $id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -240,8 +237,7 @@ class AiWebsitesController extends Controller
     public function destroy($id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -291,8 +287,7 @@ class AiWebsitesController extends Controller
     public function toggleStatus($id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -328,8 +323,7 @@ class AiWebsitesController extends Controller
     public function testScrape($id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -405,8 +399,7 @@ class AiWebsitesController extends Controller
     public function getActiveWebsites()
     {
         $websites = AiWebsite::active()
-            ->forUser(Auth::id())
-            ->enabled()
+                        ->enabled()
             ->byPriority()
             ->get();
 
@@ -462,8 +455,7 @@ class AiWebsitesController extends Controller
     public function scrape(Request $request, $id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -559,8 +551,7 @@ class AiWebsitesController extends Controller
     public function getPages(Request $request, $id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -643,8 +634,7 @@ class AiWebsitesController extends Controller
     public function getPageContent($websiteId, $pageId)
     {
         $website = AiWebsite::where('id', $websiteId)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -697,8 +687,7 @@ class AiWebsitesController extends Controller
     public function deletePage($websiteId, $pageId)
     {
         $website = AiWebsite::where('id', $websiteId)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -745,8 +734,7 @@ class AiWebsitesController extends Controller
     public function clearPages($id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -791,8 +779,7 @@ class AiWebsitesController extends Controller
     public function uploadToPinecone(Request $request, $id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -849,8 +836,7 @@ class AiWebsitesController extends Controller
     public function refreshPineconeStatus($id)
     {
         $website = AiWebsite::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$website) {
@@ -919,8 +905,7 @@ class AiWebsitesController extends Controller
 
             // Get websites that are in processing state
             $websites = AiWebsite::whereIn('id', $websiteIds)
-                ->where('usersId', Auth::id())
-                ->where('delete_status', 'active')
+                                ->where('delete_status', 'active')
                 ->whereIn('pineconeStatus', ['processing', 'pending'])
                 ->get();
 
@@ -979,7 +964,7 @@ class AiWebsitesController extends Controller
         }
 
         try {
-            $settings = AiWebsiteSetting::getOrCreateForUser(Auth::id());
+            $settings = AiWebsiteSetting::getOrCreate();
 
             // Only update apiKey if provided (not empty)
             $updateData = [
@@ -1014,7 +999,7 @@ class AiWebsitesController extends Controller
     public function testSettings()
     {
         try {
-            $settings = AiWebsiteSetting::getOrCreateForUser(Auth::id());
+            $settings = AiWebsiteSetting::getOrCreate();
 
             if (!$settings->apiKey) {
                 return response()->json([

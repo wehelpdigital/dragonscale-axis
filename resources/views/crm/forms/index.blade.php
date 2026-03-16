@@ -18,6 +18,241 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* =====================================================
+   MOBILE RESPONSIVE STYLES WITH ANIMATIONS
+   ===================================================== */
+
+/* Smooth transitions */
+.btn, .form-control, .table tbody tr {
+    transition: all 0.3s ease;
+}
+
+/* Card entrance animation */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: slideInUp 0.3s ease forwards;
+}
+
+/* Small monitors (1280px - 1400px) */
+@media (max-width: 1400px) {
+    .table th, .table td {
+        padding: 11px 10px;
+        font-size: 13px;
+    }
+
+    .form-url {
+        max-width: 180px;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.45rem;
+    }
+}
+
+/* iPad landscape / 1024px monitors */
+@media (max-width: 1024px) {
+    .table th {
+        font-size: 11.5px;
+        padding: 10px 8px;
+    }
+
+    .table td {
+        font-size: 12.5px;
+        padding: 10px 8px;
+    }
+
+    .form-url {
+        font-size: 0.75rem;
+        max-width: 150px;
+    }
+
+    .status-badge {
+        font-size: 0.65rem;
+        padding: 0.18rem 0.4rem;
+    }
+
+    .btn-soft-primary,
+    .btn-soft-info,
+    .btn-soft-secondary,
+    .btn-soft-danger {
+        padding: 5px 8px;
+    }
+
+    .btn-soft-primary i,
+    .btn-soft-info i,
+    .btn-soft-secondary i,
+    .btn-soft-danger i {
+        font-size: 13px;
+    }
+
+    /* Hide Created column on 1024px */
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: none;
+    }
+}
+
+/* Tablet Styles */
+@media (max-width: 991px) {
+    .table th, .table td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+
+    .form-url {
+        max-width: 150px;
+    }
+}
+
+/* Mobile Styles */
+@media (max-width: 767px) {
+    /* Table */
+    .table {
+        font-size: 12px;
+    }
+
+    .table thead th {
+        font-size: 11px;
+        padding: 10px 6px;
+    }
+
+    /* Hide less important columns */
+    .table th:nth-child(3),
+    .table td:nth-child(3),
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: none;
+    }
+
+    .form-url {
+        max-width: 100px;
+    }
+
+    /* Card header */
+    .card-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .card-header .btn {
+        flex: 1;
+    }
+
+    /* Modal */
+    .modal-dialog {
+        margin: 10px;
+    }
+
+    /* Breadcrumb */
+    .page-title-box h4 {
+        font-size: 16px;
+    }
+
+    /* Action buttons */
+    .btn-sm {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 575px) {
+    .card-body {
+        padding: 12px;
+    }
+
+    /* Table as cards */
+    .table thead {
+        display: none;
+    }
+
+    .table tbody tr {
+        display: block;
+        margin-bottom: 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .table tbody td:last-child {
+        border-bottom: none;
+        justify-content: flex-end;
+        padding-top: 12px;
+    }
+
+    .table tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #495057;
+        font-size: 11px;
+    }
+
+    /* Show hidden columns */
+    .table th:nth-child(3),
+    .table td:nth-child(3),
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: flex;
+    }
+
+    .form-url {
+        max-width: 120px;
+        font-size: 11px;
+    }
+
+    /* Touch-friendly */
+    .btn {
+        min-height: 44px;
+    }
+
+    .btn-sm {
+        min-height: 36px;
+    }
+}
+
+/* Touch device */
+@media (hover: none) and (pointer: coarse) {
+    .table tbody tr:active {
+        background-color: #f8f9fa;
+    }
+
+    .btn:active {
+        transform: scale(0.98);
+    }
+}
+
+/* Loading animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.btn .bx-loader-alt {
+    animation: spin 1s linear infinite;
+}
 </style>
 @endsection
 

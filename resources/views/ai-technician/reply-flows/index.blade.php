@@ -64,6 +64,264 @@
         font-size: 2.5rem;
         color: #556ee6;
     }
+
+    /* =====================================================
+       MOBILE RESPONSIVE STYLES WITH ANIMATIONS
+       ===================================================== */
+
+    /* Smooth transitions */
+    .btn, .flow-card {
+        transition: all 0.3s ease;
+    }
+
+    /* Card entrance animation */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .flow-card, .card {
+        animation: slideInUp 0.3s ease forwards;
+    }
+
+    /* Staggered animations */
+    .flow-card:nth-child(1) { animation-delay: 0.05s; }
+    .flow-card:nth-child(2) { animation-delay: 0.1s; }
+    .flow-card:nth-child(3) { animation-delay: 0.15s; }
+    .flow-card:nth-child(4) { animation-delay: 0.2s; }
+    .flow-card:nth-child(5) { animation-delay: 0.25s; }
+
+    /* Small monitors (1280px - 1400px) */
+    @media (max-width: 1400px) {
+        .flow-card .card-body {
+            padding: 16px;
+        }
+
+        .flow-card h5 {
+            font-size: 15px;
+        }
+
+        .priority-badge {
+            width: 26px;
+            height: 26px;
+            font-size: 0.7rem;
+        }
+
+        .node-count {
+            font-size: 12px;
+        }
+    }
+
+    /* iPad landscape / 1024px monitors */
+    @media (max-width: 1024px) {
+        .flow-card .card-body {
+            padding: 14px;
+        }
+
+        .flow-card h5 {
+            font-size: 14px;
+        }
+
+        .flow-card p.text-secondary {
+            font-size: 12.5px;
+        }
+
+        .priority-badge {
+            width: 24px;
+            height: 24px;
+            font-size: 0.65rem;
+            margin-right: 10px !important;
+        }
+
+        .node-count {
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+
+        .flow-card .d-flex.align-items-center.gap-3 {
+            gap: 10px !important;
+        }
+
+        .flow-card .text-secondary.small {
+            font-size: 11px;
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 3px 6px;
+        }
+
+        .btn-group .btn {
+            padding: 5px 8px;
+        }
+
+        .btn-group .btn i {
+            font-size: 13px;
+        }
+    }
+
+    /* Tablet Styles */
+    @media (max-width: 991px) {
+        .flow-card .card-body {
+            padding: 15px;
+        }
+
+        .node-count {
+            padding: 3px 6px;
+            font-size: 12px;
+        }
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 767px) {
+        /* Header */
+        .d-flex.justify-content-between.align-items-center {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 12px;
+        }
+
+        .d-flex.justify-content-between.align-items-center > div:first-child {
+            width: 100%;
+        }
+
+        .d-flex.justify-content-between.align-items-center > .btn {
+            width: 100%;
+        }
+
+        /* Flow cards */
+        .flow-card .card-body {
+            padding: 12px;
+        }
+
+        .flow-card .d-flex.justify-content-between.align-items-start {
+            flex-direction: column;
+        }
+
+        .priority-badge {
+            width: 24px;
+            height: 24px;
+            font-size: 11px;
+        }
+
+        .flow-card h5 {
+            font-size: 15px;
+        }
+
+        .flow-card .d-flex.align-items-center.mb-2 {
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .flow-card p.text-secondary {
+            font-size: 13px;
+        }
+
+        .node-count {
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+
+        .flow-card .d-flex.align-items-center.gap-3 {
+            flex-wrap: wrap;
+            gap: 8px !important;
+        }
+
+        .flow-card .text-secondary.small {
+            font-size: 11px;
+        }
+
+        /* Actions always visible on mobile */
+        .flow-actions {
+            opacity: 1;
+            margin-top: 12px;
+            margin-left: 0 !important;
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .flow-actions .btn-group .btn {
+            padding: 6px 10px;
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 11px;
+            padding: 3px 6px;
+        }
+    }
+
+    /* Small Mobile */
+    @media (max-width: 575px) {
+        .flow-card .d-flex.align-items-start.flex-grow-1 {
+            flex-direction: column;
+        }
+
+        .priority-badge {
+            margin-bottom: 10px;
+            margin-right: 0 !important;
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 50px 15px;
+        }
+
+        .empty-state-icon {
+            width: 60px;
+            height: 60px;
+        }
+
+        .empty-state-icon i {
+            font-size: 2rem;
+        }
+
+        .empty-state h5 {
+            font-size: 16px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        /* Modal */
+        .modal-footer .btn {
+            flex: 1;
+        }
+    }
+
+    /* Touch device */
+    @media (hover: none) and (pointer: coarse) {
+        .flow-card:active {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Make actions always visible on touch */
+        .flow-actions {
+            opacity: 1;
+        }
+    }
+
+    /* Loading animation */
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .bx-spin, .bx-loader-alt {
+        animation: spin 1s linear infinite;
+    }
 </style>
 @endsection
 

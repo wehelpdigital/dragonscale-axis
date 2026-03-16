@@ -87,3 +87,6 @@ Route::prefix('forms')->group(function () {
     Route::get('/{slug}/submit', [App\Http\Controllers\Api\FormApiController::class, 'submit']);
     Route::get('/{slug}/docs', [App\Http\Controllers\Api\FormApiController::class, 'documentation']);
 });
+
+// Trigger Flow Cron API (Public - authenticated via secret key)
+Route::get('/trigger-cron', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'cronEndpoint']);

@@ -28,12 +28,11 @@ class AiKbImagesController extends Controller
     public function index()
     {
         // Get KB Images specific Pinecone settings
-        $settings = AiKbImageSetting::getOrCreateForUser(Auth::id());
+        $settings = AiKbImageSetting::getOrCreate();
 
         // Get user's images
         $images = AiKbImage::active()
-            ->forUser(Auth::id())
-            ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'desc')
             ->get();
 
         return view('ai-technician.kb-images', compact('settings', 'images'));
@@ -45,8 +44,7 @@ class AiKbImagesController extends Controller
     public function getImages()
     {
         $images = AiKbImage::active()
-            ->forUser(Auth::id())
-            ->orderBy('created_at', 'desc')
+                        ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($image) {
                 return [
@@ -110,8 +108,7 @@ class AiKbImagesController extends Controller
 
             // Check for duplicate by hash
             $duplicate = AiKbImage::active()
-                ->forUser(Auth::id())
-                ->where('fileHash', $fileHash)
+                                ->where('fileHash', $fileHash)
                 ->first();
 
             if ($duplicate) {
@@ -148,7 +145,7 @@ class AiKbImagesController extends Controller
             ]);
 
             // Check if Pinecone is configured and auto-sync to RAG
-            $settings = AiKbImageSetting::active()->forUser(Auth::id())->first();
+            $settings = AiKbImageSetting::getOrCreate();
             $ragSyncResult = null;
 
             if ($settings && $settings->apiKey && $settings->indexName) {
@@ -459,8 +456,7 @@ class AiKbImagesController extends Controller
     public function destroy($id)
     {
         $image = AiKbImage::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$image) {
@@ -473,7 +469,7 @@ class AiKbImagesController extends Controller
         try {
             // Delete from Pinecone if it has a Pinecone file ID
             if ($image->pineconeFileId) {
-                $settings = AiKbImageSetting::active()->forUser(Auth::id())->first();
+                $settings = AiKbImageSetting::getOrCreate();
                 if ($settings && $settings->apiKey && $settings->indexName) {
                     $deleteResult = $this->deleteFromPinecone($settings, $image->pineconeFileId);
                     if (!$deleteResult['success']) {
@@ -513,8 +509,7 @@ class AiKbImagesController extends Controller
     public function uploadToPinecone($id)
     {
         $image = AiKbImage::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$image) {
@@ -531,7 +526,7 @@ class AiKbImagesController extends Controller
             ], 400);
         }
 
-        $settings = AiKbImageSetting::active()->forUser(Auth::id())->first();
+        $settings = AiKbImageSetting::getOrCreate();
 
         if (!$settings || !$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -568,8 +563,7 @@ class AiKbImagesController extends Controller
     public function refreshPineconeStatus($id)
     {
         $image = AiKbImage::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$image) {
@@ -586,7 +580,7 @@ class AiKbImagesController extends Controller
             ], 400);
         }
 
-        $settings = AiKbImageSetting::active()->forUser(Auth::id())->first();
+        $settings = AiKbImageSetting::getOrCreate();
 
         if (!$settings || !$settings->apiKey || !$settings->indexName) {
             return response()->json([
@@ -654,8 +648,7 @@ class AiKbImagesController extends Controller
     public function retryUpload($id)
     {
         $image = AiKbImage::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->where('pineconeStatus', AiKbImage::STATUS_FAILED)
             ->first();
 
@@ -675,8 +668,7 @@ class AiKbImagesController extends Controller
     public function update(Request $request, $id)
     {
         $image = AiKbImage::where('id', $id)
-            ->where('usersId', Auth::id())
-            ->where('delete_status', 'active')
+                        ->where('delete_status', 'active')
             ->first();
 
         if (!$image) {
@@ -785,7 +777,7 @@ class AiKbImagesController extends Controller
         }
 
         try {
-            $settings = AiKbImageSetting::getOrCreateForUser(Auth::id());
+            $settings = AiKbImageSetting::getOrCreate();
 
             // Only update apiKey if provided (not empty)
             $updateData = [
@@ -820,7 +812,7 @@ class AiKbImagesController extends Controller
     public function testSettings()
     {
         try {
-            $settings = AiKbImageSetting::getOrCreateForUser(Auth::id());
+            $settings = AiKbImageSetting::getOrCreate();
 
             if (!$settings->apiKey) {
                 return response()->json([

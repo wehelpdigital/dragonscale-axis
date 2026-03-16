@@ -181,6 +181,31 @@ Route::put('/anisenso-courses/{courseId}/certificate/toggle-status', [App\Http\C
 // Image upload route for TinyMCE
 Route::post('/upload-image', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'uploadImage'])->name('upload-image')->middleware('auth');
 
+// Ani-Senso Website Pages
+Route::get('/anisenso-website-pages', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'index'])->name('anisenso-website-pages')->middleware('auth');
+Route::get('/anisenso-website-pages-add', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'create'])->name('anisenso-website-pages.create')->middleware('auth');
+Route::post('/anisenso-website-pages', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'store'])->name('anisenso-website-pages.store')->middleware('auth');
+Route::get('/anisenso-website-pages-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'edit'])->name('anisenso-website-pages.edit')->middleware('auth');
+Route::put('/anisenso-website-pages/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'update'])->name('anisenso-website-pages.update')->middleware('auth');
+Route::delete('/anisenso-website-pages/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'destroy'])->name('anisenso-website-pages.destroy')->middleware('auth');
+Route::post('/anisenso-website-pages/{id}/toggle-status', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'toggleStatus'])->name('anisenso-website-pages.toggle-status')->middleware('auth');
+Route::post('/anisenso-website-pages/update-order', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'updateOrder'])->name('anisenso-website-pages.update-order')->middleware('auth');
+
+// Ani-Senso Homepage Settings
+Route::get('/anisenso-homepage-settings', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'index'])->name('anisenso-homepage-settings')->middleware('auth');
+Route::get('/anisenso-homepage-settings/section/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'getSectionData'])->name('anisenso-homepage-settings.section.data')->middleware('auth');
+Route::put('/anisenso-homepage-settings/section/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateSection'])->name('anisenso-homepage-settings.section.update')->middleware('auth');
+Route::post('/anisenso-homepage-settings/section/{sectionKey}/image', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadSectionImage'])->name('anisenso-homepage-settings.section.image')->middleware('auth');
+Route::post('/anisenso-homepage-settings/section/{sectionKey}/items', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'storeItem'])->name('anisenso-homepage-settings.items.store')->middleware('auth');
+Route::put('/anisenso-homepage-settings/items/{itemId}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateItem'])->name('anisenso-homepage-settings.items.update')->middleware('auth');
+Route::post('/anisenso-homepage-settings/items/{itemId}/image', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadItemImage'])->name('anisenso-homepage-settings.items.image')->middleware('auth');
+Route::put('/anisenso-homepage-settings/items/{itemId}/extra', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateItemExtra'])->name('anisenso-homepage-settings.items.extra')->middleware('auth');
+Route::post('/anisenso-homepage-settings/items/reorder', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'reorderItems'])->name('anisenso-homepage-settings.items.reorder')->middleware('auth');
+Route::delete('/anisenso-homepage-settings/items/{itemId}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'deleteItem'])->name('anisenso-homepage-settings.items.delete')->middleware('auth');
+Route::post('/anisenso-homepage-settings/sections/reorder', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'reorderSections'])->name('anisenso-homepage-settings.sections.reorder')->middleware('auth');
+Route::post('/anisenso-homepage-settings/toggle/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'toggleSection'])->name('anisenso-homepage-settings.toggle')->middleware('auth');
+Route::post('/anisenso-homepage-settings/upload-slide', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadSlide'])->name('anisenso-homepage-settings.upload-slide')->middleware('auth');
+
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
 
@@ -207,6 +232,14 @@ Route::post('/ecom-store-settings/payment/upload', [App\Http\Controllers\Ecommer
 Route::post('/ecom-store-settings/payment/remove-image', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'removePaymentImage'])->name('ecom-store-settings.payment.remove-image')->middleware('auth');
 Route::post('/ecom-store-settings/payment/toggle', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'togglePaymentMethod'])->name('ecom-store-settings.payment.toggle')->middleware('auth');
 
+// Invoice Settings
+Route::post('/ecom-store-settings/invoice', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'saveInvoice'])->name('ecom-store-settings.invoice.save')->middleware('auth');
+Route::post('/ecom-store-settings/invoice/upload-logo', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'uploadInvoiceLogo'])->name('ecom-store-settings.invoice.upload-logo')->middleware('auth');
+Route::post('/ecom-store-settings/invoice/remove-logo', [App\Http\Controllers\Ecommerce\StoreSettingsController::class, 'removeInvoiceLogo'])->name('ecom-store-settings.invoice.remove-logo')->middleware('auth');
+
+// Public Invoice View (no auth required)
+Route::get('/invoice/{token}', [App\Http\Controllers\Ecommerce\OrdersController::class, 'viewInvoice'])->name('invoice.view');
+
 // Store Logins
 Route::get('/ecom-store-logins', [App\Http\Controllers\Ecommerce\StoreLoginsController::class, 'index'])->name('ecom-store-logins')->middleware('auth');
 Route::post('/ecom-store-logins/store', [App\Http\Controllers\Ecommerce\StoreLoginsController::class, 'store'])->name('ecom-store-logins.store')->middleware('auth');
@@ -216,6 +249,14 @@ Route::delete('/ecom-store-logins/delete', [App\Http\Controllers\Ecommerce\Store
 Route::post('/ecom-store-logins/toggle', [App\Http\Controllers\Ecommerce\StoreLoginsController::class, 'toggleStatus'])->name('ecom-store-logins.toggle')->middleware('auth');
 Route::get('/ecom-store-logins/check-phone', [App\Http\Controllers\Ecommerce\StoreLoginsController::class, 'checkPhone'])->name('ecom-store-logins.check-phone')->middleware('auth');
 Route::get('/ecom-store-logins/check-email', [App\Http\Controllers\Ecommerce\StoreLoginsController::class, 'checkEmail'])->name('ecom-store-logins.check-email')->middleware('auth');
+
+// Store Special Tags
+Route::get('/ecom-store-special-tags', [App\Http\Controllers\Ecommerce\StoreSpecialTagsController::class, 'index'])->name('ecom-store-special-tags')->middleware('auth');
+Route::post('/ecom-store-special-tags', [App\Http\Controllers\Ecommerce\StoreSpecialTagsController::class, 'store'])->name('ecom-store-special-tags.store')->middleware('auth');
+Route::get('/ecom-store-special-tags/{id}', [App\Http\Controllers\Ecommerce\StoreSpecialTagsController::class, 'show'])->name('ecom-store-special-tags.show')->middleware('auth');
+Route::put('/ecom-store-special-tags/{id}', [App\Http\Controllers\Ecommerce\StoreSpecialTagsController::class, 'update'])->name('ecom-store-special-tags.update')->middleware('auth');
+Route::patch('/ecom-store-special-tags/{id}/toggle-status', [App\Http\Controllers\Ecommerce\StoreSpecialTagsController::class, 'toggleStatus'])->name('ecom-store-special-tags.toggle-status')->middleware('auth');
+Route::delete('/ecom-store-special-tags/{id}', [App\Http\Controllers\Ecommerce\StoreSpecialTagsController::class, 'destroy'])->name('ecom-store-special-tags.destroy')->middleware('auth');
 
 // All Clients
 Route::get('/ecom-clients', [App\Http\Controllers\Ecommerce\ClientsController::class, 'index'])->name('ecom-clients')->middleware('auth');
@@ -291,6 +332,16 @@ Route::put('/ecom-orders/{id}/status', [App\Http\Controllers\Ecommerce\OrdersCon
 Route::put('/ecom-orders/{id}/shipping', [App\Http\Controllers\Ecommerce\OrdersController::class, 'updateShipping'])->name('ecom-orders.update-shipping')->middleware('auth');
 Route::put('/ecom-orders/{id}/cancel', [App\Http\Controllers\Ecommerce\OrdersController::class, 'cancelOrder'])->name('ecom-orders.cancel')->middleware('auth');
 Route::get('/ecom-orders/{id}/audit-logs', [App\Http\Controllers\Ecommerce\OrdersController::class, 'getAuditLogs'])->name('ecom-orders.audit-logs')->middleware('auth');
+Route::post('/ecom-orders/{id}/payment-verification', [App\Http\Controllers\Ecommerce\OrdersController::class, 'savePaymentVerification'])->name('ecom-orders.save-payment')->middleware('auth');
+Route::put('/ecom-orders/{id}/verify-payment', [App\Http\Controllers\Ecommerce\OrdersController::class, 'verifyPayment'])->name('ecom-orders.verify-payment')->middleware('auth');
+
+// Order Payments (multiple payments per order)
+Route::get('/ecom-orders/{id}/payments', [App\Http\Controllers\Ecommerce\OrdersController::class, 'getPayments'])->name('ecom-orders.payments')->middleware('auth');
+Route::post('/ecom-orders/{id}/payments', [App\Http\Controllers\Ecommerce\OrdersController::class, 'addPayment'])->name('ecom-orders.add-payment')->middleware('auth');
+Route::put('/ecom-order-payments/{paymentId}/verify', [App\Http\Controllers\Ecommerce\OrdersController::class, 'verifyOrderPayment'])->name('ecom-order-payments.verify')->middleware('auth');
+Route::put('/ecom-order-payments/{paymentId}/revert', [App\Http\Controllers\Ecommerce\OrdersController::class, 'revertPaymentVerification'])->name('ecom-order-payments.revert')->middleware('auth');
+Route::delete('/ecom-order-payments/{paymentId}', [App\Http\Controllers\Ecommerce\OrdersController::class, 'deletePayment'])->name('ecom-order-payments.delete')->middleware('auth');
+
 Route::get('/ecom-orders-custom-add', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'index'])->name('ecom-orders-custom-add')->middleware('auth');
 Route::post('/ecom-orders-custom-add', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'store'])->name('ecom-orders-custom-add.store')->middleware('auth');
 Route::post('/ecom-orders-custom-add/validate-step', [App\Http\Controllers\Ecommerce\OrdersCustomAddController::class, 'validateStep'])->name('ecom-orders-custom-add.validate-step')->middleware('auth');
@@ -394,6 +445,23 @@ Route::put('/ecom-triggers-update', [App\Http\Controllers\Ecommerce\TriggersCont
 Route::put('/ecom-triggers-toggle-status', [App\Http\Controllers\Ecommerce\TriggersController::class, 'toggleStatus'])->name('ecom-triggers.toggle-status')->middleware('auth');
 Route::post('/ecom-triggers-duplicate', [App\Http\Controllers\Ecommerce\TriggersController::class, 'duplicate'])->name('ecom-triggers.duplicate')->middleware('auth');
 Route::delete('/ecom-triggers-delete', [App\Http\Controllers\Ecommerce\TriggersController::class, 'destroy'])->name('ecom-triggers.destroy')->middleware('auth');
+
+// E-commerce Trigger Tasks routes
+Route::get('/ecom-trigger-tasks', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'index'])->name('ecom-trigger-tasks')->middleware('auth');
+Route::post('/ecom-trigger-tasks/tasks/{id}/cancel', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'cancelTask'])->name('ecom-trigger-tasks.cancel-task')->middleware('auth');
+Route::post('/ecom-trigger-tasks/tasks/{id}/retry', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'retryTask'])->name('ecom-trigger-tasks.retry-task')->middleware('auth');
+Route::post('/ecom-trigger-tasks/tasks/bulk-cancel', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'bulkCancelTasks'])->name('ecom-trigger-tasks.bulk-cancel-tasks')->middleware('auth');
+Route::delete('/ecom-trigger-tasks/tasks/{id}', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'deleteTask'])->name('ecom-trigger-tasks.delete-task')->middleware('auth');
+Route::post('/ecom-trigger-tasks/tasks/bulk-delete', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'bulkDeleteTasks'])->name('ecom-trigger-tasks.bulk-delete-tasks')->middleware('auth');
+Route::delete('/ecom-trigger-tasks/flow/{flowId}/delete-tasks', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'deleteFlowTasks'])->name('ecom-trigger-tasks.delete-flow-tasks')->middleware('auth');
+Route::delete('/ecom-trigger-tasks/enrollment/{enrollmentId}/delete', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'deleteEnrollment'])->name('ecom-trigger-tasks.delete-enrollment')->middleware('auth');
+Route::post('/ecom-trigger-tasks/enrollments/delete-completed', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'deleteCompletedEnrollments'])->name('ecom-trigger-tasks.delete-completed-enrollments')->middleware('auth');
+Route::post('/ecom-trigger-tasks/cron/settings', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'updateCronSettings'])->name('ecom-trigger-tasks.cron-settings')->middleware('auth');
+Route::post('/ecom-trigger-tasks/cron/regenerate-secret', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'regenerateCronSecret'])->name('ecom-trigger-tasks.regenerate-secret')->middleware('auth');
+Route::post('/ecom-trigger-tasks/cron/run', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'manualCronRun'])->name('ecom-trigger-tasks.manual-cron')->middleware('auth');
+// Public cron endpoint (no auth, uses secret key)
+Route::get('/api/cron/trigger-tasks', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'cronEndpoint'])->name('ecom-trigger-tasks.cron-endpoint');
+Route::post('/api/cron/trigger-tasks', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'cronEndpoint'])->name('ecom-trigger-tasks.cron-endpoint-post');
 
 // E-commerce Sales Reports routes
 Route::get('/ecom-reports-sales', [App\Http\Controllers\Ecommerce\SalesReportsController::class, 'index'])->name('ecom-reports.sales')->middleware('auth');
@@ -554,8 +622,8 @@ Route::get('/ai-technician-query-rules/create', [App\Http\Controllers\AiTechnici
 Route::post('/ai-technician-query-rules', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'store'])->name('ai-technician.query-rules.store')->middleware('auth');
 Route::get('/ai-technician-query-rules/compiled', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'getCompiled'])->name('ai-technician.query-rules.compiled')->middleware('auth');
 Route::post('/ai-technician-query-rules/reset', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'resetToDefaults'])->name('ai-technician.query-rules.reset')->middleware('auth');
-Route::get('/ai-technician-query-rules/{id}/edit', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'edit'])->name('ai-technician.query-rules.edit')->middleware('auth');
-Route::put('/ai-technician-query-rules/{id}', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'update'])->name('ai-technician.query-rules.update')->middleware('auth');
+Route::get('/ai-technician-query-rules-edit', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'edit'])->name('ai-technician.query-rules.edit')->middleware('auth');
+Route::put('/ai-technician-query-rules-update', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'update'])->name('ai-technician.query-rules.update')->middleware('auth');
 Route::post('/ai-technician-query-rules/{id}/toggle', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'toggleStatus'])->name('ai-technician.query-rules.toggle')->middleware('auth');
 Route::delete('/ai-technician-query-rules/{id}', [App\Http\Controllers\AiTechnician\AiQueryRulesController::class, 'destroy'])->name('ai-technician.query-rules.destroy')->middleware('auth');
 
@@ -648,6 +716,55 @@ Route::delete('/ai-technician-chat/session/{sessionId}/clear', [App\Http\Control
 Route::post('/ai-technician-chat/session/{sessionId}/generate-title', [App\Http\Controllers\AiTechnician\AiChatController::class, 'generateTitle'])->name('ai-technician.chat.session.generate-title')->middleware('auth');
 Route::get('/ai-technician-chat/search', [App\Http\Controllers\AiTechnician\AiChatController::class, 'searchSessions'])->name('ai-technician.chat.search')->middleware('auth');
 Route::get('/ai-technician-chat/sessions/load-more', [App\Http\Controllers\AiTechnician\AiChatController::class, 'loadMoreSessions'])->name('ai-technician.chat.sessions.load-more')->middleware('auth');
+Route::get('/ai-technician-chat/check-latest', [App\Http\Controllers\AiTechnician\AiChatController::class, 'checkLatestMessages'])->name('ai-technician.chat.check-latest')->middleware('auth');
+
+// AI Technician - Chat Errors Routes
+Route::get('/ai-technician-chat-errors', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'index'])->name('ai-technician.chat-errors')->middleware('auth');
+Route::post('/ai-technician-chat-errors', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'store'])->name('ai-technician.chat-errors.store')->middleware('auth');
+Route::get('/ai-technician-chat-errors-show', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'show'])->name('ai-technician.chat-errors.show')->middleware('auth');
+Route::put('/ai-technician-chat-errors-status', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'updateStatus'])->name('ai-technician.chat-errors.update-status')->middleware('auth');
+Route::delete('/ai-technician-chat-errors-delete', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'destroy'])->name('ai-technician.chat-errors.destroy')->middleware('auth');
+Route::post('/ai-technician-chat-errors-bulk-delete', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'bulkDelete'])->name('ai-technician.chat-errors.bulk-delete')->middleware('auth');
+Route::put('/ai-technician-chat-errors-bulk-status', [App\Http\Controllers\AiTechnician\AiChatErrorsController::class, 'bulkUpdateStatus'])->name('ai-technician.chat-errors.bulk-status')->middleware('auth');
+
+// ==================== RECOMMENDATION MODULE ====================
+
+// Generate Recommendations - Main routes
+Route::get('/recommendation-generate', [App\Http\Controllers\Recommendations\RecommendationGenerateController::class, 'index'])->name('recommendation-generate')->middleware('auth');
+Route::get('/recommendation-generate-create', [App\Http\Controllers\Recommendations\RecommendationGenerateController::class, 'create'])->name('recommendation-generate.create')->middleware('auth');
+Route::post('/recommendation-generate', [App\Http\Controllers\Recommendations\RecommendationGenerateController::class, 'store'])->name('recommendation-generate.store')->middleware('auth');
+Route::delete('/recommendation-generate/{id}', [App\Http\Controllers\Recommendations\RecommendationGenerateController::class, 'destroy'])->name('recommendation-generate.destroy')->middleware('auth');
+Route::post('/recommendation-generate/ai-recommend', [App\Http\Controllers\Recommendations\RecommendationGenerateController::class, 'aiRecommendVarieties'])->name('recommendation-generate.ai-recommend')->middleware('auth');
+
+// Recommendation Settings - Main page
+Route::get('/recommendation-settings', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'index'])->name('recommendation-settings')->middleware('auth');
+Route::get('/recommendation-settings/active-provider', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'getActiveProvider'])->name('recommendation-settings.active-provider')->middleware('auth');
+
+// Recommendation Settings - Access Tags routes
+Route::get('/recommendation-settings/access-tags', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'getAccessTags'])->name('recommendation-settings.access-tags.list')->middleware('auth');
+Route::post('/recommendation-settings/access-tags', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'storeAccessTag'])->name('recommendation-settings.access-tags.store')->middleware('auth');
+Route::get('/recommendation-settings/access-tags/{id}', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'getAccessTag'])->name('recommendation-settings.access-tags.show')->middleware('auth');
+Route::put('/recommendation-settings/access-tags/{id}', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'updateAccessTag'])->name('recommendation-settings.access-tags.update')->middleware('auth');
+Route::delete('/recommendation-settings/access-tags/{id}', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'destroyAccessTag'])->name('recommendation-settings.access-tags.destroy')->middleware('auth');
+
+// Recommendation Settings - API Provider routes (wildcard - MUST be after specific routes)
+Route::put('/recommendation-settings/{provider}', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'update'])->name('recommendation-settings.update')->middleware('auth');
+Route::post('/recommendation-settings/{provider}/test', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'testConnection'])->name('recommendation-settings.test')->middleware('auth');
+Route::post('/recommendation-settings/{provider}/default', [App\Http\Controllers\Recommendations\RecommendationSettingsController::class, 'setDefault'])->name('recommendation-settings.default')->middleware('auth');
+
+// ==================== KNOWLEDGEBASE MODULE ====================
+
+// Crop Breeds
+Route::get('/knowledgebase-crop-breeds', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'index'])->name('knowledgebase.crop-breeds')->middleware('auth');
+Route::get('/knowledgebase-crop-breeds-create', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'create'])->name('knowledgebase.crop-breeds.create')->middleware('auth');
+Route::post('/knowledgebase-crop-breeds-create', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'store'])->name('knowledgebase.crop-breeds.store')->middleware('auth');
+Route::get('/knowledgebase-crop-breeds-view', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'show'])->name('knowledgebase.crop-breeds.show')->middleware('auth');
+Route::get('/knowledgebase-crop-breeds-edit', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'edit'])->name('knowledgebase.crop-breeds.edit')->middleware('auth');
+Route::put('/knowledgebase-crop-breeds-update', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'update'])->name('knowledgebase.crop-breeds.update')->middleware('auth');
+Route::delete('/knowledgebase-crop-breeds-delete', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'destroy'])->name('knowledgebase.crop-breeds.destroy')->middleware('auth');
+Route::post('/knowledgebase-crop-breeds-toggle-status', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'toggleStatus'])->name('knowledgebase.crop-breeds.toggle-status')->middleware('auth');
+Route::get('/knowledgebase-crop-breeds-api-breeds', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'getBreedsByCriteria'])->name('knowledgebase.crop-breeds.api.breeds')->middleware('auth');
+Route::get('/knowledgebase-crop-breeds-api-detail', [App\Http\Controllers\Knowledgebase\CropBreedsController::class, 'getBreedDetail'])->name('knowledgebase.crop-breeds.api.detail')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

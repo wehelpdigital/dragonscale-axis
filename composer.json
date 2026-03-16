@@ -11,6 +11,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.2",
+        "phpmailer/phpmailer": "^7.0",
         "yajra/laravel-datatables": "^12.0"
     },
     "require-dev": {

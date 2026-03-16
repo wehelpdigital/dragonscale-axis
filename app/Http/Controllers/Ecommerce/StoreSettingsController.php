@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EcomProductStore;
 use App\Models\EcomStoreSmtpSetting;
 use App\Models\EcomStorePaymentSetting;
+use App\Models\EcomStoreInvoiceSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -42,10 +43,15 @@ class StoreSettingsController extends Controller
             ->where('deleteStatus', 1)
             ->first();
 
+        // Get Invoice settings for this store
+        $invoiceSettings = EcomStoreInvoiceSetting::where('storeId', $storeId)
+            ->where('deleteStatus', 1)
+            ->first();
+
         // Get the active tab from query string, default to 'smtp'
         $activeTab = $request->query('tab', 'smtp');
 
-        return view('ecommerce.stores.settings', compact('store', 'smtpSettings', 'paymentSettings', 'activeTab'));
+        return view('ecommerce.stores.settings', compact('store', 'smtpSettings', 'paymentSettings', 'invoiceSettings', 'activeTab'));
     }
 
     /**
@@ -331,10 +337,16 @@ class StoreSettingsController extends Controller
                 'bankAccountNumber' => 'nullable|string|max:100',
                 'gcashNumber' => 'nullable|string|max:20',
                 'gcashAccountName' => 'nullable|string|max:255',
+                'mayaNumber' => 'nullable|string|max:20',
+                'mayaAccountName' => 'nullable|string|max:255',
+                'paypalEmail' => 'nullable|email|max:255',
+                'paypalAccountName' => 'nullable|string|max:255',
                 'paymentInstructions' => 'nullable|string|max:2000',
             ], [
                 'bankAccountNumber.max' => 'Bank account number is too long.',
                 'gcashNumber.max' => 'GCash number should not exceed 20 characters.',
+                'mayaNumber.max' => 'Maya number should not exceed 20 characters.',
+                'paypalEmail.email' => 'Please enter a valid PayPal email address.',
             ]);
 
             if ($validator->fails()) {
@@ -356,6 +368,10 @@ class StoreSettingsController extends Controller
             $paymentSettings->bankAccountNumber = $request->bankAccountNumber;
             $paymentSettings->gcashNumber = $request->gcashNumber;
             $paymentSettings->gcashAccountName = $request->gcashAccountName;
+            $paymentSettings->mayaNumber = $request->mayaNumber;
+            $paymentSettings->mayaAccountName = $request->mayaAccountName;
+            $paymentSettings->paypalEmail = $request->paypalEmail;
+            $paymentSettings->paypalAccountName = $request->paypalAccountName;
             $paymentSettings->paymentInstructions = $request->paymentInstructions;
             $paymentSettings->save();
 
@@ -399,7 +415,8 @@ class StoreSettingsController extends Controller
                 ], 400);
             }
 
-            if (!in_array($imageType, ['screenshot', 'qrcode'])) {
+            $validImageTypes = ['screenshot', 'qrcode', 'bankQrcode', 'mayaQrcode'];
+            if (!in_array($imageType, $validImageTypes)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid image type.'
@@ -427,8 +444,14 @@ class StoreSettingsController extends Controller
                 'deleteStatus' => 1
             ]);
 
-            // Determine the field to update
-            $fieldName = $imageType === 'screenshot' ? 'paymentScreenshot' : 'qrCodeImage';
+            // Determine the field to update based on image type
+            $fieldMapping = [
+                'screenshot' => 'paymentScreenshot',
+                'qrcode' => 'qrCodeImage',
+                'bankQrcode' => 'bankQrCodeImage',
+                'mayaQrcode' => 'mayaQrCodeImage'
+            ];
+            $fieldName = $fieldMapping[$imageType];
 
             // Delete old image if exists
             if ($paymentSettings->$fieldName && file_exists(public_path($paymentSettings->$fieldName))) {
@@ -490,7 +513,8 @@ class StoreSettingsController extends Controller
                 ], 400);
             }
 
-            if (!in_array($imageType, ['screenshot', 'qrcode'])) {
+            $validImageTypes = ['screenshot', 'qrcode', 'bankQrcode', 'mayaQrcode'];
+            if (!in_array($imageType, $validImageTypes)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid image type.'
@@ -508,8 +532,14 @@ class StoreSettingsController extends Controller
                 ], 404);
             }
 
-            // Determine the field to update
-            $fieldName = $imageType === 'screenshot' ? 'paymentScreenshot' : 'qrCodeImage';
+            // Determine the field to update based on image type
+            $fieldMapping = [
+                'screenshot' => 'paymentScreenshot',
+                'qrcode' => 'qrCodeImage',
+                'bankQrcode' => 'bankQrCodeImage',
+                'mayaQrcode' => 'mayaQrCodeImage'
+            ];
+            $fieldName = $fieldMapping[$imageType];
 
             // Delete file if exists
             if ($paymentSettings->$fieldName && file_exists(public_path($paymentSettings->$fieldName))) {
@@ -552,7 +582,8 @@ class StoreSettingsController extends Controller
                 ], 400);
             }
 
-            if (!in_array($method, ['bank', 'gcash'])) {
+            $validMethods = ['bank', 'gcash', 'maya', 'paypal'];
+            if (!in_array($method, $validMethods)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid payment method.'
@@ -571,34 +602,66 @@ class StoreSettingsController extends Controller
             }
 
             // Check if the method details are complete before enabling
-            if ($method === 'bank') {
-                if (!$paymentSettings->isBankComplete()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Please complete all bank details (Bank Name, Account Name, Account Number) before enabling.'
-                    ], 400);
-                }
-                $paymentSettings->isBankActive = !$paymentSettings->isBankActive;
-                $status = $paymentSettings->isBankActive ? 'enabled' : 'disabled';
-                $methodName = 'Bank Transfer';
-            } else {
-                if (!$paymentSettings->isGcashComplete()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Please complete GCash details (Number and Account Name) before enabling.'
-                    ], 400);
-                }
-                $paymentSettings->isGcashActive = !$paymentSettings->isGcashActive;
-                $status = $paymentSettings->isGcashActive ? 'enabled' : 'disabled';
-                $methodName = 'GCash';
+            $isActive = false;
+            $methodName = '';
+
+            switch ($method) {
+                case 'bank':
+                    if (!$paymentSettings->isBankComplete()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Please complete all bank details (Bank Name, Account Name, Account Number) before enabling.'
+                        ], 400);
+                    }
+                    $paymentSettings->isBankActive = !$paymentSettings->isBankActive;
+                    $isActive = $paymentSettings->isBankActive;
+                    $methodName = 'Bank Transfer';
+                    break;
+
+                case 'gcash':
+                    if (!$paymentSettings->isGcashComplete()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Please complete GCash details (Number and Account Name) before enabling.'
+                        ], 400);
+                    }
+                    $paymentSettings->isGcashActive = !$paymentSettings->isGcashActive;
+                    $isActive = $paymentSettings->isGcashActive;
+                    $methodName = 'GCash';
+                    break;
+
+                case 'maya':
+                    if (!$paymentSettings->isMayaComplete()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Please complete Maya details (Number and Account Name) before enabling.'
+                        ], 400);
+                    }
+                    $paymentSettings->isMayaActive = !$paymentSettings->isMayaActive;
+                    $isActive = $paymentSettings->isMayaActive;
+                    $methodName = 'Maya';
+                    break;
+
+                case 'paypal':
+                    if (!$paymentSettings->isPaypalComplete()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Please enter PayPal email before enabling.'
+                        ], 400);
+                    }
+                    $paymentSettings->isPaypalActive = !$paymentSettings->isPaypalActive;
+                    $isActive = $paymentSettings->isPaypalActive;
+                    $methodName = 'PayPal';
+                    break;
             }
 
             $paymentSettings->save();
+            $status = $isActive ? 'enabled' : 'disabled';
 
             return response()->json([
                 'success' => true,
                 'message' => "{$methodName} has been {$status}.",
-                'isActive' => $method === 'bank' ? $paymentSettings->isBankActive : $paymentSettings->isGcashActive
+                'isActive' => $isActive
             ]);
 
         } catch (\Exception $e) {
@@ -606,6 +669,235 @@ class StoreSettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while toggling payment method.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Save Invoice settings.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveInvoice(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            $store = EcomProductStore::where('deleteStatus', 1)->find($storeId);
+
+            if (!$store) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store not found.'
+                ], 404);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'businessName' => 'nullable|string|max:255',
+                'businessAddress' => 'nullable|string|max:1000',
+                'businessPhone' => 'nullable|string|max:50',
+                'businessEmail' => 'nullable|email|max:255',
+                'taxId' => 'nullable|string|max:100',
+                'primaryColor' => 'nullable|string|max:7',
+                'secondaryColor' => 'nullable|string|max:7',
+                'headerBgColor' => 'nullable|string|max:7',
+                'headerTextColor' => 'nullable|string|max:7',
+                'termsAndConditions' => 'nullable|string|max:5000',
+                'thankYouMessage' => 'nullable|string|max:1000',
+                'footerNote' => 'nullable|string|max:500',
+                'bankName' => 'nullable|string|max:100',
+                'bankAccountName' => 'nullable|string|max:255',
+                'bankAccountNumber' => 'nullable|string|max:50',
+                'gcashNumber' => 'nullable|string|max:20',
+                'mayaNumber' => 'nullable|string|max:20',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Find or create invoice settings for this store
+            $invoiceSettings = EcomStoreInvoiceSetting::firstOrNew([
+                'storeId' => $storeId,
+                'deleteStatus' => 1
+            ]);
+
+            $invoiceSettings->businessName = $request->businessName ?: $store->storeName;
+            $invoiceSettings->businessAddress = $request->businessAddress;
+            $invoiceSettings->businessPhone = $request->businessPhone;
+            $invoiceSettings->businessEmail = $request->businessEmail;
+            $invoiceSettings->taxId = $request->taxId;
+            $invoiceSettings->primaryColor = $request->primaryColor ?: '#556ee6';
+            $invoiceSettings->secondaryColor = $request->secondaryColor ?: '#34c38f';
+            $invoiceSettings->headerBgColor = $request->headerBgColor ?: '#556ee6';
+            $invoiceSettings->headerTextColor = $request->headerTextColor ?: '#ffffff';
+            $invoiceSettings->termsAndConditions = $request->termsAndConditions;
+            $invoiceSettings->thankYouMessage = $request->thankYouMessage;
+            $invoiceSettings->footerNote = $request->footerNote;
+            $invoiceSettings->bankName = $request->bankName;
+            $invoiceSettings->bankAccountName = $request->bankAccountName;
+            $invoiceSettings->bankAccountNumber = $request->bankAccountNumber;
+            $invoiceSettings->gcashNumber = $request->gcashNumber;
+            $invoiceSettings->mayaNumber = $request->mayaNumber;
+            $invoiceSettings->showLogo = $request->boolean('showLogo', true);
+            $invoiceSettings->showTaxId = $request->boolean('showTaxId', false);
+            $invoiceSettings->showBankDetails = $request->boolean('showBankDetails', true);
+            $invoiceSettings->showTerms = $request->boolean('showTerms', true);
+            $invoiceSettings->showThankYou = $request->boolean('showThankYou', true);
+            $invoiceSettings->save();
+
+            Log::info('Invoice settings saved', ['store_id' => $storeId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice settings saved successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error saving invoice settings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while saving invoice settings.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload invoice logo.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadInvoiceLogo(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'logo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048' // 2MB max
+            ], [
+                'logo.required' => 'Please select an image to upload.',
+                'logo.image' => 'The file must be an image.',
+                'logo.max' => 'Image size should not exceed 2MB.'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first()
+                ], 422);
+            }
+
+            // Find or create invoice settings
+            $invoiceSettings = EcomStoreInvoiceSetting::firstOrNew([
+                'storeId' => $storeId,
+                'deleteStatus' => 1
+            ]);
+
+            // Delete old logo if exists
+            if ($invoiceSettings->logoPath && file_exists(public_path($invoiceSettings->logoPath))) {
+                unlink(public_path($invoiceSettings->logoPath));
+            }
+
+            // Save new logo
+            $file = $request->file('logo');
+            $filename = 'invoice_logo_' . $storeId . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = 'images/ecommerce/invoices/' . $filename;
+
+            // Ensure directory exists
+            $dir = public_path('images/ecommerce/invoices');
+            if (!file_exists($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            $file->move($dir, $filename);
+
+            $invoiceSettings->logoPath = $path;
+            $invoiceSettings->save();
+
+            Log::info('Invoice logo uploaded', ['store_id' => $storeId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logo uploaded successfully!',
+                'logoUrl' => asset($path)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading invoice logo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while uploading logo.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove invoice logo.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function removeInvoiceLogo(Request $request)
+    {
+        try {
+            $storeId = $request->query('id');
+
+            if (!$storeId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Store ID is required.'
+                ], 400);
+            }
+
+            $invoiceSettings = EcomStoreInvoiceSetting::where('storeId', $storeId)
+                ->where('deleteStatus', 1)
+                ->first();
+
+            if (!$invoiceSettings) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice settings not found.'
+                ], 404);
+            }
+
+            // Delete file if exists
+            if ($invoiceSettings->logoPath && file_exists(public_path($invoiceSettings->logoPath))) {
+                unlink(public_path($invoiceSettings->logoPath));
+            }
+
+            $invoiceSettings->logoPath = null;
+            $invoiceSettings->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logo removed successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error removing invoice logo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while removing logo.'
             ], 500);
         }
     }
