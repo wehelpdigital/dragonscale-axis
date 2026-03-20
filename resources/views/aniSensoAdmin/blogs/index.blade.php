@@ -172,7 +172,7 @@
                                 <tr>
                                     <td>
                                         @if($blog->blogFeaturedImage)
-                                            <img src="{{ asset($blog->blogFeaturedImage) }}" alt="{{ $blog->blogTitle }}"
+                                            <img src="/{{ $blog->blogFeaturedImage }}" alt="{{ $blog->blogTitle }}"
                                                  class="blog-thumbnail">
                                         @else
                                             <div class="blog-thumbnail-placeholder">

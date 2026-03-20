@@ -437,7 +437,7 @@
                                         <label class="form-label">OG Image</label>
                                         <div class="image-preview-container" style="height: 120px;" onclick="document.getElementById('ogImage').click()">
                                             @if($blog->ogImage)
-                                                <img id="ogImagePreview" src="{{ asset($blog->ogImage) }}" alt="Preview">
+                                                <img id="ogImagePreview" src="/{{ $blog->ogImage }}" alt="Preview">
                                                 <div class="placeholder" id="ogImagePlaceholder" style="display: none;">
                                                     <i class="bx bx-image"></i>
                                                     <p class="mb-0 small">1200x630px recommended</p>
@@ -471,7 +471,7 @@
                                         <label class="form-label">Twitter Image</label>
                                         <div class="image-preview-container" style="height: 120px;" onclick="document.getElementById('twitterImage').click()">
                                             @if($blog->twitterImage)
-                                                <img id="twitterImagePreview" src="{{ asset($blog->twitterImage) }}" alt="Preview">
+                                                <img id="twitterImagePreview" src="/{{ $blog->twitterImage }}" alt="Preview">
                                                 <div class="placeholder" id="twitterImagePlaceholder" style="display: none;">
                                                     <i class="bx bx-image"></i>
                                                     <p class="mb-0 small">1200x600px recommended</p>
@@ -589,7 +589,7 @@
                                 <button type="button" class="remove-image-btn" onclick="event.stopPropagation(); removeCurrentImage();">
                                     <i class="bx bx-x"></i>
                                 </button>
-                                <img id="imagePreview" src="{{ asset($blog->blogFeaturedImage) }}" alt="Preview">
+                                <img id="imagePreview" src="/{{ $blog->blogFeaturedImage }}" alt="Preview">
                                 <div class="placeholder" id="imagePlaceholder" style="display: none;">
                                     <i class="bx bx-cloud-upload"></i>
                                     <p class="mb-0">Click to upload</p>
