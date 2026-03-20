@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8F5E9"/>
+      <stop offset="100%" style="stop-color:#C8E6C9"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="600" height="800" fill="url(#bg)"/>
+  <!-- Rice stalks -->
+  <g fill="none" stroke="#4CAF50" stroke-width="3">
+    <!-- Left stalk -->
+    <path d="M200 800 Q200 600 180 400 Q170 300 200 200"/>
+    <ellipse cx="195" cy="200" rx="15" ry="40" fill="#8BC34A"/>
+    <ellipse cx="175" cy="240" rx="12" ry="35" fill="#9CCC65"/>
+    <ellipse cx="210" cy="250" rx="12" ry="30" fill="#AED581"/>
+    <!-- Middle stalk -->
+    <path d="M300 800 Q300 550 310 350 Q315 250 300 150"/>
+    <ellipse cx="300" cy="150" rx="18" ry="45" fill="#8BC34A"/>
+    <ellipse cx="280" cy="190" rx="14" ry="38" fill="#9CCC65"/>
+    <ellipse cx="320" cy="200" rx="14" ry="35" fill="#AED581"/>
+    <ellipse cx="290" cy="240" rx="12" ry="30" fill="#C5E1A5"/>
+    <!-- Right stalk -->
+    <path d="M400 800 Q400 620 420 420 Q430 320 400 220"/>
+    <ellipse cx="405" cy="220" rx="16" ry="42" fill="#8BC34A"/>
+    <ellipse cx="385" cy="260" rx="13" ry="36" fill="#9CCC65"/>
+    <ellipse cx="420" cy="270" rx="13" ry="32" fill="#AED581"/>
+  </g>
+  <!-- Leaves -->
+  <path d="M200 500 Q150 480 100 500 Q150 520 200 500" fill="#66BB6A"/>
+  <path d="M300 450 Q250 430 200 450 Q250 470 300 450" fill="#81C784"/>
+  <path d="M300 550 Q350 530 400 550 Q350 570 300 550" fill="#66BB6A"/>
+  <path d="M400 480 Q450 460 500 480 Q450 500 400 480" fill="#81C784"/>
+</svg>

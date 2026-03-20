@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB"/>
+      <stop offset="60%" style="stop-color:#E0F4FF"/>
+    </linearGradient>
+    <linearGradient id="fieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#7CB342"/>
+      <stop offset="100%" style="stop-color:#558B2F"/>
+    </linearGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="1920" height="1080" fill="url(#skyGrad)"/>
+  <!-- Rice field rows -->
+  <rect y="600" width="1920" height="480" fill="url(#fieldGrad)"/>
+  <!-- Field texture lines -->
+  <g fill="none" stroke="#4CAF50" stroke-width="2" opacity="0.5">
+    <path d="M0 650 Q480 630 960 650 T1920 650"/>
+    <path d="M0 720 Q480 700 960 720 T1920 720"/>
+    <path d="M0 790 Q480 770 960 790 T1920 790"/>
+    <path d="M0 860 Q480 840 960 860 T1920 860"/>
+    <path d="M0 930 Q480 910 960 930 T1920 930"/>
+    <path d="M0 1000 Q480 980 960 1000 T1920 1000"/>
+  </g>
+  <!-- Sun -->
+  <circle cx="1600" cy="200" r="100" fill="#FFD54F" opacity="0.9"/>
+  <!-- Rice stalks silhouette -->
+  <g fill="#2E7D32" opacity="0.3">
+    <path d="M100 600 Q110 500 120 600 M120 600 Q130 520 140 600"/>
+    <path d="M300 620 Q310 520 320 620 M320 620 Q330 540 340 620"/>
+    <path d="M500 610 Q510 510 520 610 M520 610 Q530 530 540 610"/>
+  </g>
+</svg>

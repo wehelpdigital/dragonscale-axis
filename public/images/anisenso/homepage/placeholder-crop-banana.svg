@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bananaBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#81C784"/>
+      <stop offset="100%" style="stop-color:#4CAF50"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="url(#bananaBg)"/>
+  <!-- Banana bunch -->
+  <g fill="#FFD54F" stroke="#FFA000" stroke-width="2">
+    <path d="M100 40 Q130 50 140 90 Q145 130 120 160 Q110 170 100 160 Q90 150 95 120 Q100 80 100 40"/>
+    <path d="M90 45 Q70 55 65 95 Q62 135 85 165 Q95 175 100 165 Q105 155 100 125 Q95 85 90 45"/>
+    <path d="M110 50 Q140 60 150 100 Q155 145 125 170 Q115 180 110 170 Q100 160 105 130 Q110 90 110 50"/>
+  </g>
+  <!-- Stem -->
+  <path d="M100 30 Q100 20 95 15 L105 15 Q100 20 100 30" fill="#8D6E63"/>
+  <!-- Text -->
+  <text x="100" y="190" text-anchor="middle" fill="white" font-family="Arial" font-size="14" font-weight="bold">Banana</text>
+</svg>
