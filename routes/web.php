@@ -206,6 +206,17 @@ Route::post('/anisenso-homepage-settings/sections/reorder', [App\Http\Controller
 Route::post('/anisenso-homepage-settings/toggle/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'toggleSection'])->name('anisenso-homepage-settings.toggle')->middleware('auth');
 Route::post('/anisenso-homepage-settings/upload-slide', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadSlide'])->name('anisenso-homepage-settings.upload-slide')->middleware('auth');
 
+// Ani-Senso Blog routes
+Route::get('/anisenso-blogs', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'index'])->name('anisenso-blogs')->middleware('auth');
+Route::get('/anisenso-blogs-add', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'create'])->name('anisenso-blogs.create')->middleware('auth');
+Route::post('/anisenso-blogs', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'store'])->name('anisenso-blogs.store')->middleware('auth');
+Route::get('/anisenso-blogs-edit', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'edit'])->name('anisenso-blogs.edit')->middleware('auth');
+Route::put('/anisenso-blogs/{id}', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'update'])->name('anisenso-blogs.update')->middleware('auth');
+Route::delete('/anisenso-blogs/{id}', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'destroy'])->name('anisenso-blogs.destroy')->middleware('auth');
+Route::post('/anisenso-blogs/{id}/toggle-featured', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'toggleFeatured'])->name('anisenso-blogs.toggle-featured')->middleware('auth');
+Route::patch('/anisenso-blogs/{id}/status', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'updateStatus'])->name('anisenso-blogs.update-status')->middleware('auth');
+Route::delete('/anisenso-blogs/{id}/image', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'removeImage'])->name('anisenso-blogs.remove-image')->middleware('auth');
+
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
 
@@ -307,6 +318,11 @@ Route::get('/ecom-products-variants-triggers/available-tags', [App\Http\Controll
 Route::post('/ecom-products-variants-triggers/save-tags', [App\Http\Controllers\Ecommerce\ProductsController::class, 'saveVariantTags'])->name('ecom-products.variants.triggers.save-tags')->middleware('auth');
 Route::post('/ecom-products-variants-triggers/create-tag', [App\Http\Controllers\Ecommerce\ProductsController::class, 'createTriggerTag'])->name('ecom-products.variants.triggers.create-tag')->middleware('auth');
 Route::delete('/ecom-products-variants-triggers/delete-tag/{id}', [App\Http\Controllers\Ecommerce\ProductsController::class, 'deleteVariantTag'])->name('ecom-products.variants.triggers.delete-tag')->middleware('auth');
+
+// E-commerce misc settings routes
+Route::get('/ecom-misc-settings', [App\Http\Controllers\Ecommerce\MiscSettingsController::class, 'index'])->name('ecom-misc-settings')->middleware('auth');
+Route::post('/ecom-misc-settings/thank-you-page', [App\Http\Controllers\Ecommerce\MiscSettingsController::class, 'updateThankYouPage'])->name('ecom-misc-settings.thank-you-page.update')->middleware('auth');
+Route::post('/ecom-misc-settings/thank-you-page/reset', [App\Http\Controllers\Ecommerce\MiscSettingsController::class, 'resetThankYouPage'])->name('ecom-misc-settings.thank-you-page.reset')->middleware('auth');
 
 // E-commerce product edit route
 Route::get('/ecom-products-edit', [App\Http\Controllers\Ecommerce\ProductsController::class, 'edit'])->name('ecom-products.edit')->middleware('auth');

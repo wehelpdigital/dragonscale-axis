@@ -225,6 +225,10 @@
                                                class="btn btn-sm btn-outline-purple badge-style" title="Triggers">
                                                 <i class="bx bx-bulb me-1"></i>Triggers
                                             </a>
+                                            <a href="{{ route('ecom-misc-settings', ['variant_id' => $variant->id]) }}"
+                                               class="btn btn-sm btn-outline-dark badge-style" title="Misc Settings">
+                                                <i class="bx bx-cog me-1"></i>Misc Setting
+                                            </a>
                                             <button type="button" class="btn btn-sm btn-outline-danger badge-style delete-variant-btn"
                                                     title="Delete"
                                                     data-variant-id="{{ $variant->id }}"

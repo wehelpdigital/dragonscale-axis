@@ -246,15 +246,20 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="{{ request()->is('anisenso-website*') ? 'mm-active' : '' }}">
-                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('anisenso-website*') ? 'mm-active' : '' }}">
+                        <li class="{{ request()->is('anisenso-website*') || request()->is('anisenso-blogs*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('anisenso-website*') || request()->is('anisenso-blogs*') ? 'mm-active' : '' }}">
                                 <i class="bx bx-globe"></i>
                                 <span key="t-anisenso-website">Website</span>
                             </a>
-                            <ul class="sub-menu {{ request()->is('anisenso-website*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('anisenso-website*') ? 'true' : 'false' }}">
+                            <ul class="sub-menu {{ request()->is('anisenso-website*') || request()->is('anisenso-blogs*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('anisenso-website*') || request()->is('anisenso-blogs*') ? 'true' : 'false' }}">
                                 <li class="{{ request()->is('anisenso-website-pages*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-website-pages') }}" class="waves-effect {{ request()->is('anisenso-website-pages*') ? 'active' : '' }}">
                                         <span key="t-anisenso-website-pages">Pages</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-blogs*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-blogs') }}" class="waves-effect {{ request()->is('anisenso-blogs*') ? 'active' : '' }}">
+                                        <span key="t-anisenso-blogs">Blog</span>
                                     </a>
                                 </li>
                             </ul>
