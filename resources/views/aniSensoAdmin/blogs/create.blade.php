@@ -8,46 +8,270 @@
 <link href="https://unpkg.com/grapesjs-preset-webpage/dist/grapesjs-preset-webpage.min.css" rel="stylesheet">
 
 <style>
-/* Builder Container */
+/* ========================================
+   CLEAN VISUAL BUILDER - Modern Blog Editor
+   ======================================== */
+
+/* Main Builder Container */
 .builder-container {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
     overflow: hidden;
     background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Top Toolbar */
+.builder-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: linear-gradient(to bottom, #fafbfc, #f4f6f8);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.toolbar-left, .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    border-radius: 8px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 18px;
+}
+
+.toolbar-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.toolbar-btn.active {
+    background: #556ee6;
+    border-color: #556ee6;
+    color: #fff;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: #e2e8f0;
+    margin: 0 4px;
+}
+
+.device-buttons {
+    display: flex;
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 3px;
+}
+
+.device-btn {
+    padding: 6px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.device-btn:hover { color: #334155; }
+
+.device-btn.active {
+    background: #fff;
+    color: #556ee6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Main Editor Layout */
+.editor-layout {
+    display: flex;
+    height: 550px;
+}
+
+/* Blocks Sidebar */
+.blocks-sidebar {
+    width: 220px;
+    background: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.2s;
+}
+
+.blocks-sidebar.collapsed {
+    width: 50px;
+}
+
+.blocks-sidebar.collapsed .blocks-content,
+.blocks-sidebar.collapsed .sidebar-title span {
+    display: none;
+}
+
+.sidebar-header {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-title i { color: #556ee6; }
+
+.toggle-sidebar {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: #fff;
+    border-radius: 6px;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.toggle-sidebar:hover { background: #e2e8f0; }
+
+.blocks-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+/* Block Categories */
+.block-category { margin-bottom: 16px; }
+
+.category-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    padding: 0 4px;
+}
+
+.category-blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+/* Individual Blocks */
+.content-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.15s;
+    min-height: 65px;
+}
+
+.content-block:hover {
+    border-color: #556ee6;
+    background: #f8faff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(85, 110, 230, 0.12);
+}
+
+.content-block:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.content-block i {
+    font-size: 20px;
+    color: #556ee6;
+    margin-bottom: 4px;
+}
+
+.content-block span {
+    font-size: 10px;
+    font-weight: 500;
+    color: #64748b;
+    text-align: center;
+}
+
+/* Canvas Area */
+.editor-canvas {
+    flex: 1;
+    background: #f1f5f9;
+    overflow: hidden;
+    position: relative;
 }
 
 #gjs {
     border: none;
-    min-height: 600px;
+    height: 100%;
+    background: #f1f5f9;
 }
 
-/* GrapesJS Panel Customization */
-.gjs-one-bg { background-color: #f8f9fa; }
-.gjs-two-color { color: #495057; }
-.gjs-three-bg { background-color: #556ee6; }
-.gjs-four-color, .gjs-four-color-h:hover { color: #556ee6; }
-
-.gjs-pn-btn {
-    border-radius: 4px;
-    padding: 8px 10px;
+/* GrapesJS Overrides */
+.gjs-cv-canvas { background: #f1f5f9 !important; }
+.gjs-frame-wrapper { padding: 20px; }
+.gjs-frame {
+    background: #fff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
 }
 
-.gjs-pn-btn.gjs-pn-active {
-    background-color: #556ee6;
-    color: #fff;
+.gjs-pn-panels, .gjs-pn-views-container { display: none !important; }
+
+.gjs-selected { outline: 2px solid #556ee6 !important; outline-offset: -2px; }
+.gjs-hovered { outline: 1px dashed #94a3b8 !important; }
+
+.gjs-toolbar {
+    background: #1e293b !important;
+    border-radius: 6px !important;
+    padding: 4px !important;
 }
 
-.gjs-block {
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #e9ecef;
-    transition: all 0.2s;
+.gjs-toolbar-item {
+    color: #fff !important;
+    padding: 6px 8px !important;
+    border-radius: 4px !important;
 }
 
-.gjs-block:hover {
-    border-color: #556ee6;
-    box-shadow: 0 2px 8px rgba(85, 110, 230, 0.15);
+.gjs-toolbar-item:hover { background: rgba(255,255,255,0.1) !important; }
+
+.gjs-rte-toolbar {
+    background: #1e293b !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
 }
+
+.gjs-rte-action { color: #fff !important; border-radius: 4px !important; }
+.gjs-rte-active { background: #556ee6 !important; }
 
 /* Image Preview */
 .image-preview-container {
@@ -187,99 +411,6 @@
     overflow-y: auto;
 }
 
-/* GrapesJS Editor Layout */
-.editor-row {
-    display: flex;
-    height: 600px;
-}
-
-.editor-canvas {
-    flex: 1;
-    overflow: hidden;
-}
-
-.panel-right {
-    width: 280px;
-    background: #f8f9fa;
-    border-left: 1px solid #dee2e6;
-    display: flex;
-    flex-direction: column;
-}
-
-.panel-switcher {
-    display: flex;
-    flex-wrap: wrap;
-    background: #fff;
-    border-bottom: 1px solid #dee2e6;
-    padding: 8px;
-    gap: 4px;
-}
-
-.panel-btn {
-    flex: 1;
-    min-width: 45%;
-    padding: 8px 12px;
-    border: 1px solid #dee2e6;
-    background: #fff;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-.panel-btn:hover {
-    background: #f0f4ff;
-    border-color: #556ee6;
-}
-
-.panel-btn.active {
-    background: #556ee6;
-    color: #fff;
-    border-color: #556ee6;
-}
-
-.panel-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    display: none;
-}
-
-.panel-content.active {
-    display: block;
-}
-
-/* Style manager improvements */
-#styles-container .gjs-sm-sector-title {
-    padding: 8px 10px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
-}
-
-#styles-container .gjs-field {
-    background: #fff;
-    border-radius: 4px;
-}
-
-/* Layers panel */
-#layers-container .gjs-layer {
-    background: #fff;
-    margin-bottom: 2px;
-    border-radius: 4px;
-}
-
-/* Traits panel */
-#traits-container .gjs-trt-trait {
-    padding: 8px;
-    background: #fff;
-    border-radius: 4px;
-    margin-bottom: 4px;
-}
-
 /* Preview panel */
 .preview-panel {
     background: #f8f9fa;
@@ -383,29 +514,131 @@
 
                     <!-- Visual Builder -->
                     <div id="builderEditor" class="builder-container">
-                        <div class="editor-row">
-                            <div class="editor-canvas">
-                                <div id="gjs"></div>
+                        <!-- Top Toolbar -->
+                        <div class="builder-toolbar">
+                            <div class="toolbar-left">
+                                <button type="button" class="toolbar-btn" id="undoBtn" title="Undo">
+                                    <i class="bx bx-undo"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" id="redoBtn" title="Redo">
+                                    <i class="bx bx-redo"></i>
+                                </button>
+                                <div class="toolbar-divider"></div>
+                                <button type="button" class="toolbar-btn" id="clearBtn" title="Clear Canvas">
+                                    <i class="bx bx-trash"></i>
+                                </button>
                             </div>
-                            <div class="panel-right">
-                                <div class="panel-switcher">
-                                    <button type="button" class="panel-btn active" data-panel="blocks">
-                                        <i class="bx bx-grid-alt"></i> Blocks
+                            <div class="toolbar-right">
+                                <div class="device-buttons">
+                                    <button type="button" class="device-btn active" data-device="Desktop" title="Desktop">
+                                        <i class="bx bx-desktop"></i>
                                     </button>
-                                    <button type="button" class="panel-btn" data-panel="styles">
-                                        <i class="bx bx-paint-roll"></i> Styles
+                                    <button type="button" class="device-btn" data-device="Tablet" title="Tablet">
+                                        <i class="bx bx-tab"></i>
                                     </button>
-                                    <button type="button" class="panel-btn" data-panel="layers">
-                                        <i class="bx bx-layer"></i> Layers
-                                    </button>
-                                    <button type="button" class="panel-btn" data-panel="traits">
-                                        <i class="bx bx-cog"></i> Settings
+                                    <button type="button" class="device-btn" data-device="Mobile" title="Mobile">
+                                        <i class="bx bx-mobile-alt"></i>
                                     </button>
                                 </div>
-                                <div id="blocks-container" class="panel-content active"></div>
-                                <div id="styles-container" class="panel-content"></div>
-                                <div id="layers-container" class="panel-content"></div>
-                                <div id="traits-container" class="panel-content"></div>
+                                <div class="toolbar-divider"></div>
+                                <button type="button" class="toolbar-btn" id="fullscreenBtn" title="Fullscreen">
+                                    <i class="bx bx-fullscreen"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Editor Layout -->
+                        <div class="editor-layout">
+                            <!-- Blocks Sidebar -->
+                            <div class="blocks-sidebar" id="blocksSidebar">
+                                <div class="sidebar-header">
+                                    <div class="sidebar-title">
+                                        <i class="bx bx-grid-alt"></i>
+                                        <span>Blocks</span>
+                                    </div>
+                                    <button type="button" class="toggle-sidebar" id="toggleSidebar" title="Toggle Sidebar">
+                                        <i class="bx bx-chevron-left"></i>
+                                    </button>
+                                </div>
+                                <div class="blocks-content">
+                                    <!-- Text Blocks -->
+                                    <div class="block-category">
+                                        <div class="category-title">Text</div>
+                                        <div class="category-blocks">
+                                            <div class="content-block" data-block="heading">
+                                                <i class="bx bx-heading"></i>
+                                                <span>Heading</span>
+                                            </div>
+                                            <div class="content-block" data-block="paragraph">
+                                                <i class="bx bx-paragraph"></i>
+                                                <span>Paragraph</span>
+                                            </div>
+                                            <div class="content-block" data-block="list">
+                                                <i class="bx bx-list-ul"></i>
+                                                <span>List</span>
+                                            </div>
+                                            <div class="content-block" data-block="quote">
+                                                <i class="bx bxs-quote-left"></i>
+                                                <span>Quote</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Media Blocks -->
+                                    <div class="block-category">
+                                        <div class="category-title">Media</div>
+                                        <div class="category-blocks">
+                                            <div class="content-block" data-block="image">
+                                                <i class="bx bx-image"></i>
+                                                <span>Image</span>
+                                            </div>
+                                            <div class="content-block" data-block="video">
+                                                <i class="bx bx-play-circle"></i>
+                                                <span>Video</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Layout Blocks -->
+                                    <div class="block-category">
+                                        <div class="category-title">Layout</div>
+                                        <div class="category-blocks">
+                                            <div class="content-block" data-block="two-columns">
+                                                <i class="bx bx-columns"></i>
+                                                <span>2 Columns</span>
+                                            </div>
+                                            <div class="content-block" data-block="image-text">
+                                                <i class="bx bx-dock-left"></i>
+                                                <span>Img + Text</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Special Blocks -->
+                                    <div class="block-category">
+                                        <div class="category-title">Special</div>
+                                        <div class="category-blocks">
+                                            <div class="content-block" data-block="callout">
+                                                <i class="bx bx-bulb"></i>
+                                                <span>Callout</span>
+                                            </div>
+                                            <div class="content-block" data-block="button">
+                                                <i class="bx bx-pointer"></i>
+                                                <span>Button</span>
+                                            </div>
+                                            <div class="content-block" data-block="divider">
+                                                <i class="bx bx-minus"></i>
+                                                <span>Divider</span>
+                                            </div>
+                                            <div class="content-block" data-block="card">
+                                                <i class="bx bx-card"></i>
+                                                <span>Card</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Canvas -->
+                            <div class="editor-canvas">
+                                <div id="gjs"></div>
                             </div>
                         </div>
                     </div>
@@ -680,7 +913,6 @@
 <!-- GrapesJS -->
 <script src="https://unpkg.com/grapesjs"></script>
 <script src="https://unpkg.com/grapesjs-preset-webpage"></script>
-<script src="https://unpkg.com/grapesjs-blocks-basic"></script>
 
 <script>
 let editor;
@@ -690,82 +922,133 @@ $(document).ready(function() {
     initGrapesJS();
     initCharCounters();
     initImagePreviews();
+    initBuilderControls();
     updateSeoAnalysis();
-    initPanelSwitching();
 });
 
-function initPanelSwitching() {
-    $('.panel-btn').on('click', function() {
-        const panel = $(this).data('panel');
+// Block content definitions
+const blockContents = {
+    'heading': '<h2 class="mb-3">Your Heading Here</h2>',
+    'paragraph': '<p class="mb-3">Start writing your content here. Click to edit this text and add your own words.</p>',
+    'list': `<ul class="mb-4">
+        <li>First item in your list</li>
+        <li>Second item with details</li>
+        <li>Third item to complete</li>
+    </ul>`,
+    'quote': `<blockquote class="blockquote border-start border-4 border-primary ps-4 py-2 my-4" style="background: #f8f9fa; padding: 20px; border-radius: 0 8px 8px 0;">
+        <p class="mb-2 fst-italic">"Your inspiring quote or important statement goes here."</p>
+        <footer class="blockquote-footer mt-2">Author Name</footer>
+    </blockquote>`,
+    'image': { type: 'image' },
+    'video': `<div class="ratio ratio-16x9 my-4">
+        <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+    </div>`,
+    'two-columns': `<div class="row my-4">
+        <div class="col-md-6"><p>Left column content goes here. Click to edit.</p></div>
+        <div class="col-md-6"><p>Right column content goes here. Click to edit.</p></div>
+    </div>`,
+    'image-text': `<div class="row my-4 align-items-center">
+        <div class="col-md-5"><img src="https://via.placeholder.com/400x300" class="img-fluid rounded shadow-sm" alt="Image"></div>
+        <div class="col-md-7"><h3>Your Heading</h3><p>Describe the image or add related content here. This layout works great for feature highlights.</p></div>
+    </div>`,
+    'callout': `<div class="alert alert-success border-0 my-4" style="border-radius: 8px;">
+        <h5 class="alert-heading"><i class="bx bx-bulb me-2"></i>Pro Tip</h5>
+        <p class="mb-0">Add your helpful tip or important information here. Great for highlighting key points.</p>
+    </div>`,
+    'button': '<div class="my-4"><a href="#" class="btn btn-primary btn-lg px-4">Click Here</a></div>',
+    'divider': '<hr class="my-5" style="border-top: 2px solid #e9ecef;">',
+    'card': `<div class="card my-4 shadow-sm" style="max-width: 400px;">
+        <img src="https://via.placeholder.com/400x200" class="card-img-top" alt="Card image">
+        <div class="card-body">
+            <h5 class="card-title">Card Title</h5>
+            <p class="card-text">Some quick example text to describe this card.</p>
+            <a href="#" class="btn btn-primary">Learn More</a>
+        </div>
+    </div>`
+};
 
-        // Update active button
-        $('.panel-btn').removeClass('active');
+function initBuilderControls() {
+    // Toggle sidebar
+    $('#toggleSidebar').on('click', function() {
+        const sidebar = $('#blocksSidebar');
+        const icon = $(this).find('i');
+        sidebar.toggleClass('collapsed');
+        icon.toggleClass('bx-chevron-left bx-chevron-right');
+    });
+
+    // Block click to insert
+    $('.content-block').on('click', function() {
+        const blockType = $(this).data('block');
+        const content = blockContents[blockType];
+
+        if (content) {
+            editor.addComponents(content);
+            // Visual feedback
+            $(this).addClass('active');
+            setTimeout(() => $(this).removeClass('active'), 200);
+        }
+    });
+
+    // Make blocks draggable
+    $('.content-block').attr('draggable', true);
+    $('.content-block').on('dragstart', function(e) {
+        const blockType = $(this).data('block');
+        e.originalEvent.dataTransfer.setData('blockType', blockType);
+    });
+
+    // Toolbar actions
+    $('#undoBtn').on('click', () => editor.UndoManager.undo());
+    $('#redoBtn').on('click', () => editor.UndoManager.redo());
+
+    $('#clearBtn').on('click', function() {
+        if (confirm('Clear all content? This cannot be undone.')) {
+            editor.DomComponents.clear();
+            editor.setComponents('<div class="container py-3"><p class="text-muted text-center">Click blocks on the left to add content, or drag them here.</p></div>');
+        }
+    });
+
+    // Device switching
+    $('.device-btn').on('click', function() {
+        const device = $(this).data('device');
+        editor.setDevice(device);
+        $('.device-btn').removeClass('active');
         $(this).addClass('active');
+    });
 
-        // Show corresponding panel
-        $('.panel-content').removeClass('active');
-        $('#' + panel + '-container').addClass('active');
+    // Fullscreen toggle
+    $('#fullscreenBtn').on('click', function() {
+        const container = document.querySelector('.builder-container');
+        if (!document.fullscreenElement) {
+            container.requestFullscreen();
+            $(this).find('i').removeClass('bx-fullscreen').addClass('bx-exit-fullscreen');
+        } else {
+            document.exitFullscreen();
+            $(this).find('i').removeClass('bx-exit-fullscreen').addClass('bx-fullscreen');
+        }
     });
 }
 
 function initGrapesJS() {
     editor = grapesjs.init({
         container: '#gjs',
-        height: '600px',
+        height: '100%',
         width: 'auto',
+        fromElement: false,
         storageManager: false,
-        plugins: ['gjs-blocks-basic', 'gjs-preset-webpage'],
+        plugins: ['gjs-preset-webpage'],
         pluginsOpts: {
-            'gjs-blocks-basic': {},
             'gjs-preset-webpage': {
-                modalImportTitle: 'Import Template',
-                modalImportLabel: '<div style="margin-bottom: 10px;">Paste your HTML/CSS here</div>',
-                modalImportContent: function(editor) {
-                    return editor.getHtml() + '<style>' + editor.getCss() + '</style>';
-                },
-                blocksBasicOpts: {
-                    flexGrid: true
-                }
+                blocksBasicOpts: { flexGrid: true },
+                navbarOpts: false,
+                countdownOpts: false,
+                formsOpts: false,
             }
         },
         canvas: {
             styles: [
-                'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'
+                'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+                'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'
             ]
-        },
-        blockManager: {
-            appendTo: '#blocks-container'
-        },
-        layerManager: {
-            appendTo: '#layers-container'
-        },
-        styleManager: {
-            appendTo: '#styles-container',
-            sectors: [
-                {
-                    name: 'Dimension',
-                    open: false,
-                    buildProps: ['width', 'min-width', 'max-width', 'height', 'min-height', 'max-height', 'padding', 'margin']
-                },
-                {
-                    name: 'Typography',
-                    open: false,
-                    buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-decoration', 'text-shadow']
-                },
-                {
-                    name: 'Decorations',
-                    open: false,
-                    buildProps: ['background-color', 'border', 'border-radius', 'box-shadow']
-                },
-                {
-                    name: 'Extra',
-                    open: false,
-                    buildProps: ['opacity', 'transition', 'transform']
-                }
-            ]
-        },
-        traitManager: {
-            appendTo: '#traits-container'
         },
         deviceManager: {
             devices: [
@@ -773,145 +1056,22 @@ function initGrapesJS() {
                 { name: 'Tablet', width: '768px', widthMedia: '992px' },
                 { name: 'Mobile', width: '320px', widthMedia: '480px' },
             ]
-        }
+        },
+        // Disable default block manager (we use custom blocks)
+        blockManager: { appendTo: null },
+        // Disable side panels
+        panels: { defaults: [] },
+        layerManager: { appendTo: null },
+        styleManager: { appendTo: null },
+        traitManager: { appendTo: null },
+        selectorManager: { appendTo: null },
     });
 
-    // Add custom blocks for blog content
-    const blockManager = editor.BlockManager;
+    // Set initial content placeholder
+    editor.setComponents('<div class="container py-4"><p class="text-muted text-center" style="padding: 40px 0;">Click blocks on the left to start building your blog post.</p></div>');
 
-    // Clear default blocks and add custom ones
-    blockManager.add('heading', {
-        label: '<i class="bx bx-heading"></i><div>Heading</div>',
-        category: 'Basic',
-        content: '<h2 class="mb-3">Your Heading Here</h2>',
-    });
-
-    blockManager.add('paragraph', {
-        label: '<i class="bx bx-paragraph"></i><div>Paragraph</div>',
-        category: 'Basic',
-        content: '<p class="mb-3">Start writing your content here. You can add more paragraphs, images, and other elements to create engaging blog posts.</p>',
-    });
-
-    blockManager.add('image', {
-        label: '<i class="bx bx-image"></i><div>Image</div>',
-        category: 'Basic',
-        content: { type: 'image' },
-        activate: true,
-    });
-
-    blockManager.add('two-columns', {
-        label: '<i class="bx bx-columns"></i><div>2 Columns</div>',
-        category: 'Layout',
-        content: `<div class="row mb-4">
-            <div class="col-md-6"><p>Left column content</p></div>
-            <div class="col-md-6"><p>Right column content</p></div>
-        </div>`,
-    });
-
-    blockManager.add('image-text', {
-        label: '<i class="bx bx-dock-left"></i><div>Image + Text</div>',
-        category: 'Layout',
-        content: `<div class="row mb-4 align-items-center">
-            <div class="col-md-5"><img src="https://via.placeholder.com/400x300" class="img-fluid rounded" alt="Image"></div>
-            <div class="col-md-7"><h3>Heading</h3><p>Your text content here describing the image or related topic.</p></div>
-        </div>`,
-    });
-
-    blockManager.add('quote', {
-        label: '<i class="bx bxs-quote-alt-left"></i><div>Quote</div>',
-        category: 'Content',
-        content: `<blockquote class="blockquote border-start border-4 border-success ps-4 py-2 mb-4">
-            <p class="mb-2">"Your inspiring quote or important statement goes here."</p>
-            <footer class="blockquote-footer">Author Name</footer>
-        </blockquote>`,
-    });
-
-    blockManager.add('callout', {
-        label: '<i class="bx bx-info-circle"></i><div>Callout Box</div>',
-        category: 'Content',
-        content: `<div class="alert alert-info border-0 mb-4">
-            <h5><i class="bx bx-bulb me-2"></i>Pro Tip</h5>
-            <p class="mb-0">Add your helpful tip or important information here.</p>
-        </div>`,
-    });
-
-    blockManager.add('list', {
-        label: '<i class="bx bx-list-ul"></i><div>List</div>',
-        category: 'Content',
-        content: `<ul class="mb-4">
-            <li>First item in your list</li>
-            <li>Second item with more details</li>
-            <li>Third item to complete the list</li>
-        </ul>`,
-    });
-
-    blockManager.add('numbered-list', {
-        label: '<i class="bx bx-list-ol"></i><div>Numbered List</div>',
-        category: 'Content',
-        content: `<ol class="mb-4">
-            <li>First step in your process</li>
-            <li>Second step with instructions</li>
-            <li>Third step to complete</li>
-        </ol>`,
-    });
-
-    blockManager.add('divider', {
-        label: '<i class="bx bx-minus"></i><div>Divider</div>',
-        category: 'Basic',
-        content: '<hr class="my-4">',
-    });
-
-    blockManager.add('button', {
-        label: '<i class="bx bx-pointer"></i><div>Button</div>',
-        category: 'Basic',
-        content: '<a href="#" class="btn btn-success btn-lg mb-3">Click Here</a>',
-    });
-
-    blockManager.add('video', {
-        label: '<i class="bx bx-play-circle"></i><div>Video</div>',
-        category: 'Media',
-        content: `<div class="ratio ratio-16x9 mb-4">
-            <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
-        </div>`,
-    });
-
-    blockManager.add('card', {
-        label: '<i class="bx bx-card"></i><div>Card</div>',
-        category: 'Content',
-        content: `<div class="card mb-4">
-            <img src="https://via.placeholder.com/400x200" class="card-img-top" alt="Card image">
-            <div class="card-body">
-                <h5 class="card-title">Card Title</h5>
-                <p class="card-text">Some quick example text for the card content.</p>
-                <a href="#" class="btn btn-primary">Learn More</a>
-            </div>
-        </div>`,
-    });
-
-    // Add panels
-    editor.Panels.addPanel({
-        id: 'panel-top',
-        el: '.panel-top',
-    });
-
-    editor.Panels.addButton('options', [{
-        id: 'save',
-        className: 'fa fa-floppy-o',
-        command: 'save-db',
-        attributes: { title: 'Save' }
-    }]);
-
-    // Set default content
-    editor.setComponents(`
-        <div class="container py-4">
-            <p class="lead mb-4">Start by adding content blocks from the right panel, or drag and drop elements to build your blog post.</p>
-        </div>
-    `);
-
-    // Listen for changes
-    editor.on('change:changesCount', function() {
-        updateSeoAnalysis();
-    });
+    // Track changes for SEO
+    editor.on('change:changesCount', () => updateSeoAnalysis());
 }
 
 function switchEditorMode(mode) {
