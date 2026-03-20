@@ -16,9 +16,103 @@
     background: #fff;
 }
 
+.editor-row {
+    display: flex;
+    height: 600px;
+}
+
+.editor-canvas {
+    flex: 1;
+    overflow: hidden;
+}
+
 #gjs {
     border: none;
-    min-height: 600px;
+    height: 100%;
+}
+
+.panel-right {
+    width: 280px;
+    border-left: 1px solid #dee2e6;
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 8px;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.panel-btn {
+    flex: 1;
+    min-width: 45%;
+    padding: 8px 4px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #495057;
+    transition: all 0.2s;
+}
+
+.panel-btn:hover {
+    background: #e9ecef;
+}
+
+.panel-btn.active {
+    background: #556ee6;
+    color: #fff;
+    border-color: #556ee6;
+}
+
+.panel-btn i {
+    font-size: 14px;
+}
+
+.panel-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.panel-content.active {
+    display: block;
+}
+
+#blocks-container .gjs-block {
+    width: calc(50% - 5px);
+    min-height: 70px;
+    margin: 2px;
+}
+
+#blocks-container .gjs-blocks-c {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+#blocks-container .gjs-block-category {
+    width: 100%;
+}
+
+#blocks-container .gjs-block-category .gjs-title {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-weight: 600;
+    font-size: 12px;
 }
 
 /* GrapesJS Panel Customization */
@@ -314,7 +408,23 @@
 
                     <!-- Visual Builder -->
                     <div id="builderEditor" class="builder-container" style="{{ !$blog->useBuilder ? 'display: none;' : '' }}">
-                        <div id="gjs"></div>
+                        <div class="editor-row">
+                            <div class="editor-canvas">
+                                <div id="gjs"></div>
+                            </div>
+                            <div class="panel-right">
+                                <div class="panel-switcher">
+                                    <button class="panel-btn active" data-panel="blocks"><i class="bx bx-grid-alt"></i> Blocks</button>
+                                    <button class="panel-btn" data-panel="styles"><i class="bx bx-paint-roll"></i> Styles</button>
+                                    <button class="panel-btn" data-panel="layers"><i class="bx bx-layer"></i> Layers</button>
+                                    <button class="panel-btn" data-panel="traits"><i class="bx bx-cog"></i> Settings</button>
+                                </div>
+                                <div id="blocks-container" class="panel-content active"></div>
+                                <div id="styles-container" class="panel-content"></div>
+                                <div id="layers-container" class="panel-content"></div>
+                                <div id="traits-container" class="panel-content"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Code Editor -->
@@ -665,10 +775,25 @@ $(document).ready(function() {
     initGrapesJS();
     initCharCounters();
     initImagePreviews();
+    initPanelSwitcher();
 
     // Trigger initial counter updates
     $('#blogTitle, #blogExcerpt, #metaTitle, #metaDescription').trigger('input');
 });
+
+function initPanelSwitcher() {
+    $('.panel-btn').on('click', function() {
+        const panel = $(this).data('panel');
+
+        // Update button state
+        $('.panel-btn').removeClass('active');
+        $(this).addClass('active');
+
+        // Show corresponding panel
+        $('.panel-content').removeClass('active');
+        $('#' + panel + '-container').addClass('active');
+    });
+}
 
 function initGrapesJS() {
     editor = grapesjs.init({
@@ -679,15 +804,16 @@ function initGrapesJS() {
         plugins: ['gjs-blocks-basic', 'gjs-preset-webpage'],
         pluginsOpts: {
             'gjs-blocks-basic': {},
-            'gjs-preset-webpage': {}
+            'gjs-preset-webpage': {
+                blocksBasicOpts: {
+                    flexGrid: true
+                }
+            }
         },
         canvas: {
             styles: [
                 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'
             ]
-        },
-        panels: {
-            defaults: []
         },
         deviceManager: {
             devices: [
@@ -695,6 +821,35 @@ function initGrapesJS() {
                 { name: 'Tablet', width: '768px', widthMedia: '992px' },
                 { name: 'Mobile', width: '320px', widthMedia: '480px' },
             ]
+        },
+        blockManager: {
+            appendTo: '#blocks-container'
+        },
+        layerManager: {
+            appendTo: '#layers-container'
+        },
+        styleManager: {
+            appendTo: '#styles-container',
+            sectors: [{
+                name: 'General',
+                open: false,
+                buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom']
+            }, {
+                name: 'Dimension',
+                open: false,
+                buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding']
+            }, {
+                name: 'Typography',
+                open: false,
+                buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-shadow']
+            }, {
+                name: 'Decorations',
+                open: false,
+                buildProps: ['background-color', 'border-radius', 'border', 'box-shadow', 'background']
+            }]
+        },
+        traitManager: {
+            appendTo: '#traits-container'
         }
     });
 

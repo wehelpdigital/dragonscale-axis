@@ -187,6 +187,99 @@
     overflow-y: auto;
 }
 
+/* GrapesJS Editor Layout */
+.editor-row {
+    display: flex;
+    height: 600px;
+}
+
+.editor-canvas {
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel-right {
+    width: 280px;
+    background: #f8f9fa;
+    border-left: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
+    padding: 8px;
+    gap: 4px;
+}
+
+.panel-btn {
+    flex: 1;
+    min-width: 45%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.panel-btn:hover {
+    background: #f0f4ff;
+    border-color: #556ee6;
+}
+
+.panel-btn.active {
+    background: #556ee6;
+    color: #fff;
+    border-color: #556ee6;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: none;
+}
+
+.panel-content.active {
+    display: block;
+}
+
+/* Style manager improvements */
+#styles-container .gjs-sm-sector-title {
+    padding: 8px 10px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+}
+
+#styles-container .gjs-field {
+    background: #fff;
+    border-radius: 4px;
+}
+
+/* Layers panel */
+#layers-container .gjs-layer {
+    background: #fff;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+/* Traits panel */
+#traits-container .gjs-trt-trait {
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
 /* Preview panel */
 .preview-panel {
     background: #f8f9fa;
@@ -290,7 +383,31 @@
 
                     <!-- Visual Builder -->
                     <div id="builderEditor" class="builder-container">
-                        <div id="gjs"></div>
+                        <div class="editor-row">
+                            <div class="editor-canvas">
+                                <div id="gjs"></div>
+                            </div>
+                            <div class="panel-right">
+                                <div class="panel-switcher">
+                                    <button type="button" class="panel-btn active" data-panel="blocks">
+                                        <i class="bx bx-grid-alt"></i> Blocks
+                                    </button>
+                                    <button type="button" class="panel-btn" data-panel="styles">
+                                        <i class="bx bx-paint-roll"></i> Styles
+                                    </button>
+                                    <button type="button" class="panel-btn" data-panel="layers">
+                                        <i class="bx bx-layer"></i> Layers
+                                    </button>
+                                    <button type="button" class="panel-btn" data-panel="traits">
+                                        <i class="bx bx-cog"></i> Settings
+                                    </button>
+                                </div>
+                                <div id="blocks-container" class="panel-content active"></div>
+                                <div id="styles-container" class="panel-content"></div>
+                                <div id="layers-container" class="panel-content"></div>
+                                <div id="traits-container" class="panel-content"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Code Editor (Hidden by default) -->
@@ -574,7 +691,22 @@ $(document).ready(function() {
     initCharCounters();
     initImagePreviews();
     updateSeoAnalysis();
+    initPanelSwitching();
 });
+
+function initPanelSwitching() {
+    $('.panel-btn').on('click', function() {
+        const panel = $(this).data('panel');
+
+        // Update active button
+        $('.panel-btn').removeClass('active');
+        $(this).addClass('active');
+
+        // Show corresponding panel
+        $('.panel-content').removeClass('active');
+        $('#' + panel + '-container').addClass('active');
+    });
+}
 
 function initGrapesJS() {
     editor = grapesjs.init({
@@ -591,6 +723,9 @@ function initGrapesJS() {
                 modalImportContent: function(editor) {
                     return editor.getHtml() + '<style>' + editor.getCss() + '</style>';
                 },
+                blocksBasicOpts: {
+                    flexGrid: true
+                }
             }
         },
         canvas: {
@@ -599,10 +734,38 @@ function initGrapesJS() {
             ]
         },
         blockManager: {
-            appendTo: '#blocks',
+            appendTo: '#blocks-container'
         },
-        panels: {
-            defaults: []
+        layerManager: {
+            appendTo: '#layers-container'
+        },
+        styleManager: {
+            appendTo: '#styles-container',
+            sectors: [
+                {
+                    name: 'Dimension',
+                    open: false,
+                    buildProps: ['width', 'min-width', 'max-width', 'height', 'min-height', 'max-height', 'padding', 'margin']
+                },
+                {
+                    name: 'Typography',
+                    open: false,
+                    buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-decoration', 'text-shadow']
+                },
+                {
+                    name: 'Decorations',
+                    open: false,
+                    buildProps: ['background-color', 'border', 'border-radius', 'box-shadow']
+                },
+                {
+                    name: 'Extra',
+                    open: false,
+                    buildProps: ['opacity', 'transition', 'transform']
+                }
+            ]
+        },
+        traitManager: {
+            appendTo: '#traits-container'
         },
         deviceManager: {
             devices: [
