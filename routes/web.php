@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 
 Auth::routes(['verify' => true]);
 
+// Fresh CSRF token endpoint for automatic 419 retry
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->middleware('web');
+
 Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('root')->middleware('auth');
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 Route::get('/dashboard/data', [App\Http\Controllers\DashboardController::class, 'getData'])->name('dashboard.data')->middleware('auth');
@@ -216,6 +221,15 @@ Route::delete('/anisenso-blogs/{id}', [App\Http\Controllers\aniSensoAdmin\BlogsC
 Route::post('/anisenso-blogs/{id}/toggle-featured', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'toggleFeatured'])->name('anisenso-blogs.toggle-featured')->middleware('auth');
 Route::patch('/anisenso-blogs/{id}/status', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'updateStatus'])->name('anisenso-blogs.update-status')->middleware('auth');
 Route::delete('/anisenso-blogs/{id}/image', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'removeImage'])->name('anisenso-blogs.remove-image')->middleware('auth');
+
+// Ani-Senso Chat Support
+Route::get('/anisenso-website-chat-support', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'index'])->name('anisenso-website-chat-support')->middleware('auth');
+Route::get('/anisenso-website-chat-support/conversations', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'getConversations'])->name('anisenso-website-chat-support.conversations')->middleware('auth');
+Route::get('/anisenso-website-chat-support/messages/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'getMessages'])->name('anisenso-website-chat-support.messages')->middleware('auth');
+Route::post('/anisenso-website-chat-support/send/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'sendMessage'])->name('anisenso-website-chat-support.send')->middleware('auth');
+Route::post('/anisenso-website-chat-support/close/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'closeConversation'])->name('anisenso-website-chat-support.close')->middleware('auth');
+Route::post('/anisenso-website-chat-support/reopen/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'reopenConversation'])->name('anisenso-website-chat-support.reopen')->middleware('auth');
+Route::delete('/anisenso-website-chat-support/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'destroy'])->name('anisenso-website-chat-support.destroy')->middleware('auth');
 
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);

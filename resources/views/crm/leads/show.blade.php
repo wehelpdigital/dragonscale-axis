@@ -365,6 +365,30 @@
             </div>
             @endif
 
+            <!-- Support Chat Information -->
+            @if($lead->source && $lead->source->sourceName === 'Support Chat' && $lead->customData->count() > 0)
+            <div class="card card-section">
+                <div class="card-body">
+                    <div class="section-header">
+                        <i class="mdi mdi-chat me-2"></i>Support Chat Information
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                @foreach($lead->customData as $data)
+                                <tr>
+                                    <td class="fw-medium text-dark" style="width: 35%;">{{ $data->fieldName }}</td>
+                                    <td class="text-dark">{{ $data->fieldValue ?: '-' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Notes -->
             @if($lead->notes)
             <div class="card card-section">
@@ -378,8 +402,8 @@
             </div>
             @endif
 
-            <!-- Custom Data -->
-            @if($lead->customData->count() > 0)
+            <!-- Custom Data (only show for non-Support Chat leads) -->
+            @if($lead->customData->count() > 0 && (!$lead->source || $lead->source->sourceName !== 'Support Chat'))
             <div class="card card-section">
                 <div class="card-body">
                     <div class="section-header" style="background: linear-gradient(135deg, #f1b44c 0%, #e09b30 100%);">

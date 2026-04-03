@@ -589,7 +589,7 @@ class LeadsController extends Controller
 
         // Add fullName attribute and format data for each lead
         $leadsData = $leads->getCollection()->map(function ($lead) {
-            $lead->fullName = $lead->full_name;
+            $lead->fullName = $lead->fullName;
             $lead->target_stores = $lead->targetStores;
             $lead->customData = $lead->customData;
             return $lead;
