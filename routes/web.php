@@ -21,6 +21,14 @@ Route::get('/csrf-token', function () {
     return response()->json(['token' => csrf_token()]);
 })->middleware('web');
 
+// Admin heartbeat for chat auto-reply detection
+Route::post('/admin-heartbeat', function () {
+    \DB::table('as_chat_settings')
+        ->where('settingKey', 'last_admin_heartbeat')
+        ->update(['settingValue' => now()->toDateTimeString()]);
+    return response()->json(['ok' => true]);
+})->middleware('auth');
+
 Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('root')->middleware('auth');
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 Route::get('/dashboard/data', [App\Http\Controllers\DashboardController::class, 'getData'])->name('dashboard.data')->middleware('auth');
@@ -230,6 +238,16 @@ Route::post('/anisenso-website-chat-support/send/{id}', [App\Http\Controllers\an
 Route::post('/anisenso-website-chat-support/close/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'closeConversation'])->name('anisenso-website-chat-support.close')->middleware('auth');
 Route::post('/anisenso-website-chat-support/reopen/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'reopenConversation'])->name('anisenso-website-chat-support.reopen')->middleware('auth');
 Route::delete('/anisenso-website-chat-support/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'destroy'])->name('anisenso-website-chat-support.destroy')->middleware('auth');
+
+// Testimonials
+Route::get('/anisenso-website-testimonials', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'index'])->name('anisenso-website-testimonials')->middleware('auth');
+Route::get('/anisenso-website-testimonials/list-for-picker', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'listForPicker'])->name('anisenso-website-testimonials.picker')->middleware('auth');
+Route::post('/anisenso-website-testimonials/add-to-homepage', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'addToHomepage'])->name('anisenso-website-testimonials.add-to-homepage')->middleware('auth');
+Route::post('/anisenso-website-testimonials', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'store'])->name('anisenso-website-testimonials.store')->middleware('auth');
+Route::put('/anisenso-website-testimonials/{id}', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'update'])->name('anisenso-website-testimonials.update')->middleware('auth');
+Route::delete('/anisenso-website-testimonials/{id}', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'destroy'])->name('anisenso-website-testimonials.destroy')->middleware('auth');
+Route::post('/anisenso-website-testimonials/{id}/toggle', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'toggleActive'])->name('anisenso-website-testimonials.toggle')->middleware('auth');
+Route::post('/anisenso-website-chat-support/settings', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'saveSettings'])->name('anisenso-website-chat-support.settings')->middleware('auth');
 
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
@@ -544,6 +562,7 @@ Route::get('/crm-leads-view', [App\Http\Controllers\CRM\LeadsController::class, 
 Route::get('/crm-leads-edit', [App\Http\Controllers\CRM\LeadsController::class, 'edit'])->name('crm-leads.edit')->middleware('auth');
 Route::put('/crm-leads', [App\Http\Controllers\CRM\LeadsController::class, 'update'])->name('crm-leads.update')->middleware('auth');
 Route::delete('/crm-leads', [App\Http\Controllers\CRM\LeadsController::class, 'destroy'])->name('crm-leads.destroy')->middleware('auth');
+Route::post('/crm-leads/bulk-delete', [App\Http\Controllers\CRM\LeadsController::class, 'bulkDestroy'])->name('crm-leads.bulk-destroy')->middleware('auth');
 Route::post('/crm-leads/update-status', [App\Http\Controllers\CRM\LeadsController::class, 'updateStatus'])->name('crm-leads.update-status')->middleware('auth');
 Route::post('/crm-leads/add-activity', [App\Http\Controllers\CRM\LeadsController::class, 'addActivity'])->name('crm-leads.add-activity')->middleware('auth');
 Route::get('/crm-leads/{id}/activities', [App\Http\Controllers\CRM\LeadsController::class, 'getActivities'])->name('crm-leads.activities')->middleware('auth');

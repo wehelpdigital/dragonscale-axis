@@ -6,6 +6,20 @@
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
 <link href="{{ URL::asset('build/libs/select2/css/select2.min.css') }}" rel="stylesheet" type="text/css" />
 <style>
+    #leadsTable .lead-checkbox,
+    #leadsTable #selectAllLeads {
+        width: 1.3em;
+        height: 1.3em;
+        cursor: pointer;
+    }
+    #leadsTable td.checkbox-cell,
+    #leadsTable th.checkbox-cell {
+        vertical-align: middle;
+        background: #f8f9fa;
+        width: 45px;
+        text-align: center;
+        cursor: default;
+    }
     .status-filter-btn {
         padding: 0.35rem 0.75rem;
         border-radius: 20px;
@@ -833,6 +847,17 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
+                        <!-- Bulk Actions Bar -->
+                        <div class="d-flex align-items-center gap-3 px-3 py-2 bg-light border rounded mb-2" id="bulkActionsBar" style="display: none !important;">
+                            <span class="text-dark fw-medium small"><span id="selectedCount">0</span> selected</span>
+                            <button class="btn btn-danger btn-sm" id="btnBulkDelete">
+                                <i class="bx bx-trash me-1"></i>Delete Selected
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" id="btnClearSelection">
+                                <i class="bx bx-x me-1"></i>Clear
+                            </button>
+                        </div>
+
                         <div class="table-responsive">
                             <table class="table table-hover mb-0" id="leadsTable">
                                 <thead class="table-light">
@@ -966,6 +991,28 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
                         <i class="bx bx-trash me-1"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bx bx-trash text-danger me-2"></i>Bulk Delete Leads</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-dark mb-0">Are you sure you want to delete <strong id="bulkDeleteCount">0</strong> selected lead(s)?</p>
+                    <p class="text-secondary small mt-2 mb-0">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmBulkDeleteBtn">
+                        <i class="bx bx-trash me-1"></i> Delete All
                     </button>
                 </div>
             </div>
@@ -1244,6 +1291,7 @@ $(document).ready(function() {
         'email': { label: 'Email', default: false },
         'phone': { label: 'Phone', default: false },
         'contact': { label: 'Contact (Email & Phone)', default: true },
+        'store': { label: 'Store', default: true },
         'source': { label: 'Source', default: true },
         'status': { label: 'Status', default: true },
         'priority': { label: 'Priority', default: true },
@@ -1329,6 +1377,9 @@ $(document).ready(function() {
     function renderTableHeaders() {
         const $headerRow = $('#tableHeaderRow');
         $headerRow.empty();
+
+        // Checkbox column
+        $headerRow.append('<th class="checkbox-cell"><input type="checkbox" class="form-check-input" id="selectAllLeads"></th>');
 
         visibleColumns.forEach(function(colKey) {
             const config = availableColumns[colKey];
@@ -1515,7 +1566,7 @@ $(document).ready(function() {
         if (leads.length === 0) {
             $tbody.html(`
                 <tr>
-                    <td colspan="${visibleColumns.length}" class="text-center py-4">
+                    <td colspan="${visibleColumns.length + 1}" class="text-center py-4">
                         <i class="mdi mdi-account-search text-secondary" style="font-size: 2.5rem;"></i>
                         <p class="text-dark mt-2 mb-0">No leads found.</p>
                         <small class="text-secondary">Add a new lead or adjust your filters.</small>
@@ -1533,6 +1584,7 @@ $(document).ready(function() {
             const priorityColor = priorityColors[lead.leadPriority] || 'secondary';
 
             let rowHtml = `<tr class="lead-row" data-lead-id="${lead.id}">`;
+            rowHtml += `<td class="checkbox-cell"><input type="checkbox" class="form-check-input lead-checkbox" value="${lead.id}"></td>`;
 
             visibleColumns.forEach(function(colKey) {
                 rowHtml += renderColumnCell(colKey, lead, {
@@ -1591,6 +1643,15 @@ $(document).ready(function() {
                         ${!lead.phone && !lead.email ? '<span class="text-secondary">-</span>' : ''}
                     </td>
                 `;
+
+            case 'store':
+                let storeNames = '-';
+                if (lead.target_stores && lead.target_stores.length > 0) {
+                    storeNames = lead.target_stores.map(function(s) {
+                        return '<span class="badge bg-light text-dark me-1 mb-1" style="font-size: 0.78rem;">' + escapeHtml(s.storeName) + '</span>';
+                    }).join('');
+                }
+                return `<td>${storeNames}</td>`;
 
             case 'source':
                 let sourceBadge = '<span class="text-secondary">-</span>';
@@ -1754,7 +1815,7 @@ $(document).ready(function() {
 
     // Row click - go to view
     $(document).on('click', '.lead-row', function(e) {
-        if ($(e.target).closest('button, a').length) return;
+        if ($(e.target).closest('button, a, input[type="checkbox"], label, .checkbox-cell').length) return;
         const leadId = $(this).data('lead-id');
         window.location.href = '{{ url("crm-leads-view") }}?id=' + leadId;
     });
@@ -1912,6 +1973,85 @@ $(document).ready(function() {
             complete: function() {
                 $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Delete');
                 leadToDelete = null;
+            }
+        });
+    });
+
+    // ── Bulk Selection ──
+    var bulkDeleteModal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'));
+
+    function updateBulkBar() {
+        var count = $('.lead-checkbox:checked').length;
+        $('#selectedCount').text(count);
+        if (count > 0) {
+            $('#bulkActionsBar').removeAttr('style').css('display', 'flex');
+        } else {
+            $('#bulkActionsBar').attr('style', 'display: none !important;');
+        }
+        // Update select-all checkbox state
+        var total = $('.lead-checkbox').length;
+        $('#selectAllLeads').prop('checked', total > 0 && count === total);
+        $('#selectAllLeads').prop('indeterminate', count > 0 && count < total);
+    }
+
+    // Select all checkbox
+    $(document).on('change', '#selectAllLeads', function() {
+        $('.lead-checkbox').prop('checked', $(this).is(':checked'));
+        updateBulkBar();
+    });
+
+    // Individual checkbox
+    $(document).on('change', '.lead-checkbox', function() {
+        updateBulkBar();
+    });
+
+    // Clear selection
+    $('#btnClearSelection').on('click', function() {
+        $('.lead-checkbox, #selectAllLeads').prop('checked', false);
+        $('#selectAllLeads').prop('indeterminate', false);
+        updateBulkBar();
+    });
+
+    // Open bulk delete modal
+    $('#btnBulkDelete').on('click', function() {
+        var count = $('.lead-checkbox:checked').length;
+        $('#bulkDeleteCount').text(count);
+        bulkDeleteModal.show();
+    });
+
+    // Confirm bulk delete
+    $('#confirmBulkDeleteBtn').on('click', function() {
+        var ids = [];
+        $('.lead-checkbox:checked').each(function() {
+            ids.push($(this).val());
+        });
+
+        if (ids.length === 0) return;
+
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Deleting...');
+
+        $.ajax({
+            url: '{{ route("crm-leads.bulk-destroy") }}',
+            type: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+            data: { ids: ids },
+            success: function(response) {
+                if (response.success) {
+                    bulkDeleteModal.hide();
+                    toastr.success(response.message, 'Success!');
+                    $('#selectAllLeads').prop('checked', false).prop('indeterminate', false);
+                    updateBulkBar();
+                    loadLeads();
+                } else {
+                    toastr.error(response.message, 'Error!');
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Failed to delete leads', 'Error!');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Delete All');
             }
         });
     });

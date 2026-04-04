@@ -307,10 +307,13 @@ class PublicFormController extends Controller
                 $value = implode(', ', $value);
             }
 
-            // Check if it's a custom field
+            // Check if it's a custom field or store target
             if (str_starts_with($leadField, 'custom:')) {
                 $customFieldName = substr($leadField, 7);
                 $customFields[$customFieldName] = $value;
+            } elseif ($leadField === 'storeTargets') {
+                // Store targets handled after lead creation
+                $leadData['_storeTargets'] = $value;
             } else {
                 // Standard field
                 $leadData[$leadField] = $value;
@@ -324,6 +327,10 @@ class PublicFormController extends Controller
             $leadData['lastName'] = $nameParts[1] ?? '';
             unset($leadData['fullName']);
         }
+
+        // Extract store targets before lead insert
+        $storeTargets = $leadData['_storeTargets'] ?? null;
+        unset($leadData['_storeTargets']);
 
         // Check for duplicate by email
         $existingLead = null;
@@ -368,6 +375,29 @@ class PublicFormController extends Controller
                     'usersId' => $form->usersId,
                     'delete_status' => 'active',
                 ]);
+            }
+        }
+
+        // Handle store targets
+        if (!empty($storeTargets)) {
+            $storeIds = is_array($storeTargets)
+                ? $storeTargets
+                : array_map('trim', explode(',', $storeTargets));
+
+            foreach ($storeIds as $storeId) {
+                if (!$storeId) continue;
+                $exists = \DB::table('crm_lead_store_targets')
+                    ->where('leadId', $lead->id)
+                    ->where('storeId', $storeId)
+                    ->exists();
+                if (!$exists) {
+                    \DB::table('crm_lead_store_targets')->insert([
+                        'leadId' => $lead->id,
+                        'storeId' => $storeId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
         }
 

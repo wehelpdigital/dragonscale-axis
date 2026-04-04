@@ -7,6 +7,7 @@ use App\Models\AsChatConversation;
 use App\Models\AsChatMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AniSensoChatSupportController extends Controller
 {
@@ -20,7 +21,11 @@ class AniSensoChatSupportController extends Controller
             ->orderByDesc('updated_at')
             ->get();
 
-        return view('aniSensoAdmin.chat-support.index', compact('conversations'));
+        $settings = DB::table('as_chat_settings')
+            ->pluck('settingValue', 'settingKey')
+            ->toArray();
+
+        return view('aniSensoAdmin.chat-support.index', compact('conversations', 'settings'));
     }
 
     /**
@@ -194,6 +199,30 @@ class AniSensoChatSupportController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Conversation deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Save chat support settings.
+     */
+    public function saveSettings(Request $request)
+    {
+        $request->validate([
+            'auto_reply_enabled' => 'required|in:0,1',
+            'auto_reply_message' => 'nullable|string|max:1000',
+        ]);
+
+        DB::table('as_chat_settings')
+            ->where('settingKey', 'auto_reply_enabled')
+            ->update(['settingValue' => $request->auto_reply_enabled, 'updated_at' => now()]);
+
+        DB::table('as_chat_settings')
+            ->where('settingKey', 'auto_reply_message')
+            ->update(['settingValue' => $request->auto_reply_message ?? '', 'updated_at' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Settings saved successfully.',
         ]);
     }
 }

@@ -381,17 +381,24 @@
     <!-- Left Panel: Conversation List -->
     <div class="chat-sidebar">
         <div class="chat-sidebar-header">
-            <h5><i class="bx bx-chat me-2"></i>Conversations</h5>
-            <div class="mt-2">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="bx bx-search text-secondary"></i></span>
-                    <input type="text" class="form-control border-start-0" id="conversationSearch" placeholder="Search by name..." style="font-size: 0.82rem;">
-                </div>
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-0"><i class="bx bx-chat me-2"></i>Conversations</h5>
+                <button class="btn btn-sm btn-soft-secondary" id="btnToggleSettings" title="Settings">
+                    <i class="bx bx-cog"></i>
+                </button>
             </div>
-            <div class="chat-filter-tabs">
-                <button class="btn btn-sm btn-primary active" data-filter="all">All</button>
-                <button class="btn btn-sm btn-outline-secondary" data-filter="active">Active</button>
-                <button class="btn btn-sm btn-outline-secondary" data-filter="closed">Closed</button>
+            <div id="chatSearchAndFilters">
+                <div class="mt-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="bx bx-search text-secondary"></i></span>
+                        <input type="text" class="form-control border-start-0" id="conversationSearch" placeholder="Search by name..." style="font-size: 0.82rem;">
+                    </div>
+                </div>
+                <div class="chat-filter-tabs">
+                    <button class="btn btn-sm btn-primary active" data-filter="all">All</button>
+                    <button class="btn btn-sm btn-outline-secondary" data-filter="active">Active</button>
+                    <button class="btn btn-sm btn-outline-secondary" data-filter="closed">Closed</button>
+                </div>
             </div>
         </div>
 
@@ -430,6 +437,55 @@
                 </div>
             @endif
         </ul>
+
+        <!-- Settings Panel (hidden by default) -->
+        <div id="settingsPanel" style="display: none; flex: 1; overflow-y: auto;">
+            <div class="p-3">
+                <div class="d-flex align-items-center mb-3">
+                    <button class="btn btn-sm btn-soft-secondary me-2" id="btnBackToChats" title="Back to conversations">
+                        <i class="bx bx-arrow-back"></i>
+                    </button>
+                    <h6 class="mb-0 text-dark"><i class="bx bx-cog me-1"></i>Settings</h6>
+                </div>
+
+                <!-- Auto-Reply Setting -->
+                <div class="card mb-3 border">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label mb-0 fw-medium text-dark" for="autoReplyEnabled">
+                                <i class="bx bx-reply me-1 text-primary"></i>Auto-Reply
+                            </label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="autoReplyEnabled"
+                                    {{ ($settings['auto_reply_enabled'] ?? '0') === '1' ? 'checked' : '' }}>
+                            </div>
+                        </div>
+                        <p class="text-secondary mb-3" style="font-size: 0.78rem;">
+                            When enabled, new conversations will automatically receive this message if no admin is logged in.
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label text-dark small fw-medium" for="autoReplyMessage">Auto-Reply Message</label>
+                            <textarea
+                                class="form-control"
+                                id="autoReplyMessage"
+                                rows="4"
+                                maxlength="1000"
+                                placeholder="Enter auto-reply message..."
+                                style="font-size: 0.85rem;"
+                            >{{ $settings['auto_reply_message'] ?? '' }}</textarea>
+                            <div class="d-flex justify-content-end mt-1">
+                                <small class="text-secondary" id="autoReplyCharCount">0/1000</small>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary btn-sm w-100" id="btnSaveSettings">
+                            <i class="bx bx-save me-1"></i>Save Settings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Right Panel: Chat Window -->
@@ -702,14 +758,23 @@ $(document).ready(function() {
 
         var html = '';
         messages.forEach(function(msg) {
-            var isAdmin = msg.senderType === 'admin';
-            var textClass = isAdmin ? 'text-white' : 'text-dark';
-            html += '<div class="chat-message ' + msg.senderType + '">';
-            html += '  <div class="chat-bubble">';
-            html += '    <div class="' + textClass + '">' + escapeHtml(msg.message) + '</div>';
-            html += '    <div class="message-time">' + msg.createdAt + '</div>';
-            html += '  </div>';
-            html += '</div>';
+            if (msg.senderType === 'system') {
+                html += '<div class="text-center my-2">';
+                html += '  <div class="d-inline-block bg-light border rounded-3 px-3 py-2" style="max-width: 85%;">';
+                html += '    <div class="text-secondary" style="font-size: 0.8rem;">' + escapeHtml(msg.message) + '</div>';
+                html += '    <div class="text-secondary mt-1" style="font-size: 0.68rem; opacity: 0.6;">' + msg.createdAt + '</div>';
+                html += '  </div>';
+                html += '</div>';
+            } else {
+                var isAdmin = msg.senderType === 'admin';
+                var textClass = isAdmin ? 'text-white' : 'text-dark';
+                html += '<div class="chat-message ' + msg.senderType + '">';
+                html += '  <div class="chat-bubble">';
+                html += '    <div class="' + textClass + '">' + escapeHtml(msg.message) + '</div>';
+                html += '    <div class="message-time">' + msg.createdAt + '</div>';
+                html += '  </div>';
+                html += '</div>';
+            }
         });
 
         $container.html(html);
@@ -911,7 +976,7 @@ $(document).ready(function() {
     refreshConversationList();
     conversationPollInterval = setInterval(function() {
         refreshConversationList();
-    }, 5000);
+    }, 3000);
 
     function refreshConversationList() {
         var activeFilter = $('.chat-filter-tabs .btn.active').data('filter');
@@ -1018,6 +1083,53 @@ $(document).ready(function() {
             titleFlashInterval = null;
             document.title = originalTitle;
         }
+    });
+
+    // ── Utility ──
+    // ── Settings Panel ──
+    $('#btnToggleSettings').on('click', function() {
+        $('#conversationList, #chatSearchAndFilters').hide();
+        $('#settingsPanel').show();
+        updateCharCount();
+    });
+
+    $('#btnBackToChats').on('click', function() {
+        $('#settingsPanel').hide();
+        $('#conversationList, #chatSearchAndFilters').show();
+    });
+
+    // Character count
+    function updateCharCount() {
+        var len = $('#autoReplyMessage').val().length;
+        $('#autoReplyCharCount').text(len + '/1000');
+    }
+    $('#autoReplyMessage').on('input', updateCharCount);
+
+    // Save settings
+    $('#btnSaveSettings').on('click', function() {
+        var $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
+
+        $.ajax({
+            url: '{{ route("anisenso-website-chat-support.settings") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                auto_reply_enabled: $('#autoReplyEnabled').is(':checked') ? '1' : '0',
+                auto_reply_message: $('#autoReplyMessage').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(response.message);
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON?.message || 'Failed to save settings');
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Settings');
+            }
+        });
     });
 
     // ── Utility ──

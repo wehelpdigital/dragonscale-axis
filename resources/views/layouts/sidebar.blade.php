@@ -262,6 +262,11 @@
                                         <span key="t-anisenso-blogs">Blog</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-website-testimonials*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-website-testimonials') }}" class="waves-effect {{ request()->is('anisenso-website-testimonials*') ? 'active' : '' }}">
+                                        <span key="t-anisenso-testimonials">Testimonials</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('anisenso-website-chat-support*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-website-chat-support') }}" class="waves-effect {{ request()->is('anisenso-website-chat-support*') ? 'active' : '' }}">
                                         <span key="t-anisenso-chat-support">Chat Support</span>

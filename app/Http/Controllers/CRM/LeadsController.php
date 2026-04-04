@@ -380,6 +380,25 @@ class LeadsController extends Controller
     }
 
     /**
+     * Bulk delete leads.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return response()->json(['success' => false, 'message' => 'No leads selected.'], 422);
+        }
+
+        $count = CrmLead::active()->whereIn('id', $ids)->update(['delete_status' => 'deleted']);
+
+        return response()->json([
+            'success' => true,
+            'message' => $count . ' lead(s) deleted successfully!',
+        ]);
+    }
+
+    /**
      * Update lead status via AJAX.
      */
     public function updateStatus(Request $request)

@@ -132,6 +132,7 @@ class CrmLead extends BaseModel
         'leadPriority' => ['label' => 'Lead Priority', 'required' => false],
         'referredBy' => ['label' => 'Referred By', 'required' => false],
         'notes' => ['label' => 'Notes', 'required' => false],
+        'storeTargets' => ['label' => 'Store (ID)', 'required' => false, 'hint' => 'Store ID to assign the lead to'],
     ];
 
     /**

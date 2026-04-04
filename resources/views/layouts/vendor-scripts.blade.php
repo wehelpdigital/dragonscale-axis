@@ -157,4 +157,17 @@ $(document).ready(function() {
 });
 </script>
 
+<!-- Admin heartbeat for chat auto-reply detection -->
+@auth
+<script>
+(function() {
+    function sendHeartbeat() {
+        $.post('/admin-heartbeat');
+    }
+    sendHeartbeat();
+    setInterval(sendHeartbeat, 20000);
+})();
+</script>
+@endauth
+
 @yield('script-bottom')
