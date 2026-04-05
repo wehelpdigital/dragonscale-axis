@@ -16,6 +16,8 @@ class CrmLead extends BaseModel
         'leadPriority',
         'leadSourceId',
         'leadSourceOther',
+        'formId',
+        'formStoreId',
         'referredBy',
         'firstName',
         'middleName',
@@ -257,6 +259,22 @@ class CrmLead extends BaseModel
     public function source()
     {
         return $this->belongsTo(CrmLeadSource::class, 'leadSourceId');
+    }
+
+    /**
+     * Get the form that created this lead
+     */
+    public function form()
+    {
+        return $this->belongsTo(CrmForm::class, 'formId');
+    }
+
+    /**
+     * Get the store associated with this lead's form
+     */
+    public function formStore()
+    {
+        return $this->belongsTo(EcomProductStore::class, 'formStoreId');
     }
 
     /**

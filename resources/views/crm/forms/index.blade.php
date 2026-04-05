@@ -285,7 +285,8 @@
                             <tr>
                                 <th style="width: 50px;">#</th>
                                 <th>Form Name</th>
-                                <th>Public URL</th>
+                                <th style="width: 100px;">Type</th>
+                                <th>Store</th>
                                 <th style="width: 100px;">Status</th>
                                 <th style="width: 100px;">Submissions</th>
                                 <th style="width: 120px;">Created</th>
@@ -305,13 +306,15 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($form->formStatus === 'active')
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="form-url">{{ url('/f/' . $form->formSlug) }}</span>
-                                        <button type="button" class="btn btn-soft-secondary btn-sm copy-url" data-url="{{ url('/f/' . $form->formSlug) }}" title="Copy URL">
-                                            <i class="bx bx-copy"></i>
-                                        </button>
-                                    </div>
+                                    @if($form->formType === 'custom')
+                                    <span class="badge bg-info text-white">Custom</span>
+                                    @else
+                                    <span class="badge bg-primary">Default</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($form->store)
+                                    <span class="text-dark">{{ $form->store->storeName }}</span>
                                     @else
                                     <span class="text-secondary">—</span>
                                     @endif
@@ -352,7 +355,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5">
+                                <td colspan="8" class="text-center py-5">
                                     <div class="empty-state-icon mx-auto mb-3" style="width: 60px; height: 60px; border-radius: 50%; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
                                         <i class="bx bx-file-blank" style="font-size: 1.75rem; color: #adb5bd;"></i>
                                     </div>
@@ -412,21 +415,13 @@ $(document).ready(function() {
         order: [[0, 'desc']],
         pageLength: 25,
         columnDefs: [
-            { orderable: false, targets: [6] }
+            { orderable: false, targets: [7] }
         ],
         language: {
             emptyTable: "No forms found"
         }
     });
     @endif
-
-    // Copy URL
-    $('.copy-url').on('click', function() {
-        const url = $(this).data('url');
-        navigator.clipboard.writeText(url).then(function() {
-            toastr.success('URL copied to clipboard!');
-        });
-    });
 
     // Duplicate form
     $('.duplicate-form').on('click', function() {

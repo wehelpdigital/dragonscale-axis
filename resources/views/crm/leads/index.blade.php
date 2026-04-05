@@ -1291,6 +1291,8 @@ $(document).ready(function() {
         'email': { label: 'Email', default: false },
         'phone': { label: 'Phone', default: false },
         'contact': { label: 'Contact (Email & Phone)', default: true },
+        'formSource': { label: 'Form Source', default: true },
+        'formStore': { label: 'Form Store', default: true },
         'store': { label: 'Store', default: true },
         'source': { label: 'Source', default: true },
         'status': { label: 'Status', default: true },
@@ -1643,6 +1645,12 @@ $(document).ready(function() {
                         ${!lead.phone && !lead.email ? '<span class="text-secondary">-</span>' : ''}
                     </td>
                 `;
+
+            case 'formSource':
+                return `<td>${lead.form_name ? '<span class="badge bg-soft-primary text-primary">' + escapeHtml(lead.form_name) + '</span>' : '<span class="text-secondary">-</span>'}</td>`;
+
+            case 'formStore':
+                return `<td>${lead.form_store_name ? '<span class="badge bg-light text-dark" style="font-size: 0.78rem;">' + escapeHtml(lead.form_store_name) + '</span>' : '<span class="text-secondary">-</span>'}</td>`;
 
             case 'store':
                 let storeNames = '-';

@@ -17,7 +17,6 @@ class BusinessContactsController extends Controller
     public function index(Request $request)
     {
         $query = CrmBusinessContact::active()
-            ->forUser(Auth::id())
             ->with('stores');
 
         // Filter by contact type
@@ -185,7 +184,6 @@ class BusinessContactsController extends Controller
     public function show(Request $request)
     {
         $contact = CrmBusinessContact::where('id', $request->id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->with('stores')
             ->firstOrFail();
@@ -199,7 +197,6 @@ class BusinessContactsController extends Controller
     public function edit(Request $request)
     {
         $contact = CrmBusinessContact::where('id', $request->id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->with('stores')
             ->firstOrFail();
@@ -215,7 +212,6 @@ class BusinessContactsController extends Controller
     public function update(Request $request)
     {
         $contact = CrmBusinessContact::where('id', $request->id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->firstOrFail();
 
@@ -322,7 +318,6 @@ class BusinessContactsController extends Controller
     public function destroy(Request $request, $id)
     {
         $contact = CrmBusinessContact::where('id', $id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 
@@ -348,7 +343,6 @@ class BusinessContactsController extends Controller
     public function updateStatus(Request $request)
     {
         $contact = CrmBusinessContact::where('id', $request->id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 
@@ -389,7 +383,6 @@ class BusinessContactsController extends Controller
     public function updateLastContact(Request $request)
     {
         $contact = CrmBusinessContact::where('id', $request->id)
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->first();
 

@@ -539,7 +539,7 @@ class LeadsController extends Controller
     public function getData(Request $request)
     {
         $query = CrmLead::active()
-            ->with(['source', 'assignee', 'targetStores', 'customData']);
+            ->with(['source', 'assignee', 'targetStores', 'customData', 'form', 'formStore']);
 
         // Apply filters
         if ($request->filled('status')) {
@@ -611,6 +611,8 @@ class LeadsController extends Controller
             $lead->fullName = $lead->fullName;
             $lead->target_stores = $lead->targetStores;
             $lead->customData = $lead->customData;
+            $lead->form_name = $lead->form ? $lead->form->formName : null;
+            $lead->form_store_name = $lead->formStore ? $lead->formStore->storeName : null;
             return $lead;
         });
 

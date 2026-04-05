@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CRM;
 use App\Http\Controllers\Controller;
 use App\Models\CrmForm;
 use App\Models\CrmFormSubmission;
+use App\Models\EcomStoreSmtpSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +26,12 @@ class PublicFormController extends Controller
         // Increment view count
         $form->incrementViews();
 
-        return view('crm.forms.public', compact('form'));
+        // Select template based on pageTemplate setting
+        $template = $form->pageTemplate === 'split-layout'
+            ? 'crm.forms.public-split'
+            : 'crm.forms.public';
+
+        return view($template, compact('form'));
     }
 
     /**
@@ -136,7 +142,7 @@ class PublicFormController extends Controller
             if ($element['type'] === 'email' && !$submitterEmail) {
                 $submitterEmail = $value;
             }
-            if ($element['type'] === 'text' && stripos($element['label'], 'name') !== false && !$submitterName) {
+            if ($element['type'] === 'text' && (stripos($element['label'], 'name') !== false || stripos($element['label'], 'pangalan') !== false) && !$submitterName) {
                 $submitterName = $value;
             }
         }
@@ -259,19 +265,110 @@ class PublicFormController extends Controller
     {
         $to = $this->replaceVariables($config['to'] ?? '', $submission);
         $subject = $this->replaceVariables($config['subject'] ?? 'New Form Submission', $submission);
-        $body = $this->replaceVariables($config['body'] ?? '', $submission);
+        $template = $config['template'] ?? null;
+
+        if (empty($to)) {
+            $to = $submission->submitterEmail;
+        }
 
         if (empty($to)) {
             throw new \Exception('Email recipient is required');
         }
 
-        // Simple mail sending (in production, use proper Mail class)
-        Mail::raw($body, function ($message) use ($to, $subject) {
-            $message->to($to)
-                ->subject($subject);
-        });
+        $form = $submission->form;
+
+        // Use store SMTP settings if form is assigned to a store
+        $mailer = $this->getStoreMailer($form);
+
+        // Build email data
+        $fromEmail = null;
+        $fromName = null;
+        if ($form->storeId) {
+            $smtp = EcomStoreSmtpSetting::active()->where('storeId', $form->storeId)->first();
+            if ($smtp && $smtp->isConfigured()) {
+                $fromEmail = $smtp->smtpFromEmail;
+                $fromName = $smtp->smtpFromName;
+            }
+        }
+
+        if ($template === 'form-thank-you') {
+            $submissionData = $submission->submissionData ?? [];
+            $formElements = $form->formElements ?? [];
+
+            // Build human-readable field summary (skip hidden fields)
+            $submissionFields = [];
+            foreach ($formElements as $element) {
+                $fieldId = $element['id'] ?? '';
+                $type = $element['type'] ?? '';
+                if ($type === 'hidden' || empty($fieldId)) continue;
+
+                $value = $submissionData[$fieldId] ?? null;
+                if ($value === null) continue;
+
+                if (is_array($value)) {
+                    $value = implode(', ', $value);
+                }
+
+                $submissionFields[] = [
+                    'label' => $element['label'] ?? $fieldId,
+                    'value' => $value,
+                ];
+            }
+
+            $mailer->send('emails.form-thank-you', [
+                'subject' => $subject,
+                'submitterName' => $submission->submitterName ?? 'Kaibigan',
+                'submissionFields' => $submissionFields,
+            ], function ($message) use ($to, $subject, $fromEmail, $fromName) {
+                $message->to($to)->subject($subject);
+                if ($fromEmail) {
+                    $message->from($fromEmail, $fromName ?: config('app.name'));
+                }
+            });
+        } else {
+            $body = $this->replaceVariables($config['body'] ?? '', $submission);
+            $mailer->raw($body, function ($message) use ($to, $subject, $fromEmail, $fromName) {
+                $message->to($to)->subject($subject);
+                if ($fromEmail) {
+                    $message->from($fromEmail, $fromName ?: config('app.name'));
+                }
+            });
+        }
 
         return ['sent_to' => $to];
+    }
+
+    /**
+     * Get a mailer instance configured with the store's SMTP settings
+     */
+    private function getStoreMailer(CrmForm $form)
+    {
+        if (!$form->storeId) {
+            return Mail::mailer();
+        }
+
+        $smtp = EcomStoreSmtpSetting::active()->where('storeId', $form->storeId)->first();
+
+        if (!$smtp || !$smtp->isConfigured()) {
+            Log::warning('Store SMTP not configured, falling back to default', ['storeId' => $form->storeId]);
+            return Mail::mailer();
+        }
+
+        // Dynamically register the store's SMTP mailer config
+        $mailerName = 'store_' . $form->storeId;
+
+        config([
+            "mail.mailers.{$mailerName}" => [
+                'transport' => 'smtp',
+                'host' => $smtp->smtpHost,
+                'port' => $smtp->smtpPort,
+                'encryption' => $smtp->smtpEncryption,
+                'username' => $smtp->smtpUsername,
+                'password' => $smtp->decryptedPassword,
+            ],
+        ]);
+
+        return Mail::mailer($mailerName);
     }
 
     /**
@@ -283,22 +380,31 @@ class PublicFormController extends Controller
         $fieldMappings = $config['fieldMappings'] ?? [];
         $form = $submission->form;
 
+        // Resolve lead source ID from source name
+        $sourceName = $config['source'] ?? 'form';
+        $leadSource = \App\Models\CrmLeadSource::where('sourceName', $sourceName)->first();
+
         // Prepare lead data from mappings
         $leadData = [
             'usersId' => $form->usersId,
             'leadStatus' => $config['status'] ?? 'new',
-            'leadSourceOther' => $config['source'] ?? 'form',
+            'leadSourceId' => $leadSource ? $leadSource->id : null,
+            'leadSourceOther' => $sourceName,
+            'formId' => $form->id,
+            'formStoreId' => $form->storeId,
             'delete_status' => 'active',
         ];
         $customFields = [];
 
         // Process field mappings
+        $mappedFormFields = [];
         foreach ($fieldMappings as $mapping) {
             $formField = $mapping['formField'] ?? '';
             $leadField = $mapping['leadField'] ?? '';
 
             if (empty($formField) || empty($leadField)) continue;
 
+            $mappedFormFields[] = $formField;
             $value = $submissionData[$formField] ?? null;
             if ($value === null) continue;
 
@@ -320,6 +426,25 @@ class PublicFormController extends Controller
             }
         }
 
+        // Auto-save unmapped form fields as custom fields
+        $formElements = $form->formElements ?? [];
+        $skipTypes = ['hidden', 'heading', 'paragraph', 'divider', 'submit_button', 'image', 'video'];
+        foreach ($formElements as $element) {
+            $fieldId = $element['id'] ?? '';
+            $type = $element['type'] ?? '';
+            if (empty($fieldId) || in_array($type, $skipTypes)) continue;
+            if (in_array($fieldId, $mappedFormFields)) continue;
+
+            $value = $submissionData[$fieldId] ?? null;
+            if ($value === null || $value === '') continue;
+
+            if (is_array($value)) {
+                $value = implode(', ', $value);
+            }
+
+            $customFields[$element['label'] ?? $fieldId] = $value;
+        }
+
         // Handle fullName -> split into firstName/lastName
         if (isset($leadData['fullName']) && !empty($leadData['fullName'])) {
             $nameParts = explode(' ', $leadData['fullName'], 2);
@@ -336,7 +461,6 @@ class PublicFormController extends Controller
         $existingLead = null;
         if (!empty($leadData['email'])) {
             $existingLead = \App\Models\CrmLead::active()
-                ->forUser($form->usersId)
                 ->where('email', $leadData['email'])
                 ->first();
         }

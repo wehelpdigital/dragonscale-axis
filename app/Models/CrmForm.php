@@ -12,6 +12,8 @@ class CrmForm extends BaseModel
         'usersId',
         'formName',
         'formSlug',
+        'formType',
+        'storeId',
         'apiKey',
         'apiEnabled',
         'formDescription',
@@ -19,6 +21,8 @@ class CrmForm extends BaseModel
         'formSettings',
         'formElements',
         'triggerFlow',
+        'pageContent',
+        'pageTemplate',
         'submitCount',
         'viewCount',
         'delete_status',
@@ -29,6 +33,7 @@ class CrmForm extends BaseModel
         'formSettings' => 'array',
         'formElements' => 'array',
         'triggerFlow' => 'array',
+        'pageContent' => 'array',
         'submitCount' => 'integer',
         'viewCount' => 'integer',
         'apiEnabled' => 'boolean',
@@ -97,6 +102,14 @@ class CrmForm extends BaseModel
     public function user()
     {
         return $this->belongsTo(User::class, 'usersId');
+    }
+
+    /**
+     * Get the store assigned to this form
+     */
+    public function store()
+    {
+        return $this->belongsTo(EcomProductStore::class, 'storeId');
     }
 
     /**

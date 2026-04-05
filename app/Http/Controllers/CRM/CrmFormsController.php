@@ -8,6 +8,7 @@ use App\Models\CrmFormSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use App\Models\EcomProductStore;
 use Illuminate\Support\Str;
 
 class CrmFormsController extends Controller
@@ -18,7 +19,7 @@ class CrmFormsController extends Controller
     public function index()
     {
         $forms = CrmForm::active()
-            ->forUser(Auth::id())
+            ->with('store')
             ->withCount(['submissions' => function($query) {
                 $query->active();
             }])
@@ -35,11 +36,13 @@ class CrmFormsController extends Controller
     {
         $formElements = $this->getAvailableFormElements();
         $accessTags = $this->getAccessTags();
+        $stores = EcomProductStore::active()->enabled()->orderBy('storeName')->get();
 
         return view('crm.forms.builder', [
             'form' => null,
             'formElements' => $formElements,
             'accessTags' => $accessTags,
+            'stores' => $stores,
             'mode' => 'create',
         ]);
     }
@@ -56,6 +59,9 @@ class CrmFormsController extends Controller
             'formElements' => 'nullable|array',
             'formSettings' => 'nullable|array',
             'triggerFlow' => 'nullable|array',
+            'pageContent' => 'nullable|array',
+            'pageTemplate' => 'nullable|string|in:default,split-layout',
+            'storeId' => 'nullable|integer|exists:ecom_product_stores,id',
         ]);
 
         if ($validator->fails()) {
@@ -72,9 +78,12 @@ class CrmFormsController extends Controller
             'formSlug' => CrmForm::generateUniqueSlug($request->formName),
             'formDescription' => $request->formDescription,
             'formStatus' => $request->formStatus,
+            'storeId' => $request->storeId,
             'formElements' => $request->formElements ?? [],
             'formSettings' => array_merge(CrmForm::getDefaultSettings(), $request->formSettings ?? []),
             'triggerFlow' => $request->triggerFlow ?? [],
+            'pageContent' => $request->pageContent ?? [],
+            'pageTemplate' => $request->pageTemplate ?? 'default',
             'delete_status' => 'active',
         ]);
 
@@ -92,16 +101,18 @@ class CrmFormsController extends Controller
     public function edit(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $formElements = $this->getAvailableFormElements();
         $accessTags = $this->getAccessTags();
 
+        $stores = EcomProductStore::active()->enabled()->orderBy('storeName')->get();
+
         return view('crm.forms.builder', [
             'form' => $form,
             'formElements' => $formElements,
             'accessTags' => $accessTags,
+            'stores' => $stores,
             'mode' => 'edit',
         ]);
     }
@@ -112,7 +123,6 @@ class CrmFormsController extends Controller
     public function update(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $validator = Validator::make($request->all(), [
@@ -122,6 +132,9 @@ class CrmFormsController extends Controller
             'formElements' => 'nullable|array',
             'formSettings' => 'nullable|array',
             'triggerFlow' => 'nullable|array',
+            'pageContent' => 'nullable|array',
+            'pageTemplate' => 'nullable|string|in:default,split-layout',
+            'storeId' => 'nullable|integer|exists:ecom_product_stores,id',
         ]);
 
         if ($validator->fails()) {
@@ -136,9 +149,12 @@ class CrmFormsController extends Controller
             'formName' => $request->formName,
             'formDescription' => $request->formDescription,
             'formStatus' => $request->formStatus,
+            'storeId' => $request->storeId,
             'formElements' => $request->formElements ?? [],
             'formSettings' => array_merge(CrmForm::getDefaultSettings(), $request->formSettings ?? []),
             'triggerFlow' => $request->triggerFlow ?? [],
+            'pageContent' => $request->pageContent ?? [],
+            'pageTemplate' => $request->pageTemplate ?? 'default',
         ]);
 
         return response()->json([
@@ -154,7 +170,6 @@ class CrmFormsController extends Controller
     public function destroy(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $form->update(['delete_status' => 'deleted']);
@@ -171,7 +186,6 @@ class CrmFormsController extends Controller
     public function duplicate(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $newForm = CrmForm::create([
@@ -199,7 +213,6 @@ class CrmFormsController extends Controller
     public function toggleStatus(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $newStatus = $form->formStatus === 'active' ? 'inactive' : 'active';
@@ -218,7 +231,6 @@ class CrmFormsController extends Controller
     public function submissions(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $submissions = CrmFormSubmission::active()
@@ -235,7 +247,6 @@ class CrmFormsController extends Controller
     public function getSubmission(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $submission = CrmFormSubmission::active()
@@ -262,7 +273,6 @@ class CrmFormsController extends Controller
     public function deleteSubmission(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $submission = CrmFormSubmission::active()
@@ -283,7 +293,6 @@ class CrmFormsController extends Controller
     public function exportSubmissions(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $submissions = CrmFormSubmission::active()
@@ -567,7 +576,6 @@ class CrmFormsController extends Controller
     public function preview(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         return view('crm.forms.preview', compact('form'));
@@ -631,7 +639,6 @@ class CrmFormsController extends Controller
     public function generateApiKey(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $apiKey = $form->generateApiKey();
@@ -649,7 +656,6 @@ class CrmFormsController extends Controller
     public function toggleApi(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->id);
 
         $form->apiEnabled = !$form->apiEnabled;
@@ -671,7 +677,6 @@ class CrmFormsController extends Controller
 
         // Get custom field names used across all leads for this user
         $customFields = \DB::table('crm_lead_custom_data')
-            ->where('usersId', Auth::id())
             ->where('delete_status', 'active')
             ->select('fieldName')
             ->distinct()

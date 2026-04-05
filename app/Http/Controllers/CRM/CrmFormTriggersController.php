@@ -17,7 +17,6 @@ class CrmFormTriggersController extends Controller
     public function index(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $triggers = CrmFormTrigger::active()
@@ -34,7 +33,6 @@ class CrmFormTriggersController extends Controller
     public function builder(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $trigger = null;
@@ -55,7 +53,6 @@ class CrmFormTriggersController extends Controller
     public function store(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $validator = Validator::make($request->all(), [
@@ -97,7 +94,6 @@ class CrmFormTriggersController extends Controller
     public function update(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $trigger = CrmFormTrigger::active()
@@ -141,7 +137,6 @@ class CrmFormTriggersController extends Controller
     public function destroy(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $trigger = CrmFormTrigger::active()
@@ -162,7 +157,6 @@ class CrmFormTriggersController extends Controller
     public function toggleStatus(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $trigger = CrmFormTrigger::active()
@@ -185,7 +179,6 @@ class CrmFormTriggersController extends Controller
     public function logs(Request $request)
     {
         $form = CrmForm::active()
-            ->forUser(Auth::id())
             ->findOrFail($request->formId);
 
         $trigger = CrmFormTrigger::active()

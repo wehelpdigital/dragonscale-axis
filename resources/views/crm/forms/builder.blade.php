@@ -422,6 +422,111 @@
     color: #556ee6;
     border-bottom: 2px solid #556ee6;
 }
+
+/* Content Tab - Page Content Builder */
+.content-builder-container {
+    display: flex;
+    gap: 1rem;
+    min-height: 500px;
+}
+.content-blocks-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+}
+.content-block-type {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    margin-bottom: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.content-block-type:hover {
+    border-color: #556ee6;
+    background: #f8f9ff;
+}
+.content-block-type i {
+    font-size: 1.125rem;
+    color: #556ee6;
+}
+.content-block-type span {
+    font-size: 0.8125rem;
+    color: #495057;
+}
+.content-canvas-area {
+    flex: 1;
+    min-width: 0;
+}
+.content-block-item {
+    position: relative;
+    padding: 0.75rem 1rem;
+    padding-right: 7rem;
+    margin-bottom: 0.5rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+}
+.content-block-item:hover {
+    border-color: #556ee6;
+    box-shadow: 0 0 0 2px rgba(85, 110, 230, 0.1);
+}
+.content-block-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+}
+.content-block-actions .btn {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.7rem;
+    line-height: 1;
+}
+.content-block-item [contenteditable="true"] {
+    outline: none;
+    border-bottom: 1px dashed transparent;
+    min-height: 1.5em;
+}
+.content-block-item [contenteditable="true"]:focus {
+    border-bottom-color: #556ee6;
+}
+.content-block-item .list-editor-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.375rem;
+}
+.content-block-item .list-editor-item input {
+    flex: 1;
+    border: 1px solid #e9ecef;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+}
+.content-block-item .list-editor-item input:focus {
+    outline: none;
+    border-color: #556ee6;
+}
+.content-canvas-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    color: #74788d;
+    border: 2px dashed #ced4da;
+    border-radius: 0.5rem;
+}
+.content-canvas-empty i {
+    font-size: 2.5rem;
+    color: #ced4da;
+    margin-bottom: 0.75rem;
+}
 </style>
 @endsection
 
@@ -447,6 +552,12 @@
             </div>
             <div class="col-md-6 text-end">
                 <div class="d-flex justify-content-end gap-2">
+                    <select class="form-select" id="formStore" style="width: auto;">
+                        <option value="">— No Store —</option>
+                        @foreach($stores as $store)
+                        <option value="{{ $store->id }}" {{ ($form->storeId ?? '') == $store->id ? 'selected' : '' }}>{{ $store->storeName }}</option>
+                        @endforeach
+                    </select>
                     <select class="form-select" id="formStatus" style="width: auto;">
                         <option value="draft" {{ ($form->formStatus ?? 'draft') === 'draft' ? 'selected' : '' }}>Draft</option>
                         <option value="active" {{ ($form->formStatus ?? '') === 'active' ? 'selected' : '' }}>Active</option>
@@ -479,6 +590,11 @@
     <li class="nav-item">
         <a class="nav-link" data-bs-toggle="tab" href="#apiTab" role="tab">
             <i class="bx bx-code-alt me-1"></i>API
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#contentTab" role="tab">
+            <i class="bx bx-text me-1"></i>Page Content
         </a>
     </li>
 </ul>
@@ -752,6 +868,87 @@
             </div>
         </div>
     </div>
+
+    <!-- Content Tab -->
+    <div class="tab-pane fade" id="contentTab" role="tabpanel">
+        <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0 small"><i class="bx bx-text me-2"></i>Page Content</h6>
+                <span class="badge bg-soft-info text-info">For split-layout custom forms</span>
+            </div>
+            <div class="card-body">
+                <!-- Content Block Editor -->
+                <div id="contentEditorSection">
+                    <h6 class="text-dark mb-3"><i class="bx bx-edit me-1"></i>Content Blocks</h6>
+                    <p class="text-secondary small mb-3">Add and arrange content blocks that appear on the left side of the page layout.</p>
+
+                    <div class="content-builder-container">
+                        <!-- Block Types Sidebar -->
+                        <div class="content-blocks-sidebar">
+                            <div class="card mb-0 h-100">
+                                <div class="card-header py-2">
+                                    <h6 class="card-title mb-0 small"><i class="bx bx-plus-circle me-1"></i>Add Block</h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="content-block-type" data-block-type="heading">
+                                        <i class="bx bx-heading"></i>
+                                        <span>Heading</span>
+                                    </div>
+                                    <div class="content-block-type" data-block-type="paragraph">
+                                        <i class="bx bx-paragraph"></i>
+                                        <span>Paragraph</span>
+                                    </div>
+                                    <div class="content-block-type" data-block-type="list">
+                                        <i class="bx bx-list-ul"></i>
+                                        <span>List</span>
+                                    </div>
+                                    <div class="content-block-type" data-block-type="image">
+                                        <i class="bx bx-image"></i>
+                                        <span>Image</span>
+                                    </div>
+                                    <div class="content-block-type" data-block-type="divider">
+                                        <i class="bx bx-minus"></i>
+                                        <span>Divider</span>
+                                    </div>
+
+                                    <hr class="my-3">
+                                    <div class="bg-soft-secondary p-2 rounded small">
+                                        <strong class="text-dark d-block mb-1"><i class="bx bx-info-circle me-1"></i>Tips</strong>
+                                        <ul class="text-secondary ps-3 mb-0" style="font-size: 0.6875rem;">
+                                            <li>Click a block type to add it</li>
+                                            <li>Use arrows to reorder</li>
+                                            <li>Click text to edit inline</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Area -->
+                        <div class="content-canvas-area">
+                            <div class="card mb-3 h-100">
+                                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0 small"><i class="bx bx-layer me-1"></i>Content Blocks</h6>
+                                    <span class="badge bg-soft-secondary text-secondary" id="contentBlockCount">0 blocks</span>
+                                </div>
+                                <div class="card-body">
+                                    <div id="contentBlocksCanvas">
+                                        <div class="content-canvas-empty" id="contentCanvasEmpty">
+                                            <i class="bx bx-text"></i>
+                                            <p class="mb-1 text-dark">No content blocks yet</p>
+                                            <small class="text-secondary">Click a block type on the left to add it</small>
+                                        </div>
+                                        <div id="contentBlocksList"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Email Builder Modal -->
@@ -958,6 +1155,8 @@ $(document).ready(function() {
     const mode = '{{ $mode }}';
     let formElements = @json($form->formElements ?? []);
     let triggerFlow = @json($form->triggerFlow ?? []);
+    let pageContent = @json($form->pageContent ?? []);
+    let pageTemplate = 'split-layout';
     let selectedElement = null;
     let elementIdCounter = formElements.length > 0 ?
         Math.max(...formElements.map(e => parseInt((e.id || '').replace('field_', '')) || 0)) + 1 : 1;
@@ -2399,9 +2598,12 @@ $(document).ready(function() {
             formName: formName,
             formDescription: $('#formDescription').val(),
             formStatus: $('#formStatus').val(),
+            storeId: $('#formStore').val() || null,
             formElements: formElements,
             formSettings: getFormSettings(),
-            triggerFlow: triggerFlow
+            triggerFlow: triggerFlow,
+            pageContent: pageContent,
+            pageTemplate: pageTemplate
         };
 
         const url = mode === 'edit' ? '/crm-forms-update?id=' + formId : '/crm-forms-store';
@@ -2441,6 +2643,220 @@ $(document).ready(function() {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // ============ PAGE CONTENT TAB ============
+
+    // Initialize template selector
+    function initContentTab() {
+        // Block type click - add new block
+        $('.content-block-type').on('click', function() {
+            const blockType = $(this).data('block-type');
+            addContentBlock(blockType);
+        });
+
+        // Render existing blocks
+        renderContentBlocks();
+    }
+
+    function addContentBlock(type) {
+        const blockId = 'block_' + Date.now();
+        let block = { id: blockId, type: type };
+
+        switch (type) {
+            case 'heading':
+                block.content = 'New Heading';
+                block.tag = 'h2';
+                break;
+            case 'paragraph':
+                block.content = 'Enter your paragraph text here...';
+                break;
+            case 'list':
+                block.items = ['Item 1', 'Item 2', 'Item 3'];
+                break;
+            case 'image':
+                block.src = '';
+                block.alt = 'Image description';
+                break;
+            case 'divider':
+                break;
+        }
+
+        pageContent.push(block);
+        renderContentBlocks();
+        toastr.success('Block added', 'Success!');
+    }
+
+    function renderContentBlocks() {
+        const $list = $('#contentBlocksList');
+        const $empty = $('#contentCanvasEmpty');
+        $list.empty();
+
+        if (pageContent.length === 0) {
+            $empty.show();
+            $('#contentBlockCount').text('0 blocks');
+            return;
+        }
+
+        $empty.hide();
+        $('#contentBlockCount').text(pageContent.length + ' block' + (pageContent.length !== 1 ? 's' : ''));
+
+        pageContent.forEach(function(block, index) {
+            let blockHtml = '';
+            const isFirst = index === 0;
+            const isLast = index === pageContent.length - 1;
+
+            // Action buttons
+            const actions = `
+                <div class="content-block-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveContentBlock(${index}, -1)" ${isFirst ? 'disabled' : ''} title="Move up">
+                        <i class="bx bx-chevron-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="moveContentBlock(${index}, 1)" ${isLast ? 'disabled' : ''} title="Move down">
+                        <i class="bx bx-chevron-down"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteContentBlock(${index})" title="Delete">
+                        <i class="bx bx-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            switch (block.type) {
+                case 'heading':
+                    blockHtml = `
+                        <div class="content-block-item" data-index="${index}">
+                            ${actions}
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-primary">Heading</span>
+                                <select class="form-select form-select-sm" style="width: auto; font-size: 0.75rem;" onchange="updateBlockProp(${index}, 'tag', this.value)">
+                                    <option value="h1" ${block.tag === 'h1' ? 'selected' : ''}>H1</option>
+                                    <option value="h2" ${block.tag === 'h2' ? 'selected' : ''}>H2</option>
+                                    <option value="h3" ${block.tag === 'h3' ? 'selected' : ''}>H3</option>
+                                </select>
+                            </div>
+                            <div contenteditable="true" class="text-dark fw-semibold" onblur="updateBlockProp(${index}, 'content', this.textContent)">${escapeHtml(block.content)}</div>
+                        </div>
+                    `;
+                    break;
+
+                case 'paragraph':
+                    blockHtml = `
+                        <div class="content-block-item" data-index="${index}">
+                            ${actions}
+                            <div class="mb-2"><span class="badge bg-info text-white">Paragraph</span></div>
+                            <div contenteditable="true" class="text-dark" style="min-height: 2em;" onblur="updateBlockProp(${index}, 'content', this.textContent)">${escapeHtml(block.content)}</div>
+                        </div>
+                    `;
+                    break;
+
+                case 'list':
+                    let listItemsHtml = '';
+                    (block.items || []).forEach(function(item, itemIdx) {
+                        listItemsHtml += `
+                            <div class="list-editor-item">
+                                <span class="text-secondary small">${itemIdx + 1}.</span>
+                                <input type="text" value="${escapeHtml(item)}" onblur="updateListItem(${index}, ${itemIdx}, this.value)">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeListItem(${index}, ${itemIdx})" title="Remove">
+                                    <i class="bx bx-x" style="font-size: 0.7rem;"></i>
+                                </button>
+                            </div>
+                        `;
+                    });
+                    blockHtml = `
+                        <div class="content-block-item" data-index="${index}">
+                            ${actions}
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-success">List</span>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="addListItem(${index})" style="font-size: 0.6875rem; padding: 0.1rem 0.4rem;">
+                                    <i class="bx bx-plus" style="font-size: 0.7rem;"></i> Add Item
+                                </button>
+                            </div>
+                            <div class="list-editor-items">${listItemsHtml}</div>
+                        </div>
+                    `;
+                    break;
+
+                case 'image':
+                    blockHtml = `
+                        <div class="content-block-item" data-index="${index}">
+                            ${actions}
+                            <div class="mb-2"><span class="badge bg-warning text-dark">Image</span></div>
+                            <div class="row g-2">
+                                <div class="col-8">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Image URL" value="${escapeHtml(block.src)}" onblur="updateBlockProp(${index}, 'src', this.value)">
+                                </div>
+                                <div class="col-4">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Alt text" value="${escapeHtml(block.alt)}" onblur="updateBlockProp(${index}, 'alt', this.value)">
+                                </div>
+                            </div>
+                            ${block.src ? '<img src="' + escapeHtml(block.src) + '" alt="' + escapeHtml(block.alt) + '" class="mt-2" style="max-height: 100px; border-radius: 0.25rem;">' : ''}
+                        </div>
+                    `;
+                    break;
+
+                case 'divider':
+                    blockHtml = `
+                        <div class="content-block-item" data-index="${index}">
+                            ${actions}
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-secondary">Divider</span>
+                                <hr class="flex-grow-1 my-0">
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+
+            $list.append(blockHtml);
+        });
+    }
+
+    // Global functions for inline event handlers
+    window.updateBlockProp = function(index, prop, value) {
+        if (pageContent[index]) {
+            pageContent[index][prop] = value;
+        }
+    };
+
+    window.moveContentBlock = function(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= pageContent.length) return;
+
+        const temp = pageContent[index];
+        pageContent[index] = pageContent[newIndex];
+        pageContent[newIndex] = temp;
+
+        renderContentBlocks();
+    };
+
+    window.deleteContentBlock = function(index) {
+        if (!confirm('Remove this content block?')) return;
+        pageContent.splice(index, 1);
+        renderContentBlocks();
+        toastr.success('Block removed', 'Success!');
+    };
+
+    window.updateListItem = function(blockIndex, itemIndex, value) {
+        if (pageContent[blockIndex] && pageContent[blockIndex].items) {
+            pageContent[blockIndex].items[itemIndex] = value;
+        }
+    };
+
+    window.addListItem = function(blockIndex) {
+        if (pageContent[blockIndex] && pageContent[blockIndex].items) {
+            pageContent[blockIndex].items.push('New item');
+            renderContentBlocks();
+        }
+    };
+
+    window.removeListItem = function(blockIndex, itemIndex) {
+        if (pageContent[blockIndex] && pageContent[blockIndex].items) {
+            pageContent[blockIndex].items.splice(itemIndex, 1);
+            renderContentBlocks();
+        }
+    };
+
+    // Initialize the content tab
+    initContentTab();
 
     // ============ API TAB ============
 
