@@ -610,6 +610,15 @@ Route::post('/crm-forms-generate-api-key', [App\Http\Controllers\CRM\CrmFormsCon
 Route::post('/crm-forms-toggle-api', [App\Http\Controllers\CRM\CrmFormsController::class, 'toggleApi'])->name('crm-forms.toggle-api')->middleware('auth');
 Route::get('/crm-forms-lead-fields', [App\Http\Controllers\CRM\CrmFormsController::class, 'getLeadFields'])->name('crm-forms.lead-fields')->middleware('auth');
 
+// CRM Form Triggers routes
+Route::get('/crm-forms-triggers', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'index'])->name('crm-forms-triggers')->middleware('auth');
+Route::get('/crm-forms-triggers-builder', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'builder'])->name('crm-forms-triggers.builder')->middleware('auth');
+Route::post('/crm-forms-triggers-store', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'store'])->name('crm-forms-triggers.store')->middleware('auth');
+Route::put('/crm-forms-triggers-update', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'update'])->name('crm-forms-triggers.update')->middleware('auth');
+Route::delete('/crm-forms-triggers-delete', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'destroy'])->name('crm-forms-triggers.destroy')->middleware('auth');
+Route::post('/crm-forms-triggers-toggle', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'toggleStatus'])->name('crm-forms-triggers.toggle')->middleware('auth');
+Route::get('/crm-forms-triggers-logs', [App\Http\Controllers\CRM\CrmFormTriggersController::class, 'logs'])->name('crm-forms-triggers.logs')->middleware('auth');
+
 // Public Form routes (no auth required)
 Route::get('/f/{slug}', [App\Http\Controllers\CRM\PublicFormController::class, 'show'])->name('public-form.show');
 Route::post('/f/{slug}/submit', [App\Http\Controllers\CRM\PublicFormController::class, 'submit'])->name('public-form.submit');

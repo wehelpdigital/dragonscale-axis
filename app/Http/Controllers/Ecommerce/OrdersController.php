@@ -855,7 +855,7 @@ class OrdersController extends Controller
                     'paymentMethod' => $order->paymentMethod,
                     'paymentStatus' => $order->paymentVerificationStatus === 'verified' ? 'verified' : 'pending',
                     'amountSent' => $order->paymentAmountSent ?? $order->grandTotal,
-                    'amountVerified' => $order->paymentAmountVerified,
+                    'amountVerified' => $order->paymentVerificationStatus === 'verified' ? ($order->paymentAmountSent ?? $order->grandTotal) : null,
                     'payerName' => $order->paymentPayerName,
                     'referenceNumber' => $order->paymentReferenceNumber,
                     'phoneNumber' => $order->paymentPhoneNumber,

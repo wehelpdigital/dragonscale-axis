@@ -5,6 +5,8 @@ namespace App\Http\Controllers\CRM;
 use App\Http\Controllers\Controller;
 use App\Models\CrmForm;
 use App\Models\CrmFormSubmission;
+use App\Models\CrmFormTrigger;
+use App\Models\CrmFormTriggerLog;
 use App\Models\EcomStoreSmtpSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -178,50 +180,119 @@ class PublicFormController extends Controller
     }
 
     /**
-     * Execute form triggers from embedded trigger flow
+     * Execute form triggers from embedded trigger flow and individual trigger records
      */
     private function executeTriggers(CrmForm $form, CrmFormSubmission $submission)
     {
+        // System A: Execute form-level triggerFlow (from crm_forms.triggerFlow JSON column)
         $triggerFlow = $form->triggerFlow ?? [];
 
-        if (empty($triggerFlow)) {
-            return;
-        }
+        if (!empty($triggerFlow)) {
+            $executionDetails = [];
 
-        $executionDetails = [];
+            foreach ($triggerFlow as $index => $step) {
+                try {
+                    $result = $this->executeStep($step, $submission);
+                    $executionDetails[] = [
+                        'step' => $index,
+                        'action' => $step['type'] ?? 'unknown',
+                        'status' => 'success',
+                        'result' => $result,
+                    ];
+                } catch (\Exception $e) {
+                    Log::error('Form trigger step failed', [
+                        'formId' => $form->id,
+                        'submissionId' => $submission->id,
+                        'step' => $index,
+                        'error' => $e->getMessage(),
+                    ]);
 
-        foreach ($triggerFlow as $index => $step) {
-            try {
-                $result = $this->executeStep($step, $submission);
-                $executionDetails[] = [
-                    'step' => $index,
-                    'action' => $step['type'] ?? 'unknown',
-                    'status' => 'success',
-                    'result' => $result,
-                ];
-            } catch (\Exception $e) {
-                Log::error('Form trigger step failed', [
-                    'formId' => $form->id,
-                    'submissionId' => $submission->id,
-                    'step' => $index,
-                    'error' => $e->getMessage(),
-                ]);
-
-                $executionDetails[] = [
-                    'step' => $index,
-                    'action' => $step['type'] ?? 'unknown',
-                    'status' => 'failed',
-                    'error' => $e->getMessage(),
-                ];
+                    $executionDetails[] = [
+                        'step' => $index,
+                        'action' => $step['type'] ?? 'unknown',
+                        'status' => 'failed',
+                        'error' => $e->getMessage(),
+                    ];
+                }
             }
+
+            Log::info('Trigger flow executed', [
+                'formId' => $form->id,
+                'submissionId' => $submission->id,
+                'executionDetails' => $executionDetails,
+            ]);
         }
 
-        // Log execution details if needed
-        Log::info('Trigger flow executed', [
-            'formId' => $form->id,
-            'submissionId' => $submission->id,
-            'executionDetails' => $executionDetails,
-        ]);
+        // System B: Execute individual trigger records (from crm_form_triggers table)
+        $triggers = CrmFormTrigger::active()
+            ->forForm($form->id)
+            ->enabled()
+            ->where('triggerEvent', 'on_submit')
+            ->get();
+
+        foreach ($triggers as $trigger) {
+            $steps = $trigger->triggerFlow ?? [];
+            if (empty($steps)) {
+                continue;
+            }
+
+            $triggerExecutionDetails = [];
+
+            foreach ($steps as $index => $step) {
+                try {
+                    $result = $this->executeStep($step, $submission);
+                    $triggerExecutionDetails[] = [
+                        'step' => $index,
+                        'action' => $step['type'] ?? 'unknown',
+                        'status' => 'success',
+                        'result' => $result,
+                    ];
+                } catch (\Exception $e) {
+                    Log::error('Individual trigger step failed', [
+                        'formId' => $form->id,
+                        'triggerId' => $trigger->id,
+                        'submissionId' => $submission->id,
+                        'step' => $index,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    $triggerExecutionDetails[] = [
+                        'step' => $index,
+                        'action' => $step['type'] ?? 'unknown',
+                        'status' => 'failed',
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            $trigger->recordExecution();
+
+            // Determine overall status
+            $hasFailures = collect($triggerExecutionDetails)->contains('status', 'failed');
+            $hasSuccesses = collect($triggerExecutionDetails)->contains('status', 'success');
+            $overallStatus = $hasFailures ? ($hasSuccesses ? 'partial' : 'failed') : 'success';
+            $errorMessages = collect($triggerExecutionDetails)
+                ->where('status', 'failed')
+                ->pluck('error')
+                ->implode('; ');
+
+            // Save to database log
+            CrmFormTriggerLog::create([
+                'triggerId' => $trigger->id,
+                'submissionId' => $submission->id,
+                'executionStatus' => $overallStatus,
+                'executionDetails' => $triggerExecutionDetails,
+                'errorMessage' => $errorMessages ?: null,
+            ]);
+
+            Log::info('Individual trigger executed', [
+                'formId' => $form->id,
+                'triggerId' => $trigger->id,
+                'triggerName' => $trigger->triggerName,
+                'submissionId' => $submission->id,
+                'executionDetails' => $triggerExecutionDetails,
+            ]);
+        }
     }
 
     /**
