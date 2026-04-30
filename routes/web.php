@@ -311,6 +311,10 @@ Route::delete('/ecom-clients/delete', [App\Http\Controllers\Ecommerce\ClientsCon
 Route::get('/ecom-clients/check-phone', [App\Http\Controllers\Ecommerce\ClientsController::class, 'checkPhone'])->name('ecom-clients.check-phone')->middleware('auth');
 Route::get('/ecom-clients/check-email', [App\Http\Controllers\Ecommerce\ClientsController::class, 'checkEmail'])->name('ecom-clients.check-email')->middleware('auth');
 
+// Client Subscriptions (subscriptions & products per client)
+Route::get('/ecom-client-subscriptions', [App\Http\Controllers\Ecommerce\ClientsController::class, 'subscriptions'])->name('ecom-client-subscriptions')->middleware('auth');
+Route::get('/ecom-client-subscriptions/data', [App\Http\Controllers\Ecommerce\ClientsController::class, 'subscriptionsData'])->name('ecom-client-subscriptions.data')->middleware('auth');
+
 // Client Shippings
 Route::get('/ecom-client-shippings', [App\Http\Controllers\Ecommerce\ClientShippingsController::class, 'index'])->name('ecom-client-shippings')->middleware('auth');
 Route::get('/ecom-client-shippings/data', [App\Http\Controllers\Ecommerce\ClientShippingsController::class, 'getData'])->name('ecom-client-shippings.data')->middleware('auth');

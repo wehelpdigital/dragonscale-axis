@@ -299,6 +299,12 @@
                                 <span key="t-clients">All Clients</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('ecom-client-subscriptions*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('ecom-client-subscriptions') }}" class="waves-effect {{ request()->is('ecom-client-subscriptions*') ? 'active' : '' }}">
+                                <i class="bx bx-id-card"></i>
+                                <span key="t-client-subscriptions">Client Subscriptions</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('ecom-client-shippings*') ? 'mm-active' : '' }}">
                             <a href="{{ route('ecom-client-shippings') }}" class="waves-effect {{ request()->is('ecom-client-shippings*') ? 'active' : '' }}">
                                 <i class="bx bx-map-pin"></i>

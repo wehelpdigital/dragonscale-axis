@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Ecommerce;
 
 use App\Http\Controllers\Controller;
+use App\Models\AsCourseEnrollment;
 use App\Models\ClientAllDatabase;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -366,6 +368,167 @@ class ClientsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while deleting the client.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the client subscriptions list page.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function subscriptions()
+    {
+        return view('ecommerce.client-subscriptions.index');
+    }
+
+    /**
+     * Get clients with their course enrollments and product purchases.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function subscriptionsData(Request $request)
+    {
+        try {
+            $query = ClientAllDatabase::active();
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('clientFirstName', 'like', "%{$search}%")
+                      ->orWhere('clientMiddleName', 'like', "%{$search}%")
+                      ->orWhere('clientLastName', 'like', "%{$search}%")
+                      ->orWhere('clientPhoneNumber', 'like', "%{$search}%")
+                      ->orWhere('clientEmailAddress', 'like', "%{$search}%");
+                });
+            }
+
+            $totalCount = ClientAllDatabase::active()->count();
+            $filteredCount = $query->count();
+
+            $perPage = (int) $request->input('per_page', 15);
+            $page = (int) $request->input('page', 1);
+
+            $clients = $query->orderBy('clientFirstName', 'asc')
+                ->orderBy('clientLastName', 'asc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            $clientIds = $clients->pluck('id')->all();
+
+            $enrollments = AsCourseEnrollment::where('deleteStatus', 1)
+                ->whereIn('accessClientId', $clientIds)
+                ->with('course')
+                ->get()
+                ->groupBy('accessClientId');
+
+            $orderItems = DB::table('ecom_order_items as oi')
+                ->join('ecom_orders as o', 'oi.orderId', '=', 'o.id')
+                ->whereIn('o.clientId', $clientIds)
+                ->where('oi.deleteStatus', 1)
+                ->where('o.deleteStatus', 1)
+                ->select(
+                    'o.clientId',
+                    'oi.productId',
+                    'oi.productName',
+                    'oi.quantity',
+                    'o.created_at',
+                    'o.orderStatus'
+                )
+                ->orderBy('o.created_at', 'desc')
+                ->get()
+                ->groupBy('clientId');
+
+            $data = $clients->getCollection()->map(function ($client) use ($enrollments, $orderItems) {
+                $clientEnrollments = $enrollments->get($client->id, collect());
+                $clientOrderItems = $orderItems->get($client->id, collect());
+
+                $courses = $clientEnrollments->map(function ($e) {
+                    $status = 'inactive';
+                    if ($e->isActive) {
+                        if (!$e->expirationDate) {
+                            $status = 'lifetime';
+                        } elseif ($e->is_expired) {
+                            $status = 'expired';
+                        } elseif ($e->days_remaining !== null && $e->days_remaining <= 7) {
+                            $status = 'expiring_soon';
+                        } else {
+                            $status = 'active';
+                        }
+                    }
+
+                    return [
+                        'id' => $e->id,
+                        'name' => optional($e->course)->courseName ?? 'Unknown Course',
+                        'status' => $status,
+                        'daysRemaining' => $e->days_remaining,
+                        'formattedExpiration' => $e->formatted_expiration,
+                        'expirationDate' => $e->expirationDate ? $e->expirationDate->format('M j, Y') : null,
+                    ];
+                })->values();
+
+                $productMap = [];
+                foreach ($clientOrderItems as $item) {
+                    $key = $item->productId ?: ('name:' . $item->productName);
+                    if (!isset($productMap[$key])) {
+                        $productMap[$key] = [
+                            'id' => $item->productId,
+                            'name' => $item->productName ?? 'Unknown Product',
+                            'quantity' => (int) $item->quantity,
+                            'lastPurchased' => Carbon::parse($item->created_at)->format('M j, Y'),
+                        ];
+                    } else {
+                        $productMap[$key]['quantity'] += (int) $item->quantity;
+                    }
+                }
+
+                $lastEnrollment = $clientEnrollments->max('enrollmentDate');
+                $lastOrder = $clientOrderItems->max('created_at');
+                $lastActivity = null;
+                if ($lastEnrollment && $lastOrder) {
+                    $lastActivity = Carbon::parse($lastEnrollment)->greaterThan(Carbon::parse($lastOrder))
+                        ? $lastEnrollment : $lastOrder;
+                } elseif ($lastEnrollment) {
+                    $lastActivity = $lastEnrollment;
+                } elseif ($lastOrder) {
+                    $lastActivity = $lastOrder;
+                }
+
+                $colors = ['#556ee6', '#34c38f', '#f46a6a', '#50a5f1', '#f1b44c', '#74788d'];
+
+                return [
+                    'id' => $client->id,
+                    'fullName' => $client->full_name,
+                    'email' => $client->clientEmailAddress,
+                    'phone' => $client->clientPhoneNumber,
+                    'initials' => strtoupper(substr($client->clientFirstName ?? '', 0, 1) . substr($client->clientLastName ?? '', 0, 1)),
+                    'avatarColor' => $colors[$client->id % count($colors)],
+                    'courses' => $courses,
+                    'products' => array_values($productMap),
+                    'lastActivity' => $lastActivity ? Carbon::parse($lastActivity)->format('M j, Y') : null,
+                    'hasAny' => $courses->count() > 0 || count($productMap) > 0,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $clients->currentPage(),
+                    'last_page' => $clients->lastPage(),
+                    'per_page' => $clients->perPage(),
+                    'total' => $clients->total(),
+                    'from' => $clients->firstItem(),
+                    'to' => $clients->lastItem(),
+                ],
+                'total_count' => $totalCount,
+                'filtered_count' => $filteredCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching client subscriptions data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while fetching client subscriptions.'
             ], 500);
         }
     }

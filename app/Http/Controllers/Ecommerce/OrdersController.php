@@ -723,9 +723,15 @@ class OrdersController extends Controller
                 $order->paymentNotes = $existingNotes ? $existingNotes . "\n" . $newNote : $newNote;
             }
 
+            // When payment is verified, also set order status to complete
+            $oldOrderStatus = $order->orderStatus;
+            if ($action === 'verify' && $oldOrderStatus !== 'complete') {
+                $order->orderStatus = 'complete';
+            }
+
             $order->save();
 
-            // Log audit trail
+            // Log audit trail for payment verification
             $actionLabel = $action === 'verify' ? 'verified' : 'rejected';
             EcomOrderAuditLog::logAction(
                 $order,
@@ -735,6 +741,45 @@ class OrdersController extends Controller
                 $newStatus,
                 "Payment {$actionLabel} by " . Auth::user()->name
             );
+
+            // Log audit trail for order status change if it changed
+            if ($action === 'verify' && $oldOrderStatus !== 'complete') {
+                EcomOrderAuditLog::logAction(
+                    $order,
+                    'status_change',
+                    'orderStatus',
+                    $oldOrderStatus,
+                    'complete',
+                    "Order status set to complete (payment verified)"
+                );
+
+                // Trigger flows for order status change
+                try {
+                    $storeId = null;
+                    $firstItem = $order->items()->first();
+                    if ($firstItem && $firstItem->productStore) {
+                        $store = EcomProductStore::where('storeName', $firstItem->productStore)
+                            ->where('deleteStatus', 1)
+                            ->first();
+                        if ($store) {
+                            $storeId = $store->id;
+                        }
+                    }
+
+                    $processor = new TriggerFlowProcessorService();
+                    $processor->triggerFlowsForEvent('order_status_changed', [
+                        'clientId' => $order->clientId,
+                        'orderId' => $order->id,
+                        'storeId' => $storeId,
+                        'oldStatus' => $oldOrderStatus,
+                        'newStatus' => 'complete',
+                    ], Auth::id());
+                } catch (\Exception $e) {
+                    Log::error('Failed to trigger flows for order status change on payment verify: ' . $e->getMessage(), [
+                        'order_id' => $order->id,
+                    ]);
+                }
+            }
 
             Log::info('Payment verification status updated', [
                 'order_id' => $id,
@@ -750,7 +795,8 @@ class OrdersController extends Controller
                     'id' => $order->id,
                     'orderNumber' => $order->orderNumber,
                     'paymentVerificationStatus' => $order->paymentVerificationStatus,
-                    'paymentVerifiedAt' => $order->paymentVerifiedAt ? $order->paymentVerifiedAt->format('M j, Y g:i A') : null
+                    'paymentVerifiedAt' => $order->paymentVerifiedAt ? $order->paymentVerifiedAt->format('M j, Y g:i A') : null,
+                    'orderStatus' => $order->orderStatus
                 ]
             ]);
         } catch (\Exception $e) {
@@ -1123,10 +1169,16 @@ class OrdersController extends Controller
             $totalVerified = $order->totalVerifiedPayments;
             $grandTotal = $order->grandTotal;
 
+            $oldOrderStatus = $order->orderStatus;
+
             if ($action === 'verify') {
                 // Check if fully paid
                 if ($totalVerified >= $grandTotal) {
                     $order->paymentVerificationStatus = 'verified';
+                    // Set order status to complete when fully verified
+                    if ($oldOrderStatus !== 'complete') {
+                        $order->orderStatus = 'complete';
+                    }
                 } else {
                     // Partially paid - keep as pending
                     $order->paymentVerificationStatus = 'pending';
@@ -1143,6 +1195,44 @@ class OrdersController extends Controller
                 }
             }
             $order->save();
+
+            // Log and trigger flows if order status changed to complete
+            if ($order->orderStatus === 'complete' && $oldOrderStatus !== 'complete') {
+                EcomOrderAuditLog::logAction(
+                    $order,
+                    'status_change',
+                    'orderStatus',
+                    $oldOrderStatus,
+                    'complete',
+                    "Order status set to complete (payment fully verified)"
+                );
+
+                try {
+                    $storeId = null;
+                    $firstItem = $order->items()->first();
+                    if ($firstItem && $firstItem->productStore) {
+                        $store = EcomProductStore::where('storeName', $firstItem->productStore)
+                            ->where('deleteStatus', 1)
+                            ->first();
+                        if ($store) {
+                            $storeId = $store->id;
+                        }
+                    }
+
+                    $statusProcessor = new TriggerFlowProcessorService();
+                    $statusProcessor->triggerFlowsForEvent('order_status_changed', [
+                        'clientId' => $order->clientId,
+                        'orderId' => $order->id,
+                        'storeId' => $storeId,
+                        'oldStatus' => $oldOrderStatus,
+                        'newStatus' => 'complete',
+                    ], Auth::id());
+                } catch (\Exception $e) {
+                    Log::error('Failed to trigger flows for order status change on payment verify: ' . $e->getMessage(), [
+                        'order_id' => $order->id,
+                    ]);
+                }
+            }
 
             // Log audit trail
             $actionLabel = $action === 'verify' ? 'verified' : 'rejected';
@@ -1219,7 +1309,8 @@ class OrdersController extends Controller
                     'paymentNumber' => $payment->paymentNumber,
                     'paymentStatus' => $payment->paymentStatus,
                     'invoiceNumber' => $payment->invoiceNumber,
-                ]
+                ],
+                'orderStatus' => $order->orderStatus,
             ]);
         } catch (\Exception $e) {
             Log::error('Error verifying payment: ' . $e->getMessage());
