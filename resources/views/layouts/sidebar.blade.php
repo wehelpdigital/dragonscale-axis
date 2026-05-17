@@ -98,6 +98,12 @@
                                 <span key="t-ani-senso-course">Course</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-schedule-manager*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-schedule-manager.index') }}" class="waves-effect {{ request()->is('anisenso-schedule-manager*') ? 'active' : '' }}">
+                                <i class="bx bx-calendar-check"></i>
+                                <span key="t-ani-senso-schedule">Schedule Manager</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                             <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                                 <i class="bx bx-bot"></i>
