@@ -6,12 +6,34 @@ class AsScheduleActivity extends BaseModel
 {
     protected $table = 'as_schedule_activities';
 
+    /**
+     * Canonical catalog of activity types. Keys are the slugs stored in the
+     * activityType column, values are the human-readable labels rendered in
+     * the UI. Single source of truth — controller validation, view rendering,
+     * the modal select, and the auto-categorizer all read from here.
+     */
+    public const ACTIVITY_TYPES = [
+        'land_prep'      => 'Land Preparation',
+        'seed_treatment' => 'Seed Treatment',
+        'planting'       => 'Planting',
+        'irrigation'     => 'Irrigation',
+        'fertilizer'     => 'Fertilizer (Granular)',
+        'foliar_spray'   => 'Foliar Spray',
+        'microbial'      => 'Microbial / Bio',
+        'harvest'        => 'Harvest',
+        'monitoring'     => 'Monitoring',
+        'other'          => 'Other',
+    ];
+
     protected $fillable = [
         'croppingScheduleId',
+        'versionId',
+        'sourceActivityId',
         'activityTitle',
         'targetDate',
         'targetEndDate',
         'priority',
+        'activityType',
         'isDayZero',
         'isDraft',
         'description',
@@ -37,6 +59,21 @@ class AsScheduleActivity extends BaseModel
     public function schedule()
     {
         return $this->belongsTo(AsCroppingSchedule::class, 'croppingScheduleId');
+    }
+
+    public function version()
+    {
+        return $this->belongsTo(AsScheduleActivityVersion::class, 'versionId');
+    }
+
+    public function sourceActivity()
+    {
+        return $this->belongsTo(self::class, 'sourceActivityId');
+    }
+
+    public function scopeForVersion($q, $versionId)
+    {
+        return $q->where('versionId', $versionId);
     }
 
     public function items()

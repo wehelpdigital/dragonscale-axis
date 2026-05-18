@@ -57,6 +57,37 @@
         border-top: none;
         border-radius: 0 0 8px 8px;
     }
+    /* Per-date commentary block — slots between the date-header and the
+       activity cards. Tinted with the date-group color so it visually
+       belongs to its date but stays subordinate to the activity cards. */
+    .date-note-block {
+        background: #fffaf0;
+        border-left: 1px solid var(--date-color);
+        border-right: 1px solid var(--date-color);
+        border-bottom: 1px dashed #f0d899;
+        padding: 8px 14px;
+    }
+    .date-note-inner {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .date-note-icon {
+        color: #b78103;
+        font-size: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+    .date-note-text {
+        color: #5a4413;
+        font-size: 13px;
+        line-height: 1.55;
+        flex-grow: 1;
+        word-break: break-word;
+    }
+    /* Note-icon button states */
+    .date-note-btn.has-note { background: rgba(255, 255, 255, 0.55); color: #fff; border-color: rgba(255,255,255,0.85); }
+    .date-note-btn.has-note:hover { background: rgba(255, 255, 255, 0.78); }
     .activity-card {
         background: #fff;
         border: 1px solid #e6e8ec;
@@ -211,22 +242,6 @@
         </div>
     </div>
 
-    {{-- Readiness banner --}}
-    <div class="alert alert-warning d-flex align-items-start" id="readinessBanner" @if($isReadyToGenerate) style="display:none;" @endif>
-        <i class="bx bx-error me-2 mt-1" style="font-size:1.2rem;"></i>
-        <div class="flex-grow-1">
-            <strong>Finish setup to enable calendar generation.</strong>
-            <ul class="mb-0 mt-1" id="readinessIssuesList">
-                @foreach($readinessIssues as $issue)
-                    <li>{{ $issue }}</li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-    <div class="alert alert-success" id="readinessOk" @if(!$isReadyToGenerate) style="display:none;" @endif>
-        <i class="bx bx-check-circle me-2"></i>
-        <strong>All required setup complete.</strong> You can now generate the calendar.
-    </div>
 
     {{-- Tabs --}}
     <div class="card">
@@ -361,6 +376,15 @@ const URLS = {
     activitiesDrafts:    () => `${ROOT}/anisenso-schedule-manager-activities-drafts${Q}`,
     activitiesLabor:     () => `${ROOT}/anisenso-schedule-manager-activities-labor${Q}`,
     workerPresentation:  () => `${ROOT}/anisenso-schedule-manager-worker-presentation${Q}`,
+
+    activityVersionsIndex:      () => `${ROOT}/anisenso-schedule-manager-activity-versions${Q}`,
+    activityVersionsStore:      () => `${ROOT}/anisenso-schedule-manager-activity-versions-store${Q}`,
+    activityVersionsUpdate:     (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-update${Q}&id=${id}`,
+    activityVersionsDelete:     (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-delete${Q}&id=${id}`,
+    activityVersionsSetActive:  (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-set-active${Q}&id=${id}`,
+
+    activitiesDateNoteSave:     () => `${ROOT}/anisenso-schedule-manager-activities-date-note-save${Q}`,
+    activitiesDateNoteDelete:   () => `${ROOT}/anisenso-schedule-manager-activities-date-note-delete${Q}`,
 
     irrigationsStore:  () => `${ROOT}/anisenso-schedule-manager-irrigations-store${Q}`,
     irrigationsUpdate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-update${Q}&id=${id}`,

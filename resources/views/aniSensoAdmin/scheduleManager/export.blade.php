@@ -55,6 +55,17 @@
         }
         .date-block .date-bar .day { font-weight: 600; color: #4a5160; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.8px; }
         .date-block .date-bar .date { font-weight: 700; font-size: 12pt; color: #1a1f2b; }
+        .date-block .date-note {
+            background: #fff8e6;
+            border-left: 3px solid #d9a23a;
+            padding: 6px 10px;
+            margin-bottom: 8px;
+            font-size: 10pt;
+            color: #4d3a0d;
+            line-height: 1.5;
+            page-break-inside: avoid;
+        }
+        .date-block .date-note strong { color: #8a5e09; }
         .date-block .date-bar .count { margin-left: auto; color: #6b7280; font-size: 9.5pt; }
 
         .activity {
@@ -67,6 +78,8 @@
         .activity-title { font-weight: 700; font-size: 11.5pt; color: #1a1f2b; }
         .activity-range { font-size: 9.5pt; color: #4a5160; }
         .priority-pill { font-size: 8.5pt; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
+        .type-pill { font-size: 8.5pt; padding: 1px 7px; border-radius: 8px; font-weight: 600; background: #e2efd4; color: #2d4d1c; }
+        .skill-chip { display: inline-block; font-size: 8.5pt; padding: 1px 6px; border-radius: 8px; background: #f0ead6; color: #6b4423; margin: 0 2px 2px 0; }
         .priority-critical { background: #9c1c1c; color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
         .priority-high { background: #ffe1e1; color: #a82929; }
         .priority-medium { background: #fff3df; color: #8a6300; }
@@ -167,14 +180,27 @@
     @if($schedule->workers->count())
         <section class="section">
             <h2>Workers</h2>
+            @php $skillsCatalog = \App\Models\AsScheduleWorker::SKILLS; @endphp
             <table class="worker-table">
-                <thead><tr><th>Priority</th><th>Name</th><th>Cost / Half Day</th><th>Notes</th></tr></thead>
+                <thead><tr><th>Priority</th><th>Name</th><th>Cost / Half Day</th><th>Skills</th><th>Notes</th></tr></thead>
                 <tbody>
                     @foreach($schedule->workers->sortBy('priority') as $w)
+                        @php $wSkills = is_array($w->skills) ? $w->skills : []; @endphp
                         <tr>
                             <td>#{{ $w->priority }}</td>
                             <td><strong>{{ $w->workerName }}</strong></td>
                             <td>₱ {{ number_format($w->costPerHalfDay, 2) }}</td>
+                            <td>
+                                @if(count($wSkills) === 0)
+                                    <span style="color:#9aa0a6;">—</span>
+                                @else
+                                    @foreach($wSkills as $k)
+                                        @if(isset($skillsCatalog[$k]))
+                                            <span class="skill-chip">{{ $skillsCatalog[$k] }}</span>
+                                        @endif
+                                    @endforeach
+                                @endif
+                            </td>
                             <td>{{ $w->notes }}</td>
                         </tr>
                     @endforeach
@@ -185,10 +211,16 @@
 
     <section class="section">
         <h2>Activities</h2>
+        @php
+            // Index per-date notes once so each date-block can render its
+            // commentary in O(1) without re-querying inside the loop.
+            $dateNotesByDate = $schedule->dateNotes->keyBy(fn ($n) => $n->noteDate->format('Y-m-d'));
+        @endphp
         @forelse($dateKeys as $dateKey)
             @php
                 $activitiesForDate = $byDate->get($dateKey);
                 $dateCarbon = ($dateKey !== '__no-date__') ? \Illuminate\Support\Carbon::parse($dateKey) : null;
+                $exportNote = $dateNotesByDate->get($dateKey);
             @endphp
             <div class="date-block">
                 <div class="date-bar">
@@ -200,6 +232,11 @@
                     @endif
                     <span class="count">{{ $activitiesForDate->count() }} {{ \Illuminate\Support\Str::plural('activity', $activitiesForDate->count()) }}</span>
                 </div>
+                @if($exportNote)
+                    <div class="date-note">
+                        <strong>Note:</strong> {!! nl2br(e($exportNote->noteContent)) !!}
+                    </div>
+                @endif
 
                 @foreach($activitiesForDate as $a)
                     @php
@@ -214,6 +251,9 @@
                             <span class="activity-title">{{ $a->activityTitle }}</span>
                             @if($isRange)
                                 <span class="activity-range">→ {{ $endCarbon->format('M j') }} ({{ $rangeDays }} days)</span>
+                            @endif
+                            @if($a->activityType && isset(\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType]))
+                                <span class="type-pill">{{ \App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType] }}</span>
                             @endif
                             <span class="priority-pill priority-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
                         </div>

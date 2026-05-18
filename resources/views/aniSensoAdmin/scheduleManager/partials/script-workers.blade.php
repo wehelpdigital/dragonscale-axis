@@ -1,6 +1,35 @@
 // ---------- WORKERS ----------
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+// Skill slug → label, mirrors AsScheduleWorker::SKILLS server-side.
+const WORKER_SKILLS = @json(\App\Models\AsScheduleWorker::SKILLS);
+
+// Chip click handler — toggle selection inside the worker modal.
+$(document).on('click', '#workerSkillsContainer .lot-chip', function () {
+    const $c = $(this);
+    $c.toggleClass('active');
+    $c.attr('aria-pressed', $c.hasClass('active') ? 'true' : 'false');
+});
+
+function setWorkerSkillsSelection(skillKeys) {
+    const set = new Set((skillKeys || []).filter(Boolean));
+    $('#workerSkillsContainer .lot-chip').each(function () {
+        const active = set.has($(this).data('skill'));
+        $(this).toggleClass('active', active).attr('aria-pressed', active ? 'true' : 'false');
+    });
+}
+function getWorkerSkillsSelection() {
+    return $('#workerSkillsContainer .lot-chip.active').map((_, e) => $(e).data('skill')).get();
+}
+function renderWorkerSkillBadges(skills) {
+    const list = Array.isArray(skills) ? skills : [];
+    if (!list.length) return '<small class="text-secondary">—</small>';
+    return list.map(key => {
+        const label = WORKER_SKILLS[key] || key;
+        return `<span class="badge bg-light text-dark border" style="font-weight:500;margin-bottom:2px;">${escapeHtml(label)}</span>`;
+    }).join(' ');
+}
+
 // Per-worker cache of off-day rules so the table cell can refresh after Save Rules.
 const workerOffCache = {};
 @foreach($schedule->workers as $w)
@@ -47,10 +76,13 @@ function sortActivityWorkerChips() {
 }
 
 function renderWorkerRow(w) {
+    const skillsList = Array.isArray(w.skills) ? w.skills : [];
+    const skillsAttr = skillsList.join(',');
     return `<tr data-id="${w.id}">
         <td><span class="badge bg-primary text-white">#${w.priority}</span></td>
         <td class="text-dark"><strong>${escapeHtml(w.workerName)}</strong></td>
         <td class="text-dark">${fmtPeso(w.costPerHalfDay)}</td>
+        <td class="worker-skills-cell">${renderWorkerSkillBadges(skillsList)}</td>
         <td class="off-rules-cell">${renderOffSummary(w.id)}</td>
         <td><small class="text-secondary">${escapeHtml(w.notes || '')}</small></td>
         <td class="text-end">
@@ -62,6 +94,7 @@ function renderWorkerRow(w) {
                     data-name="${escapeHtml(w.workerName)}"
                     data-cost="${w.costPerHalfDay}"
                     data-priority="${w.priority}"
+                    data-skills="${escapeHtml(skillsAttr)}"
                     data-notes="${escapeHtml(w.notes || '')}"><i class="bx bx-edit-alt"></i></button>
             <button class="btn btn-sm btn-outline-danger delete-worker-btn" data-id="${w.id}" data-name="${escapeHtml(w.workerName)}"><i class="bx bx-trash"></i></button>
         </td>
@@ -75,6 +108,7 @@ $('#addWorkerBtn').on('click', function () {
     $('#workerCost').val('0');
     $('#workerPriority').val(1);
     $('#workerNotes').val('');
+    setWorkerSkillsSelection([]);
 });
 
 $(document).on('click', '.edit-worker-btn', function () {
@@ -84,6 +118,9 @@ $(document).on('click', '.edit-worker-btn', function () {
     $('#workerCost').val($(this).data('cost'));
     $('#workerPriority').val($(this).data('priority'));
     $('#workerNotes').val($(this).data('notes'));
+    // data-skills is a comma-joined string of slugs ("manager,spray" or "")
+    const skillsAttr = ($(this).attr('data-skills') || '').trim();
+    setWorkerSkillsSelection(skillsAttr ? skillsAttr.split(',').filter(Boolean) : []);
     $('#workerModal').modal('show');
 });
 
@@ -94,6 +131,7 @@ $('#saveWorkerBtn').on('click', function () {
         workerName: $('#workerName').val(),
         costPerHalfDay: $('#workerCost').val() === '' ? 0 : $('#workerCost').val(),
         priority: $('#workerPriority').val(),
+        skills: getWorkerSkillsSelection(),
         notes: $('#workerNotes').val()
     };
     if (!payload.workerName) { toastr.warning('Worker name is required'); return; }

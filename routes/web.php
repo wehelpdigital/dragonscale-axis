@@ -308,8 +308,17 @@ Route::post('/anisenso-schedule-manager-activities-to-draft',   [App\Http\Contro
 Route::post('/anisenso-schedule-manager-activities-from-draft', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'fromDraft'])->name('anisenso-schedule-manager.activities.from-draft')->middleware('auth');
 Route::get('/anisenso-schedule-manager-activities-drafts',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'listDrafts'])->name('anisenso-schedule-manager.activities.drafts')->middleware('auth');
 Route::get('/anisenso-schedule-manager-activities-labor',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'laborSummary'])->name('anisenso-schedule-manager.activities.labor')->middleware('auth');
+Route::post('/anisenso-schedule-manager-activities-date-note-save',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'saveDateNote'])->name('anisenso-schedule-manager.activities.date-note.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-activities-date-note-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'deleteDateNote'])->name('anisenso-schedule-manager.activities.date-note.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-worker-presentation',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'workerPresentation'])->name('anisenso-schedule-manager.worker-presentation')->middleware('auth');
 Route::get('/anisenso-schedule-manager-worker-presentation-pdf', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'workerPresentationPdf'])->name('anisenso-schedule-manager.worker-presentation.pdf')->middleware('auth');
+
+// Activity Versions (sub-tabs inside the Activities panel — branches of the schedule)
+Route::get('/anisenso-schedule-manager-activity-versions',            [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'index'])->name('anisenso-schedule-manager.activity-versions.index')->middleware('auth');
+Route::post('/anisenso-schedule-manager-activity-versions-store',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'store'])->name('anisenso-schedule-manager.activity-versions.store')->middleware('auth');
+Route::put('/anisenso-schedule-manager-activity-versions-update',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'update'])->name('anisenso-schedule-manager.activity-versions.update')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-activity-versions-delete',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'destroy'])->name('anisenso-schedule-manager.activity-versions.destroy')->middleware('auth');
+Route::post('/anisenso-schedule-manager-activity-versions-set-active',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'setActive'])->name('anisenso-schedule-manager.activity-versions.set-active')->middleware('auth');
 
 // Irrigations
 Route::post('/anisenso-schedule-manager-irrigations-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\IrrigationController::class, 'store'])->name('anisenso-schedule-manager.irrigations.store')->middleware('auth');

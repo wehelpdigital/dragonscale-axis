@@ -15,10 +15,13 @@ class WorkerController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
+        $allowedSkillKeys = array_keys(AsScheduleWorker::SKILLS);
         $validator = Validator::make($request->all(), [
             'workerName' => 'required|string|max:255',
             'costPerHalfDay' => 'nullable|numeric|min:0',
             'priority' => 'required|integer|min:1',
+            'skills' => 'nullable|array',
+            'skills.*' => ['string', \Illuminate\Validation\Rule::in($allowedSkillKeys)],
             'notes' => 'nullable|string|max:2000',
         ]);
 
@@ -31,6 +34,7 @@ class WorkerController extends BaseScheduleController
             'workerName' => $request->workerName,
             'costPerHalfDay' => is_numeric($request->costPerHalfDay) ? $request->costPerHalfDay : 0,
             'priority' => $request->priority,
+            'skills' => $this->normalizeSkills($request->input('skills', []), $allowedSkillKeys),
             'notes' => $request->notes,
             'deleteStatus' => 1,
         ]);
@@ -45,10 +49,13 @@ class WorkerController extends BaseScheduleController
         $worker = AsScheduleWorker::active()->where('croppingScheduleId', $schedule->id)->where('id', $id)->first();
         if (!$worker) return $this->jsonFail('Worker not found.', 404);
 
+        $allowedSkillKeys = array_keys(AsScheduleWorker::SKILLS);
         $validator = Validator::make($request->all(), [
             'workerName' => 'required|string|max:255',
             'costPerHalfDay' => 'nullable|numeric|min:0',
             'priority' => 'required|integer|min:1',
+            'skills' => 'nullable|array',
+            'skills.*' => ['string', \Illuminate\Validation\Rule::in($allowedSkillKeys)],
             'notes' => 'nullable|string|max:2000',
         ]);
 
@@ -60,9 +67,21 @@ class WorkerController extends BaseScheduleController
             'workerName' => $request->workerName,
             'costPerHalfDay' => is_numeric($request->costPerHalfDay) ? $request->costPerHalfDay : 0,
             'priority' => $request->priority,
+            'skills' => $this->normalizeSkills($request->input('skills', []), $allowedSkillKeys),
             'notes' => $request->notes,
         ]);
         return $this->jsonOk('Worker updated.', ['data' => $worker]);
+    }
+
+    /**
+     * Filter user-submitted skill slugs down to known values, de-duped and
+     * preserving the catalog order. Returns null when empty so the DB stores
+     * NULL rather than an empty JSON array.
+     */
+    private function normalizeSkills($submitted, array $allowed): ?array
+    {
+        $clean = array_values(array_intersect($allowed, array_unique(array_filter((array) $submitted))));
+        return empty($clean) ? null : $clean;
     }
 
     public function destroy(Request $request)

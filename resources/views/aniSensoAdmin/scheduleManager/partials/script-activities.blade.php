@@ -293,6 +293,7 @@ function activityToPayload(a) {
         targetDate: (a.targetDate || '').slice(0, 10),
         targetEndDate: a.targetEndDate ? a.targetEndDate.slice(0, 10) : null,
         priority: a.priority,
+        activityType: a.activityType || '',
         description: a.description || '',
         timeRequired: a.timeRequired,
         isDayZero: (a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1') ? 1 : 0,
@@ -543,6 +544,9 @@ function getActivityWorkerIds() {
 // Worker name lookup for timeline rendering.
 const ACTIVITY_WORKER_NAMES = @json($schedule->workers->mapWithKeys(fn($w) => [$w->id => $w->workerName]));
 
+// Activity type slug → label, mirrors AsScheduleActivity::ACTIVITY_TYPES.
+const ACTIVITY_TYPE_LABELS = @json(\App\Models\AsScheduleActivity::ACTIVITY_TYPES);
+
 // ---- TinyMCE wiring for the Activity Description ----
 const ACTIVITY_DESC_EDITOR = 'activityDescription';
 // 'visual' = TinyMCE WYSIWYG, 'html' = plain <textarea> showing raw HTML.
@@ -765,10 +769,14 @@ function renderActivityCard(a) {
     const dayZeroBadge = isDayZeroFlag
         ? `<span class="badge ms-1 day-zero-badge" style="background:#ff9800; color:#fff; font-weight:600; font-size:11px;" title="This activity is the ${escapeHtml(dayType)} 0 anchor — its date becomes ${escapeHtml(dayType)} 0 for every lot it covers."><i class="bx bxs-star"></i> ${escapeHtml(dayType)} 0</span>`
         : '';
+    const typeLabel = a.activityType && ACTIVITY_TYPE_LABELS[a.activityType] ? ACTIVITY_TYPE_LABELS[a.activityType] : '';
+    const typeBadge = typeLabel
+        ? `<span class="badge ms-1 activity-type-badge" style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;" title="Activity type">${escapeHtml(typeLabel)}</span>`
+        : '';
     return `<div class="activity-card" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
             <div class="flex-grow-1" style="min-width:0;">
-                <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${dayZeroBadge}${rangeBadge}</h6>
+                <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${typeBadge}${dayZeroBadge}${rangeBadge}</h6>
                 ${lotsHeaderBlock}
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -866,6 +874,18 @@ function reorderAndRenumberActivities() {
         timeline.push({ type: 'group', key: '__no-date__', color: 0, dateObj: null });
     }
 
+    // Snapshot per-date notes BEFORE the wipe so we can re-inject them into
+    // the rebuilt headers + inline blocks. Without this snapshot, every save
+    // would silently drop the note rendering (the DB row stays intact, but
+    // the rebuilt DOM has no note button/block since it's built from the
+    // activity cards only).
+    const notesByDate = {};
+    $list.find('.date-note-btn').each(function () {
+        const key = ($(this).attr('data-date') || '').trim();
+        if (!key) return;
+        notesByDate[key] = $(this).attr('data-existing') || '';
+    });
+
     // Wipe and rebuild the list interleaving groups + rest markers.
     $list.empty();
     timeline.forEach(item => {
@@ -894,17 +914,41 @@ function reorderAndRenumberActivities() {
             headerHtml = `<i class="bx bx-error-circle"></i><span class="date-header-date">No date</span>`;
         }
         const count = cardsForDate.length;
+        // Re-inject the date note from the pre-empty() snapshot. Mirrors the
+        // server-rendered output in the activities partial so the icon state
+        // (outline vs solid) and the inline block stay in sync.
+        const noteContent = (key !== '__no-date__') ? (notesByDate[key] || '') : '';
+        const hasNote     = noteContent !== '';
+        const noteBtn = (key !== '__no-date__')
+            ? `<button type="button"
+                       class="date-header-edit-btn date-note-btn${hasNote ? ' has-note' : ''}"
+                       data-date="${escapeHtml(key)}"
+                       data-existing="${escapeHtml(noteContent)}"
+                       title="${hasNote ? 'Edit the note for this date' : 'Add a note for this date'}">
+                       <i class="bx ${hasNote ? 'bxs-note' : 'bx-note'}"></i>
+               </button>`
+            : '';
         const editBtn = (key !== '__no-date__')
             ? `<button type="button" class="date-header-edit-btn change-group-date-btn" data-date="${escapeHtml(key)}" title="Change date for all activities in this group"><i class="bx bx-calendar-edit"></i></button>`
               + `<button type="button" class="date-header-edit-btn date-header-delete-btn delete-group-date-btn" data-date="${escapeHtml(key)}" title="Delete every activity in this group"><i class="bx bx-trash"></i></button>`
+            : '';
+        const noteBlockHtml = (key !== '__no-date__')
+            ? `<div class="date-note-block" data-date="${escapeHtml(key)}"${hasNote ? '' : ' style="display:none;"'}>
+                   <div class="date-note-inner">
+                       <i class="bx bxs-note date-note-icon"></i>
+                       <div class="date-note-text">${hasNote ? escapeHtml(noteContent).replace(/\n/g, '<br>') : ''}</div>
+                   </div>
+               </div>`
             : '';
         const $group = $(`
             <div class="date-group date-color-${item.color}" data-date="${key === '__no-date__' ? '' : escapeHtml(key)}">
                 <div class="date-header">
                     ${headerHtml}
                     <span class="date-header-count">${count} ${count === 1 ? 'activity' : 'activities'}</span>
+                    ${noteBtn}
                     ${editBtn}
                 </div>
+                ${noteBlockHtml}
                 <div class="date-activities"></div>
             </div>
         `);
@@ -924,6 +968,7 @@ function resetActivityModal() {
     $('#activityTargetDate').val('');
     $('#activityTargetEndDate').val('');
     $('#activityPriority').val('medium');
+    $('#activityType').val('');
     $('#activityTimeRequired').val('half');
     $('#activityIsDayZero').prop('checked', false);
     setActivityDescriptionContent('');
@@ -957,6 +1002,7 @@ $(document).on('click', '.edit-activity-btn', function () {
         $('#activityTargetDate').val((a.targetDate || '').slice(0, 10));
         $('#activityTargetEndDate').val((a.targetEndDate || '').slice(0, 10));
         $('#activityPriority').val(a.priority);
+        $('#activityType').val(a.activityType || '');
         $('#activityTimeRequired').val(a.timeRequired);
         $('#activityIsDayZero').prop('checked', a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1');
         setActivityLots(a.lotIds || (a.lots || []).map(l => l.id));
@@ -1054,6 +1100,7 @@ $('#saveActivityBtn').on('click', function () {
         targetDate: startDateVal,
         targetEndDate: endDateVal || null,
         priority: $('#activityPriority').val(),
+        activityType: $('#activityType').val() || '',
         description: getActivityDescriptionContent(),
         timeRequired: $('#activityTimeRequired').val(),
         isDayZero: $('#activityIsDayZero').is(':checked') ? 1 : 0,
@@ -1459,6 +1506,9 @@ function renderDraftRow(d) {
                     <button type="button" class="btn btn-sm btn-success restore-draft-btn" data-id="${d.id}" data-name="${escapeHtml(d.activityTitle)}" title="Restore this draft back to the activities panel">
                         <i class="bx bx-archive-out me-1"></i> Restore
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-draft-btn" data-id="${d.id}" data-name="${escapeHtml(d.activityTitle)}" title="Delete this draft permanently (can be undone via Ctrl+Z)">
+                        <i class="bx bx-trash"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1594,6 +1644,66 @@ $(document).on('click', '.restore-draft-btn', function () {
         error: (xhr) => {
             toastr.error(xhr.responseJSON?.message || 'Restore failed');
             $btn.prop('disabled', false).html('<i class="bx bx-archive-out me-1"></i> Restore');
+        }
+    });
+});
+
+// Permanently delete a drafted activity. The existing activitiesDelete
+// endpoint soft-deletes (deleteStatus = 0) without caring whether the row
+// is a draft or active, so we reuse it. Undo goes back via the existing
+// restore endpoint which preserves isDraft = 1, so the entry returns to
+// the drafts list rather than the active timeline.
+$(document).on('click', '.delete-draft-btn', function () {
+    const id = $(this).data('id');
+    const name = $(this).data('name');
+    confirmAction({
+        title: 'Delete drafted activity',
+        message: 'Permanently delete drafted activity <strong>"' + escapeHtml(name) + '"</strong>?',
+        detail: 'You can immediately undo this (Ctrl+Z) — the draft is soft-deleted and can be restored back into the drafts list.',
+        confirmText: 'Delete Draft',
+        onConfirm: () => {
+            const $row = $('#draftsListContainer .draft-row[data-id="' + id + '"]');
+            $.ajax({
+                url: URLS.activitiesDelete(id),
+                type: 'DELETE',
+                data: { _token: CSRF },
+                success: (res) => {
+                    if (!res.success) { toastr.error(res.message); return; }
+                    toastr.success(`Draft "${name}" deleted`);
+                    $row.fadeOut(250, function () {
+                        $(this).remove();
+                        bumpDraftsBadge(-1);
+                        if ($('#draftsListContainer .draft-row').length === 0) {
+                            $('#draftsListContainer').hide();
+                            $('#draftsEmpty').show();
+                        }
+                    });
+                    // Undo: restore brings it back as a draft (isDraft is preserved).
+                    pushUndo("Delete draft '" + name + "'", async () => {
+                        const r = await $.ajax({
+                            url: URLS.activitiesRestore(id),
+                            type: 'POST',
+                            data: { _token: CSRF },
+                        });
+                        if (!r || !r.success) throw new Error((r && r.message) || 'restore failed');
+                        bumpDraftsBadge(1);
+                        // If the drafts modal is open, re-append the restored
+                        // row so the user sees it return without re-opening.
+                        if ($('#draftsModal').hasClass('show')) {
+                            $('#draftsEmpty').hide();
+                            $('#draftsListContainer').show().append(renderDraftRow({
+                                id: r.data.id,
+                                activityTitle: r.data.activityTitle,
+                                targetDate: r.data.targetDate,
+                                lots: r.data.lots || [],
+                                priority: r.data.priority,
+                                updatedAt: r.data.updated_at || null,
+                            }));
+                        }
+                    });
+                },
+                error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Delete failed'),
+            });
         }
     });
 });
@@ -1878,8 +1988,20 @@ function reloadLaborSummary() {
 // Open the full Worker Presentation in a new tab — it renders the printable
 // report (intro, activities, monthly labor, per-worker pages, irrigation,
 // and calendar) and has its own "Save as PDF / Print" button at the top.
+// Open the worker-presentation options modal first, then open the report
+// in a new tab with each toggle's choice as a query param.
 $(document).on('click', '#openWorkerPresentationBtn', function () {
-    window.open(URLS.workerPresentation(), '_blank');
+    $('#workerPresentationOptionsModal').modal('show');
+});
+$(document).on('click', '#presentGenerateBtn', function () {
+    const flags = {
+        showDesc:       $('#optShowDesc').is(':checked')       ? 1 : 0,
+        showIrrigation: $('#optShowIrrigation').is(':checked') ? 1 : 0,
+        showCalendar:   $('#optShowCalendar').is(':checked')   ? 1 : 0,
+    };
+    const qs = Object.entries(flags).map(([k, v]) => `&${k}=${v}`).join('');
+    $('#workerPresentationOptionsModal').modal('hide');
+    window.open(URLS.workerPresentation() + qs, '_blank');
 });
 
 $(document).on('click', '#openLaborSummaryBtn', function () {
@@ -2247,4 +2369,390 @@ $(document).on('click', '#laborCopyBtn', function () {
     writeToClipboard(text)
         .then(() => toastr.success('Labor summary copied to clipboard.'))
         .catch(err => toastr.error('Copy failed: ' + (err && err.message ? err.message : err)));
+});
+
+// ---------- DYNAMIC ACTIVITY SEARCH ----------
+// Filters activity cards by text content (title, type pill, lot/worker chips,
+// material/service chips — anything the user can see on the card). Hides
+// date groups and rest-day markers when no card inside them matches. Runs
+// purely client-side, no server round-trip.
+function applyActivityFilter() {
+    const raw = ($('#activitySearchInput').val() || '').trim().toLowerCase();
+    const $list = $('#activitiesList');
+    const $cards = $list.find('.activity-card[data-id]');
+
+    if (!raw) {
+        // Empty query → show everything, drop any cached search class.
+        $cards.show().removeClass('search-hidden');
+        $list.find('.date-group, .rest-day-marker').show();
+        $('#activitySearchHint').hide();
+        $('#activitySearchCount').text('0');
+        return;
+    }
+
+    // Treat the whole query as a single LIKE %x% substring pattern. Internal
+    // whitespace is collapsed on both sides so multi-space input and line-
+    // broken HTML don't cause false negatives — typing "apartado pagbababad"
+    // matches the phrase as a substring, NOT as two separate AND constraints.
+    const needle = raw.replace(/\s+/g, ' ');
+    let visible = 0;
+    $cards.each(function () {
+        const text = $(this).text().toLowerCase().replace(/\s+/g, ' ');
+        if (text.includes(needle)) {
+            $(this).show().removeClass('search-hidden');
+            visible++;
+        } else {
+            $(this).hide().addClass('search-hidden');
+        }
+    });
+
+    // Hide any date-group whose every card is hidden. Use the deterministic
+    // .search-hidden class instead of jQuery's :visible — :visible requires
+    // the WHOLE ancestor chain to be visible, so if a date-group is hidden
+    // from a previous keystroke, its just-shown children would still report
+    // as not-visible and the group would stay collapsed.
+    $list.find('.date-group').each(function () {
+        const hasVisible = $(this).find('.activity-card[data-id]:not(.search-hidden)').length > 0;
+        $(this).toggle(hasVisible);
+    });
+    $list.find('.rest-day-marker').hide();
+
+    $('#activitySearchHint').show();
+    $('#activitySearchCount').text(visible);
+}
+
+// Debounce the search slightly so we don't recompute on every keystroke.
+let activitySearchTimer = null;
+$(document).on('input', '#activitySearchInput', function () {
+    clearTimeout(activitySearchTimer);
+    activitySearchTimer = setTimeout(applyActivityFilter, 80);
+});
+$(document).on('click', '#activitySearchClear', function () {
+    $('#activitySearchInput').val('');
+    applyActivityFilter();
+});
+// Re-apply the current search after any DOM mutation that rebuilds cards
+// (save/edit/duplicate/drag/etc. all call reorderAndRenumberActivities()).
+// Wrap the function so the search filter sticks across rebuilds.
+const _origReorderAndRenumber = reorderAndRenumberActivities;
+reorderAndRenumberActivities = function () {
+    _origReorderAndRenumber.apply(this, arguments);
+    if (($('#activitySearchInput').val() || '').trim() !== '') {
+        applyActivityFilter();
+    }
+};
+
+// ---------- ACTIVITY VERSIONS (sub-tabs / forks) ----------
+//
+// A "version" is an isolated copy of the schedule's activities — a branch
+// the user can fork and tweak without disturbing the source. The full set
+// of activity rows + items + lot pivots + worker pivots get duplicated on
+// the server side; switching versions just flips an isActive flag and
+// reloads (server-side render rebuilds the timeline against the new set).
+//
+// The activeVersion is the one feeding $schedule->activities, so calendar
+// generation, worker presentation, export, and labor summary all follow
+// the active tab automatically.
+
+// Switch to a different version. Cheap server flip + page reload; no
+// client-side diff is needed because the timeline is server-rendered and
+// every consumer pulls from the same active-version query.
+$(document).on('click', '.version-tab-btn', function () {
+    const $btn = $(this);
+    if (parseInt($btn.data('is-active'), 10) === 1) {
+        return; // already active — nothing to do
+    }
+    const id = $btn.data('version-id');
+    const name = $btn.data('version-name');
+    $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Switching...');
+
+    $.ajax({
+        url: URLS.activityVersionsSetActive(id),
+        type: 'POST',
+        data: { _token: CSRF },
+        success: (res) => {
+            if (!res.success) {
+                toastr.error(res.message || 'Failed to switch version');
+                return;
+            }
+            toastr.success('Switched to "' + name + '". Reloading...');
+            // Preserve the activities tab so the user lands back in the same panel.
+            if (!location.hash) {
+                location.hash = '#tab-activities';
+            }
+            setTimeout(() => location.reload(), 350);
+        },
+        error: (xhr) => {
+            toastr.error(xhr.responseJSON?.message || 'Failed to switch version');
+            $btn.prop('disabled', false);
+        }
+    });
+});
+
+// "Fork from current" opens the new-version modal with the active version
+// pre-selected as the source. The hidden sourceId tells the server to
+// deep-clone every activity from that version into the new branch.
+$(document).on('click', '#newVersionBtn', function () {
+    const $active = $('.version-tab-btn[data-is-active="1"]').first();
+    const sourceId = $active.length ? $active.data('version-id') : '';
+    const sourceName = $active.length ? $active.data('version-name') : 'current';
+    $('#newVersionModalTitle').text('Fork new version');
+    $('#newVersionSourceId').val(sourceId);
+    $('#newVersionSourceHint').html(
+        'All activities from <strong>' + escapeHtml(sourceName) + '</strong> will be deep-cloned into the new branch. ' +
+        'Edits in the new version will not affect the source.'
+    );
+    $('#newVersionName').val('');
+    $('#newVersionDescription').val('');
+    $('#newVersionSetActive').prop('checked', true);
+    $('#saveNewVersionBtnLabel').text('Fork Version');
+    $('#newVersionModal').modal('show');
+    setTimeout(() => $('#newVersionName').trigger('focus'), 200);
+});
+
+// Same modal, but no source — creates a blank version with zero activities.
+$(document).on('click', '#newEmptyVersionBtn', function () {
+    $('#newVersionModalTitle').text('Create empty version');
+    $('#newVersionSourceId').val('');
+    $('#newVersionSourceHint').html(
+        'The new version will start with <strong>no activities</strong>. You can build it up from scratch or duplicate cards into it later.'
+    );
+    $('#newVersionName').val('');
+    $('#newVersionDescription').val('');
+    $('#newVersionSetActive').prop('checked', true);
+    $('#saveNewVersionBtnLabel').text('Create Version');
+    $('#newVersionModal').modal('show');
+    setTimeout(() => $('#newVersionName').trigger('focus'), 200);
+});
+
+$(document).on('click', '#saveNewVersionBtn', function () {
+    const versionName = ($('#newVersionName').val() || '').trim();
+    if (!versionName) {
+        toastr.warning('Give the version a name.');
+        $('#newVersionName').trigger('focus');
+        return;
+    }
+    const payload = {
+        _token:          CSRF,
+        versionName:     versionName,
+        description:     $('#newVersionDescription').val() || '',
+        sourceVersionId: $('#newVersionSourceId').val() || '',
+        setActive:       $('#newVersionSetActive').is(':checked') ? 1 : 0,
+    };
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
+
+    $.ajax({
+        url: URLS.activityVersionsStore(),
+        type: 'POST',
+        data: payload,
+        success: (res) => {
+            if (!res.success) {
+                toastr.error(res.message || 'Failed to create version');
+                return;
+            }
+            toastr.success('Version "' + versionName + '" created. Reloading...');
+            $('#newVersionModal').modal('hide');
+            if (!location.hash) location.hash = '#tab-activities';
+            setTimeout(() => location.reload(), 400);
+        },
+        error: (xhr) => {
+            const msg = xhr.responseJSON?.message || 'Failed to create version';
+            const errs = xhr.responseJSON?.errors;
+            if (errs) {
+                const first = Object.values(errs)[0];
+                toastr.error(Array.isArray(first) ? first[0] : msg);
+            } else {
+                toastr.error(msg);
+            }
+        },
+        complete: () => {
+            $btn.prop('disabled', false).html('<i class="bx bx-git-branch me-1"></i> <span id="saveNewVersionBtnLabel">' + $('#saveNewVersionBtnLabel').text() + '</span>');
+        }
+    });
+});
+
+$(document).on('click', '#renameVersionBtn', function () {
+    const $active = $('.version-tab-btn[data-is-active="1"]').first();
+    if (!$active.length) {
+        toastr.warning('No active version to rename.');
+        return;
+    }
+    $('#renameVersionId').val($active.data('version-id'));
+    $('#renameVersionName').val($active.data('version-name') || '');
+    $('#renameVersionDescription').val($active.data('version-description') || '');
+    $('#renameVersionModal').modal('show');
+});
+
+$(document).on('click', '#saveRenameVersionBtn', function () {
+    const id = $('#renameVersionId').val();
+    const versionName = ($('#renameVersionName').val() || '').trim();
+    if (!id || !versionName) {
+        toastr.warning('Give the version a name.');
+        return;
+    }
+    const payload = {
+        _token:      CSRF,
+        versionName: versionName,
+        description: $('#renameVersionDescription').val() || '',
+    };
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
+
+    $.ajax({
+        url: URLS.activityVersionsUpdate(id),
+        type: 'PUT',
+        data: payload,
+        success: (res) => {
+            if (!res.success) {
+                toastr.error(res.message || 'Failed to rename version');
+                return;
+            }
+            toastr.success('Version renamed. Reloading...');
+            $('#renameVersionModal').modal('hide');
+            if (!location.hash) location.hash = '#tab-activities';
+            setTimeout(() => location.reload(), 300);
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to rename version'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i> Save Changes')
+    });
+});
+
+// ---------- DATE NOTES (per-date commentary on the timeline) ----------
+//
+// Each date-group can carry an optional note that explains what happens on
+// that day in more detail than the activity titles convey. The note is
+// scoped to the active version (forks get their own copies) and renders in
+// the Worker Presentation + Export Schedule too.
+
+function _prettyDateLabel(iso) {
+    const d = parseLocalDate(iso);
+    if (!d) return iso;
+    return `${DAY_SHORT[d.getDay()]}, ${MONTH_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+// Refresh the note row + the date-header icon state without a full reload.
+// Pass null/empty for `content` to render the empty state.
+function _refreshDateNoteUI(dateKey, content) {
+    const $btn  = $('.date-note-btn[data-date="' + dateKey + '"]');
+    const $row  = $('.date-note-block[data-date="' + dateKey + '"]');
+    const safe  = String(content || '').trim();
+
+    if (safe === '') {
+        $btn.removeClass('has-note')
+            .attr('data-existing', '')
+            .attr('title', 'Add a note for this date')
+            .find('i').removeClass('bxs-note').addClass('bx-note');
+        $row.hide().find('.date-note-text').empty();
+        return;
+    }
+
+    // nl2br + HTML-escape so user-supplied content can't inject markup.
+    const html = escapeHtml(safe).replace(/\n/g, '<br>');
+    $btn.addClass('has-note')
+        .attr('data-existing', safe)
+        .attr('title', 'Edit the note for this date')
+        .find('i').removeClass('bx-note').addClass('bxs-note');
+    $row.show().find('.date-note-text').html(html);
+}
+
+// Clicking the note icon on a date header opens the modal pre-populated
+// with whatever note is currently stored (if any).
+$(document).on('click', '.date-note-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dateKey  = ($(this).attr('data-date') || '').trim();
+    const existing = $(this).attr('data-existing') || '';
+    if (!dateKey) return;
+
+    $('#dateNoteDate').val(dateKey);
+    $('#dateNoteModalDate').text(_prettyDateLabel(dateKey));
+    $('#dateNoteContent').val(existing);
+    $('#dateNoteModalTitle').text(existing ? 'Edit note for this date' : 'Add note for this date');
+    $('#dateNoteClearBtn').toggle(!!existing);
+    $('#dateNoteModal').modal('show');
+    setTimeout(() => $('#dateNoteContent').trigger('focus'), 200);
+});
+
+$(document).on('click', '#dateNoteSaveBtn', function () {
+    const dateKey = $('#dateNoteDate').val();
+    const content = $('#dateNoteContent').val();
+    if (!dateKey) return;
+
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
+    $.ajax({
+        url: URLS.activitiesDateNoteSave(),
+        type: 'POST',
+        data: {
+            _token:      CSRF,
+            noteDate:    dateKey,
+            noteContent: content,
+        },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message || 'Failed to save note'); return; }
+            const saved = (content || '').trim();
+            _refreshDateNoteUI(dateKey, saved);
+            toastr.success(saved === '' ? 'Note cleared.' : 'Note saved.');
+            $('#dateNoteModal').modal('hide');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to save note'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i> Save Note')
+    });
+});
+
+$(document).on('click', '#dateNoteClearBtn', function () {
+    const dateKey = $('#dateNoteDate').val();
+    if (!dateKey) return;
+
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Clearing...');
+    $.ajax({
+        url: URLS.activitiesDateNoteDelete(),
+        type: 'DELETE',
+        data: { _token: CSRF, noteDate: dateKey },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message || 'Failed to clear note'); return; }
+            _refreshDateNoteUI(dateKey, '');
+            toastr.success('Note cleared.');
+            $('#dateNoteModal').modal('hide');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to clear note'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Clear Note')
+    });
+});
+
+$(document).on('click', '#deleteVersionBtn', function () {
+    const $active = $('.version-tab-btn[data-is-active="1"]').first();
+    if (!$active.length) {
+        toastr.warning('No active version to delete.');
+        return;
+    }
+    const isOriginal = parseInt($active.data('is-original'), 10) === 1;
+    if (isOriginal) {
+        toastr.error('The Original version is the baseline and cannot be deleted.');
+        return;
+    }
+    const id = $active.data('version-id');
+    const name = $active.data('version-name');
+
+    confirmAction({
+        title: 'Delete version',
+        message: 'Delete the entire <strong>"' + escapeHtml(name) + '"</strong> version?',
+        detail: 'Every activity inside this version will be soft-deleted with it. The Original version will become active again. This cannot be undone from the activity-level Undo stack.',
+        confirmText: 'Delete Version',
+        onConfirm: () => {
+            $.ajax({
+                url: URLS.activityVersionsDelete(id),
+                type: 'DELETE',
+                data: { _token: CSRF },
+                success: (res) => {
+                    if (!res.success) {
+                        toastr.error(res.message || 'Failed to delete version');
+                        return;
+                    }
+                    toastr.success('Version "' + name + '" deleted. Reloading...');
+                    if (!location.hash) location.hash = '#tab-activities';
+                    setTimeout(() => location.reload(), 350);
+                },
+                error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to delete version')
+            });
+        }
+    });
 });

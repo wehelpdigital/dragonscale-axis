@@ -6,11 +6,26 @@ class AsScheduleWorker extends BaseModel
 {
     protected $table = 'as_schedule_workers';
 
+    /**
+     * Canonical catalog of worker skills. Keys are the slugs stored in the
+     * JSON column, values are the human-readable labels rendered in the UI.
+     * Single source of truth — controller validation, view rendering, and
+     * any future filter logic all read from here.
+     */
+    public const SKILLS = [
+        'manager'             => 'Manager',
+        'spray'               => 'Spray',
+        'broadcast_granulars' => 'Broadcast Granulars',
+        'operate_machine'     => 'Operate Machine',
+        'harrowing'           => 'Harrowing (Pagsusuyod)',
+    ];
+
     protected $fillable = [
         'croppingScheduleId',
         'workerName',
         'costPerHalfDay',
         'priority',
+        'skills',
         'notes',
         'deleteStatus',
     ];
@@ -18,6 +33,7 @@ class AsScheduleWorker extends BaseModel
     protected $casts = [
         'costPerHalfDay' => 'decimal:2',
         'priority' => 'integer',
+        'skills' => 'array',
         'deleteStatus' => 'integer',
     ];
 

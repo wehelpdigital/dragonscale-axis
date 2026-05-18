@@ -4,6 +4,8 @@ namespace App\Http\Controllers\aniSensoAdmin\ScheduleManager;
 
 use App\Models\AsScheduleActivity;
 use App\Models\AsScheduleActivityItem;
+use App\Models\AsScheduleActivityVersion;
+use App\Models\AsScheduleDateNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -512,6 +514,7 @@ class ActivityController extends BaseScheduleController
             'irrigations' => fn ($q) => $q->orderBy('startDay', 'asc'),
             'irrigations.assignedWorker',
             'defaultGroupings.lots',
+            'dateNotes',
         ]);
 
         // ---- Effective Day 0 anchor per lot (manual + activity flags) ----
@@ -611,11 +614,12 @@ class ActivityController extends BaseScheduleController
         // After collection, each week's bands are row-packed greedily so
         // non-overlapping segments share a row and only true overlaps stack.
         $irrigationBandsByWeek = [];
-        // Monochromatic blue palette — different cycles get different shades
-        // but stay clearly "blue" so the visual mapping water = blue holds.
-        $palette = ['#1565c0', '#1976d2', '#1e88e5', '#0d47a1', '#1e6dbf', '#0277bd', '#2563eb'];
-        foreach ($schedule->irrigations as $irrIdx => $irrigation) {
-            $color = $palette[$irrIdx % count($palette)];
+        // Band color + icon now come from the irrigation's taskType so the
+        // calendar visually groups Irrigate / Maintain / Overflow / Drain
+        // together regardless of cycle order. Mirrors AsScheduleIrrigation
+        // catalog — change once, propagates everywhere.
+        foreach ($schedule->irrigations as $irrigation) {
+            $taskMeta = \App\Models\AsScheduleIrrigation::taskTypeMeta($irrigation->taskType);
             foreach ($schedule->defaultGroupings as $group) {
                 $groupStart = $group->startDate ? \Illuminate\Support\Carbon::parse($group->startDate) : null;
                 if (!$groupStart) continue;
@@ -639,7 +643,10 @@ class ActivityController extends BaseScheduleController
                         'endDate'      => $segEnd->copy(),
                         'dasStart'     => (int) $irrigation->startDay,
                         'dasEnd'       => (int) $irrigation->endDay,
-                        'color'        => $color,
+                        'taskType'     => $taskMeta['slug'],
+                        'taskLabel'    => $taskMeta['label'],
+                        'taskIcon'     => $taskMeta['icon'],
+                        'color'        => $taskMeta['color'],
                     ];
                     $segStart = $segEnd->copy()->addDay();
                 }
@@ -790,6 +797,13 @@ class ActivityController extends BaseScheduleController
             }
         }
 
+        // Optional-section toggles set by the pre-generate modal in the
+        // activities tab. The PDF route calls this method and inherits the
+        // request, so the flags flow through to the printed PDF too.
+        $showDescriptions = $request->boolean('showDesc');
+        $showIrrigation   = $request->boolean('showIrrigation');
+        $showCalendar     = $request->boolean('showCalendar');
+
         return view('aniSensoAdmin.scheduleManager.worker-presentation', [
             'schedule'              => $schedule,
             'lotDayZero'            => $lotDayZero,
@@ -802,6 +816,9 @@ class ActivityController extends BaseScheduleController
             'firstDate'             => $firstDate,
             'lastDate'              => $lastDate,
             'generatedAt'           => \Illuminate\Support\Carbon::now('Asia/Manila'),
+            'showDescriptions'      => $showDescriptions,
+            'showIrrigation'        => $showIrrigation,
+            'showCalendar'          => $showCalendar,
         ]);
     }
 
@@ -882,6 +899,7 @@ class ActivityController extends BaseScheduleController
             'activities.workers',
             'activities.items.material',
             'activities.items.service',
+            'dateNotes',
         ]);
 
         return view('aniSensoAdmin.scheduleManager.export', compact('schedule'));
@@ -988,10 +1006,19 @@ class ActivityController extends BaseScheduleController
             ->first();
         if (!$source) return $this->jsonFail('Activity not found.', 404);
 
+        $activeVersionId = $this->activeVersionIdFor($schedule->id);
+
         try {
-            $new = DB::transaction(function () use ($source) {
+            $new = DB::transaction(function () use ($source, $activeVersionId) {
                 $copy = $source->replicate(['sequenceOrder']);
                 $copy->activityTitle = mb_substr($source->activityTitle, 0, 240) . ' (copy)';
+                // Duplicate always lands in the currently-active version so the
+                // new copy belongs to whatever tab the user is looking at,
+                // independent of which version the source row was forked into.
+                if ($activeVersionId) {
+                    $copy->versionId = $activeVersionId;
+                }
+                $copy->sourceActivityId = $source->id;
                 $copy->save();
 
                 // Copy active items
@@ -1029,6 +1056,7 @@ class ActivityController extends BaseScheduleController
             'targetDate'       => 'required|date',
             'targetEndDate'    => 'nullable|date|after_or_equal:targetDate',
             'priority'         => 'required|in:critical,high,medium,low',
+            'activityType'     => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(AsScheduleActivity::ACTIVITY_TYPES))],
             'isDayZero'        => 'nullable|boolean',
             'description'      => 'nullable|string|max:20000',
             'timeRequired'     => 'required|in:half,whole,n/a',
@@ -1078,11 +1106,23 @@ class ActivityController extends BaseScheduleController
             'targetDate'         => $request->targetDate,
             'targetEndDate'      => $request->filled('targetEndDate') ? $request->targetEndDate : null,
             'priority'           => $request->priority,
+            'activityType'       => $request->filled('activityType') ? $request->activityType : null,
             'isDayZero'          => $request->boolean('isDayZero'),
             'description'        => $request->description,
             'timeRequired'       => $request->timeRequired,
             'deleteStatus'       => 1,
         ];
+
+        // New activities always land in the schedule's active version so they
+        // appear inside whichever tab the user is currently viewing. On edits
+        // we leave versionId alone — moving an activity between versions is
+        // a separate operation, not a side-effect of saving.
+        if ($id === null) {
+            $activeVersionId = $this->activeVersionIdFor($schedule->id);
+            if ($activeVersionId) {
+                $payload['versionId'] = $activeVersionId;
+            }
+        }
 
         try {
             $activity = DB::transaction(function () use ($id, $schedule, $payload, $request, $submittedLotIds, $submittedWorkerIds) {
@@ -1129,5 +1169,127 @@ class ActivityController extends BaseScheduleController
         return $this->jsonOk($id ? 'Activity updated.' : 'Activity added.', [
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Upsert the per-date note for the schedule's active version.
+     *
+     * The (versionId, noteDate) pair is unique-by-app-logic: the first row
+     * that matches it gets updated in place, anything else is created. We
+     * deliberately don't enforce uniqueness at the DB level so soft-deleted
+     * rows can coexist with a new active row for the same slot.
+     *
+     * An empty noteContent collapses to a soft delete so the same endpoint
+     * handles both "save" and "clear" from the UI without a separate route.
+     */
+    public function saveDateNote(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+
+        $validator = Validator::make($request->all(), [
+            'noteDate'    => 'required|date',
+            'noteContent' => 'nullable|string|max:20000',
+        ]);
+        if ($validator->fails()) {
+            return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        $versionId = $this->activeVersionIdFor($schedule->id);
+        if (!$versionId) {
+            return $this->jsonFail('No active version found for this schedule.', 422);
+        }
+
+        $noteDate = $request->input('noteDate');
+        $content  = trim((string) $request->input('noteContent', ''));
+
+        $existing = AsScheduleDateNote::active()
+            ->forSchedule($schedule->id)
+            ->forVersion($versionId)
+            ->whereDate('noteDate', $noteDate)
+            ->first();
+
+        // Empty content → treat as "remove note for this date" so the UI
+        // doesn't need a separate clear endpoint.
+        if ($content === '') {
+            if ($existing) {
+                $existing->update(['deleteStatus' => 0]);
+            }
+            return $this->jsonOk('Note cleared.', ['data' => null]);
+        }
+
+        if ($existing) {
+            $existing->update(['noteContent' => $content]);
+            $note = $existing;
+        } else {
+            $note = AsScheduleDateNote::create([
+                'croppingScheduleId' => $schedule->id,
+                'versionId'          => $versionId,
+                'noteDate'           => $noteDate,
+                'noteContent'        => $content,
+                'deleteStatus'       => 1,
+            ]);
+        }
+
+        return $this->jsonOk($existing ? 'Note updated.' : 'Note added.', [
+            'data' => [
+                'id'          => $note->id,
+                'noteDate'    => $note->noteDate->format('Y-m-d'),
+                'noteContent' => $note->noteContent,
+            ],
+        ]);
+    }
+
+    /**
+     * Soft-delete the per-date note for the active version. Idempotent — if
+     * no note exists for the given date, returns success with a null payload
+     * so the UI can call this even when it isn't sure whether one is present.
+     */
+    public function deleteDateNote(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+
+        $validator = Validator::make($request->all(), [
+            'noteDate' => 'required|date',
+        ]);
+        if ($validator->fails()) {
+            return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        $versionId = $this->activeVersionIdFor($schedule->id);
+        if (!$versionId) {
+            return $this->jsonFail('No active version found for this schedule.', 422);
+        }
+
+        AsScheduleDateNote::active()
+            ->forSchedule($schedule->id)
+            ->forVersion($versionId)
+            ->whereDate('noteDate', $request->input('noteDate'))
+            ->update(['deleteStatus' => 0]);
+
+        return $this->jsonOk('Note deleted.');
+    }
+
+    /**
+     * Resolve the active version id for a schedule, falling back to whichever
+     * version exists (preferring Original) if no row is flagged isActive.
+     * Returns null only for schedules that have zero versions at all, which
+     * shouldn't happen post-migration but is handled defensively so save
+     * actions never blow up on a misconfigured row.
+     */
+    private function activeVersionIdFor(int $scheduleId): ?int
+    {
+        $active = AsScheduleActivityVersion::active()
+            ->forSchedule($scheduleId)
+            ->where('isActive', 1)
+            ->orderBy('id', 'asc')
+            ->first();
+        if ($active) return (int) $active->id;
+
+        $fallback = AsScheduleActivityVersion::active()
+            ->forSchedule($scheduleId)
+            ->orderBy('isOriginal', 'desc')
+            ->orderBy('id', 'asc')
+            ->first();
+        return $fallback ? (int) $fallback->id : null;
     }
 }

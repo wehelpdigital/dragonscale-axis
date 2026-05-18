@@ -304,6 +304,19 @@
             border-radius: 12px;
             font-size: 9.5pt;
         }
+        .date-note {
+            background: #fff8e6;
+            border-left: 3px solid #d9a23a;
+            padding: 7px 12px;
+            margin: 0 0 10px;
+            font-size: 10pt;
+            color: #4d3a0d;
+            line-height: 1.5;
+            border-radius: 0 3px 3px 0;
+            page-break-inside: avoid;
+            break-inside: avoid-page;
+        }
+        .date-note strong { color: #8a5e09; }
         .activity {
             background: #fff;
             border: 1px solid #e5e7eb;
@@ -323,6 +336,9 @@
         .activity-title { font-weight: 700; font-size: 11.5pt; color: #1f2937; flex: 1 1 200px; }
         .activity-range { font-size: 9.5pt; color: #4b5563; }
         .priority-pill { font-size: 8.5pt; padding: 1px 8px; border-radius: 10px; font-weight: 600; }
+        .type-pill { font-size: 8.5pt; padding: 1px 8px; border-radius: 10px; font-weight: 600; background: #e2efd4; color: #2d4d1c; }
+        .skill-chip { display: inline-block; font-size: 9pt; padding: 2px 9px; border-radius: 11px; background: #f0ead6; color: #6b4423; margin: 0 3px 3px 0; }
+        .skill-chip-on-dark { display: inline-block; font-size: 8.5pt; padding: 2px 9px; border-radius: 11px; background: rgba(255,255,255,0.22); color: #fff; margin: 0 3px 3px 0; font-weight: 500; }
         .pill-critical { background: #8a1d1d; color: #fff; text-transform: uppercase; letter-spacing: 0.3px; }
         .pill-high     { background: #fde0d2; color: #8a3a1c; }
         .pill-medium   { background: #e2efd4; color: #2d4d1c; }
@@ -668,7 +684,13 @@
 </head>
 <body>
     @php
-        $pdfUrl = route('anisenso-schedule-manager.worker-presentation.pdf') . '?scheduleId=' . $schedule->id;
+        // Carry every option toggle over to the PDF route so the printed
+        // file matches exactly what the user is previewing on screen.
+        $pdfUrl = route('anisenso-schedule-manager.worker-presentation.pdf')
+            . '?scheduleId=' . $schedule->id
+            . '&showDesc=' . ($showDescriptions ? '1' : '0')
+            . '&showIrrigation=' . ($showIrrigation ? '1' : '0')
+            . '&showCalendar=' . ($showCalendar ? '1' : '0');
     @endphp
     <div class="action-bar no-print">
         <div class="brand">Worker Presentation — {{ $schedule->title }}</div>
@@ -771,6 +793,7 @@
         @endif
 
         @if($schedule->workers->count() > 0)
+            @php $skillsCatalog = \App\Models\AsScheduleWorker::SKILLS; @endphp
             <h2 class="page-break">Workers</h2>
             <p>The crop will be worked by <strong>{{ $schedule->workers->count() }}</strong>
                {{ \Illuminate\Support\Str::plural('worker', $schedule->workers->count()) }}.
@@ -781,15 +804,28 @@
                         <th class="center">Priority</th>
                         <th>Name</th>
                         <th class="num">Half-day rate</th>
+                        <th>Skills</th>
                         <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($schedule->workers as $w)
+                        @php $wSkills = is_array($w->skills) ? $w->skills : []; @endphp
                         <tr>
                             <td class="center">#{{ $w->priority }}</td>
                             <td><strong>{{ $w->workerName }}</strong></td>
                             <td class="num">₱ {{ number_format((float) $w->costPerHalfDay, 2) }}</td>
+                            <td>
+                                @if(count($wSkills) === 0)
+                                    <span class="muted">—</span>
+                                @else
+                                    @foreach($wSkills as $k)
+                                        @if(isset($skillsCatalog[$k]))
+                                            <span class="skill-chip">{{ $skillsCatalog[$k] }}</span>
+                                        @endif
+                                    @endforeach
+                                @endif
+                            </td>
                             <td>{{ $w->notes }}</td>
                         </tr>
                     @endforeach
@@ -816,12 +852,16 @@
                 return $a->targetDate ? $a->targetDate->format('Y-m-d') : '__no-date__';
             });
             $actKeys = $actByDate->keys()->sort()->values();
+
+            // Index per-date notes once so every block lookup is O(1).
+            $presentationNotesByDate = $schedule->dateNotes->keyBy(fn ($n) => $n->noteDate->format('Y-m-d'));
         @endphp
 
         @forelse($actKeys as $dateKey)
             @php
                 $bucket = $actByDate->get($dateKey);
                 $dateCarbon = $dateKey !== '__no-date__' ? \Illuminate\Support\Carbon::parse($dateKey) : null;
+                $presentationNote = $presentationNotesByDate->get($dateKey);
             @endphp
             <div class="date-block">
                 <div class="date-bar">
@@ -833,6 +873,11 @@
                     @endif
                     <span class="count">{{ $bucket->count() }} {{ \Illuminate\Support\Str::plural('activity', $bucket->count()) }}</span>
                 </div>
+                @if($presentationNote)
+                    <div class="date-note">
+                        <strong>Note:</strong> {!! nl2br(e($presentationNote->noteContent)) !!}
+                    </div>
+                @endif
                 @foreach($bucket as $a)
                     @php
                         $endC = $a->targetEndDate ?: null;
@@ -847,11 +892,17 @@
                             @if($isRange)
                                 <span class="activity-range">→ {{ $endC->format('M j') }} ({{ $rangeDays }}d)</span>
                             @endif
+                            @if($a->activityType && isset(\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType]))
+                                <span class="type-pill">{{ \App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType] }}</span>
+                            @endif
                             <span class="priority-pill pill-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
                             @if($a->isDayZero)
                                 <span class="priority-pill pill-d0">{{ $schedule->dayType }} 0</span>
                             @endif
                         </div>
+                        @if($showDescriptions && $a->description)
+                            <div class="activity-desc">{!! $a->description !!}</div>
+                        @endif
                         <div class="activity-line">
                             <span class="label">Time:</span>
                             <span>{{ $timeLabel }}</span>
@@ -939,8 +990,12 @@
         @endif
 
         {{-- Section 4: Per-worker pages --}}
+        @php $skillsCatalogForPages = \App\Models\AsScheduleWorker::SKILLS; @endphp
         @foreach($workerStats as $stats)
-            @php $w = $stats['worker']; @endphp
+            @php
+                $w = $stats['worker'];
+                $wSkills = is_array($w->skills) ? $w->skills : [];
+            @endphp
             <section class="worker-page">
                 <div class="worker-header">
                     <div class="name">{{ $w->workerName }}</div>
@@ -951,6 +1006,16 @@
                             · {{ $w->notes }}
                         @endif
                     </div>
+                    @if(count($wSkills) > 0)
+                        <div class="meta" style="margin-top: 6px;">
+                            <strong>Skills:</strong>
+                            @foreach($wSkills as $k)
+                                @if(isset($skillsCatalogForPages[$k]))
+                                    <span class="skill-chip-on-dark">{{ $skillsCatalogForPages[$k] }}</span>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div class="worker-stat-row">
@@ -1037,7 +1102,8 @@
             </section>
         @endforeach
 
-        {{-- Section 5: Irrigation Schedules --}}
+        {{-- Section 5: Irrigation Schedules (gated by modal toggle) --}}
+        @if($showIrrigation)
         <h2 class="page-break">Irrigation Schedules</h2>
         @if($schedule->irrigations->count() === 0)
             <p class="muted">No irrigation schedules defined.</p>
@@ -1046,11 +1112,27 @@
                 Irrigation cycles are defined as <strong>{{ $schedule->dayType }}</strong> ranges relative to each group's
                 Day 0 anchor. The calendar later in this document maps each cycle to its actual calendar dates per group.
             </p>
+            {{-- Task-type legend so workers know what each color means at a glance --}}
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin: 6px 0 12px;">
+                @foreach(\App\Models\AsScheduleIrrigation::TASK_TYPES as $slug => $label)
+                    @php $tm = \App\Models\AsScheduleIrrigation::taskTypeMeta($slug); @endphp
+                    <span style="display:inline-flex; align-items:center; gap:4px; font-size:9.5pt; padding:3px 10px; border-radius:11px; background: {{ $tm['color'] }}; color:#fff; font-weight:600;">
+                        {{ $tm['icon'] }} {{ $tm['label'] }}
+                    </span>
+                @endforeach
+            </div>
+
             @foreach($schedule->irrigations as $irrigation)
-                <div class="irr-row">
-                    <span class="das">💧 {{ $schedule->dayType }} {{ $irrigation->startDay }}–{{ $irrigation->endDay }}</span>
+                @php $irrMeta = \App\Models\AsScheduleIrrigation::taskTypeMeta($irrigation->taskType); @endphp
+                <div class="irr-row" style="border-left-color: {{ $irrMeta['color'] }};">
+                    <span class="das" style="background: {{ $irrMeta['color'] }};">{{ $irrMeta['icon'] }} {{ $schedule->dayType }} {{ $irrigation->startDay }}–{{ $irrigation->endDay }}</span>
                     <div style="flex: 1; min-width: 0;">
-                        <div class="title">{{ $irrigation->irrigationTitle }}</div>
+                        <div class="title">
+                            {{ $irrigation->irrigationTitle }}
+                            <span style="display:inline-block; font-size:9pt; padding:2px 8px; border-radius:10px; background: {{ $irrMeta['color'] }}; color:#fff; font-weight:600; margin-left:6px;">
+                                {{ $irrMeta['icon'] }} {{ $irrMeta['label'] }}
+                            </span>
+                        </div>
                         @if($irrigation->description)
                             <div class="desc">{{ $irrigation->description }}</div>
                         @endif
@@ -1098,18 +1180,27 @@
                 </div>
             @endforeach
         @endif
+        @endif {{-- /Section 5 showIrrigation --}}
     </div>
 
-    {{-- Section 6: Calendar (landscape) --}}
+    {{-- Section 6: Calendar (landscape, gated by modal toggle) --}}
+    @if($showCalendar)
     <div class="sheet cal-section">
         <h2 style="page-break-before: always; break-before: page; margin-top: 0;">Calendar</h2>
         <div class="cal-legend">
+            <strong style="font-size:9pt; color:#374151; margin-right:6px;">Activity priority:</strong>
             <span><span class="sw" style="background:#8a1d1d;"></span>Critical</span>
             <span><span class="sw" style="background:#c95a35;"></span>High</span>
             <span><span class="sw" style="background:#5b8c3a;"></span>Medium</span>
             <span><span class="sw" style="background:#6b7280;"></span>Low</span>
-            <span><span class="sw" style="background:#0288d1;"></span>Irrigation cycle</span>
-            <span class="muted">Irrigation bands span the cycle's calendar dates per group.</span>
+        </div>
+        <div class="cal-legend" style="margin-top: 6px;">
+            <strong style="font-size:9pt; color:#374151; margin-right:6px;">Irrigation task type:</strong>
+            @foreach(\App\Models\AsScheduleIrrigation::TASK_TYPES as $slug => $label)
+                @php $tmLegend = \App\Models\AsScheduleIrrigation::taskTypeMeta($slug); @endphp
+                <span><span class="sw" style="background: {{ $tmLegend['color'] }};"></span>{{ $tmLegend['icon'] }} {{ $tmLegend['label'] }}</span>
+            @endforeach
+            <span class="muted">Bands span the cycle's calendar dates per group.</span>
         </div>
 
         @if(count($calendarMonths) === 0)
@@ -1211,8 +1302,8 @@
                                             <td colspan="{{ $span }}" class="cal-band-cell">
                                                 <div class="cal-irr-band"
                                                      style="background: {{ $band['color'] }};"
-                                                     title="{{ $band['title'] }} · {{ $band['groupName'] }} · {{ $schedule->dayType }} {{ $band['dasStart'] }}–{{ $band['dasEnd'] }}">
-                                                    <span class="drop">💧</span>
+                                                     title="{{ $band['taskLabel'] ?? 'Irrigate' }} — {{ $band['title'] }} · {{ $band['groupName'] }} · {{ $schedule->dayType }} {{ $band['dasStart'] }}–{{ $band['dasEnd'] }}">
+                                                    <span class="drop">{{ $band['taskIcon'] ?? '💧' }}</span>
                                                     <span class="lbl">{{ $band['title'] }} · {{ $band['groupName'] }} · {{ $band['startDate']->format('M j') }}@if(!$band['startDate']->equalTo($band['endDate']))–{{ $band['endDate']->format('M j') }}@endif ↓</span>
                                                 </div>
                                             </td>
@@ -1266,6 +1357,7 @@
             AniSenso by John Tugare
         </footer>
     </div>
+    @endif {{-- /Section 6 showCalendar --}}
 
     <script>
         const ZOOM_MIN = 75, ZOOM_MAX = 200, ZOOM_DEFAULT = 130;

@@ -8,6 +8,8 @@
     </button>
 </div>
 
+@php $skillsCatalog = \App\Models\AsScheduleWorker::SKILLS; @endphp
+
 <div class="table-responsive">
     <table class="table table-hover align-middle mb-0" id="workersTable">
         <thead class="table-light">
@@ -15,6 +17,7 @@
                 <th>Priority</th>
                 <th>Worker Name</th>
                 <th>Cost/Half Day</th>
+                <th>Skills</th>
                 <th>Off Rules</th>
                 <th>Notes</th>
                 <th class="text-end" style="width: 220px;">Actions</th>
@@ -22,10 +25,22 @@
         </thead>
         <tbody>
             @forelse($schedule->workers as $w)
+                @php $workerSkills = is_array($w->skills) ? $w->skills : []; @endphp
                 <tr data-id="{{ $w->id }}">
                     <td><span class="badge bg-primary text-white">#{{ $w->priority }}</span></td>
                     <td class="text-dark"><strong>{{ $w->workerName }}</strong></td>
                     <td class="text-dark">₱ {{ number_format($w->costPerHalfDay, 2) }}</td>
+                    <td class="worker-skills-cell">
+                        @if(count($workerSkills) === 0)
+                            <small class="text-secondary">—</small>
+                        @else
+                            @foreach($workerSkills as $skillKey)
+                                @if(isset($skillsCatalog[$skillKey]))
+                                    <span class="badge bg-light text-dark border" style="font-weight:500;margin-bottom:2px;">{{ $skillsCatalog[$skillKey] }}</span>
+                                @endif
+                            @endforeach
+                        @endif
+                    </td>
                     <td>
                         @if($w->offDays->count() || $w->offDates->count())
                             <small class="text-dark">
@@ -51,12 +66,13 @@
                                 data-name="{{ $w->workerName }}"
                                 data-cost="{{ $w->costPerHalfDay }}"
                                 data-priority="{{ $w->priority }}"
+                                data-skills="{{ implode(',', $workerSkills) }}"
                                 data-notes="{{ $w->notes }}"><i class="bx bx-edit-alt"></i></button>
                         <button class="btn btn-sm btn-outline-danger delete-worker-btn" data-id="{{ $w->id }}" data-name="{{ $w->workerName }}"><i class="bx bx-trash"></i></button>
                     </td>
                 </tr>
             @empty
-                <tr id="workersEmpty"><td colspan="6" class="text-center text-secondary py-4"><i class="bx bx-user-x" style="font-size:2rem;"></i><br>No workers yet. Add at least one worker.</td></tr>
+                <tr id="workersEmpty"><td colspan="7" class="text-center text-secondary py-4"><i class="bx bx-user-x" style="font-size:2rem;"></i><br>No workers yet. Add at least one worker.</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -86,6 +102,17 @@
                         <input type="number" min="1" step="1" class="form-control" id="workerPriority" value="1">
                         <small class="text-secondary">1 = highest. Used when picking workers for activities.</small>
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-dark">Skills
+                        <small class="text-secondary fw-normal">— tap to toggle</small>
+                    </label>
+                    <div class="lot-chip-container" id="workerSkillsContainer">
+                        @foreach($skillsCatalog as $skillKey => $skillLabel)
+                            <span class="lot-chip" data-skill="{{ $skillKey }}" role="button" aria-pressed="false">{{ $skillLabel }}</span>
+                        @endforeach
+                    </div>
+                    <small class="text-secondary d-block mt-1">Mark every capability this worker has. Used to filter who can be assigned to specific kinds of activities.</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-dark">Notes</label>

@@ -39,6 +39,7 @@ class IrrigationController extends BaseScheduleController
             'description'       => 'nullable|string|max:2000',
             'startDay'          => 'required|integer',
             'endDay'            => 'required|integer|gte:startDay',
+            'taskType'          => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(AsScheduleIrrigation::TASK_TYPES))],
             'assignedWorkerId'  => 'nullable|integer',
             'timeRequired'      => 'nullable|in:half,whole',
         ]);
@@ -61,6 +62,7 @@ class IrrigationController extends BaseScheduleController
             'description'        => $request->description,
             'startDay'           => $request->startDay,
             'endDay'             => $request->endDay,
+            'taskType'           => $request->input('taskType') ?: 'irrigate',
             'assignedWorkerId'   => $request->assignedWorkerId,
             // Field removed from the irrigation form — kept on the column so the
             // calendar generator (which feeds it into event.timeOfDay) keeps

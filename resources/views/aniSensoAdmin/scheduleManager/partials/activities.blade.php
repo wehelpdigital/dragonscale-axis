@@ -1,6 +1,79 @@
+@php
+    // Resolve the version tab list + which one is active. Done here so the
+    // partial stays self-contained and the controller doesn't need to inject
+    // anything new beyond $schedule.
+    $activityVersions = $schedule->versions;
+    $activeVersion = $activityVersions->firstWhere('isActive', true) ?? $activityVersions->firstWhere('isOriginal', true) ?? $activityVersions->first();
+
+    // Pre-index date notes by Y-m-d so each date-header can show its note in
+    // O(1) without re-querying. Empty collection when nothing exists, so the
+    // ->get() / ?? '' chain in the loop stays simple.
+    $dateNotesByDate = $schedule->dateNotes->keyBy(function ($n) {
+        return $n->noteDate->format('Y-m-d');
+    });
+@endphp
+
+{{-- Activity versions sub-tabs — every version is a branch of the schedule.
+     The currently-active version is the one feeding $schedule->activities,
+     so calendar, export, presentation, and labor summary all follow it
+     automatically. Switching tabs flips isActive server-side and reloads. --}}
+<div class="version-tabs d-flex align-items-center flex-wrap gap-1 mb-3 pb-2"
+     style="border-bottom: 1px solid #e6e8ec;">
+    <small class="text-secondary me-2 d-flex align-items-center" style="font-weight:600;">
+        <i class="bx bx-git-branch me-1" style="font-size:14px;"></i> Version:
+    </small>
+    @foreach($activityVersions as $v)
+        <button type="button"
+                class="btn btn-sm version-tab-btn {{ $v->isActive ? 'btn-primary' : 'btn-outline-secondary' }}"
+                data-version-id="{{ $v->id }}"
+                data-version-name="{{ $v->versionName }}"
+                data-version-description="{{ $v->description }}"
+                data-is-original="{{ $v->isOriginal ? 1 : 0 }}"
+                data-is-active="{{ $v->isActive ? 1 : 0 }}"
+                title="{{ $v->isActive ? 'This is the currently-active version' : 'Switch to this version (reloads the page)' }}">
+            @if($v->isOriginal)
+                <i class="bx bxs-bookmark-star" style="color:#f4a82a;"></i>
+            @else
+                <i class="bx bx-git-branch"></i>
+            @endif
+            {{ $v->versionName }}
+        </button>
+    @endforeach
+    <div class="dropdown ms-2">
+        <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Version actions">
+            <i class="bx bx-plus"></i> Version
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><h6 class="dropdown-header"><i class="bx bx-git-branch"></i> Create</h6></li>
+            <li><button class="dropdown-item" type="button" id="newVersionBtn">
+                <i class="bx bx-copy-alt me-1"></i> Fork from current version&hellip;
+                <small class="d-block text-secondary ms-4">Clone all activities into a new branch</small>
+            </button></li>
+            <li><button class="dropdown-item" type="button" id="newEmptyVersionBtn">
+                <i class="bx bx-file-blank me-1"></i> Create empty version&hellip;
+                <small class="d-block text-secondary ms-4">Start with no activities</small>
+            </button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header"><i class="bx bx-edit"></i> Current version</h6></li>
+            <li><button class="dropdown-item" type="button" id="renameVersionBtn">
+                <i class="bx bx-edit-alt me-1"></i> Rename / edit notes&hellip;
+            </button></li>
+            <li><button class="dropdown-item text-danger" type="button" id="deleteVersionBtn">
+                <i class="bx bx-trash me-1"></i> Delete this version
+            </button></li>
+        </ul>
+    </div>
+    @if($activeVersion && $activeVersion->description)
+        <small class="text-secondary ms-3 d-flex align-items-center" style="font-size:12px;font-style:italic;max-width:480px;">
+            <i class="bx bx-info-circle me-1"></i>
+            <span class="text-truncate" title="{{ $activeVersion->description }}">{{ $activeVersion->description }}</span>
+        </small>
+    @endif
+</div>
+
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
-        <h5 class="text-dark mb-1">Activities</h5>
+        <h5 class="text-dark mb-1">Activities @if($activeVersion)<small class="text-secondary" style="font-size:13px;font-weight:500;">— {{ $activeVersion->versionName }}</small>@endif</h5>
         <small class="text-secondary">Manually-designed farm tasks. Each activity has a specific calendar date and the lots it applies to.</small>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -25,6 +98,25 @@
             <i class="bx bx-plus me-1"></i> Add Activity
         </button>
     </div>
+</div>
+
+{{-- Dynamic search bar: filters activity cards (and hides empty date groups)
+     as you type. Matches across title, type, lots, workers, and items. --}}
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <div class="input-group" style="max-width: 480px;">
+        <span class="input-group-text bg-white" style="border-right: 0;">
+            <i class="bx bx-search text-secondary"></i>
+        </span>
+        <input type="search" class="form-control" id="activitySearchInput"
+               placeholder="Search by title, type, lot, worker, material…"
+               autocomplete="off" style="border-left: 0;">
+        <button type="button" class="btn btn-outline-secondary" id="activitySearchClear" title="Clear search">
+            <i class="bx bx-x"></i>
+        </button>
+    </div>
+    <small class="text-secondary" id="activitySearchHint" style="display:none;">
+        Showing <strong id="activitySearchCount">0</strong> matching activities.
+    </small>
 </div>
 
 <div class="activity-timeline" id="activitiesList">
@@ -115,6 +207,14 @@
                 @endif
                 <span class="date-header-count">{{ $activitiesForDate->count() }} {{ \Illuminate\Support\Str::plural('activity', $activitiesForDate->count()) }}</span>
                 @if($dateKey !== '__no-date__')
+                    @php $existingNote = $dateNotesByDate->get($dateKey); @endphp
+                    <button type="button"
+                            class="date-header-edit-btn date-note-btn {{ $existingNote ? 'has-note' : '' }}"
+                            data-date="{{ $dateKey }}"
+                            data-existing="{{ $existingNote ? e($existingNote->noteContent) : '' }}"
+                            title="{{ $existingNote ? 'Edit the note for this date' : 'Add a note for this date' }}">
+                        <i class="bx {{ $existingNote ? 'bxs-note' : 'bx-note' }}"></i>
+                    </button>
                     <button type="button"
                             class="date-header-edit-btn change-group-date-btn"
                             data-date="{{ $dateKey }}"
@@ -129,6 +229,15 @@
                     </button>
                 @endif
             </div>
+            @if($dateKey !== '__no-date__')
+                @php $noteRow = $dateNotesByDate->get($dateKey); @endphp
+                <div class="date-note-block" data-date="{{ $dateKey }}" @if(!$noteRow) style="display:none;" @endif>
+                    <div class="date-note-inner">
+                        <i class="bx bxs-note date-note-icon"></i>
+                        <div class="date-note-text">{!! $noteRow ? nl2br(e($noteRow->noteContent)) : '' !!}</div>
+                    </div>
+                </div>
+            @endif
             <div class="date-activities">
                 @foreach($activitiesForDate as $a)
                     @php
@@ -145,6 +254,13 @@
                             <div class="flex-grow-1" style="min-width:0;">
                                 <h6 class="text-dark mb-1">
                                     {{ $a->activityTitle }}
+                                    @if($a->activityType && isset(\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType]))
+                                        <span class="badge ms-1 activity-type-badge"
+                                              style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;"
+                                              title="Activity type">
+                                            {{ \App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType] }}
+                                        </span>
+                                    @endif
                                     @if($a->isDayZero)
                                         <span class="badge ms-1 day-zero-badge"
                                               style="background:#ff9800; color:#fff; font-weight:600; font-size:11px;"
@@ -234,6 +350,44 @@
         @endif
     @endforeach
     @endif
+</div>
+
+{{-- Date-note modal: add/edit/clear the per-date commentary. The note is
+     scoped to the active version, so each fork can carry its own notes. --}}
+<div class="modal fade" id="dateNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark">
+                    <i class="bx bxs-note me-2"></i>
+                    <span id="dateNoteModalTitle">Note for this date</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-dark mb-2">
+                    Add a note explaining what will happen on
+                    <strong id="dateNoteModalDate" class="text-primary">—</strong>.
+                </p>
+                <small class="text-secondary d-block mb-2">
+                    This note will appear in the Worker Presentation and the Export Schedule
+                    under this date's heading. Line breaks are preserved.
+                </small>
+                <textarea class="form-control" id="dateNoteContent" rows="6" maxlength="20000"
+                          placeholder="e.g. Heavy spraying day — confirm tank mix the day before. All workers report at 6am."></textarea>
+                <input type="hidden" id="dateNoteDate">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" id="dateNoteClearBtn" style="display:none;">
+                    <i class="bx bx-trash me-1"></i> Clear Note
+                </button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="dateNoteSaveBtn">
+                    <i class="bx bx-save me-1"></i> Save Note
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- Change-group-date modal: bulk-move every activity in a date section --}}
@@ -416,6 +570,57 @@
 </div>
 
 {{-- Drafts modal: list every drafted activity and click any to restore --}}
+{{-- Worker-presentation options modal: pick which optional sections to include before opening the report. --}}
+<div class="modal fade" id="workerPresentationOptionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark"><i class="bx bx-book-open me-2"></i>Worker Presentation Options</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-dark mb-3">Pick which optional sections to include in the presentation:</p>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="optShowDesc" checked>
+                    <label class="form-check-label text-dark" for="optShowDesc">
+                        <strong>Activity descriptions</strong>
+                        <div class="text-secondary" style="font-size: 12.5px;">
+                            Show the full description under each activity card (rich text). Adds depth but lengthens the document.
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="optShowIrrigation" checked>
+                    <label class="form-check-label text-dark" for="optShowIrrigation">
+                        <strong>Irrigation schedules</strong>
+                        <div class="text-secondary" style="font-size: 12.5px;">
+                            Show every irrigation cycle as <em>{{ $schedule->dayType }}</em> ranges with their per-group calendar dates and assigned worker.
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="optShowCalendar" checked>
+                    <label class="form-check-label text-dark" for="optShowCalendar">
+                        <strong>Calendar view</strong>
+                        <div class="text-secondary" style="font-size: 12.5px;">
+                            Show the month-by-month calendar with activity + irrigation bands across days. Adds landscape pages at the end.
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="presentGenerateBtn">
+                    <i class="bx bx-book-open me-1"></i> Generate Presentation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="draftsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -496,6 +701,18 @@
                             <span class="lot-chip" data-lot-id="{{ $lot->id }}" role="button" aria-pressed="false">{{ $lot->lotName }}</span>
                         @endforeach
                     </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-dark">Activity Type
+                        <small class="text-secondary fw-normal">— what kind of work is this?</small>
+                    </label>
+                    <select class="form-select" id="activityType">
+                        <option value="">— select a type —</option>
+                        @foreach(\App\Models\AsScheduleActivity::ACTIVITY_TYPES as $typeKey => $typeLabel)
+                            <option value="{{ $typeKey }}">{{ $typeLabel }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="row">
@@ -632,6 +849,88 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="saveActivityBtn"><i class="bx bx-save me-1"></i>Save Activity</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- New version modal: fork from current (or create empty) + name + notes.
+     The "sourceVersionId" hidden field is populated by the trigger button
+     so a single modal handles both fork and empty-create flows. --}}
+<div class="modal fade" id="newVersionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark">
+                    <i class="bx bx-git-branch me-2"></i>
+                    <span id="newVersionModalTitle">Fork new version</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2 mb-3" style="font-size:12.5px;">
+                    <i class="bx bx-info-circle me-1"></i>
+                    <span id="newVersionSourceHint">All activities from the current version will be deep-cloned into the new branch. Edits in the new version will not affect the source.</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-dark">Version name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="newVersionName"
+                           maxlength="120"
+                           placeholder="e.g. Budget Cut V1, Labor Shortage Plan, Drought Adjusted">
+                    <small class="text-secondary">A short label that will appear as a tab.</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-dark">Notes (optional)</label>
+                    <textarea class="form-control" id="newVersionDescription" rows="3"
+                              maxlength="5000"
+                              placeholder="Why are you creating this version? e.g. 'Reduced labor on spraying tasks to handle budget freeze'"></textarea>
+                </div>
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="newVersionSetActive" checked>
+                    <label class="form-check-label text-dark" for="newVersionSetActive">
+                        Switch to this version after creating
+                    </label>
+                </div>
+
+                <input type="hidden" id="newVersionSourceId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNewVersionBtn">
+                    <i class="bx bx-git-branch me-1"></i> <span id="saveNewVersionBtnLabel">Create Version</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Rename / edit-notes modal for the currently-active version. --}}
+<div class="modal fade" id="renameVersionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark"><i class="bx bx-edit-alt me-2"></i>Rename version</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-dark">Version name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="renameVersionName" maxlength="120">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-dark">Notes (optional)</label>
+                    <textarea class="form-control" id="renameVersionDescription" rows="3" maxlength="5000"></textarea>
+                </div>
+                <input type="hidden" id="renameVersionId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveRenameVersionBtn">
+                    <i class="bx bx-save me-1"></i> Save Changes
+                </button>
             </div>
         </div>
     </div>

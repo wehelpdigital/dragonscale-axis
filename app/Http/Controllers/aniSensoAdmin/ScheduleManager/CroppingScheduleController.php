@@ -90,6 +90,8 @@ class CroppingScheduleController extends Controller
             'irrigations.assignedWorker',
             'currentGeneration',
             'defaultGroupings.lots',
+            'versions',
+            'dateNotes',
         ]);
 
         return view('aniSensoAdmin.scheduleManager.setup', compact('schedule'));
