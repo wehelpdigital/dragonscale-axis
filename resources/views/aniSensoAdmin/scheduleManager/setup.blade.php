@@ -5,6 +5,41 @@
 @section('css')
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
 <link href="{{ URL::asset('build/libs/sweetalert2/sweetalert2.min.css') }}" rel="stylesheet" type="text/css" />
+{{-- Quill rich-text editor (replaces TinyMCE — MIT licensed, no usage cap) --}}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+<style>
+    /* Quill editor host + visual tuning to match the rest of the form */
+    .sm-quill-wrap { background: #fff; }
+    .sm-quill-wrap .ql-toolbar {
+        border-color: #ced4da; border-top-left-radius: 4px; border-top-right-radius: 4px;
+        background: #f8f9fa;
+    }
+    .sm-quill-wrap .ql-container {
+        border-color: #ced4da;
+        border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;
+        min-height: 200px; font-size: 13px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+    .sm-quill-wrap .ql-editor { min-height: 200px; }
+    .sm-quill-wrap .ql-editor h1,
+    .sm-quill-wrap .ql-editor h2,
+    .sm-quill-wrap .ql-editor h3,
+    .sm-quill-wrap .ql-editor h4 { margin: .5em 0 .25em; }
+    .sm-quill-wrap .ql-editor ul,
+    .sm-quill-wrap .ql-editor ol { padding-left: 1.4rem; }
+    /* HTML source-edit textarea sits next to the Quill mount; we toggle
+       which one is visible via the description-mode handler.
+       Note: textarea.form-control has Bootstrap's `display: block` rule
+       at equal specificity, so we use a child combinator + !important
+       to make sure the hide/show toggle wins regardless of stylesheet
+       load order. */
+    .sm-quill-wrap > .sm-quill-html-source { display: none !important; width: 100%;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+    }
+    .sm-quill-wrap.is-html-mode > .sm-quill-host { display: none !important; }
+    .sm-quill-wrap.is-html-mode > .sm-quill-html-source { display: block !important; }
+</style>
 <style>
     .sm-tabs .nav-link { color: #495057; font-weight: 500; }
     .sm-tabs .nav-link.active { color: #556ee6; border-bottom: 2px solid #556ee6; background: transparent; }
@@ -29,6 +64,26 @@
     }
     .date-header .date-header-day { font-weight: 600; font-size: 13px; opacity: .85; }
     .date-header .date-header-date { font-weight: 700; font-size: 16px; }
+    /* Group-level range badge — appears in the date header when at least
+       one activity in the group has targetEndDate > targetDate. Renders
+       in the white-on-color header band so it stays subtle but visible. */
+    .date-header .date-header-range {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255,255,255,0.22);
+        padding: 2px 9px;
+        border-radius: 11px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+    }
+    .date-header .date-header-range i { font-size: 14px; }
+    .date-header .date-header-range-days {
+        font-weight: 500;
+        font-size: 11px;
+        opacity: 0.85;
+    }
     .date-header .date-header-count {
         margin-left: auto;
         background: rgba(255,255,255,0.22);
@@ -88,6 +143,28 @@
     /* Note-icon button states */
     .date-note-btn.has-note { background: rgba(255, 255, 255, 0.55); color: #fff; border-color: rgba(255,255,255,0.85); }
     .date-note-btn.has-note:hover { background: rgba(255, 255, 255, 0.78); }
+
+    /* Global activity note (version-wide commentary above the timeline) */
+    .global-activity-note {
+        background: linear-gradient(180deg, #eef4ff 0%, #e5edff 100%);
+        border-left: 4px solid #4a73e3;
+        border-radius: 6px;
+        padding: 12px 16px;
+    }
+    .global-note-header {
+        display: flex; align-items: center; gap: 8px;
+        color: #2c3e8c; font-weight: 600; font-size: 13px;
+        margin-bottom: 6px;
+    }
+    .global-note-header i { font-size: 18px; }
+    .global-note-edit-btn { color: #2c3e8c !important; font-size: 12px; font-weight: 500; text-decoration: none; }
+    .global-note-edit-btn:hover { text-decoration: underline; }
+    .global-note-body {
+        color: #1a2655;
+        font-size: 13.5px;
+        line-height: 1.6;
+        word-break: break-word;
+    }
     .activity-card {
         background: #fff;
         border: 1px solid #e6e8ec;
@@ -125,21 +202,57 @@
         font-weight: 500;
         margin: 0;            /* gap on the parent handles spacing */
     }
-    /* "No activities scheduled" gap markers between date groups */
+    /* "No activities scheduled" gap markers between date groups —
+       redesigned to be bigger and more usable. Each empty day carries
+       a quick "Add Activity" button so the user can drop a card in
+       without scrolling back to the top toolbar. The marker animates
+       on hover to make the button easy to spot. */
     .rest-day-marker {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 6px 14px;
-        margin-bottom: 6px;
-        background: #fafafa;
-        border-left: 3px solid #d9dde3;
-        border-radius: 4px;
+        gap: 14px;
+        padding: 12px 18px;
+        margin-bottom: 8px;
+        background: linear-gradient(180deg, #fafbfc 0%, #f3f5f9 100%);
+        border: 1px solid #e5e9f0;
+        border-left: 4px solid #c7cee0;
+        border-radius: 8px;
+        transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
+    }
+    .rest-day-marker:hover {
+        border-left-color: #556ee6;
+        box-shadow: 0 2px 8px rgba(20, 30, 60, 0.06);
+    }
+    .rest-day-marker .rest-day-icon {
+        color: #8893a8;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+    .rest-day-marker .rest-day-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex-grow: 1;
+        min-width: 0;
+    }
+    .rest-day-marker .rest-day-date {
+        font-weight: 600;
+        color: #495160;
+        font-size: 14px;
+    }
+    .rest-day-marker .rest-day-tag {
+        color: #8893a8;
+        font-style: italic;
         font-size: 12px;
     }
-    .rest-day-marker .rest-day-icon { color: #b8bfc7; font-size: 14px; }
-    .rest-day-marker .rest-day-date { font-weight: 600; color: #6b7280; }
-    .rest-day-marker .rest-day-tag { color: #9aa0a6; margin-left: auto; font-style: italic; font-size: 11px; }
+    .rest-day-add-btn {
+        flex-shrink: 0;
+        font-size: 12.5px;
+        padding: 5px 14px;
+        border-radius: 14px;
+        transition: all .12s ease;
+    }
+    .rest-day-add-btn i { font-size: 14px; vertical-align: middle; margin-right: 1px; }
     /* Drag-and-drop visuals */
     .activity-card[draggable="true"] { cursor: grab; }
     .activity-card.dragging { opacity: .45; cursor: grabbing; }
@@ -161,8 +274,28 @@
     .lot-chip:hover { border-color:#556ee6; color:#556ee6; }
     .lot-chip.active { background:#556ee6; color:#fff; border-color:#556ee6; }
     .lot-chip.active:hover { background:#4458c4; border-color:#4458c4; color:#fff; }
+    /* "N/A" pseudo-chip — visually distinct from real lots so the user
+       sees at a glance it isn't a real lot. Border-dash + slate accent
+       hints at "not a real entity". */
+    .lot-chip.lot-chip-na { border-style: dashed; color: #6b7280; }
+    .lot-chip.lot-chip-na:hover { border-color: #4a5568; color: #4a5568; }
+    .lot-chip.lot-chip-na.active { background: #4a5568; border-style: solid; border-color: #4a5568; color: #fff; }
+    .lot-chip.lot-chip-na.active:hover { background: #3a4453; border-color: #3a4453; }
+    .lot-chip.lot-chip-na i { vertical-align: middle; margin-right: 2px; }
+    /* N/A indicator rendered on activity cards in place of lot chips
+       when the activity isn't tied to any specific lot. Slate accent
+       matches the lot-chip-na chip in the modal so the user sees the
+       continuity. */
+    .activity-na-tag {
+        background: #f1f3f7 !important;
+        color: #495160 !important;
+        border: 1px dashed #c5cad9;
+        font-style: italic;
+        font-weight: 500;
+    }
+    .activity-na-tag i { vertical-align: middle; margin-right: 3px; color: #6b7280; }
     .lot-chip-container { padding:6px; background:#fff; border:1px dashed #d3d6db; border-radius:6px; min-height:44px; }
-    /* TinyMCE-produced description rendering inside an activity card */
+    /* Rich-text description rendering inside an activity card */
     .activity-description-content p { margin: 0 0 .5em; }
     .activity-description-content p:last-child { margin-bottom: 0; }
     .activity-description-content ul, .activity-description-content ol { margin: .25em 0 .5em 1.25rem; padding: 0; }
@@ -176,10 +309,276 @@
     .activity-description-content a { color: #556ee6; text-decoration: underline; }
     .activity-description-content table { border-collapse: collapse; }
     .activity-description-content table td, .activity-description-content table th { border: 1px solid #e6e8ec; padding: 2px 6px; }
+
+    /* ---- Documentation subtabs (pill strip) ----
+       Pills inside the Documentation tab so the four sections share a
+       visual frame distinct from the main tab strip. */
+    .doc-subtabs {
+        border-bottom: 1px solid #e6e8ec;
+        padding-bottom: 6px;
+        gap: 4px;
+    }
+    .doc-subtabs .nav-link {
+        background: #f6f7fb;
+        color: #495160;
+        border: 1px solid transparent;
+        font-weight: 500;
+        font-size: 13px;
+        padding: 6px 14px;
+        border-radius: 18px;
+        transition: background .12s ease, color .12s ease, border-color .12s ease;
+    }
+    .doc-subtabs .nav-link:hover { background: #eef2ff; color: #2c3e8c; }
+    .doc-subtabs .nav-link.active {
+        background: #556ee6;
+        color: #fff;
+        border-color: #556ee6;
+    }
+    .doc-subtabs .nav-link .badge { font-size: 10.5px; font-weight: 600; }
+    .doc-subtabs .nav-link.active .badge { background: rgba(255,255,255,.85) !important; color: #2c3e8c !important; }
+    .doc-subtab-dot {
+        display: inline-block;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: #1abc9c;
+        margin-left: 5px;
+        vertical-align: middle;
+    }
+    .doc-subtab-content { padding-top: 2px; }
+
+    /* ---- Protocol / Documentation tab ----
+       Three card sections: Introduction (rich text), Attachments (grid),
+       Critical Rules (sortable list). */
+    .protocol-section .card-body { padding: 16px 18px; }
+    .protocol-empty-state { color: #6b7280; }
+    .protocol-intro-preview {
+        background: #fafbff;
+        border: 1px solid #e1e6f5;
+        border-left: 4px solid #4a73e3;
+        border-radius: 4px;
+        padding: 12px 14px;
+        color: #1a2655;
+        line-height: 1.55;
+        word-break: break-word;
+    }
+    .protocol-intro-preview h1,
+    .protocol-intro-preview h2,
+    .protocol-intro-preview h3 { color: #2c3e8c; margin: 0.5em 0 0.3em; }
+    .protocol-intro-preview ul, .protocol-intro-preview ol { margin-left: 1.2rem; }
+
+    /* Attachments grid */
+    .attachments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+    }
+    .attachment-card {
+        background: #fff;
+        border: 1px solid #e6e8ec;
+        border-radius: 6px;
+        overflow: hidden;
+        display: flex; flex-direction: column;
+        transition: box-shadow .15s ease;
+    }
+    .attachment-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .attachment-thumb {
+        background: #f4f6fb;
+        height: 150px;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+    }
+    .attachment-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .attachment-file-icon {
+        text-align: center;
+        color: #6b7280;
+        text-decoration: none;
+        position: relative;
+    }
+    .attachment-file-icon i { font-size: 3rem; }
+    .attachment-file-icon .ext-badge {
+        position: absolute;
+        bottom: 18px; left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        color: #374151;
+    }
+    .attachment-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .attachment-filename {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1f2937;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .attachment-description {
+        font-size: 12px;
+        color: #495057;
+        line-height: 1.45;
+        word-break: break-word;
+        max-height: 60px;
+        overflow: hidden;
+    }
+    .attachment-actions { display: flex; gap: 4px; margin-top: 4px; }
+
+    /* Critical rules list */
+    .critical-rules-list { display: flex; flex-direction: column; gap: 6px; }
+    .critical-rule-row {
+        display: flex; align-items: center; gap: 8px;
+        background: #fff7f7;
+        border: 1px solid #f0d6d6;
+        border-left: 4px solid #d9534f;
+        border-radius: 5px;
+        padding: 8px 10px;
+        transition: box-shadow .15s ease, opacity .12s ease;
+    }
+    .critical-rule-row.dragging { opacity: .45; }
+    .critical-rule-row.drag-over { outline: 2px dashed #d9534f; outline-offset: -4px; }
+    .critical-rule-handle {
+        color: #c8a4a4; cursor: grab; font-size: 18px;
+        user-select: none;
+    }
+    .critical-rule-row.dragging .critical-rule-handle { cursor: grabbing; }
+    .critical-rule-text {
+        flex: 1; min-width: 0;
+        color: #5a2828; font-size: 13.5px; line-height: 1.45;
+        white-space: pre-wrap; word-break: break-word;
+    }
+    .critical-rule-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+    /* ---- Irrigation card list (matches activity-card visual language) ----
+       Cards stack vertically, each tinted by the irrigation's taskType
+       color on the left border and the title badge. Drag handle on the
+       left lets the user reorder rows; the drop-target outline lights
+       up while dragging. */
+    .irrigation-card-list { padding: 4px 0; display: flex; flex-direction: column; gap: 8px; }
+    .irrigation-card {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        background: #fff;
+        border: 1px solid #e6e8ec;
+        border-left: 4px solid var(--irr-color, #1976d2);
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        transition: box-shadow .15s ease, transform .12s ease;
+        cursor: default;
+    }
+    .irrigation-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .irrigation-card.dragging { opacity: .45; transform: scale(0.99); }
+    .irrigation-card.drag-over {
+        outline: 2px dashed var(--irr-color, #1976d2);
+        outline-offset: -4px;
+        background: rgba(25, 118, 210, 0.04);
+    }
+    .irr-drag-handle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 6px 0 4px;
+        color: #9aa0a6;
+        cursor: grab;
+        user-select: none;
+        font-size: 18px;
+    }
+    .irr-drag-handle:hover { color: var(--irr-color, #1976d2); }
+    .irrigation-card.dragging .irr-drag-handle { cursor: grabbing; }
+    .irr-card-body { flex: 1; padding: 10px 12px 10px 4px; min-width: 0; }
+    .irr-meta-row {
+        font-size: 12px;
+        color: #6b7280;
+        line-height: 1.6;
+        margin-top: 4px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+    }
+    .irr-meta-row > i { color: var(--irr-color, #1976d2); font-size: 14px; margin-right: 2px; }
+    .irr-chip {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 0;
+    }
+    .irr-chip-lot    { background:#eef0fb; color:#3a4699; }
+    .irr-chip-worker { background:#fef3e8; color:#a66200; }
+    /* Priority pill — five levels, lower number = stronger visual weight. */
+    .irr-priority-pill {
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 0.4px;
+        color: #fff;
+    }
+    .irr-prio-1 { background:#9c1c1c; }   /* deep red — critical */
+    .irr-prio-2 { background:#d97a4f; }   /* coral — high */
+    .irr-prio-3 { background:#d9a23a; color:#3a2c0a; }   /* amber on dark — medium */
+    .irr-prio-4 { background:#7a8a99; }   /* slate — low */
+    .irr-prio-5 { background:#c8cdd5; color:#495160; }   /* light gray — lowest */
+    .irr-description {
+        font-size: 12.5px;
+        color: #495057;
+        margin-top: 6px;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    /* ---- Full-page loading overlay ----
+       The setup page renders 100+ activity cards + a heavy JS bundle, so
+       the first paint can take several seconds. The overlay fires before
+       any other style/script and hides on window.load so the user always
+       sees feedback instead of a blank/half-rendered page. */
+    #setupPageLoader {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 99999;
+        background: rgba(248, 249, 252, 0.96);
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column;
+        transition: opacity .25s ease;
+    }
+    #setupPageLoader.is-fading { opacity: 0; pointer-events: none; }
+    #setupPageLoader .loader-spinner {
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        border: 5px solid #d9def0;
+        border-top-color: #556ee6;
+        animation: setupLoaderSpin 0.9s linear infinite;
+    }
+    #setupPageLoader .loader-text {
+        margin-top: 18px;
+        color: #495077;
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 0.3px;
+    }
+    #setupPageLoader .loader-sub {
+        margin-top: 4px;
+        color: #8893a8;
+        font-size: 12.5px;
+    }
+    @keyframes setupLoaderSpin { to { transform: rotate(360deg); } }
 </style>
 @endsection
 
 @section('content')
+    {{-- Loading overlay — covers the page while the browser parses 1MB+ of
+         setup HTML, downloads Quill from the CDN, and initializes the JS
+         bundle. Removed on window.load (after CSS, scripts, and CDN assets
+         have all settled) so the user gets a real ready signal instead of
+         clicking into a half-rendered tab. --}}
+    <div id="setupPageLoader" aria-live="polite" aria-busy="true">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Loading schedule…</div>
+        <div class="loader-sub">{{ $schedule->title }} — preparing activities, lots, workers, and irrigation</div>
+    </div>
+
     @component('components.breadcrumb')
         @slot('li_1') <a href="{{ route('anisenso-schedule-manager.index') }}" class="text-decoration-none">Schedule Manager</a> @endslot
         @slot('title') {{ $schedule->title }} @endslot
@@ -243,6 +642,25 @@
     </div>
 
 
+    {{-- Schedule-level action toolbar — sits above the tab card so the
+         Worker Presentation / Labor Expenses / Export Schedule buttons are
+         always reachable regardless of which tab the user is currently on.
+         They operate on the whole schedule, not just the activities tab. --}}
+    <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
+        <button type="button" class="btn btn-outline-success btn-sm" id="openLaborSummaryBtn" title="See the total labor expense across all activities">
+            <i class="bx bx-money me-1"></i> Labor Expenses
+        </button>
+        <button type="button" class="btn btn-outline-info btn-sm" id="openCardViewerBtn" title="Open a PowerPoint-style card viewer — one slide per day with all activities, irrigation, and notes">
+            <i class="bx bx-slideshow me-1"></i> Card Viewer
+        </button>
+        <button type="button" class="btn btn-outline-dark btn-sm" id="openWorkerPresentationBtn" title="Open a printable presentation (intro, activities, monthly labor, per-worker pages, irrigation, calendar) in a new tab">
+            <i class="bx bx-book-open me-1"></i> Worker Presentation
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="openExportScheduleBtn" title="Open a formatted preview, download PDF, or copy as text">
+            <i class="bx bx-file-blank me-1"></i> Export Schedule
+        </button>
+    </div>
+
     {{-- Tabs --}}
     <div class="card">
         <div class="card-body">
@@ -250,9 +668,18 @@
                 <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-settings"><i class="bx bx-cog me-1"></i> Settings</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-lots"><i class="bx bx-map-pin me-1"></i> Lots <span class="badge bg-light text-dark ms-1" id="badge-lots">{{ $schedule->lots->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-workers"><i class="bx bx-user me-1"></i> Workers <span class="badge bg-light text-dark ms-1" id="badge-workers">{{ $schedule->workers->count() }}</span></a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-protocol"><i class="bx bx-file me-1"></i> Protocol</a></li>
+                {{-- The standalone "Protocol" tab moved into the Documentation tab as a subtab (Protocol Document). --}}
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-materials"><i class="bx bx-package me-1"></i> Materials <span class="badge bg-light text-dark ms-1" id="badge-materials">{{ $schedule->materials->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-services"><i class="bx bx-wrench me-1"></i> Services <span class="badge bg-light text-dark ms-1" id="badge-services">{{ $schedule->services->count() }}</span></a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-protocol-doc"><i class="bx bx-clipboard me-1"></i> Documentation
+                    @php
+                        $hasProto = optional($schedule->protocol)->protocolContent || optional($schedule->protocol)->protocolFile;
+                        $protoCount = $schedule->attachments->count()
+                                    + $schedule->criticalRules->count()
+                                    + ($hasProto ? 1 : 0);
+                    @endphp
+                    <span class="badge bg-light text-dark ms-1" id="badge-protocol-doc">{{ $protoCount }}</span>
+                </a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-activities"><i class="bx bx-task me-1"></i> Activities <span class="badge bg-light text-dark ms-1" id="badge-activities">{{ $schedule->activities->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-irrigations"><i class="bx bx-water me-1"></i> Irrigation <span class="badge bg-light text-dark ms-1" id="badge-irrigations">{{ $schedule->irrigations->count() }}</span></a></li>
             </ul>
@@ -274,9 +701,9 @@
                 </div>
 
                 {{-- PROTOCOL --}}
-                <div class="tab-pane fade" id="tab-protocol">
-                    @include('aniSensoAdmin.scheduleManager.partials.protocol', ['schedule' => $schedule])
-                </div>
+                {{-- The standalone "Protocol" tab-pane was removed and the
+                     partial is now @include'd as a subtab inside the
+                     Documentation tab. --}}
 
                 {{-- MATERIALS --}}
                 <div class="tab-pane fade" id="tab-materials">
@@ -286,6 +713,11 @@
                 {{-- SERVICES --}}
                 <div class="tab-pane fade" id="tab-services">
                     @include('aniSensoAdmin.scheduleManager.partials.services', ['schedule' => $schedule])
+                </div>
+
+                {{-- PROTOCOL / DOCUMENTATION (Introduction + Attachments + Critical Rules) --}}
+                <div class="tab-pane fade" id="tab-protocol-doc">
+                    @include('aniSensoAdmin.scheduleManager.partials.protocol-doc', ['schedule' => $schedule])
                 </div>
 
                 {{-- ACTIVITIES --}}
@@ -328,9 +760,35 @@
 
 @section('script')
 <script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
-<!-- TinyMCE 6 for rich-text activity description -->
-<script src="https://cdn.tiny.cloud/1/lbsbsr7t63wjii3wjqcftu0e9ot0c6e6f7mle8yqp6umxmpq/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<!-- Quill 2 — free MIT-licensed rich-text editor (replaces TinyMCE) -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
 <script>
+// Hide the full-page loader once everything (DOM, CSS, scripts, Quill
+// CDN) has loaded. window.load fires later than DOMContentLoaded — exactly
+// what we want here since Quill and DataTables both need their assets
+// downloaded before the page is truly interactive.
+(function () {
+    function hideSetupLoader() {
+        var el = document.getElementById('setupPageLoader');
+        if (!el) return;
+        if (el.classList.contains('is-fading')) return;
+        el.classList.add('is-fading');
+        // Remove from DOM after the fade so it doesn't trap focus or
+        // intercept clicks even with pointer-events: none as a safety net.
+        setTimeout(function () { if (el && el.parentNode) el.parentNode.removeChild(el); }, 350);
+    }
+    // Primary trigger: full window load (waits for all external assets).
+    if (document.readyState === 'complete') {
+        // Already loaded by the time this script runs — hide on next tick
+        // so the spinner is at least visible briefly (looks intentional).
+        setTimeout(hideSetupLoader, 50);
+    } else {
+        window.addEventListener('load', hideSetupLoader);
+    }
+    // Safety net: hide after 12s even if something hangs (e.g. CDN blocked).
+    setTimeout(hideSetupLoader, 12000);
+})();
+
 toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-right", timeOut: 3000 };
 
 const SCHEDULE_ID = {{ $schedule->id }};
@@ -362,6 +820,15 @@ const URLS = {
     servicesUpdate:    (id) => `${ROOT}/anisenso-schedule-manager-services-update${Q}&id=${id}`,
     servicesDelete:    (id) => `${ROOT}/anisenso-schedule-manager-services-delete${Q}&id=${id}`,
 
+    attachmentsStore:  () => `${ROOT}/anisenso-schedule-manager-attachments-store${Q}`,
+    attachmentsUpdate: (id) => `${ROOT}/anisenso-schedule-manager-attachments-update${Q}&id=${id}`,
+    attachmentsDelete: (id) => `${ROOT}/anisenso-schedule-manager-attachments-delete${Q}&id=${id}`,
+
+    criticalRulesStore:  () => `${ROOT}/anisenso-schedule-manager-critical-rules-store${Q}`,
+    criticalRulesUpdate: (id) => `${ROOT}/anisenso-schedule-manager-critical-rules-update${Q}&id=${id}`,
+    criticalRulesDelete: (id) => `${ROOT}/anisenso-schedule-manager-critical-rules-delete${Q}&id=${id}`,
+    criticalRulesReorder:() => `${ROOT}/anisenso-schedule-manager-critical-rules-reorder${Q}`,
+
     activitiesStore:     () => `${ROOT}/anisenso-schedule-manager-activities-store${Q}`,
     activitiesShow:      (id) => `${ROOT}/anisenso-schedule-manager-activities-show${Q}&id=${id}`,
     activitiesUpdate:    (id) => `${ROOT}/anisenso-schedule-manager-activities-update${Q}&id=${id}`,
@@ -376,12 +843,14 @@ const URLS = {
     activitiesDrafts:    () => `${ROOT}/anisenso-schedule-manager-activities-drafts${Q}`,
     activitiesLabor:     () => `${ROOT}/anisenso-schedule-manager-activities-labor${Q}`,
     workerPresentation:  () => `${ROOT}/anisenso-schedule-manager-worker-presentation${Q}`,
+    cardViewer:          () => `${ROOT}/anisenso-schedule-manager-card-viewer${Q}`,
 
     activityVersionsIndex:      () => `${ROOT}/anisenso-schedule-manager-activity-versions${Q}`,
     activityVersionsStore:      () => `${ROOT}/anisenso-schedule-manager-activity-versions-store${Q}`,
     activityVersionsUpdate:     (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-update${Q}&id=${id}`,
     activityVersionsDelete:     (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-delete${Q}&id=${id}`,
     activityVersionsSetActive:  (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-set-active${Q}&id=${id}`,
+    activityVersionsGlobalNote: (id) => `${ROOT}/anisenso-schedule-manager-activity-versions-global-note${Q}&id=${id}`,
 
     activitiesDateNoteSave:     () => `${ROOT}/anisenso-schedule-manager-activities-date-note-save${Q}`,
     activitiesDateNoteDelete:   () => `${ROOT}/anisenso-schedule-manager-activities-date-note-delete${Q}`,
@@ -389,6 +858,8 @@ const URLS = {
     irrigationsStore:  () => `${ROOT}/anisenso-schedule-manager-irrigations-store${Q}`,
     irrigationsUpdate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-update${Q}&id=${id}`,
     irrigationsDelete: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-delete${Q}&id=${id}`,
+    irrigationsDuplicate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-duplicate${Q}&id=${id}`,
+    irrigationsReorder:   () => `${ROOT}/anisenso-schedule-manager-irrigations-reorder${Q}`,
 };
 
 function escapeHtml(s) {
@@ -592,6 +1063,7 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-materials')
 @include('aniSensoAdmin.scheduleManager.partials.script-services')
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
+@include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
 </script>
 @endsection

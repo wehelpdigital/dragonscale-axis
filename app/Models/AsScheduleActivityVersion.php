@@ -10,6 +10,7 @@ class AsScheduleActivityVersion extends BaseModel
         'croppingScheduleId',
         'versionName',
         'description',
+        'globalActivityNote',
         'parentVersionId',
         'isOriginal',
         'isActive',

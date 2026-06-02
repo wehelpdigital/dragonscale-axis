@@ -267,9 +267,9 @@ $(document).on('keydown', function (e) {
     if (!(e.ctrlKey || e.metaKey) || e.shiftKey) return;
     if (e.key !== 'z' && e.key !== 'Z') return;
     const tag = (e.target.tagName || '').toLowerCase();
+    // contenteditable catches Quill's editor area (.ql-editor) so the
+    // rich-text editor's own undo stack handles Ctrl+Z while focused.
     if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
-    // Skip when an obvious editor is focused (TinyMCE iframe handles its own undo).
-    if ($(e.target).closest('.tox-tinymce, .tox-edit-area').length) return;
     e.preventDefault();
     performUndo();
 });
@@ -497,25 +497,52 @@ function refreshDayZeroToggleVisibility() {
     }
 }
 
-// Lot chips inside the Activity modal — toggle selection, then re-evaluate
-// whether the Day 0 toggle is still meaningful for the new lot set.
+// Lot chips inside the Activity modal — toggle selection with mutual
+// exclusion against the special "N/A" chip. Picking N/A clears real
+// lots (the activity isn't tied to any specific lot); picking a real
+// lot clears N/A. Day 0 toggle is re-evaluated for the new lot set.
 $(document).on('click', '#activityLotsContainer .lot-chip', function () {
     const $chip = $(this);
-    $chip.toggleClass('active');
-    $chip.attr('aria-pressed', $chip.hasClass('active') ? 'true' : 'false');
+    const isNa  = $chip.hasClass('lot-chip-na');
+
+    if (isNa) {
+        // Toggle N/A; if turning it ON, deactivate every real lot chip.
+        const willActivate = !$chip.hasClass('active');
+        if (willActivate) {
+            $('#activityLotsContainer .lot-chip:not(.lot-chip-na)')
+                .removeClass('active').attr('aria-pressed', 'false');
+        }
+        $chip.toggleClass('active', willActivate)
+             .attr('aria-pressed', willActivate ? 'true' : 'false');
+    } else {
+        // Real lot toggle — kill N/A if it was active.
+        $('#activityLotsContainer .lot-chip-na')
+            .removeClass('active').attr('aria-pressed', 'false');
+        $chip.toggleClass('active');
+        $chip.attr('aria-pressed', $chip.hasClass('active') ? 'true' : 'false');
+    }
     refreshDayZeroToggleVisibility();
 });
 
 function setActivityLots(lotIds) {
     const ids = (lotIds || []).map(Number);
+    // Empty array → mark N/A active (activity applies generally).
+    const useNa = ids.length === 0;
     $('#activityLotsContainer .lot-chip').each(function () {
-        const isActive = ids.includes(parseInt($(this).data('lot-id'), 10));
-        $(this).toggleClass('active', isActive).attr('aria-pressed', isActive ? 'true' : 'false');
+        const $c = $(this);
+        if ($c.hasClass('lot-chip-na')) {
+            $c.toggleClass('active', useNa).attr('aria-pressed', useNa ? 'true' : 'false');
+        } else {
+            const isActive = ids.includes(parseInt($c.data('lot-id'), 10));
+            $c.toggleClass('active', isActive).attr('aria-pressed', isActive ? 'true' : 'false');
+        }
     });
 }
 
 function getActivityLotIds() {
-    return $('#activityLotsContainer .lot-chip.active')
+    // N/A active → return empty array; server stores zero lot pivots.
+    if ($('#activityLotsContainer .lot-chip-na.active').length > 0) return [];
+    return $('#activityLotsContainer .lot-chip.active:not(.lot-chip-na)')
         .map((_, e) => parseInt($(e).data('lot-id'), 10))
         .get();
 }
@@ -547,99 +574,103 @@ const ACTIVITY_WORKER_NAMES = @json($schedule->workers->mapWithKeys(fn($w) => [$
 // Activity type slug → label, mirrors AsScheduleActivity::ACTIVITY_TYPES.
 const ACTIVITY_TYPE_LABELS = @json(\App\Models\AsScheduleActivity::ACTIVITY_TYPES);
 
-// ---- TinyMCE wiring for the Activity Description ----
+// ---- Quill wiring for the Activity Description ----
+// Replaced TinyMCE (cloud build was capping editor loads and locking the
+// editor to read-only). Quill is MIT-licensed, self-hosted from a CDN,
+// and has no usage cap.
 const ACTIVITY_DESC_EDITOR = 'activityDescription';
-// 'visual' = TinyMCE WYSIWYG, 'html' = plain <textarea> showing raw HTML.
+const ACTIVITY_DESC_SOURCE = 'activityDescriptionSource';
+const ACTIVITY_DESC_WRAP   = 'activityDescriptionWrap';
+// 'visual' = Quill WYSIWYG, 'html' = plain <textarea> showing raw HTML.
 let descriptionMode = 'visual';
+let activityDescQuill = null;
 
-// Fix: TinyMCE dialogs (link, image, etc.) lose focus inside Bootstrap modals
-// unless we let their focus events through. Documented workaround from TinyMCE.
-$(document).on('focusin', function (e) {
-    if ($(e.target).closest('.tox-tinymce, .tox-tinymce-aux, .moxman-window, .tam-assetmanager-root').length) {
-        e.stopImmediatePropagation();
-    }
-});
+// Shared Quill toolbar config — same set of formatting controls the
+// TinyMCE setup offered.
+const SM_QUILL_TOOLBAR = [
+    [{ header: [1, 2, 3, 4, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    ['blockquote', 'code-block'],
+    ['link'],
+    ['clean'],
+];
 
 function initActivityDescriptionEditor() {
-    if (typeof tinymce === 'undefined') return;
-    if (tinymce.get(ACTIVITY_DESC_EDITOR)) return; // already initialized
-    tinymce.init({
-        selector: '#' + ACTIVITY_DESC_EDITOR,
-        height: 260,
-        menubar: false,
-        plugins: 'advlist autolink lists link charmap searchreplace visualblocks code fullscreen table wordcount',
-        toolbar: 'undo redo | blocks | bold italic underline | bullist numlist outdent indent | link table | removeformat | code',
-        block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Preformatted=pre',
-        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; font-size: 13px; } ul,ol{margin-left:1.2rem;} h1,h2,h3,h4{margin:.5em 0 .25em;}',
-        // Stop TinyMCE from stripping or rewriting any HTML — we want raw
-        // markup edits via the source-toggle below to round-trip untouched.
-        valid_elements: '*[*]',
-        extended_valid_elements: '*[*]',
-        valid_children: '+body[style|script],+pre[*]',
-        verify_html: false,
-        cleanup: false,
-        entity_encoding: 'raw',
-        forced_root_block: 'p',
-        // TinyMCE needs explicit focus handling inside Bootstrap modals
-        auto_focus: false,
+    if (typeof Quill === 'undefined') return;
+    if (activityDescQuill) return; // already initialized
+    activityDescQuill = new Quill('#' + ACTIVITY_DESC_EDITOR, {
+        theme: 'snow',
+        placeholder: 'Describe this activity…',
+        modules: { toolbar: SM_QUILL_TOOLBAR },
     });
 }
 
 function destroyActivityDescriptionEditor() {
-    if (typeof tinymce !== 'undefined') {
-        const ed = tinymce.get(ACTIVITY_DESC_EDITOR);
-        if (ed) ed.remove();
-    }
+    if (!activityDescQuill) return;
+    // Quill has no public destroy method — strip the toolbar + container
+    // that Quill injected so a fresh init on next modal-open builds cleanly.
+    const $wrap = $('#' + ACTIVITY_DESC_WRAP);
+    $wrap.find('.ql-toolbar').remove();
+    const $host = $('#' + ACTIVITY_DESC_EDITOR);
+    $host.empty().removeClass('ql-container ql-snow').removeAttr('style');
+    activityDescQuill = null;
 }
 
 function getActivityDescriptionContent() {
     // In HTML mode the textarea is the source of truth.
     if (descriptionMode === 'html') {
-        return $('#' + ACTIVITY_DESC_EDITOR).val() || '';
+        return $('#' + ACTIVITY_DESC_SOURCE).val() || '';
     }
-    if (typeof tinymce !== 'undefined' && tinymce.get(ACTIVITY_DESC_EDITOR)) {
-        return tinymce.get(ACTIVITY_DESC_EDITOR).getContent();
+    if (activityDescQuill) {
+        const html = activityDescQuill.root.innerHTML;
+        // Quill leaves "<p><br></p>" behind when the editor is empty —
+        // normalize that to an empty string so downstream "is the note
+        // blank?" checks behave.
+        return html === '<p><br></p>' ? '' : html;
     }
-    return $('#' + ACTIVITY_DESC_EDITOR).val() || '';
+    return '';
 }
 
 function setActivityDescriptionContent(html) {
     if (descriptionMode === 'html') {
-        $('#' + ACTIVITY_DESC_EDITOR).val(html || '');
+        $('#' + ACTIVITY_DESC_SOURCE).val(html || '');
         return;
     }
-    if (typeof tinymce !== 'undefined' && tinymce.get(ACTIVITY_DESC_EDITOR)) {
-        tinymce.get(ACTIVITY_DESC_EDITOR).setContent(html || '');
+    if (activityDescQuill) {
+        // dangerouslyPasteHTML preserves arbitrary markup (headings,
+        // styles, tables) instead of round-tripping through Quill's
+        // Delta format, which would strip unknown tags.
+        activityDescQuill.clipboard.dangerouslyPasteHTML(html || '');
     } else {
-        $('#' + ACTIVITY_DESC_EDITOR).val(html || '');
+        // Editor not yet built — stash the HTML so it can be flushed
+        // after the modal's shown.bs.modal handler initializes Quill.
+        $('#' + ACTIVITY_DESC_EDITOR).data('pending-content', html || '');
     }
 }
 
 function setDescriptionMode(mode) {
     if (mode === descriptionMode) return;
+    const $wrap = $('#' + ACTIVITY_DESC_WRAP);
     if (mode === 'html') {
-        // Visual → HTML: pull current HTML out of TinyMCE, kill the editor,
+        // Visual → HTML: pull current HTML out of Quill, hide the WYSIWYG,
         // surface the bare textarea so the user can hand-edit markup.
-        const html = (typeof tinymce !== 'undefined' && tinymce.get(ACTIVITY_DESC_EDITOR))
-            ? tinymce.get(ACTIVITY_DESC_EDITOR).getContent()
-            : ($('#' + ACTIVITY_DESC_EDITOR).val() || '');
-        destroyActivityDescriptionEditor();
+        const html = getActivityDescriptionContent();
         descriptionMode = 'html';
-        $('#' + ACTIVITY_DESC_EDITOR).val(html).attr('rows', 12).show();
+        $('#' + ACTIVITY_DESC_SOURCE).val(html);
+        $wrap.addClass('is-html-mode');
         $('#toggleDescriptionModeLabel').text('Back to visual editor');
         $('#toggleDescriptionMode i').removeClass('bx-code-alt').addClass('bx-text');
     } else {
-        // HTML → Visual: capture whatever raw markup the user typed and feed
-        // it back to TinyMCE.
-        const html = $('#' + ACTIVITY_DESC_EDITOR).val() || '';
+        // HTML → Visual: capture whatever raw markup the user typed and
+        // push it back into Quill.
+        const html = $('#' + ACTIVITY_DESC_SOURCE).val() || '';
         descriptionMode = 'visual';
-        $('#' + ACTIVITY_DESC_EDITOR).attr('rows', 6);
-        initActivityDescriptionEditor();
-        setTimeout(() => {
-            if (tinymce && tinymce.get(ACTIVITY_DESC_EDITOR)) {
-                tinymce.get(ACTIVITY_DESC_EDITOR).setContent(html);
-            }
-        }, 60);
+        $wrap.removeClass('is-html-mode');
+        if (activityDescQuill) {
+            activityDescQuill.clipboard.dangerouslyPasteHTML(html);
+        }
         $('#toggleDescriptionModeLabel').text('Edit HTML source');
         $('#toggleDescriptionMode i').removeClass('bx-text').addClass('bx-code-alt');
     }
@@ -650,33 +681,35 @@ $(document).on('click', '#toggleDescriptionMode', function (e) {
     setDescriptionMode(descriptionMode === 'visual' ? 'html' : 'visual');
 });
 
-// Reset back to the visual editor whenever the modal closes — keeps the next
-// open consistent and predictable. We destroy first so TinyMCE re-inits cleanly.
+// Reset back to the visual editor whenever the modal closes — keeps the
+// next open consistent and predictable.
 $('#activityModal').on('hidden.bs.modal', function () {
     destroyActivityDescriptionEditor();
     descriptionMode = 'visual';
-    $('#' + ACTIVITY_DESC_EDITOR).attr('rows', 6).val('');
+    $('#' + ACTIVITY_DESC_WRAP).removeClass('is-html-mode');
+    $('#' + ACTIVITY_DESC_SOURCE).val('');
     $('#toggleDescriptionModeLabel').text('Edit HTML source');
     $('#toggleDescriptionMode i').removeClass('bx-text').addClass('bx-code-alt');
 });
 
-// Init when the modal is first shown — needed because TinyMCE can't render
-// on a display:none element. After init, flush any pending content set by
-// the edit-button handler (which fires *before* shown.bs.modal).
+// Init when the modal is first shown — Quill needs a visible mount point
+// to size the toolbar/editor correctly. After init, flush any pending
+// content stashed by the edit-button handler (which fires *before*
+// shown.bs.modal).
 $('#activityModal').on('shown.bs.modal', function () {
     initActivityDescriptionEditor();
-    const pending = $('#activityDescription').data('pending-content');
+    const pending = $('#' + ACTIVITY_DESC_EDITOR).data('pending-content');
     if (pending !== undefined) {
-        // setContent may be called before TinyMCE is fully ready on first open
-        setTimeout(() => {
-            setActivityDescriptionContent(pending);
-            $('#activityDescription').removeData('pending-content');
-        }, 50);
+        setActivityDescriptionContent(pending);
+        $('#' + ACTIVITY_DESC_EDITOR).removeData('pending-content');
     }
 });
 
 // Lot lookup so render can show lot names without a server round-trip.
 const ACTIVITY_LOT_NAMES = @json($schedule->lots->mapWithKeys(fn($l) => [$l->id => $l->lotName]));
+// Parallel variety map — null when the lot has no variety. Used by the
+// activity-card render to show the crop variety alongside the lot name.
+const ACTIVITY_LOT_VARIETIES = @json($schedule->lots->mapWithKeys(fn($l) => [$l->id => $l->variety]));
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -730,12 +763,16 @@ function renderActivityCard(a) {
     if (lotIds && lotIds.length) {
         const tags = lotIds.map(id => {
             const name = ACTIVITY_LOT_NAMES[id] || ('Lot #' + id);
+            const variety = (ACTIVITY_LOT_VARIETIES && ACTIVITY_LOT_VARIETIES[id]) || '';
+            const varietyChunk = variety
+                ? ` <small style="opacity:.85;">· ${escapeHtml(variety)}</small>`
+                : '';
             const dasSuffix = (typeof computeDasLabel === 'function') ? computeDasLabel(id, targetDateStr) : '';
-            return `<span class="item-tag" style="background:#eef0fb; color:#3a4699;" data-lot-id="${id}" data-lot-name="${escapeHtml(name)}">${escapeHtml(name)}${escapeHtml(dasSuffix)}</span>`;
+            return `<span class="item-tag" style="background:#eef0fb; color:#3a4699;" data-lot-id="${id}" data-lot-name="${escapeHtml(name)}">${escapeHtml(name)}${varietyChunk}${escapeHtml(dasSuffix)}</span>`;
         }).join('');
         lotsHeaderBlock = `<div class="activity-card-lots"><i class="bx bx-map-pin"></i>${tags}</div>`;
     } else {
-        lotsHeaderBlock = `<div class="activity-card-lots"><small class="text-danger"><i class="bx bx-error-circle"></i> No lots selected — this activity will not be scheduled.</small></div>`;
+        lotsHeaderBlock = `<div class="activity-card-lots"><span class="item-tag activity-na-tag" title="Activity applies generally — not tied to any specific lot"><i class="bx bx-globe"></i> N/A — Not lot-specific</span></div>`;
     }
 
     // Worker tags from server-provided workerIds OR a.workers[] fallback
@@ -773,7 +810,7 @@ function renderActivityCard(a) {
     const typeBadge = typeLabel
         ? `<span class="badge ms-1 activity-type-badge" style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;" title="Activity type">${escapeHtml(typeLabel)}</span>`
         : '';
-    return `<div class="activity-card" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}">
+    return `<div class="activity-card" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-activity-type="${escapeHtml(a.activityType || '')}">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
             <div class="flex-grow-1" style="min-width:0;">
                 <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${typeBadge}${dayZeroBadge}${rangeBadge}</h6>
@@ -891,12 +928,24 @@ function reorderAndRenumberActivities() {
     timeline.forEach(item => {
         if (item.type === 'rest') {
             const d = item.dateObj;
-            const pretty = `${DAY_SHORT[d.getDay()]}, ${MONTH_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+            // Full weekday name + full month so the marker reads at a
+            // glance, matching the server-rendered partial format.
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const pretty = `${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
             $list.append(`
                 <div class="rest-day-marker" data-date="${escapeHtml(item.key)}">
                     <i class="bx bx-moon rest-day-icon"></i>
-                    <span class="rest-day-date">${escapeHtml(pretty)}</span>
-                    <span class="rest-day-tag">No activities scheduled</span>
+                    <div class="rest-day-text">
+                        <span class="rest-day-date">${escapeHtml(pretty)}</span>
+                        <span class="rest-day-tag">No activities scheduled</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary rest-day-add-btn"
+                            data-date="${escapeHtml(item.key)}"
+                            title="Add a new activity to this date">
+                        <i class="bx bx-plus"></i> Add Activity
+                    </button>
                 </div>
             `);
             return;
@@ -904,12 +953,41 @@ function reorderAndRenumberActivities() {
         const key = item.key;
         const cardsForDate = groups[key];
         const dateObj = key !== '__no-date__' ? parseLocalDate(key) : null;
+
+        // Compute the latest end-date across activities in this group so
+        // the header can show a range badge when at least one activity is
+        // multi-day. Mirrors the server-rendered partial.
+        let latestEndObj = null;
+        if (dateObj) {
+            cardsForDate.forEach(el => {
+                const endStr = ($(el).attr('data-target-end-date') || '').trim();
+                if (!endStr) return;
+                const end = parseLocalDate(endStr);
+                if (!end) return;
+                if (end > dateObj && (!latestEndObj || end > latestEndObj)) {
+                    latestEndObj = end;
+                }
+            });
+        }
+        let rangeBadgeHtml = '';
+        if (latestEndObj) {
+            const spanDays = Math.round((latestEndObj - dateObj) / 86400000) + 1;
+            const showYear = latestEndObj.getFullYear() !== dateObj.getFullYear();
+            const endLabel = `${MONTH_SHORT[latestEndObj.getMonth()]} ${latestEndObj.getDate()}${showYear ? ', ' + latestEndObj.getFullYear() : ''}`;
+            rangeBadgeHtml = `
+                <span class="date-header-range" title="At least one activity in this group extends through ${endLabel} (${spanDays} days total)">
+                    <i class="bx bx-right-arrow-alt"></i>
+                    ${endLabel}
+                    <span class="date-header-range-days">(${spanDays}d)</span>
+                </span>`;
+        }
+
         let headerHtml;
         if (dateObj) {
             headerHtml = `
                 <i class="bx bx-calendar"></i>
                 <span class="date-header-day">${DAY_SHORT[dateObj.getDay()]}</span>
-                <span class="date-header-date">${MONTH_SHORT[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}</span>`;
+                <span class="date-header-date">${MONTH_SHORT[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}</span>${rangeBadgeHtml}`;
         } else {
             headerHtml = `<i class="bx bx-error-circle"></i><span class="date-header-date">No date</span>`;
         }
@@ -986,6 +1064,24 @@ $('#addActivityBtn').on('click', function () {
     $('#activityModal').modal('show');
 });
 
+// Rest-day quick-add: clicking the "+ Add Activity" on a no-activity
+// day opens the same modal as the toolbar button, but with the target
+// date pre-filled to the clicked day so the user doesn't have to type
+// it. Mirrors the toolbar handler exactly otherwise.
+$(document).on('click', '.rest-day-add-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dateKey = ($(this).data('date') || '').trim();
+    $('#activityModalTitle').text('Add Activity');
+    resetActivityModal();
+    if (dateKey) {
+        $('#activityTargetDate').val(dateKey);
+    }
+    $('#activityModal').removeData('before-snapshot');
+    refreshDayZeroToggleVisibility();
+    $('#activityModal').modal('show');
+});
+
 $(document).on('click', '.edit-activity-btn', function () {
     const id = $(this).data('id');
     $.get(URLS.activitiesShow(id), function (res) {
@@ -1007,7 +1103,7 @@ $(document).on('click', '.edit-activity-btn', function () {
         $('#activityIsDayZero').prop('checked', a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1');
         setActivityLots(a.lotIds || (a.lots || []).map(l => l.id));
         setActivityWorkers(a.workerIds || (a.workers || []).map(w => w.id));
-        // Defer setContent until the modal is shown (TinyMCE may not exist yet
+        // Defer setContent until the modal is shown (Quill may not exist yet
         // on the very first open). Modal's shown.bs.modal handler below catches it.
         $('#activityDescription').data('pending-content', a.description || '');
         setActivityDescriptionContent(a.description || '');
@@ -1110,7 +1206,9 @@ $('#saveActivityBtn').on('click', function () {
     };
     if (!payload.activityTitle) { toastr.warning('Activity title is required'); return; }
     if (!payload.targetDate) { toastr.warning('Pick a target date'); return; }
-    if (payload.lotIds.length === 0) { toastr.warning('Select at least one lot for this activity'); return; }
+    // Empty payload.lotIds is allowed — it means the user picked N/A
+    // ("not lot-specific") on the lot selector. The server stores the
+    // activity with zero lot pivots and the card renders an N/A badge.
     const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
     $.ajax({
         url: id ? URLS.activitiesUpdate(id) : URLS.activitiesStore(),
@@ -1937,11 +2035,15 @@ function getLaborFilterPayload() {
         .map((_, e) => parseInt($(e).data('worker-id'), 10)).get();
     const dasMinRaw = ($('#laborDasMin').val() || '').trim();
     const dasMaxRaw = ($('#laborDasMax').val() || '').trim();
+    const startDateRaw = ($('#laborStartDate').val() || '').trim();
+    const endDateRaw   = ($('#laborEndDate').val()   || '').trim();
     const payload = {};
     if (groupIds.length) payload.groupIds = groupIds;
     if (workerIds.length) payload.workerIds = workerIds;
     if (dasMinRaw !== '' && !isNaN(parseInt(dasMinRaw, 10))) payload.dasMin = parseInt(dasMinRaw, 10);
     if (dasMaxRaw !== '' && !isNaN(parseInt(dasMaxRaw, 10))) payload.dasMax = parseInt(dasMaxRaw, 10);
+    if (startDateRaw !== '') payload.startDate = startDateRaw;
+    if (endDateRaw   !== '') payload.endDate   = endDateRaw;
     return payload;
 }
 
@@ -1954,6 +2056,11 @@ function updateLaborFilterHint() {
         const lo = filters.dasMin !== undefined ? filters.dasMin : '−∞';
         const hi = filters.dasMax !== undefined ? filters.dasMax : '+∞';
         parts.push(`DAS [${lo}, ${hi}]`);
+    }
+    if (filters.startDate || filters.endDate) {
+        const lo = filters.startDate || '—';
+        const hi = filters.endDate   || '—';
+        parts.push(`Date [${lo}, ${hi}]`);
     }
     $('#laborFilterCountHint').text(parts.length ? `Filters active: ${parts.join(' · ')}` : '');
 }
@@ -1990,18 +2097,63 @@ function reloadLaborSummary() {
 // and calendar) and has its own "Save as PDF / Print" button at the top.
 // Open the worker-presentation options modal first, then open the report
 // in a new tab with each toggle's choice as a query param.
+$(document).on('click', '#openCardViewerBtn', function () {
+    // Card Viewer is a self-contained slide deck — no options modal,
+    // just opens the active version's per-day slides in a new tab.
+    window.open(URLS.cardViewer(), '_blank');
+});
+
 $(document).on('click', '#openWorkerPresentationBtn', function () {
+    // Reset the worker filter every open so it starts in the opt-out
+    // baseline ("everyone included, uncheck to exclude"). Without this
+    // re-check the modal would remember an earlier unchecked state and
+    // surprise the user.
+    $('#wpWorkersList .wp-worker-pick').prop('checked', true);
     $('#workerPresentationOptionsModal').modal('show');
 });
+// Quick controls for the workers checkbox list inside the options modal.
+$(document).on('click', '#wpWorkersSelectAllBtn', function () {
+    $('#wpWorkersList .wp-worker-pick').prop('checked', true);
+});
+$(document).on('click', '#wpWorkersClearBtn', function () {
+    $('#wpWorkersList .wp-worker-pick').prop('checked', false);
+});
+// When "labor only" is checked, gray out section toggles that wouldn't
+// render anyway — purely informational, the server still honors them but
+// the visual cue helps the user understand the interaction.
+$(document).on('change', '#optLaborOnly', function () {
+    const off = $(this).is(':checked');
+    $('#optShowDesc, #optShowIrrigation, #optShowCalendar')
+        .closest('.form-check').css('opacity', off ? 0.45 : 1);
+});
+
 $(document).on('click', '#presentGenerateBtn', function () {
     const flags = {
         showDesc:       $('#optShowDesc').is(':checked')       ? 1 : 0,
         showIrrigation: $('#optShowIrrigation').is(':checked') ? 1 : 0,
         showCalendar:   $('#optShowCalendar').is(':checked')   ? 1 : 0,
+        laborOnly:      $('#optLaborOnly').is(':checked')      ? 1 : 0,
     };
-    const qs = Object.entries(flags).map(([k, v]) => `&${k}=${v}`).join('');
+    // Worker filter is opt-out: all checkboxes start checked, the user
+    // unchecks anyone they want to exclude. Send only the checked IDs.
+    // If the user manages to uncheck EVERYONE we still pass at least one
+    // sentinel id (0 = "no real worker") so the server filters down to
+    // zero workers instead of falling back to "include everyone" — that
+    // ambiguity is exactly the bug the user reported (unchecking Ariel
+    // had no effect because empty-array meant "show all").
+    const $allWorkers = $('#wpWorkersList .wp-worker-pick');
+    const $checked   = $allWorkers.filter(':checked');
+    let workerIds = $checked.map(function () { return parseInt($(this).val(), 10); }).get();
+    const userMadeASelection = $allWorkers.length > 0; // empty schedule has no boxes
+    if (userMadeASelection && workerIds.length === 0) {
+        // Sentinel -1: a negative id can't match any real worker, AND it
+        // survives the server's array_filter() (which strips 0/null/'').
+        workerIds = [-1];
+    }
+    const flagQs    = Object.entries(flags).map(([k, v]) => `&${k}=${v}`).join('');
+    const workerQs  = workerIds.map(id => `&workerIds[]=${id}`).join('');
     $('#workerPresentationOptionsModal').modal('hide');
-    window.open(URLS.workerPresentation() + qs, '_blank');
+    window.open(URLS.workerPresentation() + flagQs + workerQs, '_blank');
 });
 
 $(document).on('click', '#openLaborSummaryBtn', function () {
@@ -2011,6 +2163,8 @@ $(document).on('click', '#openLaborSummaryBtn', function () {
     $('#laborWorkersContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     $('#laborDasMin').val('');
     $('#laborDasMax').val('');
+    $('#laborStartDate').val('');
+    $('#laborEndDate').val('');
     $('#laborSummaryModal').modal('show');
     reloadLaborSummary();
 });
@@ -2045,6 +2199,18 @@ $(document).on('click', '#laborClearWorkers', function () {
     updateLaborFilterHint();
 });
 $(document).on('input', '#laborDasMin, #laborDasMax', updateLaborFilterHint);
+// Date inputs fire 'change' (not 'input') reliably across browsers; refresh
+// the hint and reload immediately so the user gets feedback right away.
+$(document).on('change', '#laborStartDate, #laborEndDate', function () {
+    updateLaborFilterHint();
+    reloadLaborSummary();
+});
+$(document).on('click', '#laborDateClearBtn', function () {
+    $('#laborStartDate').val('');
+    $('#laborEndDate').val('');
+    updateLaborFilterHint();
+    reloadLaborSummary();
+});
 
 $(document).on('click', '#laborApplyFiltersBtn', function () {
     reloadLaborSummary();
@@ -2054,6 +2220,8 @@ $(document).on('click', '#laborResetFiltersBtn', function () {
     $('#laborWorkersContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     $('#laborDasMin').val('');
     $('#laborDasMax').val('');
+    $('#laborStartDate').val('');
+    $('#laborEndDate').val('');
     updateLaborFilterHint();
     reloadLaborSummary();
 });
@@ -2381,8 +2549,20 @@ function applyActivityFilter() {
     const $list = $('#activitiesList');
     const $cards = $list.find('.activity-card[data-id]');
 
-    if (!raw) {
-        // Empty query → show everything, drop any cached search class.
+    // Collect the currently-active activity-type chips. Empty array = no
+    // type filter (show all types).
+    const activeTypes = $('#activityTypeFilterRow .activity-type-chip.active')
+        .map(function () { return String($(this).data('type') || ''); })
+        .get()
+        .filter(Boolean);
+    const hasTypeFilter = activeTypes.length > 0;
+
+    // Toggle the "Clear types" link visibility based on whether anything
+    // is selected.
+    $('#activityTypeFilterClearBtn').toggle(hasTypeFilter);
+
+    // No filters at all → show everything and exit early.
+    if (!raw && !hasTypeFilter) {
         $cards.show().removeClass('search-hidden');
         $list.find('.date-group, .rest-day-marker').show();
         $('#activitySearchHint').hide();
@@ -2397,12 +2577,16 @@ function applyActivityFilter() {
     const needle = raw.replace(/\s+/g, ' ');
     let visible = 0;
     $cards.each(function () {
-        const text = $(this).text().toLowerCase().replace(/\s+/g, ' ');
-        if (text.includes(needle)) {
-            $(this).show().removeClass('search-hidden');
+        const $card = $(this);
+        const text = $card.text().toLowerCase().replace(/\s+/g, ' ');
+        const cardType = String($card.attr('data-activity-type') || '');
+        const matchesSearch = !needle || text.includes(needle);
+        const matchesType   = !hasTypeFilter || activeTypes.indexOf(cardType) !== -1;
+        if (matchesSearch && matchesType) {
+            $card.show().removeClass('search-hidden');
             visible++;
         } else {
-            $(this).hide().addClass('search-hidden');
+            $card.hide().addClass('search-hidden');
         }
     });
 
@@ -2421,6 +2605,23 @@ function applyActivityFilter() {
     $('#activitySearchCount').text(visible);
 }
 
+// Type-chip toggle handler — click to add/remove from the active set, then
+// re-apply the filter so the timeline updates instantly.
+$(document).on('click', '#activityTypeFilterRow .activity-type-chip', function () {
+    const $chip = $(this);
+    $chip.toggleClass('active');
+    $chip.attr('aria-pressed', $chip.hasClass('active') ? 'true' : 'false');
+    applyActivityFilter();
+});
+
+// "Clear types" button — deactivate every chip and reapply.
+$(document).on('click', '#activityTypeFilterClearBtn', function () {
+    $('#activityTypeFilterRow .activity-type-chip')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+    applyActivityFilter();
+});
+
 // Debounce the search slightly so we don't recompute on every keystroke.
 let activitySearchTimer = null;
 $(document).on('input', '#activitySearchInput', function () {
@@ -2437,7 +2638,12 @@ $(document).on('click', '#activitySearchClear', function () {
 const _origReorderAndRenumber = reorderAndRenumberActivities;
 reorderAndRenumberActivities = function () {
     _origReorderAndRenumber.apply(this, arguments);
-    if (($('#activitySearchInput').val() || '').trim() !== '') {
+    // Re-apply filter after a DOM rebuild if EITHER the search box has
+    // text OR at least one type chip is active — otherwise the rebuilt
+    // cards would all show regardless of the user's current filter state.
+    const hasSearch = ($('#activitySearchInput').val() || '').trim() !== '';
+    const hasTypePick = $('#activityTypeFilterRow .activity-type-chip.active').length > 0;
+    if (hasSearch || hasTypePick) {
         applyActivityFilter();
     }
 };
@@ -2613,6 +2819,184 @@ $(document).on('click', '#saveRenameVersionBtn', function () {
         },
         error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to rename version'),
         complete: () => $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i> Save Changes')
+    });
+});
+
+// ---------- GLOBAL ACTIVITY NOTE (one note per version, above the timeline) ----------
+//
+// Single free-form note attached to the active version. Renders above the
+// whole activity list, in the worker presentation, and in the export
+// schedule. Forks inherit the source's note as a copied value.
+
+// The Protocol Introduction (formerly the global activity note) is
+// edited from the Protocol tab — this helper keeps the trigger button +
+// the inline preview in sync after every save / clear without a full
+// page reload. The trigger lives on .global-note-trigger-btn so we can
+// support multiple buttons sharing the same modal.
+function _refreshGlobalNoteTrigger(content) {
+    const $btn = $('.global-note-trigger-btn').first();
+    if (!$btn.length) return;
+
+    // Rich-text editors leave "<p><br></p>" / "<p>&nbsp;</p>" placeholders
+    // behind when the user clears all content, so look past tags + &nbsp;
+    // to decide whether the note is really empty.
+    const raw      = String(content || '');
+    const stripped = raw.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim();
+    const isEmpty  = stripped === '';
+
+    $btn.attr('data-existing', isEmpty ? '' : raw);
+    $btn.toggleClass('btn-primary', !isEmpty);
+    $btn.toggleClass('btn-outline-secondary', isEmpty);
+    $btn.html(
+        (isEmpty
+            ? '<i class="bx bx-message-square-add me-1"></i> Add Introduction'
+            : '<i class="bxs-edit-alt bx me-1"></i> Edit Introduction')
+    );
+
+    // Inline preview block on the Protocol tab. When the note has
+    // content, replace the empty-state placeholder with the rendered
+    // HTML; when it's empty, restore the placeholder.
+    const $section = $btn.closest('.card-body');
+    let $preview = $section.find('#protocolIntroPreview');
+    let $empty   = $section.find('.protocol-empty-state');
+    if (isEmpty) {
+        if ($preview.length) $preview.remove();
+        if (!$empty.length) {
+            $section.append(
+                `<div class="protocol-empty-state text-center py-4">
+                    <i class="bx bxs-message-detail" style="font-size: 2rem; color: #b8c0d3;"></i>
+                    <p class="text-dark mt-2 mb-1">No introduction written yet.</p>
+                    <small class="text-secondary">Click <strong>Add Introduction</strong> to write the protocol context.</small>
+                </div>`
+            );
+        }
+    } else {
+        if ($empty.length) $empty.remove();
+        if (!$preview.length) {
+            $section.append('<div class="protocol-intro-preview" id="protocolIntroPreview"></div>');
+            $preview = $section.find('#protocolIntroPreview');
+        }
+        $preview.html(raw);
+    }
+}
+
+// Quill wiring for the global note modal. Mirrors the activity-
+// description editor setup so the toolbar/behavior is consistent across
+// the rich-text fields in the schedule manager.
+const GLOBAL_NOTE_EDITOR = 'globalActivityNoteContent';
+const GLOBAL_NOTE_WRAP   = 'globalActivityNoteWrap';
+let globalNoteQuill = null;
+
+function initGlobalNoteEditor(initialHtml) {
+    if (typeof Quill === 'undefined') return;
+    if (globalNoteQuill) {
+        // Re-seed instead of rebuilding when the editor is still alive
+        // from a prior open (the hidden.bs.modal handler usually clears it).
+        globalNoteQuill.clipboard.dangerouslyPasteHTML(initialHtml || '');
+        return;
+    }
+    globalNoteQuill = new Quill('#' + GLOBAL_NOTE_EDITOR, {
+        theme: 'snow',
+        placeholder: 'Write a note for this version…',
+        modules: { toolbar: SM_QUILL_TOOLBAR },
+    });
+    if (initialHtml) {
+        globalNoteQuill.clipboard.dangerouslyPasteHTML(initialHtml);
+    }
+    globalNoteQuill.focus();
+}
+
+function destroyGlobalNoteEditor() {
+    if (!globalNoteQuill) return;
+    const $wrap = $('#' + GLOBAL_NOTE_WRAP);
+    $wrap.find('.ql-toolbar').remove();
+    const $host = $('#' + GLOBAL_NOTE_EDITOR);
+    $host.empty().removeClass('ql-container ql-snow').removeAttr('style');
+    globalNoteQuill = null;
+}
+
+function getGlobalNoteContent() {
+    if (globalNoteQuill) {
+        const html = globalNoteQuill.root.innerHTML;
+        return html === '<p><br></p>' ? '' : html;
+    }
+    return '';
+}
+
+// Class-based trigger so multiple buttons can open the same modal
+// (currently the only trigger lives on the Protocol tab, but using
+// .global-note-trigger-btn keeps the contract loose enough to add more
+// triggers without rewiring). The button carries the active version's
+// id + current content via data- attributes.
+$(document).on('click', '.global-note-trigger-btn', function () {
+    const $btn = $(this);
+    const versionId   = $btn.data('version-id');
+    const existing    = $btn.attr('data-existing') || '';
+    const versionName = $('.version-tab-btn[data-version-id="' + versionId + '"]').data('version-name') || 'this version';
+
+    $('#globalActivityNoteVersionId').val(versionId);
+    $('#globalActivityNoteVersionName').text(versionName);
+    // Quill is initialized after shown.bs.modal fires (the editor needs
+    // a visible mount point to size correctly). The existing markup is
+    // passed in via initGlobalNoteEditor(existing) at that point.
+    $('#globalActivityNoteModalTitle').text(existing ? 'Edit Protocol Introduction' : 'Add Protocol Introduction');
+    $('#globalActivityNoteClearBtn').toggle(!!existing);
+    $('#globalActivityNoteModal').modal('show');
+});
+
+// Init Quill only after the modal is fully visible (animation done).
+// Initializing earlier inside a hidden/animating modal would build a
+// zero-height editor that looks broken until the user focuses it.
+$('#globalActivityNoteModal').on('shown.bs.modal', function () {
+    const existing = $('.global-note-trigger-btn').first().attr('data-existing') || '';
+    initGlobalNoteEditor(existing);
+});
+$('#globalActivityNoteModal').on('hidden.bs.modal', function () {
+    destroyGlobalNoteEditor();
+});
+
+$(document).on('click', '#globalActivityNoteSaveBtn', function () {
+    const id      = $('#globalActivityNoteVersionId').val();
+    const content = getGlobalNoteContent();
+    if (!id) return;
+
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
+    $.ajax({
+        url: URLS.activityVersionsGlobalNote(id),
+        type: 'POST',
+        data: { _token: CSRF, globalActivityNote: content },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message || 'Failed to save note'); return; }
+            // Render with whatever Quill produced. _refreshGlobalNoteTrigger
+            // recognizes empty content (including Quill's "<p><br></p>" /
+            // "<p>&nbsp;</p>" placeholders) and falls back to the "+ Add note" CTA.
+            _refreshGlobalNoteTrigger(content);
+            const wasCleared = String(content || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim() === '';
+            toastr.success(wasCleared ? 'Global note cleared.' : 'Global note saved.');
+            $('#globalActivityNoteModal').modal('hide');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to save note'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i> Save Note')
+    });
+});
+
+$(document).on('click', '#globalActivityNoteClearBtn', function () {
+    const id = $('#globalActivityNoteVersionId').val();
+    if (!id) return;
+
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Clearing...');
+    $.ajax({
+        url: URLS.activityVersionsGlobalNote(id),
+        type: 'POST',
+        data: { _token: CSRF, globalActivityNote: '' },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message || 'Failed to clear note'); return; }
+            _refreshGlobalNoteTrigger('');
+            toastr.success('Global note cleared.');
+            $('#globalActivityNoteModal').modal('hide');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to clear note'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Clear Note')
     });
 });
 

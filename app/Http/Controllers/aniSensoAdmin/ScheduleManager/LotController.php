@@ -16,6 +16,7 @@ class LotController extends BaseScheduleController
             'lotName'     => 'required|string|max:255',
             'lotSize'     => 'required|numeric|min:0',
             'lotSizeUnit' => 'required|string|max:50',
+            'variety'     => 'nullable|string|max:255',
             'dayZeroDate' => 'nullable|date',
             'notes'       => 'nullable|string|max:2000',
         ]);
@@ -29,6 +30,7 @@ class LotController extends BaseScheduleController
             'lotName'            => $request->lotName,
             'lotSize'            => $request->lotSize,
             'lotSizeUnit'        => $request->lotSizeUnit,
+            'variety'            => $request->filled('variety') ? trim($request->variety) : null,
             'dayZeroDate'        => $request->filled('dayZeroDate') ? $request->dayZeroDate : null,
             'notes'              => $request->notes,
             'deleteStatus'       => 1,
@@ -48,6 +50,7 @@ class LotController extends BaseScheduleController
             'lotName'     => 'required|string|max:255',
             'lotSize'     => 'required|numeric|min:0',
             'lotSizeUnit' => 'required|string|max:50',
+            'variety'     => 'nullable|string|max:255',
             'dayZeroDate' => 'nullable|date',
             'notes'       => 'nullable|string|max:2000',
         ]);
@@ -60,6 +63,7 @@ class LotController extends BaseScheduleController
             'lotName'     => $request->lotName,
             'lotSize'     => $request->lotSize,
             'lotSizeUnit' => $request->lotSizeUnit,
+            'variety'     => $request->filled('variety') ? trim($request->variety) : null,
             'dayZeroDate' => $request->filled('dayZeroDate') ? $request->dayZeroDate : null,
             'notes'       => $request->notes,
         ]);

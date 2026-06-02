@@ -4,7 +4,7 @@ function trimZero(n) {
     return v.indexOf('.') >= 0 ? v.replace(/0+$/, '').replace(/\.$/, '') : v;
 }
 
-function renderLotRow(lot, index) {
+function renderLotRow(lot) {
     const dayType = (typeof getScheduleDayType === 'function') ? getScheduleDayType() : 'DAS';
     const d0 = (lot.dayZeroDate || '').slice(0, 10);
     let d0Badge = '';
@@ -18,13 +18,19 @@ function renderLotRow(lot, index) {
             <span class="day-type-label">${escapeHtml(dayType)}</span> 0: ${escapeHtml(pretty)}
         </span>`;
     }
+    const variety = (lot.variety || '').trim();
+    const varietyCell = variety
+        ? `<span class="badge bg-success-subtle text-success" data-field="variety" style="font-weight:500;font-size:11px;">
+               <i class="bx bx-leaf me-1"></i>${escapeHtml(variety)}
+           </span>`
+        : `<small class="text-secondary" data-field="variety">—</small>`;
     return `<tr data-id="${lot.id}">
-        <td class="text-dark idx-cell">${index}</td>
         <td class="text-dark">
             <strong data-field="lotName">${escapeHtml(lot.lotName)}</strong>
             ${d0Badge}
         </td>
         <td class="text-dark"><span data-field="lotSize">${escapeHtml(trimZero(lot.lotSize))}</span> <small class="text-secondary" data-field="lotSizeUnit">${escapeHtml(lot.lotSizeUnit)}</small></td>
+        <td>${varietyCell}</td>
         <td><small class="text-secondary" data-field="notes">${escapeHtml(lot.notes || '')}</small></td>
         <td class="text-end">
             <button class="btn btn-sm btn-outline-primary edit-lot-btn"
@@ -32,17 +38,12 @@ function renderLotRow(lot, index) {
                     data-name="${escapeHtml(lot.lotName)}"
                     data-size="${lot.lotSize}"
                     data-unit="${escapeHtml(lot.lotSizeUnit)}"
+                    data-variety="${escapeHtml(variety)}"
                     data-day-zero-date="${escapeHtml(d0)}"
                     data-notes="${escapeHtml(lot.notes || '')}"><i class="bx bx-edit-alt"></i></button>
             <button class="btn btn-sm btn-outline-danger delete-lot-btn" data-id="${lot.id}" data-name="${escapeHtml(lot.lotName)}"><i class="bx bx-trash"></i></button>
         </td>
     </tr>`;
-}
-
-function reindexLots() {
-    $('#lotsTable tbody tr[data-id]').each(function (i) {
-        $(this).find('.idx-cell').text(i + 1);
-    });
 }
 
 $('#addLotBtn').on('click', function () {
@@ -51,6 +52,7 @@ $('#addLotBtn').on('click', function () {
     $('#lotName').val('');
     $('#lotSize').val('');
     $('#lotSizeUnit').val('hectare');
+    $('#lotVariety').val('');
     $('#lotDayZeroDate').val('');
     $('#lotNotes').val('');
 });
@@ -61,6 +63,7 @@ $(document).on('click', '.edit-lot-btn', function () {
     $('#lotName').val($(this).data('name'));
     $('#lotSize').val($(this).data('size'));
     $('#lotSizeUnit').val($(this).data('unit'));
+    $('#lotVariety').val($(this).data('variety') || '');
     $('#lotDayZeroDate').val(($(this).data('day-zero-date') || '').toString().slice(0, 10));
     $('#lotNotes').val($(this).data('notes'));
     $('#lotModal').modal('show');
@@ -78,6 +81,7 @@ $('#saveLotBtn').on('click', function () {
         lotName: $('#lotName').val(),
         lotSize: $('#lotSize').val(),
         lotSizeUnit: $('#lotSizeUnit').val(),
+        variety: ($('#lotVariety').val() || '').trim(),
         dayZeroDate: dayZero || null,
         notes: $('#lotNotes').val()
     };
@@ -92,12 +96,10 @@ $('#saveLotBtn').on('click', function () {
             toastr.success(res.message);
             $('#lotModal').modal('hide');
             if (id) {
-                const idx = $('#lotsTable tr[data-id="' + id + '"] .idx-cell').text();
-                $('#lotsTable tr[data-id="' + id + '"]').replaceWith(renderLotRow(res.data, idx));
+                $('#lotsTable tr[data-id="' + id + '"]').replaceWith(renderLotRow(res.data));
             } else {
                 $('#lotsEmpty').remove();
-                const nextIdx = $('#lotsTable tbody tr[data-id]').length + 1;
-                $('#lotsTable tbody').append(renderLotRow(res.data, nextIdx));
+                $('#lotsTable tbody').append(renderLotRow(res.data));
                 bumpBadge('badge-lots', 1);
             }
             // Update the manual baseline, then re-derive the effective map so
@@ -113,6 +115,9 @@ $('#saveLotBtn').on('click', function () {
             // Keep the activity-modal lot selector + name lookup in sync.
             if (typeof ACTIVITY_LOT_NAMES === 'object' && ACTIVITY_LOT_NAMES !== null) {
                 ACTIVITY_LOT_NAMES[res.data.id] = res.data.lotName;
+            }
+            if (typeof ACTIVITY_LOT_VARIETIES === 'object' && ACTIVITY_LOT_VARIETIES !== null) {
+                ACTIVITY_LOT_VARIETIES[res.data.id] = res.data.variety || null;
             }
             const $existingLotChip = $('#activityLotsContainer .lot-chip[data-lot-id="' + res.data.id + '"]');
             if ($existingLotChip.length) {
@@ -147,7 +152,6 @@ $(document).on('click', '.delete-lot-btn', function () {
                     toastr.success(res.message);
                     $('#lotsTable tr[data-id="' + id + '"]').fadeOut(300, function () {
                         $(this).remove();
-                        reindexLots();
                         bumpBadge('badge-lots', -1);
                         // Drop the lot from the manual baseline, then rebuild
                         // the effective map (activity flags may still target it
@@ -163,6 +167,9 @@ $(document).on('click', '.delete-lot-btn', function () {
                         // Drop from the activity-modal lot selector + name lookup.
                         if (typeof ACTIVITY_LOT_NAMES === 'object' && ACTIVITY_LOT_NAMES !== null) {
                             delete ACTIVITY_LOT_NAMES[id];
+                        }
+                        if (typeof ACTIVITY_LOT_VARIETIES === 'object' && ACTIVITY_LOT_VARIETIES !== null) {
+                            delete ACTIVITY_LOT_VARIETIES[id];
                         }
                         $('#activityLotsContainer .lot-chip[data-lot-id="' + id + '"]').remove();
                         if ($('#activityLotsContainer .lot-chip').length === 0) {

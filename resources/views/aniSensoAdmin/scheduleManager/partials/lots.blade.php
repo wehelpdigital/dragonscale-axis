@@ -12,9 +12,9 @@
     <table class="table table-hover align-middle mb-0" id="lotsTable">
         <thead class="table-light">
             <tr>
-                <th>#</th>
                 <th>Lot Name</th>
                 <th>Size</th>
+                <th>Variety</th>
                 <th>Notes</th>
                 <th class="text-end" style="width: 160px;">Actions</th>
             </tr>
@@ -22,7 +22,6 @@
         <tbody>
             @forelse($schedule->lots as $lot)
                 <tr data-id="{{ $lot->id }}">
-                    <td class="text-dark">{{ $loop->iteration }}</td>
                     <td class="text-dark">
                         <strong data-field="lotName">{{ $lot->lotName }}</strong>
                         @if($lot->dayZeroDate)
@@ -34,6 +33,15 @@
                         @endif
                     </td>
                     <td class="text-dark"><span data-field="lotSize">{{ rtrim(rtrim($lot->lotSize, '0'), '.') }}</span> <small class="text-secondary" data-field="lotSizeUnit">{{ $lot->lotSizeUnit }}</small></td>
+                    <td>
+                        @if(!empty($lot->variety))
+                            <span class="badge bg-success-subtle text-success" data-field="variety" style="font-weight:500;font-size:11px;">
+                                <i class="bx bx-leaf me-1"></i>{{ $lot->variety }}
+                            </span>
+                        @else
+                            <small class="text-secondary" data-field="variety">—</small>
+                        @endif
+                    </td>
                     <td><small class="text-secondary" data-field="notes">{{ $lot->notes }}</small></td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-primary edit-lot-btn"
@@ -41,6 +49,7 @@
                                 data-name="{{ $lot->lotName }}"
                                 data-size="{{ $lot->lotSize }}"
                                 data-unit="{{ $lot->lotSizeUnit }}"
+                                data-variety="{{ $lot->variety }}"
                                 data-day-zero-date="{{ $lot->dayZeroDate ? \Illuminate\Support\Carbon::parse($lot->dayZeroDate)->format('Y-m-d') : '' }}"
                                 data-notes="{{ $lot->notes }}"><i class="bx bx-edit-alt"></i></button>
                         <button class="btn btn-sm btn-outline-danger delete-lot-btn" data-id="{{ $lot->id }}" data-name="{{ $lot->lotName }}"><i class="bx bx-trash"></i></button>
@@ -80,6 +89,15 @@
                             <option value="acre">Acre</option>
                         </select>
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-leaf me-1 text-success"></i>
+                        Variety
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <input type="text" class="form-control" id="lotVariety" maxlength="255" placeholder="e.g. IR64, NSIC Rc222, hybrid mestiso">
+                    <small class="text-secondary">Crop variety planted in this lot. Appears in the Worker Presentation, Export Schedule, and Card Viewer.</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-dark">

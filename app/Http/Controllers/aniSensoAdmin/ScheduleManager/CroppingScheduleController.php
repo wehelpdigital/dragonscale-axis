@@ -92,6 +92,8 @@ class CroppingScheduleController extends Controller
             'defaultGroupings.lots',
             'versions',
             'dateNotes',
+            'attachments',
+            'criticalRules',
         ]);
 
         return view('aniSensoAdmin.scheduleManager.setup', compact('schedule'));

@@ -104,6 +104,23 @@ class ActivityController extends BaseScheduleController
         $dasMin = $hasDasMin ? (int) $request->dasMin : PHP_INT_MIN;
         $dasMax = $hasDasMax ? (int) $request->dasMax : PHP_INT_MAX;
 
+        // Calendar date range filter. When set, multi-day activities are
+        // pro-rated to the days inside the window — a 10-day activity that
+        // only overlaps 3 days of the picked range bills 3 day-rates per
+        // worker, not 10. An activity that doesn't intersect the range
+        // at all is excluded from the total. Either bound can be left
+        // blank (acts as -∞ / +∞).
+        $hasStartDate = $request->filled('startDate');
+        $hasEndDate   = $request->filled('endDate');
+        $hasDateFilter = $hasStartDate || $hasEndDate;
+        try {
+            $dateMin = $hasStartDate ? \Illuminate\Support\Carbon::parse($request->input('startDate'))->startOfDay() : null;
+            $dateMax = $hasEndDate   ? \Illuminate\Support\Carbon::parse($request->input('endDate'))->endOfDay()   : null;
+        } catch (\Throwable $e) {
+            $dateMin = $dateMax = null;
+            $hasDateFilter = false;
+        }
+
         // --- Build effective Day 0 anchor per lot (matches the JS recompute logic). ---
         $lotDayZero = [];
         foreach ($schedule->lots as $lot) {
@@ -190,10 +207,25 @@ class ActivityController extends BaseScheduleController
 
             // Multi-day range: each day in [targetDate, targetEndDate] bills
             // the workers' day-rate. Single-day or no end date → 1 day.
+            $actStart = $activity->targetDate;
+            $actEnd   = $activity->targetEndDate ?: $activity->targetDate;
             $rangeDays = 1;
-            if ($activity->targetDate && $activity->targetEndDate) {
-                $rangeDays = (int) $activity->targetDate->diffInDays($activity->targetEndDate) + 1;
+            if ($actStart && $actEnd) {
+                $rangeDays = (int) $actStart->diffInDays($actEnd) + 1;
                 if ($rangeDays < 1) $rangeDays = 1;
+            }
+
+            // Apply the calendar-date filter by intersecting the activity's
+            // [start, end] window with the requested [dateMin, dateMax].
+            // Activities that fall fully outside the window are skipped;
+            // partial overlaps are pro-rated to the intersecting day count.
+            if ($hasDateFilter) {
+                if (!$actStart || !$actEnd) continue; // can't compare without dates
+                $clipStart = $dateMin && $actStart->lt($dateMin) ? $dateMin->copy() : $actStart->copy();
+                $clipEnd   = $dateMax && $actEnd->gt($dateMax)   ? $dateMax->copy() : $actEnd->copy();
+                if ($clipStart->gt($clipEnd)) continue; // no overlap
+                $rangeDays = (int) $clipStart->copy()->startOfDay()->diffInDays($clipEnd->copy()->startOfDay()) + 1;
+                if ($rangeDays < 1) continue;
             }
 
             // Phase: split land-prep (DAS < 0) from cropping (DAS >= 0). An
@@ -295,6 +327,8 @@ class ActivityController extends BaseScheduleController
             'workerIds' => $workerIdsFilter,
             'dasMin'    => $hasDasMin ? $dasMin : null,
             'dasMax'    => $hasDasMax ? $dasMax : null,
+            'startDate' => $dateMin ? $dateMin->format('Y-m-d') : null,
+            'endDate'   => $dateMax ? $dateMax->format('Y-m-d') : null,
         ];
 
         return $this->jsonOk('Labor summary computed.', [
@@ -513,8 +547,13 @@ class ActivityController extends BaseScheduleController
             'activities.items.service',
             'irrigations' => fn ($q) => $q->orderBy('startDay', 'asc'),
             'irrigations.assignedWorker',
+            'irrigations.workers',
+            'irrigations.lots',
             'defaultGroupings.lots',
             'dateNotes',
+            'versions',
+            'attachments',
+            'criticalRules',
         ]);
 
         // ---- Effective Day 0 anchor per lot (manual + activity flags) ----
@@ -618,38 +657,176 @@ class ActivityController extends BaseScheduleController
         // calendar visually groups Irrigate / Maintain / Overflow / Drain
         // together regardless of cycle order. Mirrors AsScheduleIrrigation
         // catalog — change once, propagates everywhere.
+        // ---- Priority-resolved band generation ----
+        //
+        // Step 1: collect every raw (start, end, group) window for every
+        //         irrigation, tagged with its priority.
+        // Step 2: per group, walk day-by-day and pick the winning window
+        //         (lowest priority number; tie-break: latest id wins so
+        //         newer edits override older ones).
+        // Step 3: collapse contiguous days that have the same winning
+        //         irrigation back into single bands — this is how a
+        //         priority-1 day in the middle of a DAS 1–10 priority-5
+        //         band splits the original into 1–4 and 6–10.
+        // Step 4: feed the resolved bands into the per-week segmenter the
+        //         calendar grid renders from.
+        $rawWindows = [];
         foreach ($schedule->irrigations as $irrigation) {
             $taskMeta = \App\Models\AsScheduleIrrigation::taskTypeMeta($irrigation->taskType);
-            foreach ($schedule->defaultGroupings as $group) {
-                $groupStart = $group->startDate ? \Illuminate\Support\Carbon::parse($group->startDate) : null;
-                if (!$groupStart) continue;
-                $cycleStart = $groupStart->copy()->addDays((int) $irrigation->startDay);
-                $cycleEnd   = $groupStart->copy()->addDays((int) $irrigation->endDay);
-                $segStart = $cycleStart->copy();
-                while ($segStart->lte($cycleEnd)) {
-                    $weekSunday = $segStart->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
-                    $weekSaturday = $weekSunday->copy()->addDays(6);
-                    $segEnd = $weekSaturday->lt($cycleEnd) ? $weekSaturday->copy() : $cycleEnd->copy();
-                    $startCol = $segStart->dayOfWeek + 1; // Sun=0 → 1, Sat=6 → 7
-                    $endCol   = $segEnd->dayOfWeek + 1;
-                    $weekKey = $weekSunday->format('Y-m-d');
-                    $irrigationBandsByWeek[$weekKey][] = [
-                        'irrigationId' => $irrigation->id,
-                        'title'        => $irrigation->irrigationTitle,
-                        'groupName'    => $group->groupName,
-                        'startCol'     => $startCol,
-                        'endCol'       => $endCol,
-                        'startDate'    => $segStart->copy(),
-                        'endDate'      => $segEnd->copy(),
-                        'dasStart'     => (int) $irrigation->startDay,
-                        'dasEnd'       => (int) $irrigation->endDay,
-                        'taskType'     => $taskMeta['slug'],
-                        'taskLabel'    => $taskMeta['label'],
-                        'taskIcon'     => $taskMeta['icon'],
-                        'color'        => $taskMeta['color'],
+            $priority = (int) ($irrigation->priority ?? 5);
+
+            if ($irrigation->dayMode === 'date' && $irrigation->startDate && $irrigation->endDate) {
+                $rawWindows[] = [
+                    'start'      => $irrigation->startDate->copy(),
+                    'end'        => $irrigation->endDate->copy(),
+                    'groupKey'   => '__absolute__', // date-mode is not tied to a default-grouping
+                    'groupName'  => '',
+                    'priority'   => $priority,
+                    'irrigation' => $irrigation,
+                    'taskMeta'   => $taskMeta,
+                ];
+            } else {
+                foreach ($schedule->defaultGroupings as $group) {
+                    $groupStart = $group->startDate ? \Illuminate\Support\Carbon::parse($group->startDate) : null;
+                    if (!$groupStart) continue;
+                    $rawWindows[] = [
+                        'start'      => $groupStart->copy()->addDays((int) $irrigation->startDay),
+                        'end'        => $groupStart->copy()->addDays((int) $irrigation->endDay),
+                        'groupKey'   => 'g' . $group->id,
+                        'groupName'  => $group->groupName,
+                        'priority'   => $priority,
+                        'irrigation' => $irrigation,
+                        'taskMeta'   => $taskMeta,
                     ];
-                    $segStart = $segEnd->copy()->addDay();
                 }
+            }
+        }
+
+        // Per-day winners, partitioned by group so that two groups can have
+        // their own independent bands (a priority-1 in Group A doesn't
+        // touch Group B's bands).
+        $dayWinners = []; // [groupKey => [Y-m-d => window]]
+        foreach ($rawWindows as $win) {
+            $cursor = $win['start']->copy();
+            while ($cursor->lte($win['end'])) {
+                $dateKey = $cursor->format('Y-m-d');
+                $existing = $dayWinners[$win['groupKey']][$dateKey] ?? null;
+                $existingPriority = $existing['priority'] ?? PHP_INT_MAX;
+                $beats = $win['priority'] < $existingPriority
+                    || ($win['priority'] === $existingPriority
+                        && (int) $win['irrigation']->id > (int) ($existing['irrigation']->id ?? -1));
+                if ($beats) {
+                    $dayWinners[$win['groupKey']][$dateKey] = $win;
+                }
+                $cursor->addDay();
+            }
+        }
+
+        // Collapse contiguous same-irrigation winning days back into bands.
+        $resolvedWindows = [];
+        foreach ($dayWinners as $groupKey => $byDate) {
+            ksort($byDate);
+            $current = null;
+            $bandStart = null;
+            $bandEnd = null;
+            foreach ($byDate as $dateKey => $winner) {
+                $today = \Illuminate\Support\Carbon::parse($dateKey);
+                $sameIrrig = $current && (int) $current['irrigation']->id === (int) $winner['irrigation']->id;
+                $contiguous = $bandEnd && $bandEnd->copy()->addDay()->equalTo($today);
+                if ($sameIrrig && $contiguous) {
+                    $bandEnd = $today->copy();
+                    continue;
+                }
+                if ($current !== null) {
+                    $resolvedWindows[] = array_merge($current, [
+                        'start' => $bandStart,
+                        'end'   => $bandEnd,
+                    ]);
+                }
+                $current = $winner;
+                $bandStart = $today->copy();
+                $bandEnd = $today->copy();
+            }
+            if ($current !== null) {
+                $resolvedWindows[] = array_merge($current, [
+                    'start' => $bandStart,
+                    'end'   => $bandEnd,
+                ]);
+            }
+        }
+
+        // Flatten the resolved windows into a per-date lookup so the
+        // activities timeline can show "what irrigation is happening on
+        // this calendar day" inside each date block. Deduplicated by
+        // irrigation id — if the same irrigation covers multiple default
+        // groupings that all land on this calendar day, we emit ONE row
+        // and list all the relevant group names inside it. Without this
+        // dedupe an irrigation in 2 groups would print twice on every
+        // overlapping day.
+        $byDateAndId = []; // [dateKey => [irrigationId => entry]]
+        foreach ($resolvedWindows as $win) {
+            $cursor = $win['start']->copy();
+            $irrId  = (int) $win['irrigation']->id;
+            while ($cursor->lte($win['end'])) {
+                $dateKey = $cursor->format('Y-m-d');
+                if (!isset($byDateAndId[$dateKey][$irrId])) {
+                    $byDateAndId[$dateKey][$irrId] = [
+                        'irrigation' => $win['irrigation'],
+                        'taskMeta'   => $win['taskMeta'],
+                        'priority'   => $win['priority'],
+                        'groupNames' => [],
+                    ];
+                }
+                if (!empty($win['groupName'])
+                    && !in_array($win['groupName'], $byDateAndId[$dateKey][$irrId]['groupNames'], true)) {
+                    $byDateAndId[$dateKey][$irrId]['groupNames'][] = $win['groupName'];
+                }
+                $cursor->addDay();
+            }
+        }
+        // Strip the inner irrigation-id keys so the view can foreach over
+        // a plain numeric list. Order is by priority asc, then irrigation
+        // id desc — same precedence the band-cut algorithm uses for ties.
+        $irrigationsByDate = [];
+        foreach ($byDateAndId as $dateKey => $entries) {
+            usort($entries, function ($a, $b) {
+                if ($a['priority'] !== $b['priority']) return $a['priority'] <=> $b['priority'];
+                return (int) $b['irrigation']->id <=> (int) $a['irrigation']->id;
+            });
+            $irrigationsByDate[$dateKey] = $entries;
+        }
+
+        // Per-week segmenting on the resolved (priority-cut) bands.
+        foreach ($resolvedWindows as $win) {
+            $irrigation = $win['irrigation'];
+            $taskMeta   = $win['taskMeta'];
+            $cycleStart = $win['start'];
+            $cycleEnd   = $win['end'];
+            $segStart   = $cycleStart->copy();
+            while ($segStart->lte($cycleEnd)) {
+                $weekSunday = $segStart->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
+                $weekSaturday = $weekSunday->copy()->addDays(6);
+                $segEnd = $weekSaturday->lt($cycleEnd) ? $weekSaturday->copy() : $cycleEnd->copy();
+                $startCol = $segStart->dayOfWeek + 1; // Sun=0 → 1, Sat=6 → 7
+                $endCol   = $segEnd->dayOfWeek + 1;
+                $weekKey = $weekSunday->format('Y-m-d');
+                $irrigationBandsByWeek[$weekKey][] = [
+                    'irrigationId' => $irrigation->id,
+                    'title'        => $irrigation->irrigationTitle,
+                    'groupName'    => $win['groupName'],
+                    'startCol'     => $startCol,
+                    'endCol'       => $endCol,
+                    'startDate'    => $segStart->copy(),
+                    'endDate'      => $segEnd->copy(),
+                    'dasStart'     => (int) $irrigation->startDay,
+                    'dasEnd'       => (int) $irrigation->endDay,
+                    'priority'     => (int) ($irrigation->priority ?? 5),
+                    'taskType'     => $taskMeta['slug'],
+                    'taskLabel'    => $taskMeta['label'],
+                    'taskIcon'     => $taskMeta['icon'],
+                    'color'        => $taskMeta['color'],
+                ];
+                $segStart = $segEnd->copy()->addDay();
             }
         }
         // Greedy row-packing per week so non-overlapping bands share a row.
@@ -797,6 +974,31 @@ class ActivityController extends BaseScheduleController
             }
         }
 
+        // Base64-encode attachment images so the printed PDF is fully
+        // self-contained (no http:// fetches during PDF generation, which
+        // would fail in a CI / cron context). Cap at ~5MB per image to
+        // keep the rendered HTML reasonable.
+        $attachmentsEmbedded = [];
+        foreach ($schedule->attachments as $att) {
+            $payload = [
+                'id'          => $att->id,
+                'filename'    => $att->filename,
+                'mimeType'    => $att->mimeType,
+                'description' => $att->description,
+                'isImage'     => $att->isImage(),
+                'dataUri'     => null,
+                'url'         => $att->getPublicUrl(),
+            ];
+            $abs = $att->getAbsolutePath();
+            if ($abs && $att->isImage() && filesize($abs) < 5 * 1024 * 1024) {
+                $bytes = @file_get_contents($abs);
+                if ($bytes !== false) {
+                    $payload['dataUri'] = 'data:' . $att->mimeType . ';base64,' . base64_encode($bytes);
+                }
+            }
+            $attachmentsEmbedded[] = $payload;
+        }
+
         // Optional-section toggles set by the pre-generate modal in the
         // activities tab. The PDF route calls this method and inherits the
         // request, so the flags flow through to the printed PDF too.
@@ -804,12 +1006,53 @@ class ActivityController extends BaseScheduleController
         $showIrrigation   = $request->boolean('showIrrigation');
         $showCalendar     = $request->boolean('showCalendar');
 
+        // Labor-only mode: hide intro tables, the activities timeline,
+        // irrigation, and calendar. Only the per-worker pages + monthly
+        // labor counts (sections 3 & 4) remain. When labor-only is on, the
+        // optional toggles for irrigation/calendar are effectively forced
+        // off — kept in this implementation by intersecting at view time.
+        $laborOnly = $request->boolean('laborOnly');
+        if ($laborOnly) {
+            // Labor-only intersects with the per-section toggles: irrigation
+            // and calendar are forced off so the existing @if($showXxx)
+            // gates in the view handle their hiding. Section 1 (intro) and
+            // Section 2 (activities timeline) are hidden via $laborOnly
+            // directly in the view.
+            $showIrrigation = false;
+            $showCalendar   = false;
+        }
+
+        // Skip workers with zero assigned work days — typically rows the user
+        // added to the schedule but hasn't assigned to any activity in the
+        // protocol yet. Showing them produces empty per-worker pages with
+        // "0 days, ₱0.00 earnings" which is just noise. Done BEFORE the
+        // explicit workerIds filter so that filter only narrows among the
+        // workers who actually have something to do.
+        $workerStats = array_values(array_filter(
+            $workerStats,
+            fn ($row) => (int) $row['totalDays'] > 0
+        ));
+
+        // Worker filter: empty = include everyone (default). When set,
+        // workerStats is filtered to only those IDs so the per-worker pages
+        // section renders exactly the picked workers, in priority order.
+        $workerIdsFilter = array_values(array_unique(array_filter(
+            array_map('intval', (array) $request->input('workerIds', []))
+        )));
+        if (!empty($workerIdsFilter)) {
+            $workerStats = array_values(array_filter(
+                $workerStats,
+                fn ($row) => in_array((int) $row['worker']->id, $workerIdsFilter, true)
+            ));
+        }
+
         return view('aniSensoAdmin.scheduleManager.worker-presentation', [
             'schedule'              => $schedule,
             'lotDayZero'            => $lotDayZero,
             'workerStats'           => $workerStats,
             'aggregateMonthly'      => $aggregateMonthly,
             'irrigationBandsByWeek' => $irrigationBandsByWeek,
+            'irrigationsByDate'     => $irrigationsByDate,
             'activityBandsByWeek'   => $activityBandsByWeek,
             'activitiesByDate'      => $activitiesByDate,
             'calendarMonths'        => $calendarMonths,
@@ -819,6 +1062,9 @@ class ActivityController extends BaseScheduleController
             'showDescriptions'      => $showDescriptions,
             'showIrrigation'        => $showIrrigation,
             'showCalendar'          => $showCalendar,
+            'laborOnly'             => $laborOnly,
+            'workerIdsFilter'       => $workerIdsFilter,
+            'attachmentsEmbedded'   => $attachmentsEmbedded,
         ]);
     }
 
@@ -899,7 +1145,15 @@ class ActivityController extends BaseScheduleController
             'activities.workers',
             'activities.items.material',
             'activities.items.service',
+            'irrigations' => fn ($q) => $q->orderBy('sortOrder', 'asc')->orderBy('startDay', 'asc'),
+            'irrigations.workers',
+            'irrigations.lots',
+            'irrigations.assignedWorker',
             'dateNotes',
+            'versions',
+            'defaultGroupings.lots',
+            'attachments',
+            'criticalRules',
         ]);
 
         return view('aniSensoAdmin.scheduleManager.export', compact('schedule'));
@@ -1060,7 +1314,11 @@ class ActivityController extends BaseScheduleController
             'isDayZero'        => 'nullable|boolean',
             'description'      => 'nullable|string|max:20000',
             'timeRequired'     => 'required|in:half,whole,n/a',
-            'lotIds'           => 'required|array|min:1',
+            // Lots can be empty when the activity is marked "N/A — not
+            // lot-specific" in the modal (general work that doesn't tie
+            // to a particular lot). Empty array is valid; server stores
+            // zero lot pivots and the card UI renders an N/A badge.
+            'lotIds'           => 'nullable|array',
             'lotIds.*'         => 'integer',
             'workerIds'        => 'nullable|array',
             'workerIds.*'      => 'integer',
@@ -1079,15 +1337,23 @@ class ActivityController extends BaseScheduleController
             return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
         }
 
-        // Lots must belong to this schedule.
+        // Lots must belong to this schedule. Empty array is allowed —
+        // it means the user picked the N/A pseudo-chip ("activity is
+        // general, not lot-specific"). Lots that DO arrive must still
+        // be valid ids for this schedule; otherwise we ignore them.
         $validLotIds = \App\Models\AsScheduleLot::active()
             ->where('croppingScheduleId', $schedule->id)
             ->pluck('id')->all();
-        $submittedLotIds = collect($request->input('lotIds', []))
-            ->map(fn($v) => (int) $v)
-            ->filter(fn($v) => in_array($v, $validLotIds, true))
+        $rawLotIds = collect($request->input('lotIds', []))
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($v) => $v > 0); // strip 0/negative
+        $submittedLotIds = $rawLotIds
+            ->filter(fn ($v) => in_array($v, $validLotIds, true))
             ->unique()->values()->all();
-        if (empty($submittedLotIds)) {
+        // If the user submitted lot ids but NONE belong to this schedule,
+        // that's a real error (tampered payload). Empty submission =
+        // N/A, which is fine.
+        if ($rawLotIds->isNotEmpty() && empty($submittedLotIds)) {
             return $this->jsonFail('Selected lots do not belong to this schedule.', 422);
         }
 
@@ -1267,6 +1533,201 @@ class ActivityController extends BaseScheduleController
             ->update(['deleteStatus' => 0]);
 
         return $this->jsonOk('Note deleted.');
+    }
+
+    /**
+     * Card Viewer — a PowerPoint-style per-day presentation.
+     *
+     * Each calendar day with any content (activity, irrigation, or note)
+     * gets its own slide. A cover slide leads with the schedule title,
+     * critical rules, and the active version's protocol introduction.
+     *
+     * Multi-day activities appear on EVERY day they span — the slide
+     * card includes a "Day X of Y" indicator so the worker can tell at
+     * a glance how far through a range they are.
+     *
+     * Per-day irrigation is priority-resolved (same algorithm the worker
+     * presentation uses) so a priority-1 "No Irrigation" interrupt
+     * correctly displaces lower-priority bands on overlapping days.
+     */
+    public function cardViewer(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $schedule->load([
+            'lots',
+            'workers',
+            'activities' => fn ($q) => $q->orderBy('targetDate', 'asc'),
+            'activities.workers',
+            'activities.lots',
+            'activities.items.material',
+            'activities.items.service',
+            'irrigations' => fn ($q) => $q->orderBy('sortOrder', 'asc'),
+            'irrigations.workers',
+            'irrigations.lots',
+            'irrigations.assignedWorker',
+            'defaultGroupings.lots',
+            'versions',
+            'dateNotes',
+            'criticalRules',
+        ]);
+
+        $activeVersion = $schedule->versions->firstWhere('isActive', true)
+            ?? $schedule->versions->firstWhere('isOriginal', true)
+            ?? $schedule->versions->first();
+
+        $irrigationsByDate = $this->resolveIrrigationsByDate($schedule);
+        $dateNotesByDate   = $schedule->dateNotes->keyBy(fn ($n) => $n->noteDate->format('Y-m-d'));
+
+        // Collect every calendar day that needs a slide: anything spanned
+        // by an activity, any day with irrigation, any day with a note.
+        // Empty days are skipped — they'd be uninformative slides.
+        $dateSet = [];
+        foreach ($schedule->activities as $a) {
+            if (!$a->targetDate) continue;
+            $start = $a->targetDate;
+            $end   = $a->targetEndDate ?: $start;
+            for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+                $dateSet[$d->format('Y-m-d')] = true;
+            }
+        }
+        foreach (array_keys($irrigationsByDate) as $dk) $dateSet[$dk] = true;
+        foreach ($dateNotesByDate->keys() as $dk)       $dateSet[$dk] = true;
+        ksort($dateSet);
+        $dateKeys = array_keys($dateSet);
+
+        $firstDate = !empty($dateKeys) ? \Illuminate\Support\Carbon::parse($dateKeys[0])                : null;
+        $lastDate  = !empty($dateKeys) ? \Illuminate\Support\Carbon::parse($dateKeys[count($dateKeys) - 1]) : null;
+
+        // Build per-slide data. activitiesForDay includes EVERY activity
+        // whose [start, end] range covers this date — so multi-day
+        // activities recur across their span.
+        $slides = [];
+        foreach ($dateKeys as $idx => $dateKey) {
+            $dateCarbon = \Illuminate\Support\Carbon::parse($dateKey);
+            $activitiesForDay = $schedule->activities->filter(function ($a) use ($dateCarbon) {
+                if (!$a->targetDate) return false;
+                $start = $a->targetDate;
+                $end   = $a->targetEndDate ?: $start;
+                return $start->lte($dateCarbon) && $dateCarbon->lte($end);
+            })->values();
+
+            $slides[] = [
+                'dateKey'    => $dateKey,
+                'date'       => $dateCarbon,
+                'dayIndex'   => $idx + 1,
+                'activities' => $activitiesForDay,
+                'irrigations' => $irrigationsByDate[$dateKey] ?? [],
+                'note'       => $dateNotesByDate->get($dateKey),
+            ];
+        }
+
+        return view('aniSensoAdmin.scheduleManager.card-viewer', [
+            'schedule'      => $schedule,
+            'activeVersion' => $activeVersion,
+            'slides'        => $slides,
+            'firstDate'     => $firstDate,
+            'lastDate'      => $lastDate,
+            'criticalRules' => $schedule->criticalRules,
+            'generatedAt'   => \Illuminate\Support\Carbon::now('Asia/Manila'),
+        ]);
+    }
+
+    /**
+     * Per-date map of priority-resolved irrigation entries. Same algorithm
+     * the workerPresentation uses inline — extracted here so the card
+     * viewer can reuse it without duplicating the band-cut logic.
+     *
+     * The map shape is: ['Y-m-d' => [
+     *   ['irrigation' => Model, 'taskMeta' => array, 'priority' => int,
+     *    'groupNames' => string[]],
+     *   ...
+     * ]]
+     *
+     * Deduplicated by irrigation id within each date — when the same
+     * irrigation covers multiple default-groupings on the same calendar
+     * day, the entry lists every affected group via groupNames[].
+     */
+    private function resolveIrrigationsByDate(\App\Models\AsCroppingSchedule $schedule): array
+    {
+        $rawWindows = [];
+        foreach ($schedule->irrigations as $irrigation) {
+            $taskMeta = \App\Models\AsScheduleIrrigation::taskTypeMeta($irrigation->taskType);
+            $priority = (int) ($irrigation->priority ?? 5);
+
+            if ($irrigation->dayMode === 'date' && $irrigation->startDate && $irrigation->endDate) {
+                $rawWindows[] = [
+                    'start'      => $irrigation->startDate->copy(),
+                    'end'        => $irrigation->endDate->copy(),
+                    'groupKey'   => '__absolute__',
+                    'groupName'  => '',
+                    'priority'   => $priority,
+                    'irrigation' => $irrigation,
+                    'taskMeta'   => $taskMeta,
+                ];
+            } else {
+                foreach ($schedule->defaultGroupings as $group) {
+                    $groupStart = $group->startDate ? \Illuminate\Support\Carbon::parse($group->startDate) : null;
+                    if (!$groupStart) continue;
+                    $rawWindows[] = [
+                        'start'      => $groupStart->copy()->addDays((int) $irrigation->startDay),
+                        'end'        => $groupStart->copy()->addDays((int) $irrigation->endDay),
+                        'groupKey'   => 'g' . $group->id,
+                        'groupName'  => $group->groupName,
+                        'priority'   => $priority,
+                        'irrigation' => $irrigation,
+                        'taskMeta'   => $taskMeta,
+                    ];
+                }
+            }
+        }
+
+        // Per-day winners within each group context (priority resolution).
+        $dayWinners = [];
+        foreach ($rawWindows as $win) {
+            $cursor = $win['start']->copy();
+            while ($cursor->lte($win['end'])) {
+                $dateKey = $cursor->format('Y-m-d');
+                $existing = $dayWinners[$win['groupKey']][$dateKey] ?? null;
+                $existingPriority = $existing['priority'] ?? PHP_INT_MAX;
+                $beats = $win['priority'] < $existingPriority
+                    || ($win['priority'] === $existingPriority
+                        && (int) $win['irrigation']->id > (int) ($existing['irrigation']->id ?? -1));
+                if ($beats) {
+                    $dayWinners[$win['groupKey']][$dateKey] = $win;
+                }
+                $cursor->addDay();
+            }
+        }
+
+        // Flatten + deduplicate by irrigation id; collect groupNames.
+        $byDateAndId = [];
+        foreach ($dayWinners as $groupKey => $byDate) {
+            foreach ($byDate as $dateKey => $winner) {
+                $irrId = (int) $winner['irrigation']->id;
+                if (!isset($byDateAndId[$dateKey][$irrId])) {
+                    $byDateAndId[$dateKey][$irrId] = [
+                        'irrigation' => $winner['irrigation'],
+                        'taskMeta'   => $winner['taskMeta'],
+                        'priority'   => $winner['priority'],
+                        'groupNames' => [],
+                    ];
+                }
+                if (!empty($winner['groupName'])
+                    && !in_array($winner['groupName'], $byDateAndId[$dateKey][$irrId]['groupNames'], true)) {
+                    $byDateAndId[$dateKey][$irrId]['groupNames'][] = $winner['groupName'];
+                }
+            }
+        }
+
+        $result = [];
+        foreach ($byDateAndId as $dateKey => $entries) {
+            usort($entries, function ($a, $b) {
+                if ($a['priority'] !== $b['priority']) return $a['priority'] <=> $b['priority'];
+                return (int) $b['irrigation']->id <=> (int) $a['irrigation']->id;
+            });
+            $result[$dateKey] = array_values($entries);
+        }
+        return $result;
     }
 
     /**

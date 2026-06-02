@@ -294,6 +294,17 @@ Route::post('/anisenso-schedule-manager-services-store',      [App\Http\Controll
 Route::put('/anisenso-schedule-manager-services-update',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ServiceController::class, 'update'])->name('anisenso-schedule-manager.services.update')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-services-delete',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ServiceController::class, 'destroy'])->name('anisenso-schedule-manager.services.destroy')->middleware('auth');
 
+// Attachments (schedule-level reference images / PDFs)
+Route::post('/anisenso-schedule-manager-attachments-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\AttachmentController::class, 'store'])->name('anisenso-schedule-manager.attachments.store')->middleware('auth');
+Route::put('/anisenso-schedule-manager-attachments-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\AttachmentController::class, 'update'])->name('anisenso-schedule-manager.attachments.update')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-attachments-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\AttachmentController::class, 'destroy'])->name('anisenso-schedule-manager.attachments.destroy')->middleware('auth');
+
+// Critical Rules (schedule-level reminder list)
+Route::post('/anisenso-schedule-manager-critical-rules-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\CriticalRuleController::class, 'store'])->name('anisenso-schedule-manager.critical-rules.store')->middleware('auth');
+Route::put('/anisenso-schedule-manager-critical-rules-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\CriticalRuleController::class, 'update'])->name('anisenso-schedule-manager.critical-rules.update')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-critical-rules-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\CriticalRuleController::class, 'destroy'])->name('anisenso-schedule-manager.critical-rules.destroy')->middleware('auth');
+Route::post('/anisenso-schedule-manager-critical-rules-reorder',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\CriticalRuleController::class, 'reorder'])->name('anisenso-schedule-manager.critical-rules.reorder')->middleware('auth');
+
 // Activities
 Route::post('/anisenso-schedule-manager-activities-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'store'])->name('anisenso-schedule-manager.activities.store')->middleware('auth');
 Route::get('/anisenso-schedule-manager-activities-show',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'show'])->name('anisenso-schedule-manager.activities.show')->middleware('auth');
@@ -312,6 +323,7 @@ Route::post('/anisenso-schedule-manager-activities-date-note-save',     [App\Htt
 Route::delete('/anisenso-schedule-manager-activities-date-note-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'deleteDateNote'])->name('anisenso-schedule-manager.activities.date-note.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-worker-presentation',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'workerPresentation'])->name('anisenso-schedule-manager.worker-presentation')->middleware('auth');
 Route::get('/anisenso-schedule-manager-worker-presentation-pdf', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'workerPresentationPdf'])->name('anisenso-schedule-manager.worker-presentation.pdf')->middleware('auth');
+Route::get('/anisenso-schedule-manager-card-viewer',              [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'cardViewer'])->name('anisenso-schedule-manager.card-viewer')->middleware('auth');
 
 // Activity Versions (sub-tabs inside the Activities panel — branches of the schedule)
 Route::get('/anisenso-schedule-manager-activity-versions',            [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'index'])->name('anisenso-schedule-manager.activity-versions.index')->middleware('auth');
@@ -319,11 +331,14 @@ Route::post('/anisenso-schedule-manager-activity-versions-store',     [App\Http\
 Route::put('/anisenso-schedule-manager-activity-versions-update',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'update'])->name('anisenso-schedule-manager.activity-versions.update')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-activity-versions-delete',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'destroy'])->name('anisenso-schedule-manager.activity-versions.destroy')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activity-versions-set-active',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'setActive'])->name('anisenso-schedule-manager.activity-versions.set-active')->middleware('auth');
+Route::post('/anisenso-schedule-manager-activity-versions-global-note',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityVersionController::class, 'setGlobalNote'])->name('anisenso-schedule-manager.activity-versions.global-note')->middleware('auth');
 
 // Irrigations
 Route::post('/anisenso-schedule-manager-irrigations-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\IrrigationController::class, 'store'])->name('anisenso-schedule-manager.irrigations.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-irrigations-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\IrrigationController::class, 'update'])->name('anisenso-schedule-manager.irrigations.update')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-irrigations-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\IrrigationController::class, 'destroy'])->name('anisenso-schedule-manager.irrigations.destroy')->middleware('auth');
+Route::post('/anisenso-schedule-manager-irrigations-duplicate',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\IrrigationController::class, 'duplicate'])->name('anisenso-schedule-manager.irrigations.duplicate')->middleware('auth');
+Route::post('/anisenso-schedule-manager-irrigations-reorder',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\IrrigationController::class, 'reorder'])->name('anisenso-schedule-manager.irrigations.reorder')->middleware('auth');
 
 // Calendar Generation
 Route::get('/anisenso-schedule-manager-generate',       [App\Http\Controllers\aniSensoAdmin\ScheduleManager\GenerationController::class, 'form'])->name('anisenso-schedule-manager.generate.form')->middleware('auth');

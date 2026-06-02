@@ -82,6 +82,10 @@ class ActivityVersionController extends BaseScheduleController
                     'croppingScheduleId' => $schedule->id,
                     'versionName'        => trim($request->versionName),
                     'description'        => $request->description,
+                    // Inherit the source version's global activity note so a
+                    // fork starts with the same client-facing commentary. The
+                    // user can edit it independently afterward.
+                    'globalActivityNote' => $source ? $source->globalActivityNote : null,
                     'parentVersionId'    => $source ? $source->id : null,
                     'isOriginal'         => 0,
                     'isActive'           => 0,
@@ -219,6 +223,51 @@ class ActivityVersionController extends BaseScheduleController
         }
 
         return $this->jsonOk('Version deleted.');
+    }
+
+    /**
+     * Save the version's global activity note. This is the free-form text
+     * that renders above the whole activity timeline on the setup screen,
+     * worker presentation, and export schedule. Distinct from the version's
+     * description (admin-only metadata about why the branch exists).
+     *
+     * Empty input clears the note (sets the column to NULL). The endpoint
+     * always operates on the version targeted by ?id=..., not the schedule's
+     * active version — so the UI can edit "Original" while looking at it
+     * even if a different fork happens to be the active one.
+     */
+    public function setGlobalNote(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $id = $this->queryId($request);
+
+        $validator = Validator::make($request->all(), [
+            // Generous cap for rich-text content. TinyMCE wraps every paragraph,
+            // list, and table in markup, so a long-form note can easily run into
+            // tens of thousands of characters before any actual text overflow.
+            // The DB column is MEDIUMTEXT (16MB) so 500k chars is well within
+            // physical limits while still preventing pathological payloads.
+            'globalActivityNote' => 'nullable|string|max:500000',
+        ]);
+        if ($validator->fails()) {
+            return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        $version = AsScheduleActivityVersion::active()
+            ->forSchedule($schedule->id)
+            ->where('id', $id)
+            ->first();
+        if (!$version) return $this->jsonFail('Version not found.', 404);
+
+        $content = trim((string) $request->input('globalActivityNote', ''));
+        $version->update(['globalActivityNote' => $content === '' ? null : $content]);
+
+        return $this->jsonOk($content === '' ? 'Global note cleared.' : 'Global note saved.', [
+            'data' => [
+                'id'                 => $version->id,
+                'globalActivityNote' => $version->globalActivityNote,
+            ],
+        ]);
     }
 
     /**

@@ -11,6 +11,7 @@ class AsScheduleLot extends BaseModel
         'lotName',
         'lotSize',
         'lotSizeUnit',
+        'variety',
         'dayZeroDate',
         'notes',
         'deleteStatus',

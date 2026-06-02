@@ -63,6 +63,12 @@
             </button></li>
         </ul>
     </div>
+    {{-- The version-wide Protocol Introduction (formerly the "View Note"
+         button) has moved to the Protocol tab so it's reachable
+         independent of the Activities tab. The edit modal still lives in
+         the Activities partial because it's wired into Quill there;
+         the new trigger button on the Protocol tab opens that same modal
+         via the .global-note-trigger-btn class. --}}
     @if($activeVersion && $activeVersion->description)
         <small class="text-secondary ms-3 d-flex align-items-center" style="font-size:12px;font-style:italic;max-width:480px;">
             <i class="bx bx-info-circle me-1"></i>
@@ -84,15 +90,6 @@
         <button type="button" class="btn btn-outline-info btn-sm" id="openDraftsModalBtn" title="View activities you've moved to drafts">
             <i class="bx bx-archive me-1"></i> Drafts
             <span class="badge bg-info text-white ms-1" id="draftsBadge" @if($draftsCount === 0) style="display:none;" @endif>{{ $draftsCount }}</span>
-        </button>
-        <button type="button" class="btn btn-outline-success btn-sm" id="openLaborSummaryBtn" title="See the total labor expense across all activities">
-            <i class="bx bx-money me-1"></i> Labor Expenses
-        </button>
-        <button type="button" class="btn btn-outline-dark btn-sm" id="openWorkerPresentationBtn" title="Open a printable presentation (intro, activities, monthly labor, per-worker pages, irrigation, calendar) in a new tab">
-            <i class="bx bx-book-open me-1"></i> Worker Presentation
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="openExportScheduleBtn" title="Open a formatted preview, download PDF, or copy as text">
-            <i class="bx bx-file-blank me-1"></i> Export Schedule
         </button>
         <button type="button" class="btn btn-primary btn-sm" id="addActivityBtn">
             <i class="bx bx-plus me-1"></i> Add Activity
@@ -117,6 +114,29 @@
     <small class="text-secondary" id="activitySearchHint" style="display:none;">
         Showing <strong id="activitySearchCount">0</strong> matching activities.
     </small>
+</div>
+
+{{-- Activity type filter — toggle chips. Tap one (or more) to narrow the
+     timeline to that type. Empty selection = show all. Combines with the
+     text search above via AND so both filters apply together. --}}
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="activityTypeFilterRow">
+    <small class="text-secondary me-1" style="white-space:nowrap;">
+        <i class="bx bx-filter-alt"></i> Filter by type:
+    </small>
+    @foreach(\App\Models\AsScheduleActivity::ACTIVITY_TYPES as $typeKey => $typeLabel)
+        <span class="lot-chip activity-type-chip"
+              data-type="{{ $typeKey }}"
+              role="button"
+              aria-pressed="false"
+              style="font-size:11.5px; padding:3px 10px;">
+            {{ $typeLabel }}
+        </span>
+    @endforeach
+    <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+            id="activityTypeFilterClearBtn"
+            style="font-size:11.5px; display:none;">
+        Clear types
+    </button>
 </div>
 
 <div class="activity-timeline" id="activitiesList">
@@ -185,8 +205,16 @@
         @if($item['type'] === 'rest')
             <div class="rest-day-marker" data-date="{{ $item['date'] }}">
                 <i class="bx bx-moon rest-day-icon"></i>
-                <span class="rest-day-date">{{ $item['carbon']->format('D, M j, Y') }}</span>
-                <span class="rest-day-tag">No activities scheduled</span>
+                <div class="rest-day-text">
+                    <span class="rest-day-date">{{ $item['carbon']->format('l, F j, Y') }}</span>
+                    <span class="rest-day-tag">No activities scheduled</span>
+                </div>
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary rest-day-add-btn"
+                        data-date="{{ $item['date'] }}"
+                        title="Add a new activity to this date">
+                    <i class="bx bx-plus"></i> Add Activity
+                </button>
             </div>
         @else
         @php
@@ -195,12 +223,39 @@
             $dateCarbon = ($dateKey !== '__no-date__') ? \Illuminate\Support\Carbon::parse($dateKey) : null;
             $colorIndex = $item['color'];
         @endphp
+        @php
+            // Find the latest targetEndDate across activities in this group.
+            // When any activity extends past its start date, the header
+            // shows "→ Jun 15" so the user sees at a glance that some
+            // activities here aren't single-day. The card-level range badge
+            // still shows the per-activity range; this header badge is the
+            // group-level summary.
+            $latestEndCarbon = null;
+            if ($dateCarbon) {
+                foreach ($activitiesForDate as $_act) {
+                    $_e = $_act->targetEndDate ? \Illuminate\Support\Carbon::parse($_act->targetEndDate) : null;
+                    if ($_e && $_e->greaterThan($dateCarbon)) {
+                        if (!$latestEndCarbon || $_e->greaterThan($latestEndCarbon)) {
+                            $latestEndCarbon = $_e->copy();
+                        }
+                    }
+                }
+            }
+            $groupSpanDays = $latestEndCarbon ? ($dateCarbon->diffInDays($latestEndCarbon) + 1) : 0;
+        @endphp
         <div class="date-group date-color-{{ $colorIndex }}" data-date="{{ $dateKey }}">
             <div class="date-header">
                 @if($dateCarbon)
                     <i class="bx bx-calendar"></i>
                     <span class="date-header-day">{{ $dateCarbon->format('D') }}</span>
                     <span class="date-header-date">{{ $dateCarbon->format('M j, Y') }}</span>
+                    @if($latestEndCarbon)
+                        <span class="date-header-range" title="At least one activity in this group extends through {{ $latestEndCarbon->format('M j, Y') }} ({{ $groupSpanDays }} days total)">
+                            <i class="bx bx-right-arrow-alt"></i>
+                            {{ $latestEndCarbon->format('M j') }}@if($latestEndCarbon->year !== $dateCarbon->year), {{ $latestEndCarbon->year }}@endif
+                            <span class="date-header-range-days">({{ $groupSpanDays }}d)</span>
+                        </span>
+                    @endif
                 @else
                     <i class="bx bx-error-circle"></i>
                     <span class="date-header-date">No date</span>
@@ -249,7 +304,7 @@
                         $rangeDays = $isRange ? ($startDateCarbon->diffInDays($endDateCarbon) + 1) : 0;
                         $endDateStr = $endDateCarbon ? $endDateCarbon->format('Y-m-d') : '';
                     @endphp
-                    <div class="activity-card" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}">
+                    <div class="activity-card" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}">
                         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
                             <div class="flex-grow-1" style="min-width:0;">
                                 <h6 class="text-dark mb-1">
@@ -292,10 +347,14 @@
                                             <span class="item-tag"
                                                   style="background:#eef0fb; color:#3a4699;"
                                                   data-lot-id="{{ $lot->id }}"
-                                                  data-lot-name="{{ $lot->lotName }}">{{ $lot->lotName }}{{ $dasSuffix }}</span>
+                                                  data-lot-name="{{ $lot->lotName }}">{{ $lot->lotName }}@if(!empty($lot->variety)) <small style="opacity:.85;">· {{ $lot->variety }}</small>@endif{{ $dasSuffix }}</span>
                                         @endforeach
                                     @else
-                                        <small class="text-danger"><i class="bx bx-error-circle"></i> No lots selected — this activity will not be scheduled.</small>
+                                        {{-- N/A activity: explicit chip explaining the
+                                             activity isn't tied to a specific lot. --}}
+                                        <span class="item-tag activity-na-tag" title="Activity applies generally — not tied to any specific lot">
+                                            <i class="bx bx-globe"></i> N/A — Not lot-specific
+                                        </span>
                                     @endif
                                 </div>
                             </div>
@@ -350,6 +409,48 @@
         @endif
     @endforeach
     @endif
+</div>
+
+{{-- Global activity note modal: edit/clear the version-wide commentary
+     that renders at the top of the activity timeline + on presentation
+     + on export schedule. --}}
+<div class="modal fade" id="globalActivityNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark">
+                    <i class="bxs-message-detail bx me-2"></i>
+                    <span id="globalActivityNoteModalTitle">Note for this version</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-dark mb-2">
+                    A free-form note that applies to the whole activity timeline of the
+                    <strong id="globalActivityNoteVersionName" class="text-primary">—</strong> version.
+                </p>
+                <small class="text-secondary d-block mb-2">
+                    This note renders at the top of the Activities section in the Worker Presentation
+                    and Export Schedule. Each version (fork) carries its own copy.
+                    Supports formatting — headings, bold, lists, links, tables.
+                </small>
+                {{-- Quill rich-text editor for the version-wide note. --}}
+                <div class="sm-quill-wrap" id="globalActivityNoteWrap">
+                    <div class="sm-quill-host" id="globalActivityNoteContent"></div>
+                </div>
+                <input type="hidden" id="globalActivityNoteVersionId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" id="globalActivityNoteClearBtn" style="display:none;">
+                    <i class="bx bx-trash me-1"></i> Clear Note
+                </button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="globalActivityNoteSaveBtn">
+                    <i class="bx bx-save me-1"></i> Save Note
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- Date-note modal: add/edit/clear the per-date commentary. The note is
@@ -550,6 +651,27 @@
                                     </small>
                                 </div>
                             </div>
+
+                            {{-- Calendar date range filter — restricts total to
+                                 work-days that fall inside the picked window.
+                                 Multi-day activities are pro-rated: only the
+                                 days within the window count toward the cost. --}}
+                            <div class="col-md-12">
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
+                                    <label class="form-label text-dark mb-0" style="font-size:12px; white-space: nowrap;">
+                                        <i class="bx bx-calendar-event"></i> Date Range
+                                    </label>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <input type="date" class="form-control form-control-sm" id="laborStartDate" style="width: 145px;">
+                                        <span class="text-secondary">to</span>
+                                        <input type="date" class="form-control form-control-sm" id="laborEndDate" style="width: 145px;">
+                                        <button type="button" class="btn btn-link btn-sm p-0 ms-1" id="laborDateClearBtn" title="Clear date range" style="font-size:11px;">Clear</button>
+                                    </div>
+                                    <small class="text-secondary" style="font-size:11px;">
+                                        Empty = no filter. Multi-day activities are pro-rated to the days inside this window.
+                                    </small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -609,6 +731,44 @@
                             Show the month-by-month calendar with activity + irrigation bands across days. Adds landscape pages at the end.
                         </div>
                     </label>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="optLaborOnly">
+                    <label class="form-check-label text-dark" for="optLaborOnly">
+                        <strong>Show only the worker labor section</strong>
+                        <div class="text-secondary" style="font-size: 12.5px;">
+                            Hide intro tables (groups/workers/lots), the activities timeline, irrigation, and calendar.
+                            Only the per-worker pages and the monthly labor counts remain.
+                        </div>
+                    </label>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label text-dark mb-1" style="font-weight:600;font-size:13px;">
+                        <i class="bx bx-user-check me-1"></i> Workers to include
+                    </label>
+                    <small class="text-secondary d-block mb-2" style="font-size: 12.5px;">
+                        All workers are included by default — <strong>uncheck</strong> any you don't want in the labor section.
+                    </small>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-link btn-sm p-0" id="wpWorkersSelectAllBtn">Select all</button>
+                        <span class="text-secondary">·</span>
+                        <button type="button" class="btn btn-link btn-sm p-0" id="wpWorkersClearBtn">Clear</button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 p-2 rounded" id="wpWorkersList" style="border:1px solid #e6e8ec; background:#fafbfc; max-height: 180px; overflow-y: auto;">
+                        @foreach($schedule->workers as $w)
+                            <div class="form-check form-check-inline m-0" style="min-width: 32%;">
+                                <input class="form-check-input wp-worker-pick" type="checkbox" id="wpWorker{{ $w->id }}" value="{{ $w->id }}" checked>
+                                <label class="form-check-label text-dark" for="wpWorker{{ $w->id }}" style="font-size: 13px;">{{ $w->workerName }}</label>
+                            </div>
+                        @endforeach
+                        @if($schedule->workers->count() === 0)
+                            <small class="text-secondary"><i class="bx bx-info-circle me-1"></i>No workers defined on this schedule.</small>
+                        @endif
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -690,13 +850,19 @@
 
                 <div class="mb-3">
                     <label class="form-label text-dark">
-                        <i class="bx bx-map-pin"></i> Lots this activity applies to <span class="text-danger">*</span>
-                        <span class="text-secondary fw-normal">— tap to include/exclude</span>
+                        <i class="bx bx-map-pin"></i> Lots this activity applies to
+                        <span class="text-secondary fw-normal">— tap to include/exclude, or pick <strong>N/A</strong> for general activities</span>
                     </label>
                     <div class="alert alert-warning mb-0" id="activityLotsEmpty" @if($schedule->lots->count() > 0) style="display:none;" @endif>
                         <i class="bx bx-info-circle me-1"></i> Add at least one lot first (in the <strong>Lots</strong> tab) before creating activities.
                     </div>
                     <div class="lot-chip-container" id="activityLotsContainer" @if($schedule->lots->count() === 0) style="display:none;" @endif>
+                        {{-- N/A pseudo-chip: clicking it deselects every real lot;
+                             clicking any real lot deselects N/A. Server stores
+                             "N/A activity" as an activity with zero lot pivots. --}}
+                        <span class="lot-chip lot-chip-na" data-lot-na="1" role="button" aria-pressed="false" title="The activity applies generally, not to any specific lot">
+                            <i class="bx bx-globe"></i> N/A — Not lot-specific
+                        </span>
                         @foreach($schedule->lots as $lot)
                             <span class="lot-chip" data-lot-id="{{ $lot->id }}" role="button" aria-pressed="false">{{ $lot->lotName }}</span>
                         @endforeach
@@ -782,7 +948,13 @@
                         </button>
                     </div>
                     <small class="text-secondary d-block mb-1">Supports formatting — headings, bold, lists, links, etc. Toggle to <strong>Edit HTML source</strong> to paste or hand-edit raw markup.</small>
-                    <textarea class="form-control" id="activityDescription" rows="6" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;"></textarea>
+                    {{-- Quill rich-text editor (replaces TinyMCE). The mount
+                         div holds the WYSIWYG. The sibling textarea is the
+                         HTML source-edit view, toggled by #toggleDescriptionMode. --}}
+                    <div class="sm-quill-wrap" id="activityDescriptionWrap">
+                        <div class="sm-quill-host" id="activityDescription"></div>
+                        <textarea class="form-control sm-quill-html-source" id="activityDescriptionSource" rows="12"></textarea>
+                    </div>
                 </div>
 
                 <hr>

@@ -143,12 +143,41 @@ class AsCroppingSchedule extends BaseModel
     {
         return $this->hasMany(AsScheduleIrrigation::class, 'croppingScheduleId')
             ->where('as_schedule_irrigations.deleteStatus', 1)
-            ->orderBy('startDay', 'asc');
+            // Manual drag-drop order wins; fall back to startDay (then id)
+            // so rows without a manual order still cluster by their range.
+            ->orderBy('sortOrder', 'asc')
+            ->orderBy('startDay', 'asc')
+            ->orderBy('id', 'asc');
     }
 
     public function generations()
     {
         return $this->hasMany(AsScheduleGeneration::class, 'croppingScheduleId')->where('as_schedule_generations.deleteStatus', 1);
+    }
+
+    /**
+     * Reference images / files uploaded for the whole schedule. Each
+     * carries a description and renders into the worker presentation
+     * and the export schedule.
+     */
+    public function attachments()
+    {
+        return $this->hasMany(AsScheduleAttachment::class, 'croppingScheduleId')
+            ->where('as_schedule_attachments.deleteStatus', 1)
+            ->orderBy('sortOrder', 'asc')
+            ->orderBy('id', 'asc');
+    }
+
+    /**
+     * Season-long reminders — printed prominently on the presentation
+     * and export so workers see them every time they pick up the doc.
+     */
+    public function criticalRules()
+    {
+        return $this->hasMany(AsScheduleCriticalRule::class, 'croppingScheduleId')
+            ->where('as_schedule_critical_rules.deleteStatus', 1)
+            ->orderBy('sortOrder', 'asc')
+            ->orderBy('id', 'asc');
     }
 
     public function currentGeneration()

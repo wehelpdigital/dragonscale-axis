@@ -13,6 +13,7 @@ class AsScheduleActivity extends BaseModel
      * the modal select, and the auto-categorizer all read from here.
      */
     public const ACTIVITY_TYPES = [
+        'equipment_prep' => 'Equipment Preparation',
         'land_prep'      => 'Land Preparation',
         'seed_treatment' => 'Seed Treatment',
         'planting'       => 'Planting',

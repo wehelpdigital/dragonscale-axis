@@ -45,7 +45,16 @@
         .description-block li { margin-bottom: 0.15em; }
         .description-block h1, .description-block h2, .description-block h3, .description-block h4 { font-size: 10.5pt; font-weight: 700; margin: 0.5em 0 0.25em; }
 
-        .date-block { margin-bottom: 14px; page-break-inside: avoid; }
+        /* date-block is allowed to flow across pages — a date with many
+           activities (10+) was forcing the whole block to the next page
+           and leaving a half-empty page above. Individual .activity
+           cards below still keep break-inside: avoid so cards stay
+           whole; only the OUTER block is allowed to split. */
+        .date-block { margin-bottom: 14px; }
+        .date-block .date-bar {
+            page-break-after: avoid;
+            break-after: avoid-page;
+        }
         .date-block .date-bar {
             display: flex; align-items: baseline; gap: 10px;
             background: #f1f3f7;
@@ -66,6 +75,147 @@
             page-break-inside: avoid;
         }
         .date-block .date-note strong { color: #8a5e09; }
+        /* Version-wide note (free-form commentary above the activity list).
+           Blue accent so the reader doesn't confuse it with per-date notes. */
+        .global-version-note {
+            background: #eef4ff;
+            border-left: 4px solid #4a73e3;
+            padding: 9px 12px;
+            margin-bottom: 12px;
+            border-radius: 0 4px 4px 0;
+            /* No break-inside: avoid — long version notes flow across pages. */
+        }
+        .global-version-note-label {
+            font-weight: 700;
+            font-size: 9pt;
+            color: #2c3e8c;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .global-version-note-body {
+            color: #1a2655;
+            font-size: 10pt;
+            line-height: 1.5;
+        }
+
+        /* Irrigation block — one card per irrigation entry, colored on the
+           left by task type, with badges for task / range / priority. */
+        .irr-block {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-left: 4px solid #1976d2;
+            border-radius: 3px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            /* Allowed to flow — irrigation entries with many groups in the
+               coverage list can be tall. Head + first line stay together
+               via break-after: avoid on .irr-block-head below. */
+        }
+        .irr-block-head {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+            margin-bottom: 4px;
+            page-break-after: avoid;
+            break-after: avoid-page;
+        }
+        .irr-block-head .irr-name { color: #1f2937; font-size: 11pt; }
+        .irr-task-badge,
+        .irr-range-badge,
+        .irr-prio-badge {
+            color: #fff;
+            font-size: 9pt;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .irr-block-line { font-size: 10pt; color: #495057; margin-top: 3px; }
+        .irr-block-label { color: #1a4a7a; font-weight: 600; margin-right: 4px; }
+        .irr-block-desc {
+            font-size: 9.5pt; color: #555; margin-top: 4px;
+            font-style: italic; line-height: 1.45;
+        }
+        .irr-block-coverage {
+            margin: 4px 0 0 18px; padding: 0;
+            font-size: 9.5pt; color: #495057;
+        }
+        .irr-block-coverage li { margin: 2px 0; }
+        .irr-block-coverage .muted { color: #8b95a8; }
+
+        /* ---- Protocol intro / Critical rules / Attachments (export) ---- */
+        .critical-rules-callout {
+            background: #fdf2f2;
+            border: 2px solid #d9534f;
+            border-radius: 4px;
+            padding: 9px 12px;
+            /* Allowed to split — a long list of rules shouldn't push
+               the whole callout to the next page. */
+        }
+        .critical-rules-print-list li { page-break-inside: avoid; }
+        .critical-rules-heading {
+            font-weight: 700;
+            color: #8a1d1d;
+            font-size: 11pt;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .critical-rules-print-list { margin: 0; padding-left: 20px; }
+        .critical-rules-print-list li {
+            margin: 3px 0;
+            color: #5a2828;
+            font-size: 10pt;
+            line-height: 1.45;
+        }
+        .protocol-intro-print {
+            background: #fafbff;
+            border: 1px solid #d3def1;
+            border-left: 4px solid #4a73e3;
+            padding: 9px 12px;
+            color: #1a2655;
+            font-size: 10pt;
+            line-height: 1.55;
+            /* Long protocols flow across pages — orphans/widows below
+               keep paragraphs from splitting awkwardly. */
+        }
+        .protocol-intro-print p,
+        .protocol-intro-print li { orphans: 3; widows: 3; }
+        .protocol-intro-print h1,
+        .protocol-intro-print h2,
+        .protocol-intro-print h3 { color: #2c3e8c; margin: 0.4em 0 0.25em; font-size: 11pt; }
+        .protocol-intro-print ul, .protocol-intro-print ol { margin-left: 1.2rem; }
+        .attachments-print-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 9px;
+        }
+        .attachment-print-card {
+            border: 1px solid #d9dde3;
+            border-radius: 3px;
+            background: #fff;
+            page-break-inside: avoid;
+            overflow: hidden;
+        }
+        .attachment-print-img {
+            width: 100%; height: auto;
+            max-height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        .attachment-print-noimg {
+            padding: 16px; text-align: center;
+            color: #6b7280; font-size: 10pt;
+        }
+        .attachment-print-noimg strong {
+            display: block; font-size: 13pt;
+            color: #1f2937; margin-bottom: 3px;
+        }
+        .attachment-print-meta { padding: 5px 9px; border-top: 1px solid #eef0f4; }
+        .attachment-print-meta strong { font-size: 9.5pt; color: #1f2937; }
+        .attachment-print-desc {
+            font-size: 9pt; color: #4a5160;
+            margin-top: 3px; line-height: 1.4;
+            word-break: break-word;
+        }
         .date-block .date-bar .count { margin-left: auto; color: #6b7280; font-size: 9.5pt; }
 
         .activity {
@@ -119,7 +269,25 @@
         $byDate = $sortedActivities->groupBy(function ($a) {
             return $a->targetDate ? \Illuminate\Support\Carbon::parse($a->targetDate)->format('Y-m-d') : '__no-date__';
         });
-        $dateKeys = $byDate->keys()->sort()->values();
+        // Include note-only dates (days with a saved per-date note but no
+        // activities scheduled). Without this, the date keys are built only
+        // from activities and any standalone note would silently disappear
+        // from the export. Merge, dedupe, sort.
+        $noteDateKeys = $schedule->dateNotes
+            ->map(fn ($n) => $n->noteDate ? $n->noteDate->format('Y-m-d') : null)
+            ->filter()
+            ->values();
+        $dateKeys = $byDate->keys()
+            ->merge($noteDateKeys)
+            ->unique()
+            ->reject(fn ($k) => $k === '__no-date__')
+            ->sort()
+            ->values();
+        // Append the unscheduled bucket at the end (if it exists) so the
+        // "No date assigned" group still renders after the dated ones.
+        if ($byDate->has('__no-date__')) {
+            $dateKeys = $dateKeys->push('__no-date__')->values();
+        }
 
         $totalActivities = $sortedActivities->count();
         $firstDate = $sortedActivities->whereNotNull('targetDate')->first()?->targetDate;
@@ -149,6 +317,69 @@
         </div>
     </header>
 
+    @php
+        // Active version's protocol introduction
+        $exportProtocolVersion = $schedule->versions->firstWhere('isActive', true)
+            ?? $schedule->versions->firstWhere('isOriginal', true)
+            ?? $schedule->versions->first();
+        $exportHasProtocolIntro = $exportProtocolVersion && !empty($exportProtocolVersion->globalActivityNote);
+    @endphp
+
+    {{-- Critical Rules — most prominent — render at the very top so the
+         reader hits them first. --}}
+    @if($schedule->criticalRules->count() > 0)
+        <section class="section">
+            <div class="critical-rules-callout">
+                <div class="critical-rules-heading">
+                    <i class="bx bx-flag"></i> Critical Rules — Read Every Time
+                </div>
+                <ol class="critical-rules-print-list">
+                    @foreach($schedule->criticalRules as $cRule)
+                        <li>{{ $cRule->ruleText }}</li>
+                    @endforeach
+                </ol>
+            </div>
+        </section>
+    @endif
+
+    {{-- Protocol Introduction (rich text from the active version) --}}
+    @if($exportHasProtocolIntro)
+        <section class="section">
+            <h2>Protocol Introduction</h2>
+            <div class="protocol-intro-print">
+                {!! $exportProtocolVersion->globalActivityNote !!}
+            </div>
+        </section>
+    @endif
+
+    {{-- Reference Attachments — print as a grid of images + descriptions.
+         Falls back to a "file attached" placeholder for non-image types. --}}
+    @if($schedule->attachments->count() > 0)
+        <section class="section">
+            <h2>Reference Attachments</h2>
+            <div class="attachments-print-grid">
+                @foreach($schedule->attachments as $att)
+                    <div class="attachment-print-card">
+                        @if($att->isImage() && $att->getPublicUrl())
+                            <img class="attachment-print-img" src="{{ $att->getPublicUrl() }}" alt="{{ $att->filename }}">
+                        @else
+                            <div class="attachment-print-noimg">
+                                <strong>{{ strtoupper(pathinfo($att->filename, PATHINFO_EXTENSION)) }}</strong>
+                                <span class="muted">file attached</span>
+                            </div>
+                        @endif
+                        <div class="attachment-print-meta">
+                            <strong>{{ $att->filename }}</strong>
+                            @if($att->description)
+                                <div class="attachment-print-desc">{{ $att->description }}</div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <section class="section">
         <h2>Summary</h2>
         <div class="summary-grid">
@@ -163,12 +394,13 @@
         <section class="section">
             <h2>Lots</h2>
             <table class="lot-table">
-                <thead><tr><th>Name</th><th>Size</th><th>Notes</th></tr></thead>
+                <thead><tr><th>Name</th><th>Size</th><th>Variety</th><th>Notes</th></tr></thead>
                 <tbody>
                     @foreach($schedule->lots as $lot)
                         <tr>
                             <td><strong>{{ $lot->lotName }}</strong></td>
                             <td>{{ rtrim(rtrim((string) $lot->lotSize, '0'), '.') }} {{ $lot->lotSizeUnit }}</td>
+                            <td>@if(!empty($lot->variety))<strong>{{ $lot->variety }}</strong>@else<span class="muted">—</span>@endif</td>
                             <td>{{ $lot->notes }}</td>
                         </tr>
                     @endforeach
@@ -215,12 +447,26 @@
             // Index per-date notes once so each date-block can render its
             // commentary in O(1) without re-querying inside the loop.
             $dateNotesByDate = $schedule->dateNotes->keyBy(fn ($n) => $n->noteDate->format('Y-m-d'));
+            // Active-version global note (free-form, version-wide commentary)
+            $exportActiveVersion = $schedule->versions->firstWhere('isActive', true)
+                ?? $schedule->versions->firstWhere('isOriginal', true)
+                ?? $schedule->versions->first();
         @endphp
+        @if($exportActiveVersion && !empty($exportActiveVersion->globalActivityNote))
+            <div class="global-version-note">
+                <div class="global-version-note-label">Note for this version ({{ $exportActiveVersion->versionName }})</div>
+                <div class="global-version-note-body">{!! $exportActiveVersion->globalActivityNote !!}</div>
+            </div>
+        @endif
         @forelse($dateKeys as $dateKey)
             @php
-                $activitiesForDate = $byDate->get($dateKey);
+                // A date can be present in $dateKeys via either an activity
+                // OR a standalone note — handle the note-only case where the
+                // bucket is absent on $byDate.
+                $activitiesForDate = $byDate->get($dateKey) ?? collect();
                 $dateCarbon = ($dateKey !== '__no-date__') ? \Illuminate\Support\Carbon::parse($dateKey) : null;
                 $exportNote = $dateNotesByDate->get($dateKey);
+                $activityCount = $activitiesForDate->count();
             @endphp
             <div class="date-block">
                 <div class="date-bar">
@@ -230,7 +476,11 @@
                     @else
                         <span class="date">No date assigned</span>
                     @endif
-                    <span class="count">{{ $activitiesForDate->count() }} {{ \Illuminate\Support\Str::plural('activity', $activitiesForDate->count()) }}</span>
+                    @if($activityCount > 0)
+                        <span class="count">{{ $activityCount }} {{ \Illuminate\Support\Str::plural('activity', $activityCount) }}</span>
+                    @else
+                        <span class="count">Note only</span>
+                    @endif
                 </div>
                 @if($exportNote)
                     <div class="date-note">
@@ -267,7 +517,7 @@
                             <div class="activity-line">
                                 <span class="label">Lots:</span>
                                 @foreach($a->lots as $lot)
-                                    <span class="chip chip-lot">{{ $lot->lotName }}</span>
+                                    <span class="chip chip-lot">{{ $lot->lotName }}@if(!empty($lot->variety)) · {{ $lot->variety }}@endif</span>
                                 @endforeach
                             </div>
                         @endif
@@ -302,6 +552,100 @@
             <p style="color: #6b7280; font-style: italic;">No activities have been defined for this schedule.</p>
         @endforelse
     </section>
+
+    {{-- Irrigation Schedules — full detail dump so the printed copy has
+         everything: task type with color/icon, priority, DAS-vs-Date
+         range, lots, workers, and description. Ordered by sortOrder
+         (drag-drop position) then startDay so the printed copy matches
+         the on-screen card list. --}}
+    @if($schedule->irrigations->count() > 0)
+        <section class="section">
+            <h2 class="page-break">Irrigation Schedules</h2>
+            <p>Each entry shows the irrigation cycle, the task type, its priority for overlap resolution,
+               the lots it pertains to, and the workers responsible.</p>
+            @foreach($schedule->irrigations as $i)
+                @php
+                    $iMeta = \App\Models\AsScheduleIrrigation::taskTypeMeta($i->taskType);
+                    $iPrio = (int) ($i->priority ?? 5);
+                    $iIsDateMode = ($i->dayMode === 'date' && $i->startDate && $i->endDate);
+                    $iRangeLabel = $iIsDateMode
+                        ? $i->startDate->format('M j, Y') . ' — ' . $i->endDate->format('M j, Y')
+                        : $schedule->dayType . ' ' . $i->startDay . '–' . $i->endDay;
+                    $iPrioColor = ['','#9c1c1c','#d97a4f','#d9a23a','#7a8a99','#c8cdd5'][$iPrio] ?? '#c8cdd5';
+                    $iPrioTextColor = $iPrio >= 3 ? '#3a2c0a' : '#fff';
+                @endphp
+                <div class="irr-block" style="border-left-color: {{ $iMeta['color'] }};">
+                    <div class="irr-block-head">
+                        <strong class="irr-name">{{ $i->irrigationTitle }}</strong>
+                        <span class="irr-task-badge" style="background: {{ $iMeta['color'] }};">
+                            {{ $iMeta['icon'] }} {{ $iMeta['label'] }}
+                        </span>
+                        <span class="irr-range-badge" style="background: {{ $iIsDateMode ? '#6b7280' : '#0c84d1' }};">
+                            {{ $iIsDateMode ? '📅 ' : '' }}{{ $iRangeLabel }}
+                        </span>
+                        <span class="irr-prio-badge" style="background: {{ $iPrioColor }}; color: {{ $iPrioTextColor }};">
+                            P{{ $iPrio }}
+                        </span>
+                    </div>
+                    @if($i->lots->count() > 0)
+                        <div class="irr-block-line">
+                            <span class="irr-block-label">Lots:</span>
+                            @foreach($i->lots as $iLot)
+                                <span class="chip chip-lot">{{ $iLot->lotName }}@if(!empty($iLot->variety)) · {{ $iLot->variety }}@endif</span>
+                            @endforeach
+                        </div>
+                    @endif
+                    @if($i->workers->count() > 0)
+                        <div class="irr-block-line">
+                            <span class="irr-block-label">Workers:</span>
+                            @foreach($i->workers as $iWk)
+                                <span class="chip chip-worker">{{ $iWk->workerName }}</span>
+                            @endforeach
+                        </div>
+                    @elseif($i->assignedWorker)
+                        <div class="irr-block-line">
+                            <span class="irr-block-label">Assigned:</span>
+                            {{ $i->assignedWorker->workerName }}
+                        </div>
+                    @endif
+                    @if($i->description)
+                        <div class="irr-block-desc">{{ $i->description }}</div>
+                    @endif
+
+                    {{-- For DAS-mode irrigations, project the per-group calendar
+                         dates so the printed copy resolves the relative DAS
+                         offsets into concrete calendar dates the worker can act on. --}}
+                    @if(!$iIsDateMode && $schedule->defaultGroupings->count() > 0)
+                        <div class="irr-block-line">
+                            <span class="irr-block-label">Calendar coverage per group:</span>
+                        </div>
+                        <ul class="irr-block-coverage">
+                            @foreach($schedule->defaultGroupings as $g)
+                                @php
+                                    $gStart = $g->startDate ? \Illuminate\Support\Carbon::parse($g->startDate) : null;
+                                @endphp
+                                <li>
+                                    <strong>{{ $g->groupName }}</strong>
+                                    @if($g->lots->count() > 0)
+                                        <small class="muted">({{ $g->lots->pluck('lotName')->implode(', ') }})</small>
+                                    @endif
+                                    @if($gStart)
+                                        — {{ $gStart->copy()->addDays((int) $i->startDay)->format('M j, Y') }}
+                                        @if($i->endDay !== $i->startDay)
+                                            → {{ $gStart->copy()->addDays((int) $i->endDay)->format('M j, Y') }}
+                                            ({{ ((int) $i->endDay - (int) $i->startDay) + 1 }}d)
+                                        @endif
+                                    @else
+                                        <small class="muted">— no group start date set</small>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endforeach
+        </section>
+    @endif
 
     <footer class="doc-footer">
         {{ $schedule->title }} — printed {{ $generatedAt->format('M j, Y · g:i A') }} from DS AXIS Schedule Manager
