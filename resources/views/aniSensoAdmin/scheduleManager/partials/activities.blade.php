@@ -369,6 +369,11 @@
                         @if($a->description)
                             <div class="text-dark mt-2 mb-2 activity-description-content" style="font-size:13px;">{!! $a->description !!}</div>
                         @endif
+                        @if($a->imagePath)
+                            <div class="activity-card-image">
+                                <img src="{{ $a->imageUrl() }}" alt="Activity image" loading="lazy">
+                            </div>
+                        @endif
                         <div class="step-meta mt-1">
                             @php
                                 $timeLabel = ['half' => 'Half day', 'whole' => 'Whole day', 'n/a' => 'N/A'][$a->timeRequired] ?? ucfirst($a->timeRequired);
@@ -955,6 +960,41 @@
                         <div class="sm-quill-host" id="activityDescription"></div>
                         <textarea class="form-control sm-quill-html-source" id="activityDescriptionSource" rows="12"></textarea>
                     </div>
+                </div>
+
+                {{-- Activity reference image. Single optional image per
+                     activity, shown on the activity card, in the card
+                     viewer, worker presentation, and export schedule.
+                     Upload happens immediately via /activities-image-upload;
+                     the resolved relative path is stashed in the hidden
+                     input and persisted on activity save. --}}
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-image"></i> Activity Image
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <small class="text-secondary d-block mb-2">
+                        Upload one reference image (JPG / PNG / WebP / GIF, max 8 MB). Renders
+                        on the activity card, card viewer, worker presentation, and export schedule.
+                    </small>
+                    <div id="activityImageWrap" class="activity-image-wrap" style="display:none;">
+                        <img id="activityImagePreview" src="" alt="Activity image preview" class="activity-image-preview">
+                        <div class="mt-2 d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="activityImageReplaceBtn">
+                                <i class="bx bx-refresh me-1"></i> Replace Image
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="activityImageRemoveBtn">
+                                <i class="bx bx-trash me-1"></i> Remove Image
+                            </button>
+                        </div>
+                    </div>
+                    <div id="activityImageEmpty">
+                        <button type="button" class="btn btn-outline-primary" id="activityImageUploadBtn">
+                            <i class="bx bx-cloud-upload me-1"></i> Upload Image
+                        </button>
+                    </div>
+                    <input type="file" id="activityImageFileInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
+                    <input type="hidden" id="activityImagePath" value="">
                 </div>
 
                 <hr>

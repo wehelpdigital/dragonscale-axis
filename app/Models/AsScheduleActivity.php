@@ -38,6 +38,7 @@ class AsScheduleActivity extends BaseModel
         'isDayZero',
         'isDraft',
         'description',
+        'imagePath',
         'timeRequired',
         'sequenceOrder',
         'deleteStatus',
@@ -100,5 +101,28 @@ class AsScheduleActivity extends BaseModel
             'activityId',
             'workerId'
         );
+    }
+
+    /**
+     * Public URL for the activity's reference image (or null if none).
+     * Path is stored relative to the `public` disk so asset('storage/...')
+     * gives the publicly-accessible URL after `storage:link` has run.
+     */
+    public function imageUrl(): ?string
+    {
+        if (empty($this->imagePath)) return null;
+        return asset('storage/' . ltrim($this->imagePath, '/'));
+    }
+
+    /**
+     * Absolute filesystem path for embedding via base64 (used by the
+     * server-rendered worker-presentation PDF where remote URLs would
+     * round-trip via headless Chrome). Returns null if file is missing.
+     */
+    public function imageAbsolutePath(): ?string
+    {
+        if (empty($this->imagePath)) return null;
+        $full = storage_path('app/public/' . ltrim($this->imagePath, '/'));
+        return file_exists($full) ? $full : null;
     }
 }

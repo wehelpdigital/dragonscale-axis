@@ -295,6 +295,12 @@
     }
     .activity-na-tag i { vertical-align: middle; margin-right: 3px; color: #6b7280; }
     .lot-chip-container { padding:6px; background:#fff; border:1px dashed #d3d6db; border-radius:6px; min-height:44px; }
+    /* Activity reference image — preview in the edit modal + thumbnail on the activity card */
+    .activity-image-wrap { padding: 8px; background: #f8f9fc; border: 1px solid #e1e6ef; border-radius: 6px; }
+    .activity-image-preview { max-width: 100%; max-height: 220px; border-radius: 4px; display: block; margin: 0 auto; }
+    .activity-image-uploading { color: #556ee6; font-size: 13px; padding: 6px 0; }
+    .activity-card-image { margin-top: 8px; }
+    .activity-card-image img { max-width: 100%; max-height: 160px; border: 1px solid #e1e6ef; border-radius: 4px; display: block; }
     /* Rich-text description rendering inside an activity card */
     .activity-description-content p { margin: 0 0 .5em; }
     .activity-description-content p:last-child { margin-bottom: 0; }
@@ -833,6 +839,7 @@ const URLS = {
     activitiesShow:      (id) => `${ROOT}/anisenso-schedule-manager-activities-show${Q}&id=${id}`,
     activitiesUpdate:    (id) => `${ROOT}/anisenso-schedule-manager-activities-update${Q}&id=${id}`,
     activitiesDelete:    (id) => `${ROOT}/anisenso-schedule-manager-activities-delete${Q}&id=${id}`,
+    activitiesImageUpload: () => `${ROOT}/anisenso-schedule-manager-activities-image-upload${Q}`,
     activitiesDuplicate: (id) => `${ROOT}/anisenso-schedule-manager-activities-duplicate${Q}&id=${id}`,
     activitiesSetDate:   (id) => `${ROOT}/anisenso-schedule-manager-activities-set-date${Q}&id=${id}`,
     activitiesReorder:   () => `${ROOT}/anisenso-schedule-manager-activities-reorder${Q}`,

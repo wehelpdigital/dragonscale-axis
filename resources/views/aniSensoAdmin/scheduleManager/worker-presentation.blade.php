@@ -626,6 +626,21 @@
             border-radius: 3px;
             border-left: 2px solid #d1d5db;
         }
+        .activity-image {
+            margin-top: 6px;
+            padding: 4px;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 3px;
+            display: inline-block;
+            max-width: 100%;
+            page-break-inside: avoid;
+        }
+        .activity-image img {
+            display: block;
+            max-width: 100%;
+            max-height: 220px;
+        }
 
         /* ===== PER-WORKER PAGES ===== */
         .worker-page { page-break-before: always; break-before: page; margin-top: 14px; }
@@ -1516,6 +1531,15 @@
                         </div>
                         @if($showDescriptions && $a->description)
                             <div class="activity-desc">{!! $a->description !!}</div>
+                        @endif
+                        @if($a->imagePath)
+                            <div class="activity-image">
+                                {{-- Prefer the base64 dataUri keyed by activity id
+                                     when present (the controller embeds images under
+                                     3 MB so the PDF render is fully self-contained).
+                                     Fall back to the public URL for larger images. --}}
+                                <img src="{{ $activityImages[$a->id] ?? $a->imageUrl() }}" alt="">
+                            </div>
                         @endif
                         <div class="activity-line">
                             <span class="label">Time:</span>

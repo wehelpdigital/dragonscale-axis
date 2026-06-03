@@ -8,7 +8,9 @@ use App\Models\AsScheduleActivityVersion;
 use App\Models\AsScheduleDateNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class ActivityController extends BaseScheduleController
 {
@@ -36,6 +38,9 @@ class ActivityController extends BaseScheduleController
         $payload = $activity->toArray();
         $payload['lotIds'] = $activity->lots->pluck('id');
         $payload['workerIds'] = $activity->workers->pluck('id');
+        // Resolved public URL alongside the stored path so the modal can
+        // render the existing image immediately without re-deriving.
+        $payload['imageUrl'] = $activity->imageUrl();
 
         return $this->jsonOk('Activity loaded.', ['data' => $payload]);
     }
@@ -47,8 +52,61 @@ class ActivityController extends BaseScheduleController
         $activity = AsScheduleActivity::active()->where('croppingScheduleId', $schedule->id)->where('id', $id)->first();
         if (!$activity) return $this->jsonFail('Activity not found.', 404);
 
+        // Soft-delete is reversible, so we keep the image file on disk
+        // even after deletion — restoration brings it back wired up.
         $activity->update(['deleteStatus' => 0]);
         return $this->jsonOk('Activity deleted.');
+    }
+
+    /**
+     * Upload a reference image for an activity. The file is written under
+     * `public/storage/schedule-activities/{scheduleId}/{uuid}.{ext}` and
+     * the relative path is returned to the client. The client stashes that
+     * path in a hidden input so the next activity save (store or update)
+     * persists it to the activity row.
+     *
+     * This is intentionally a separate endpoint from the activity save
+     * so the upload happens immediately (instant preview) without forcing
+     * the entire activity form to be submitted as multipart.
+     *
+     * Orphan handling: if the user uploads but never saves, the file
+     * sticks around — acceptable for this workflow since save normally
+     * fires within the same modal session.
+     */
+    public function uploadImage(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+
+        $validator = Validator::make($request->all(), [
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp,gif|max:8192',
+        ], [
+            'image.required' => 'Pick an image to upload.',
+            'image.image'    => 'File must be an image.',
+            'image.mimes'    => 'Allowed types: JPG, PNG, WebP, GIF.',
+            'image.max'      => 'Image is too large — max 8 MB.',
+        ]);
+        if ($validator->fails()) {
+            return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        $file        = $request->file('image');
+        $ext         = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+        $stem        = Str::uuid()->toString();
+        $relativeDir = 'schedule-activities/' . $schedule->id;
+        $relativePath = $relativeDir . '/' . $stem . '.' . $ext;
+
+        try {
+            Storage::disk('public')->putFileAs($relativeDir, $file, $stem . '.' . $ext);
+        } catch (\Throwable $e) {
+            return $this->jsonFail('Image upload failed: ' . $e->getMessage(), 500);
+        }
+
+        return $this->jsonOk('Image uploaded.', [
+            'data' => [
+                'imagePath' => $relativePath,
+                'imageUrl'  => asset('storage/' . $relativePath),
+            ],
+        ]);
     }
 
     /**
@@ -999,6 +1057,25 @@ class ActivityController extends BaseScheduleController
             $attachmentsEmbedded[] = $payload;
         }
 
+        // Same treatment for activity reference images — keyed by activity
+        // id so the view can do {{ $activityImages[$a->id] ?? $a->imageUrl() }}
+        // and silently fall back to the public URL when the embed is too
+        // large to inline. Cap at 3MB per image; the activity list can be
+        // long and we want the rendered HTML to stay under ~50MB even with
+        // dozens of activities each carrying an image.
+        $activityImages = [];
+        foreach ($schedule->activities as $a) {
+            if (empty($a->imagePath)) continue;
+            $abs = $a->imageAbsolutePath();
+            if (!$abs || filesize($abs) >= 3 * 1024 * 1024) continue;
+            $bytes = @file_get_contents($abs);
+            if ($bytes === false) continue;
+            $mime = function_exists('mime_content_type')
+                ? (mime_content_type($abs) ?: 'image/jpeg')
+                : 'image/jpeg';
+            $activityImages[$a->id] = 'data:' . $mime . ';base64,' . base64_encode($bytes);
+        }
+
         // Optional-section toggles set by the pre-generate modal in the
         // activities tab. The PDF route calls this method and inherits the
         // request, so the flags flow through to the printed PDF too.
@@ -1065,6 +1142,7 @@ class ActivityController extends BaseScheduleController
             'laborOnly'             => $laborOnly,
             'workerIdsFilter'       => $workerIdsFilter,
             'attachmentsEmbedded'   => $attachmentsEmbedded,
+            'activityImages'        => $activityImages,
         ]);
     }
 
@@ -1313,6 +1391,10 @@ class ActivityController extends BaseScheduleController
             'activityType'     => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(AsScheduleActivity::ACTIVITY_TYPES))],
             'isDayZero'        => 'nullable|boolean',
             'description'      => 'nullable|string|max:20000',
+            // imagePath is a relative path under the `public` disk, set by
+            // a prior /activities-image-upload call. Empty string / null
+            // = no image (the current image, if any, is removed).
+            'imagePath'        => 'nullable|string|max:500',
             'timeRequired'     => 'required|in:half,whole,n/a',
             // Lots can be empty when the activity is marked "N/A — not
             // lot-specific" in the modal (general work that doesn't tie
@@ -1366,6 +1448,17 @@ class ActivityController extends BaseScheduleController
             ->filter(fn($v) => in_array($v, $validWorkerIds, true))
             ->unique()->values()->all();
 
+        // Normalize incoming imagePath: trim, drop any leading slash, and
+        // null out empties. Belt-and-suspenders security check: reject any
+        // path that escapes the schedule-activities directory (no ".."
+        // traversal, no absolute paths).
+        $rawImage = trim((string) $request->input('imagePath', ''));
+        $rawImage = ltrim($rawImage, '/\\');
+        if ($rawImage !== '' && (str_contains($rawImage, '..') || !str_starts_with($rawImage, 'schedule-activities/'))) {
+            return $this->jsonFail('Invalid image path.', 422);
+        }
+        $submittedImagePath = $rawImage !== '' ? $rawImage : null;
+
         $payload = [
             'croppingScheduleId' => $schedule->id,
             'activityTitle'      => $request->activityTitle,
@@ -1375,6 +1468,7 @@ class ActivityController extends BaseScheduleController
             'activityType'       => $request->filled('activityType') ? $request->activityType : null,
             'isDayZero'          => $request->boolean('isDayZero'),
             'description'        => $request->description,
+            'imagePath'          => $submittedImagePath,
             'timeRequired'       => $request->timeRequired,
             'deleteStatus'       => 1,
         ];
@@ -1391,11 +1485,22 @@ class ActivityController extends BaseScheduleController
         }
 
         try {
-            $activity = DB::transaction(function () use ($id, $schedule, $payload, $request, $submittedLotIds, $submittedWorkerIds) {
+            $activity = DB::transaction(function () use ($id, $schedule, $payload, $request, $submittedLotIds, $submittedWorkerIds, $submittedImagePath) {
                 if ($id) {
                     $activity = AsScheduleActivity::active()->where('croppingScheduleId', $schedule->id)->where('id', $id)->first();
                     if (!$activity) {
                         abort(404, 'Activity not found.');
+                    }
+                    // Clean up the prior image file when the path changes
+                    // (user uploaded a replacement OR cleared the image).
+                    // Skipped when the path is identical — same file.
+                    $previousImagePath = $activity->imagePath;
+                    if ($previousImagePath && $previousImagePath !== $submittedImagePath) {
+                        try {
+                            Storage::disk('public')->delete($previousImagePath);
+                        } catch (\Throwable $e) {
+                            // Non-fatal — orphan files can be janitor-cleaned.
+                        }
                     }
                     $activity->update($payload);
                 } else {
@@ -1431,6 +1536,7 @@ class ActivityController extends BaseScheduleController
         $data = $fresh->toArray();
         $data['lotIds'] = $fresh->lots->pluck('id');
         $data['workerIds'] = $fresh->workers->pluck('id');
+        $data['imageUrl'] = $fresh->imageUrl();
 
         return $this->jsonOk($id ? 'Activity updated.' : 'Activity added.', [
             'data' => $data,

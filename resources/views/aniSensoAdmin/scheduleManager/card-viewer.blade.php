@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Card Viewer — {{ $schedule->title }}</title>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    {{-- html2canvas: client-side DOM-to-canvas rasterizer used by the
+         "Save as Image" toolbar button. MIT licensed, ~46KB minified. --}}
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
     <style>
         :root {
             --cv-bg: #f4f6fb;
@@ -68,16 +71,16 @@
         }
         .cv-toolbar .cv-iconbtn:hover { background: rgba(255,255,255,.22); }
 
-        /* ============ SLIDES — PPT-style 16:9 frame ============
-           Each slide is a fixed 16:9 box that fills the available width
-           up to 1280px (matching modern PowerPoint slide size of 1920x1080
-           at 2/3 scale). When content overflows the frame, the body area
-           scrolls internally so the slide always looks like a single
-           "page" — no awkward growing past the bottom edge. */
+        /* ============ SLIDES — full-page document layout ============
+           Each slide is a paper-style page that fills the viewport
+           vertically and grows naturally with content. When content
+           exceeds the viewport, the WINDOW scrolls (not an internal
+           panel) — same way you scroll through a Word doc or a PDF.
+           Each slide reaches a hard minimum of 100vh − chrome so even
+           short days fill the screen and feel like a "page". */
         .cv-stage {
             position: relative;
-            min-height: calc(100vh - 130px);
-            padding: 18px 12px;
+            padding: 24px 12px 32px;
             display: flex;
             justify-content: center;
             align-items: flex-start;
@@ -85,287 +88,474 @@
         .cv-slide {
             display: none;
             width: 100%;
-            max-width: 1280px;
-            aspect-ratio: 16 / 9;
+            max-width: 1100px;
+            min-height: calc(100vh - 130px);
             margin: 0 auto;
             background: var(--cv-surface);
-            border-radius: 14px;
+            border: 1px solid #e2e6ed;
+            border-radius: 2px;
             box-shadow: var(--cv-shadow);
             animation: cvFade .18s ease;
-            overflow: hidden;
             flex-direction: column;
         }
         .cv-slide.active { display: flex; }
+        /* Slide body is a flex column so the in-document foot (.cv-doc-foot
+           or .cv-cover-foot) can pin to the bottom via margin-top: auto
+           even on short pages. No internal scroll — content flows down
+           and the window scrolls when needed. */
         .cv-slide-body {
-            flex: 1; min-height: 0;
-            overflow-y: auto;
-            padding: 16px 32px 22px;
+            flex: 1 0 auto;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 80px 28px;
+            font-size: 16px;
+            line-height: 1.6;
         }
-        /* Cover slide gets centered vertical alignment for poster feel. */
+        /* Cover slide is a document title page — same flex setup, slightly
+           larger top margin like the title page of a printed report. */
         .cv-slide[data-index="0"] .cv-slide-body {
-            display: flex; align-items: center; justify-content: center;
+            padding: 56px 88px 32px;
         }
-        .cv-slide[data-index="0"] .cv-slide-body > .cv-cover { width: 100%; }
-        .cv-slide-body::-webkit-scrollbar { width: 8px; }
-        .cv-slide-body::-webkit-scrollbar-thumb {
-            background: #c5cad9; border-radius: 4px;
+        .cv-slide[data-index="0"] .cv-slide-body > .cv-cover {
+            flex: 1 0 auto; width: 100%;
         }
         @keyframes cvFade {
             from { opacity: 0; transform: translateY(6px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        /* On very narrow viewports (phones rotated portrait), the 16:9 box
-           gets unreadably small. Fall back to natural-height flow so the
-           content stays usable. */
-        @media (max-width: 700px) {
-            .cv-slide { aspect-ratio: auto; min-height: 80vh; }
-            .cv-slide-body { padding: 14px 16px; }
+        /* Tablet / phone: shrink padding so the page still feels like a
+           document but stays readable on small screens. */
+        @media (max-width: 900px) {
+            .cv-slide { max-width: 100%; }
+            .cv-slide-body { padding: 28px 32px 22px; font-size: 15px; }
+            .cv-slide[data-index="0"] .cv-slide-body { padding: 36px 32px 24px; }
+        }
+        @media (max-width: 600px) {
+            .cv-slide-body { padding: 22px 18px 18px; font-size: 14.5px; }
+            .cv-slide[data-index="0"] .cv-slide-body { padding: 26px 18px 20px; }
         }
 
-        /* ============ COVER SLIDE ============ */
-        .cv-cover { text-align: center; padding: 16px 0; }
+        /* ============ COVER (document title page) ============ */
+        .cv-cover {
+            width: 100%;
+            font-family: 'Cambria', 'Georgia', 'Times New Roman', serif;
+            color: var(--cv-ink);
+        }
+        .cv-cover-org {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12.5px; font-weight: 700;
+            color: var(--cv-muted);
+            text-transform: uppercase; letter-spacing: 2.5px;
+            margin: 0 0 18px;
+        }
         .cv-cover h1 {
-            font-size: 32px; margin: 0 0 8px;
-            color: var(--cv-ink); letter-spacing: -0.5px;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 52px; font-weight: 700;
+            margin: 0 0 10px;
+            color: var(--cv-ink);
+            letter-spacing: -0.4px;
+            line-height: 1.12;
         }
-        .cv-cover .cv-cover-span {
-            color: var(--cv-muted); margin: 4px 0 18px; font-size: 16px;
+        .cv-cover-span {
+            font-family: 'Cambria', 'Georgia', serif;
+            color: var(--cv-muted); font-size: 19px;
+            margin: 0 0 28px;
+            border-bottom: 2px solid var(--cv-ink);
+            padding-bottom: 18px;
         }
-        .cv-cover-stats {
-            display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
-            margin: 12px 0 22px;
+        .cv-cover-facts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0 36px;
+            margin: 0 0 28px;
+            max-width: 820px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        .cv-cover-stats > span {
-            background: #eef2ff; color: #2c3e8c;
-            padding: 6px 14px; border-radius: 16px;
-            font-weight: 600; font-size: 13px;
+        .cv-cover-fact {
+            display: flex; align-items: baseline; gap: 14px;
+            border-bottom: 1px dotted #c8cdd8;
+            padding: 9px 0;
+        }
+        .cv-cover-fact-label {
+            font-size: 12px; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--cv-muted);
+            font-weight: 700;
+            min-width: 150px;
+        }
+        .cv-cover-fact-value {
+            flex: 1; text-align: right;
+            color: var(--cv-ink); font-weight: 600;
+            font-size: 16.5px;
+            font-variant-numeric: tabular-nums;
         }
         .cv-cover-rules {
-            background: #fff7f7;
-            border: 2px solid #d9534f;
-            border-radius: 8px;
-            padding: 16px 22px;
-            text-align: left;
-            margin: 18px 0;
+            background: #fdfbf6;
+            border: 1px solid #d3a78a;
+            border-left: 4px solid #9c1c1c;
+            padding: 20px 26px;
+            margin: 22px 0;
+            max-width: 820px;
         }
         .cv-cover-rules h2 {
-            color: #8a1d1d; font-size: 16px; margin: 0 0 8px;
-            text-transform: uppercase; letter-spacing: 0.4px;
-            display: flex; align-items: center; gap: 6px;
+            font-family: 'Cambria', 'Georgia', serif;
+            margin: 0 0 12px;
+            font-size: 14px; font-weight: 700; color: #5a2828;
+            text-transform: uppercase; letter-spacing: 2px;
+            border-bottom: 1px solid #d3a78a;
+            padding-bottom: 8px;
         }
-        .cv-cover-rules ol { margin: 0; padding-left: 22px; }
+        .cv-cover-rules ol {
+            margin: 0; padding-left: 26px;
+            font-family: 'Cambria', 'Georgia', serif;
+            color: #3a2c2c;
+        }
         .cv-cover-rules li {
-            color: #5a2828; margin: 4px 0;
-            font-size: 14px; line-height: 1.55;
+            margin: 7px 0;
+            font-size: 16.5px; line-height: 1.55;
         }
         .cv-cover-intro {
-            text-align: left;
-            background: #fafbff;
-            border-left: 4px solid #4a73e3;
-            padding: 14px 18px;
-            border-radius: 0 6px 6px 0;
-            margin: 18px 0;
-            color: #1a2655;
-            line-height: 1.6;
+            margin: 26px 0 0;
+            padding: 0;
+            color: var(--cv-ink);
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 17.5px; line-height: 1.65;
+            max-width: 820px;
         }
-        .cv-cover-intro h1, .cv-cover-intro h2, .cv-cover-intro h3 {
-            color: #2c3e8c; margin: 0.5em 0 0.3em;
+        .cv-cover-intro h1,
+        .cv-cover-intro h2,
+        .cv-cover-intro h3 {
+            font-family: 'Cambria', 'Georgia', serif;
+            color: var(--cv-ink);
+            margin: 0.6em 0 0.3em;
+            font-size: 22px;
         }
-        .cv-cover-intro ul, .cv-cover-intro ol { margin-left: 1.4rem; }
+        .cv-cover-intro p { margin: 0.6em 0; }
+        .cv-cover-intro p:first-child { margin-top: 0; }
+        .cv-cover-intro ul,
+        .cv-cover-intro ol { margin: 0.5em 0 0.5em 1.5rem; }
         .cv-cover-empty {
             color: var(--cv-muted);
             font-style: italic;
             padding: 26px 0;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 16px;
+        }
+        .cv-cover-foot {
+            margin-top: auto;
+            padding-top: 18px;
+            border-top: 1px solid #ecf0f5;
+            font-size: 13px; color: var(--cv-muted);
+            letter-spacing: 0.5px;
+            display: flex; justify-content: space-between;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
-        /* ============ DAY SLIDE ============ */
-        /* The day-head sits directly inside the slide frame (above the
-           scrollable .cv-slide-body) so it stays pinned as a PPT-style
-           page title bar. */
+        /* ============ DAY SLIDE (document page) ============ */
+        /* The day-head sits directly inside the slide frame as the document
+           title block. Schedule micro-line on top, then the large date
+           heading, then the dateline (weekday + Day N of M).
+           Horizontal padding matches .cv-slide-body so the header content
+           edge-aligns with the body content edge. */
         .cv-day-head {
             flex: 0 0 auto;
-            display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
-            border-bottom: 1px solid var(--cv-line);
-            padding: 16px 32px 12px;
-            background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
-            border-radius: 14px 14px 0 0;
+            padding: 40px 80px 22px;
+            border-bottom: 2px solid var(--cv-ink);
+            font-family: 'Cambria', 'Georgia', serif;
+            background: #fff;
         }
-        .cv-day-dayidx {
-            background: var(--cv-accent); color: #fff;
-            padding: 5px 13px; border-radius: 16px;
-            font-weight: 700; font-size: 12px;
-            letter-spacing: 0.3px;
+        .cv-doc-org {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12.5px; font-weight: 700;
+            color: var(--cv-muted);
+            text-transform: uppercase; letter-spacing: 2px;
+            margin: 0 0 8px;
         }
-        .cv-day-date {
-            font-size: 22px; font-weight: 700; color: var(--cv-ink);
-            letter-spacing: -0.3px;
+        .cv-day-heading {
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 36px; font-weight: 700;
+            color: var(--cv-ink);
+            margin: 0;
+            letter-spacing: -0.2px;
+            line-height: 1.15;
         }
-        .cv-day-weekday {
-            color: var(--cv-muted); font-size: 13.5px; font-weight: 500;
+        .cv-day-dateline {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 15px; color: var(--cv-muted);
+            margin: 8px 0 0;
+            letter-spacing: 0.4px;
         }
 
-        /* Compact critical-rules banner on day slides */
+        /* Critical-rules document notice — small italic line, not a card */
         .cv-rules-banner {
-            display: flex; align-items: center; gap: 8px;
-            background: #fff8f1;
-            border-left: 3px solid #f3a55a;
-            color: #7a4717;
-            padding: 6px 12px; border-radius: 4px;
-            font-size: 12.5px;
-            margin-bottom: 14px;
+            margin: 18px 0 0;
+            font-size: 14.5px;
+            color: #6b3110;
+            font-style: italic;
+            letter-spacing: 0.2px;
+            font-family: 'Cambria', 'Georgia', serif;
         }
-        .cv-rules-banner i { color: #d9534f; font-size: 15px; }
-        .cv-rules-banner-count { font-weight: 700; color: #8a1d1d; }
-        .cv-rules-banner-cta { margin-left: auto; font-size: 11.5px; color: #5e6878; }
+        .cv-rules-banner-mark {
+            color: #9c1c1c; font-weight: 700; margin-right: 6px;
+            font-size: 17px;
+        }
+        .cv-rules-banner-count {
+            font-weight: 700; color: #8a1d1d; font-style: normal;
+        }
 
-        /* Date note callout on day slide */
+        /* Date note — blockquote */
         .cv-day-note {
-            background: #fff8e6;
-            border-left: 4px solid #d9a23a;
-            padding: 10px 14px;
+            border-left: 4px solid #b08527;
+            background: #fdfbf3;
+            padding: 16px 22px;
+            margin: 18px 0 0;
+            font-style: italic;
+            color: #3a3528;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 16.5px;
+            line-height: 1.55;
+        }
+        .cv-day-note-label {
+            font-style: normal;
+            font-weight: 700;
+            font-variant: small-caps;
+            letter-spacing: 0.6px;
+            margin-right: 8px;
+            color: #6b5a18;
+            font-size: 16px;
+        }
+
+        /* Document section — ALL-CAPS header with horizontal rule */
+        .cv-doc-section { margin-top: 30px; }
+        .cv-doc-section:first-of-type { margin-top: 22px; }
+        .cv-doc-section-head {
+            display: flex; align-items: baseline; gap: 12px;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 14px; font-weight: 700;
+            color: #2d3548;
+            text-transform: uppercase; letter-spacing: 2.5px;
+            border-bottom: 1.5px solid var(--cv-ink);
+            padding: 0 0 6px;
             margin: 0 0 16px;
-            border-radius: 0 4px 4px 0;
-            color: #4d3a0d;
-            line-height: 1.55;
         }
-        .cv-day-note strong { color: #8a5e09; }
-
-        /* Section heading inside a day slide */
-        .cv-section { margin-top: 14px; }
-        .cv-section:first-child { margin-top: 4px; }
-        .cv-section-head {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 15px; font-weight: 700;
-            margin: 0 0 8px; color: var(--cv-ink);
-            text-transform: uppercase; letter-spacing: 0.4px;
-        }
-        .cv-section-head .cv-section-count {
-            background: var(--cv-line); color: var(--cv-muted);
-            padding: 1px 9px; border-radius: 10px;
-            font-size: 12.5px; font-weight: 600;
-        }
-
-        /* Irrigation cards grid */
-        .cv-irr-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 10px;
-        }
-        .cv-irr-card {
-            background: #fff;
-            border: 1px solid var(--cv-line);
-            border-left: 4px solid var(--c, #1976d2);
-            border-radius: 6px;
-            padding: 10px 12px;
-        }
-        .cv-irr-task {
-            display: inline-block;
-            color: #fff;
-            font-weight: 600; font-size: 11.5px;
-            padding: 3px 10px;
-            border-radius: 11px;
-            margin-bottom: 6px;
-        }
-        .cv-irr-name {
-            font-weight: 700; color: var(--cv-ink);
-            font-size: 13.5px; margin-bottom: 4px;
-        }
-        .cv-irr-meta {
+        .cv-doc-section-count {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 12px; color: var(--cv-muted);
-            margin: 3px 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+            letter-spacing: 1.4px; font-weight: 600;
+            margin-left: auto;
         }
-        .cv-irr-prio {
-            display: inline-block; margin-top: 6px;
-            background: var(--cv-line); color: #4a5160;
-            padding: 1px 9px; border-radius: 10px;
-            font-size: 10.5px; font-weight: 700;
-        }
-        .cv-irr-prio[data-p="1"] { background: #9c1c1c; color: #fff; }
-        .cv-irr-prio[data-p="2"] { background: #d97a4f; color: #fff; }
-        .cv-irr-prio[data-p="3"] { background: #d9a23a; color: #3a2c0a; }
-        .cv-irr-prio[data-p="4"] { background: #7a8a99; color: #fff; }
 
-        /* Activity cards — adaptive: single column when only a few cards
-           or when description-heavy, two columns when there are several
-           short ones (handled via auto-fill + minmax). */
-        .cv-acts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-            gap: 10px;
+        /* Numbered document list. Counter-based numbering instead of <ol>
+           styling so the digits sit in their own gutter and the title can
+           wrap freely beside them. */
+        .cv-doc-list {
+            list-style: none;
+            padding: 0; margin: 0;
+            counter-reset: cvdoc;
         }
-        .cv-act-card {
+        /* Each activity / irrigation is its own subtly-bordered block so
+           multi-item days read cleanly. Each block carries a priority-
+           coded (or task-coded) thicker left accent — workers can scan
+           down a day's list and spot CRITICAL items by the red edge. */
+        .cv-doc-item {
+            counter-increment: cvdoc;
+            position: relative;
+            padding: 18px 22px 20px 60px;
+            margin: 0 0 18px;
+            background: #fafbfd;
+            border: 1px solid #e6ebf3;
+            border-left: 4px solid #c5d0e3;
+            border-radius: 3px;
+        }
+        .cv-doc-item:last-child { margin-bottom: 0; }
+        .cv-doc-item::before {
+            content: counter(cvdoc) ".";
+            position: absolute; left: 14px; top: 17px;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-weight: 700;
+            color: #2d3548;
+            font-size: 22px;
+            width: 34px; text-align: right;
+            padding-right: 6px;
+        }
+        /* Priority-coded left accents for activity items */
+        .cv-doc-item.cv-item-prio-critical { border-left-color: #8a1d1d; }
+        .cv-doc-item.cv-item-prio-high     { border-left-color: #b34e2e; }
+        .cv-doc-item.cv-item-prio-medium   { border-left-color: #4d7a2d; }
+        .cv-doc-item.cv-item-prio-low      { border-left-color: #6c7280; }
+        /* Irrigation items inherit the task color via the --c CSS var */
+        .cv-doc-item.cv-item-irr { border-left-color: var(--c, #1976d2); }
+        .cv-doc-item-head {
+            display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+            margin: 0 0 6px;
+        }
+        .cv-doc-item-title {
+            font-family: 'Cambria', 'Georgia', serif;
+            font-weight: 700; font-size: 20px;
+            color: var(--cv-ink);
+            flex: 1 1 auto;
+            min-width: 0;
+            line-height: 1.25;
+        }
+
+        /* Document tags — small printed labels (uppercase, bordered,
+           sans-serif). Replaces the bright colored chip-pills. */
+        .cv-doc-tag {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 11.5px; font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            padding: 3px 9px;
+            border: 1px solid #c8cdd8;
+            border-radius: 2px;
+            color: #4a5160;
             background: #fff;
-            border: 1px solid var(--cv-line);
-            border-left: 5px solid #5b8c3a;
-            border-radius: 6px;
-            padding: 11px 14px;
+            white-space: nowrap;
         }
-        .cv-act-card.priority-critical { border-left-color: #8a1d1d; }
-        .cv-act-card.priority-high     { border-left-color: #c95a35; }
-        .cv-act-card.priority-medium   { border-left-color: #5b8c3a; }
-        .cv-act-card.priority-low      { border-left-color: #74788d; }
-        .cv-act-head {
-            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-            margin-bottom: 6px;
+        .cv-doc-tag.cv-tag-prio-critical {
+            border-color: #8a1d1d; color: #8a1d1d; background: #fff4f4;
         }
-        .cv-act-title { font-weight: 700; font-size: 15.5px; color: var(--cv-ink); }
-        .cv-act-pill { font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 10px; }
-        .cv-act-type { background: #e2efd4; color: #2d4d1c; }
-        .cv-act-prio { color: #fff; }
-        .cv-act-prio.priority-critical { background: #8a1d1d; }
-        .cv-act-prio.priority-high     { background: #c95a35; }
-        .cv-act-prio.priority-medium   { background: #5b8c3a; }
-        .cv-act-prio.priority-low      { background: #74788d; color: #fff; }
-        .cv-act-multiday {
-            background: #fef3e8; color: #a66200;
-            font-size: 10.5px; font-weight: 600;
-            padding: 2px 9px; border-radius: 10px;
+        .cv-doc-tag.cv-tag-prio-high {
+            border-color: #b34e2e; color: #a84320; background: #fdf1eb;
         }
-        .cv-act-time {
-            background: #f1f3f7; color: #4a5160;
-            font-size: 11px; font-weight: 600;
-            padding: 2px 9px; border-radius: 10px;
+        .cv-doc-tag.cv-tag-prio-medium {
+            border-color: #4d7a2d; color: #3e6724; background: #f3f9ec;
         }
-        .cv-act-desc {
-            color: #1a2655;
-            background: #fafbff;
-            border: 1px solid #e1e6f5;
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin: 8px 0;
+        .cv-doc-tag.cv-tag-prio-low {
+            border-color: #6c7280; color: #4a5160; background: #f4f5f8;
+        }
+        .cv-doc-tag.cv-tag-day0 {
+            border-color: #d97a4f; color: #b34e2e; background: #fff3eb;
+        }
+        .cv-doc-tag.cv-tag-multiday {
+            border-color: #b08527; color: #8a5e09; background: #fdf8eb;
+        }
+        .cv-doc-tag.cv-tag-irr {
+            color: #fff;
+            border-color: transparent;
+            background: var(--c, #1976d2);
+        }
+
+        /* Definition-list-style metadata rows: LABEL  value, value, value */
+        .cv-doc-meta {
+            margin: 4px 0 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #2d3548;
+        }
+        .cv-doc-meta-row {
+            display: flex; gap: 14px;
+            padding: 4px 0;
+            align-items: baseline;
+            font-size: 15px;
+        }
+        .cv-doc-meta-label {
+            font-weight: 700;
+            color: #6b7280;
+            min-width: 110px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            flex-shrink: 0;
+        }
+        .cv-doc-meta-value {
+            flex: 1 1 auto;
+            min-width: 0;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+        .cv-doc-meta-value em { font-style: italic; color: #4a5160; }
+
+        /* Worker tags — each labor entry rendered as a warm-amber name
+           badge so individual workers stand out from the comma-list
+           treatment used for lots / materials / services. The warm
+           palette echoes the rest of the app's "worker" visual identity
+           (orange/amber chips on the setup tab). */
+        .cv-doc-worker {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 11px 3px 9px;
+            margin: 0 6px 5px 0;
+            background: #fef6ea;
+            border: 1px solid #e0c290;
+            color: #6b4a0e;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 14.5px;
+            font-weight: 600;
+            border-radius: 3px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            line-height: 1.3;
+        }
+        .cv-doc-worker > i {
             font-size: 13px;
-            line-height: 1.55;
+            color: #a87815;
         }
-        .cv-act-desc img { max-width: 100%; height: auto; }
-        .cv-act-meta { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
-        .cv-act-meta-row {
-            display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-            font-size: 12.5px; color: #4a5160;
+        .cv-doc-workers {
+            display: flex; flex-wrap: wrap;
+            margin: -2px 0 -5px;
         }
-        .cv-act-meta-row > i { color: var(--cv-accent); font-size: 14px; }
 
-        .cv-chip {
+        /* Description block — body prose under the metadata, separated
+           by a hairline rule. Renders user-entered HTML formatting. */
+        .cv-doc-desc {
+            margin: 12px 0 0;
+            padding: 10px 0 0;
+            border-top: 1px solid #ecf0f5;
+            color: #2d3548;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 16.5px;
+            line-height: 1.6;
+        }
+        .cv-doc-desc p { margin: 0.6em 0; }
+        .cv-doc-desc p:first-child { margin-top: 0; }
+        .cv-doc-desc p:last-child { margin-bottom: 0; }
+        .cv-doc-desc img { max-width: 100%; height: auto; }
+
+        /* Activity reference image — rendered below the description as a
+           framed figure, like a full-page plate in a printed report.
+           Block-level + text-align center so narrow images sit centered
+           inside the doc-item content column, and tall portrait shots
+           still display large without overflowing the slide. */
+        .cv-doc-image {
+            margin: 16px 0 0;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #d8dde6;
+            border-radius: 3px;
+            display: block;
+            text-align: center;
+            max-width: 100%;
+        }
+        .cv-doc-image img {
             display: inline-block;
-            padding: 2px 9px;
-            border-radius: 10px;
-            font-size: 11.5px;
-            font-weight: 500;
-            background: #eef0fb;
-            color: #3a4699;
+            max-width: 100%;
+            max-height: 720px;
+            border-radius: 2px;
         }
-        .cv-chip-worker { background: #fef3e8; color: #a66200; }
-        .cv-chip-service { background: #e6f7f1; color: #0f8a5f; }
-        .cv-chip-material { background: #eef0fb; color: #3a4699; }
 
-        /* Empty section message */
+        /* In-document footer line — pins to the bottom of the slide-body
+           via margin-top: auto so short pages still anchor the foot at
+           the bottom of the page like a printed report. */
+        .cv-doc-foot {
+            margin-top: auto;
+            padding-top: 14px;
+            border-top: 1px solid #ecf0f5;
+            display: flex; justify-content: space-between;
+            font-size: 12.5px; color: var(--cv-muted);
+            letter-spacing: 0.5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Empty section — document-style note */
         .cv-empty-msg {
-            background: #fafafa;
-            border: 1px dashed #d9dde3;
-            border-radius: 6px;
-            padding: 20px;
+            margin: 18px 0;
+            padding: 28px 22px;
             text-align: center;
             color: var(--cv-muted);
             font-style: italic;
+            border: 1px dashed #d9dde3;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 16px;
         }
 
         /* ============ FIXED FOOTER NAV ============ */
@@ -408,7 +598,7 @@
            When printing, ditch the 16:9 aspect-ratio frame (which would
            leave a huge blank area on letter/A4 paper) and let each slide
            fill the printable page naturally. */
-        @page { size: A4 landscape; margin: 14mm; }
+        @page { size: A4 portrait; margin: 16mm 14mm; }
         @media print {
             body { background: #fff; padding: 0; }
             .cv-toolbar, .cv-footer { display: none !important; }
@@ -422,7 +612,7 @@
                 aspect-ratio: auto;
                 width: 100%; max-width: none;
                 box-shadow: none; margin: 0; padding: 0;
-                border-radius: 0; overflow: visible;
+                border: 0; border-radius: 0; overflow: visible;
                 page-break-after: always; break-after: page;
                 animation: none;
             }
@@ -432,13 +622,19 @@
                 padding: 0 4px;
                 display: block !important;
             }
+            .cv-slide[data-index="0"] .cv-slide-body {
+                display: block !important;
+                padding: 0 4px;
+            }
             .cv-day-head {
                 background: none;
                 border-radius: 0;
                 padding: 0 4px 10px;
             }
-            .cv-act-card, .cv-irr-card { page-break-inside: avoid; }
-            .cv-cover-rules, .cv-cover-intro { page-break-inside: avoid; }
+            .cv-doc-item { page-break-inside: avoid; }
+            .cv-cover-rules,
+            .cv-cover-intro,
+            .cv-cover-facts { page-break-inside: avoid; }
         }
 
         /* ============ TINY RULES MODAL (compact viewer trigger) ============ */
@@ -488,6 +684,7 @@
     </select>
     <span class="cv-spacer"></span>
     <button class="cv-iconbtn" id="cvFullscreenBtn" title="Toggle fullscreen"><i class="bx bx-fullscreen"></i> Fullscreen</button>
+    <button class="cv-iconbtn" id="cvSaveImageBtn" title="Save current page as a PNG image"><i class="bx bx-image-add"></i> Save as Image</button>
     <button class="cv-iconbtn" id="cvPrintBtn" title="Print all slides (one per page)"><i class="bx bx-printer"></i> Print</button>
     <button class="cv-iconbtn" id="cvCloseBtn" title="Close (Esc) — returns to setup" onclick="window.close()"><i class="bx bx-x"></i> Close</button>
 </div>
@@ -499,53 +696,81 @@
     ============================================================ --}}
     <section class="cv-slide active" data-index="0" data-date="">
         <div class="cv-slide-body">
-        <div class="cv-cover">
-            <h1>{{ $schedule->title }}</h1>
-            @if($firstDate && $lastDate)
-                <div class="cv-cover-span">
-                    {{ $firstDate->format('F j, Y') }} → {{ $lastDate->format('F j, Y') }}
+            <div class="cv-cover">
+                <p class="cv-cover-org">Schedule of Activities</p>
+                <h1>{{ $schedule->title }}</h1>
+                @if($firstDate && $lastDate)
+                    <div class="cv-cover-span">
+                        {{ $firstDate->format('F j, Y') }} &ndash; {{ $lastDate->format('F j, Y') }}
+                        @if($activeVersion)
+                            &middot; Version: {{ $activeVersion->versionName }}
+                        @endif
+                    </div>
+                @endif
+
+                {{-- Definition-list-style facts. Reads like the data
+                     summary on the cover of a printed report. --}}
+                <div class="cv-cover-facts">
+                    <div class="cv-cover-fact">
+                        <span class="cv-cover-fact-label">Active days</span>
+                        <span class="cv-cover-fact-value">{{ count($slides) }}</span>
+                    </div>
+                    <div class="cv-cover-fact">
+                        <span class="cv-cover-fact-label">Activities</span>
+                        <span class="cv-cover-fact-value">{{ $schedule->activities->count() }}</span>
+                    </div>
+                    <div class="cv-cover-fact">
+                        <span class="cv-cover-fact-label">Lots</span>
+                        <span class="cv-cover-fact-value">{{ $schedule->lots->count() }}</span>
+                    </div>
+                    <div class="cv-cover-fact">
+                        <span class="cv-cover-fact-label">Workers</span>
+                        <span class="cv-cover-fact-value">{{ $schedule->workers->count() }}</span>
+                    </div>
+                    @if($schedule->irrigations->count() > 0)
+                        <div class="cv-cover-fact">
+                            <span class="cv-cover-fact-label">Irrigation cycles</span>
+                            <span class="cv-cover-fact-value">{{ $schedule->irrigations->count() }}</span>
+                        </div>
+                    @endif
+                    @if($schedule->dayType)
+                        <div class="cv-cover-fact">
+                            <span class="cv-cover-fact-label">Day reference</span>
+                            <span class="cv-cover-fact-value">{{ $schedule->dayType }}</span>
+                        </div>
+                    @endif
                 </div>
-            @endif
-            <div class="cv-cover-stats">
-                <span>{{ count($slides) }} active {{ \Illuminate\Support\Str::plural('day', count($slides)) }}</span>
-                <span>{{ $schedule->activities->count() }} {{ \Illuminate\Support\Str::plural('activity', $schedule->activities->count()) }}</span>
-                <span>{{ $schedule->lots->count() }} {{ \Illuminate\Support\Str::plural('lot', $schedule->lots->count()) }}</span>
-                <span>{{ $schedule->workers->count() }} {{ \Illuminate\Support\Str::plural('worker', $schedule->workers->count()) }}</span>
-                @if($schedule->irrigations->count() > 0)
-                    <span>{{ $schedule->irrigations->count() }} irrigation {{ \Illuminate\Support\Str::plural('cycle', $schedule->irrigations->count()) }}</span>
+
+                @if($criticalRules->count() > 0)
+                    <div class="cv-cover-rules">
+                        <h2>Critical Rules &mdash; Read Every Time</h2>
+                        <ol>
+                            @foreach($criticalRules as $rule)
+                                <li>{{ $rule->ruleText }}</li>
+                            @endforeach
+                        </ol>
+                    </div>
+                @endif
+
+                @if($activeVersion && !empty($activeVersion->globalActivityNote))
+                    <div class="cv-cover-intro">
+                        {!! $activeVersion->globalActivityNote !!}
+                    </div>
+                @endif
+
+                @if($criticalRules->count() === 0 && (!$activeVersion || empty($activeVersion->globalActivityNote)))
+                    <p class="cv-cover-empty">
+                        No protocol introduction or critical rules defined yet.
+                        Use the <strong>Documentation</strong> tab on the setup screen to add them.
+                    </p>
                 @endif
             </div>
 
-            @if($criticalRules->count() > 0)
-                <div class="cv-cover-rules">
-                    <h2><i class="bx bx-flag"></i> Critical Rules — Read Every Time</h2>
-                    <ol>
-                        @foreach($criticalRules as $rule)
-                            <li>{{ $rule->ruleText }}</li>
-                        @endforeach
-                    </ol>
-                </div>
-            @endif
-
-            @if($activeVersion && !empty($activeVersion->globalActivityNote))
-                <div class="cv-cover-intro">
-                    {!! $activeVersion->globalActivityNote !!}
-                </div>
-            @endif
-
-            @if($criticalRules->count() === 0 && (!$activeVersion || empty($activeVersion->globalActivityNote)))
-                <p class="cv-cover-empty">
-                    No protocol introduction or critical rules defined yet.
-                    Use the <strong>Documentation</strong> tab on the setup screen to add them.
-                </p>
-            @endif
-
-            <p style="color: var(--cv-muted); font-size: 12.5px; margin-top: 18px;">
-                Use <strong>→</strong> / <strong>Space</strong> to advance · <strong>←</strong> to go back ·
-                <strong>Home</strong>/<strong>End</strong> to jump to start/end ·
-                <strong>F</strong> for fullscreen
-            </p>
-        </div>
+            {{-- Document foot — generated date + page marker --}}
+            <div class="cv-cover-foot">
+                <span>Generated {{ $generatedAt->format('M j, Y') }}</span>
+                <span>Title page &middot; 1 of {{ count($slides) + 1 }}</span>
+            </div>
         </div> {{-- /.cv-slide-body --}}
     </section>
 
@@ -562,174 +787,239 @@
         @endphp
         <section class="cv-slide" data-index="{{ $slideIdx }}" data-date="{{ $s['dateKey'] }}">
 
-            {{-- Day header pinned to the top of the slide frame so it
-                 stays visible even when the body scrolls. --}}
+            {{-- Document title block — pinned to the top of the slide
+                 frame so it stays visible even when the body scrolls.
+                 Schedule micro-line, then the date heading, then the
+                 dateline (weekday + day index). --}}
             <div class="cv-day-head">
-                <span class="cv-day-dayidx">Day {{ $s['dayIndex'] }} of {{ count($slides) }}</span>
-                <span class="cv-day-date">{{ $dateCarbon->format('F j, Y') }}</span>
-                <span class="cv-day-weekday">{{ $dateCarbon->format('l') }}</span>
+                <p class="cv-doc-org">
+                    {{ $schedule->title }}
+                    @if($activeVersion) &middot; {{ $activeVersion->versionName }} @endif
+                    &middot; Daily Schedule
+                </p>
+                <h1 class="cv-day-heading">{{ $dateCarbon->format('F j, Y') }}</h1>
+                <p class="cv-day-dateline">
+                    {{ $dateCarbon->format('l') }}
+                    &middot; Day {{ $s['dayIndex'] }} of {{ count($slides) }}
+                </p>
             </div>
 
             <div class="cv-slide-body">
-            @if($criticalRules->count() > 0)
-                <div class="cv-rules-banner">
-                    <i class="bx bx-flag"></i>
-                    <span class="cv-rules-banner-count">{{ $criticalRules->count() }}</span> critical
-                    {{ \Illuminate\Support\Str::plural('rule', $criticalRules->count()) }} apply every day
-                    <span class="cv-rules-banner-cta">— click to view ▸</span>
-                </div>
-            @endif
+                @if($criticalRules->count() > 0)
+                    <p class="cv-rules-banner">
+                        <span class="cv-rules-banner-mark">&#9888;</span>
+                        <span class="cv-rules-banner-count">{{ $criticalRules->count() }}</span>
+                        critical {{ \Illuminate\Support\Str::plural('rule', $criticalRules->count()) }}
+                        apply every day &mdash; see cover page.
+                    </p>
+                @endif
 
-            @if($note)
-                <div class="cv-day-note">
-                    <strong>📝 Note:</strong> {!! nl2br(e($note->noteContent)) !!}
-                </div>
-            @endif
+                @if($note)
+                    <blockquote class="cv-day-note">
+                        <span class="cv-day-note-label">Note &mdash;</span>
+                        {!! nl2br(e($note->noteContent)) !!}
+                    </blockquote>
+                @endif
 
-            @if(!empty($irrEntries))
-                <div class="cv-section">
-                    <div class="cv-section-head">
-                        <i class="bx bx-water" style="color: #1976d2;"></i>
-                        Irrigation
-                        <span class="cv-section-count">{{ count($irrEntries) }}</span>
-                    </div>
-                    <div class="cv-irr-grid">
-                        @foreach($irrEntries as $iEntry)
-                            @php
-                                $iIrr = $iEntry['irrigation'];
-                                $iMeta = $iEntry['taskMeta'];
-                                $iPrio = (int) ($iEntry['priority'] ?? 5);
-                            @endphp
-                            <div class="cv-irr-card" style="--c: {{ $iMeta['color'] }};">
-                                <span class="cv-irr-task" style="background: {{ $iMeta['color'] }};">
-                                    {{ $iMeta['icon'] }} {{ $iMeta['label'] }}
-                                </span>
-                                <div class="cv-irr-name">{{ $iIrr->irrigationTitle }}</div>
-                                @if(!empty($iEntry['groupNames']))
-                                    <div class="cv-irr-meta">
-                                        <i class="bx bx-collection"></i>
-                                        {{ implode(', ', $iEntry['groupNames']) }}
-                                    </div>
-                                @endif
-                                @if($iIrr->lots && $iIrr->lots->count() > 0)
-                                    <div class="cv-irr-meta">
-                                        <i class="bx bx-map-pin"></i>
-                                        @foreach($iIrr->lots as $lot)
-                                            <span class="cv-chip">{{ $lot->lotName }}@if(!empty($lot->variety)) · {{ $lot->variety }}@endif</span>
-                                        @endforeach
-                                    </div>
-                                @endif
-                                @if($iIrr->workers && $iIrr->workers->count() > 0)
-                                    <div class="cv-irr-meta">
-                                        <i class="bx bx-user"></i>
-                                        @foreach($iIrr->workers as $w)
-                                            <span class="cv-chip cv-chip-worker">{{ $w->workerName }}</span>
-                                        @endforeach
-                                    </div>
-                                @endif
-                                @if($iIrr->description)
-                                    <div class="cv-irr-meta" style="font-style: italic; color: #555;">
-                                        {{ $iIrr->description }}
-                                    </div>
-                                @endif
-                                <span class="cv-irr-prio" data-p="{{ $iPrio }}">Priority {{ $iPrio }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-
-            @if($activitiesForDay->count() > 0)
-                <div class="cv-section">
-                    <div class="cv-section-head">
-                        <i class="bx bx-task" style="color: var(--cv-accent);"></i>
-                        Activities
-                        <span class="cv-section-count">{{ $activitiesForDay->count() }}</span>
-                    </div>
-                    <div class="cv-acts-grid">
-                        @foreach($activitiesForDay as $a)
-                            @php
-                                $start = $a->targetDate;
-                                $end   = $a->targetEndDate ?: $start;
-                                $isMultiDay = $end->gt($start);
-                                $multiCurrent = $isMultiDay ? ($start->diffInDays($dateCarbon) + 1) : null;
-                                $multiTotal   = $isMultiDay ? ($start->diffInDays($end) + 1) : null;
-                                $timeLabel = ['half' => 'Half day', 'whole' => 'Whole day', 'n/a' => 'N/A'][$a->timeRequired] ?? ucfirst($a->timeRequired);
-                                $typeLabel = $a->activityType ? (\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType] ?? null) : null;
-                            @endphp
-                            <div class="cv-act-card priority-{{ $a->priority }}">
-                                <div class="cv-act-head">
-                                    <span class="cv-act-title">{{ $a->activityTitle }}</span>
-                                    @if($typeLabel)
-                                        <span class="cv-act-pill cv-act-type">{{ $typeLabel }}</span>
-                                    @endif
-                                    <span class="cv-act-pill cv-act-prio priority-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
-                                    @if($isMultiDay)
-                                        <span class="cv-act-multiday">
-                                            <i class="bx bx-right-arrow-alt"></i>
-                                            Day {{ $multiCurrent }} of {{ $multiTotal }}
-                                            ({{ $start->format('M j') }}–{{ $end->format('M j') }})
+                @if(!empty($irrEntries))
+                    <section class="cv-doc-section">
+                        <h2 class="cv-doc-section-head">
+                            Irrigation
+                            <span class="cv-doc-section-count">
+                                {{ count($irrEntries) }}
+                                {{ \Illuminate\Support\Str::plural('entry', count($irrEntries)) }}
+                            </span>
+                        </h2>
+                        <ol class="cv-doc-list">
+                            @foreach($irrEntries as $iEntry)
+                                @php
+                                    $iIrr = $iEntry['irrigation'];
+                                    $iMeta = $iEntry['taskMeta'];
+                                    $iPrio = (int) ($iEntry['priority'] ?? 5);
+                                @endphp
+                                <li class="cv-doc-item cv-item-irr" style="--c: {{ $iMeta['color'] }};">
+                                    <div class="cv-doc-item-head">
+                                        <span class="cv-doc-item-title">{{ $iIrr->irrigationTitle }}</span>
+                                        <span class="cv-doc-tag cv-tag-irr" style="--c: {{ $iMeta['color'] }};">
+                                            {{ $iMeta['label'] }}
                                         </span>
+                                        <span class="cv-doc-tag">Priority {{ $iPrio }}</span>
+                                    </div>
+                                    <div class="cv-doc-meta">
+                                        @if(!empty($iEntry['groupNames']))
+                                            <div class="cv-doc-meta-row">
+                                                <span class="cv-doc-meta-label">Groups</span>
+                                                <span class="cv-doc-meta-value">{{ implode(', ', $iEntry['groupNames']) }}</span>
+                                            </div>
+                                        @endif
+                                        @if($iIrr->lots && $iIrr->lots->count() > 0)
+                                            <div class="cv-doc-meta-row">
+                                                <span class="cv-doc-meta-label">Lots</span>
+                                                <span class="cv-doc-meta-value">
+                                                    {{-- Inline join. Blade's directive parser barfs on
+                                                         chained `@endif@if(...)` without whitespace, so
+                                                         build the trailing separator via {{ }} ternary. --}}
+                                                    @foreach($iIrr->lots as $lot)
+                                                        {{ $lot->lotName }}@if(!empty($lot->variety)) &middot; {{ $lot->variety }}@endif{{ $loop->last ? '' : ', ' }}
+                                                    @endforeach
+                                                </span>
+                                            </div>
+                                        @endif
+                                        @if($iIrr->workers && $iIrr->workers->count() > 0)
+                                            <div class="cv-doc-meta-row">
+                                                <span class="cv-doc-meta-label">Workers</span>
+                                                <span class="cv-doc-meta-value">
+                                                    <span class="cv-doc-workers">
+                                                        @foreach($iIrr->workers as $w)
+                                                            <span class="cv-doc-worker"><i class="bx bx-user"></i>{{ $w->workerName }}</span>
+                                                        @endforeach
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    @if($iIrr->description)
+                                        <div class="cv-doc-desc">{{ $iIrr->description }}</div>
                                     @endif
-                                    <span class="cv-act-time">
-                                        <i class="bx bx-time"></i> {{ $timeLabel }}
-                                    </span>
-                                    @if($a->isDayZero)
-                                        <span class="cv-act-pill" style="background:#ff9800; color:#fff;"><i class="bx bxs-star"></i> {{ $schedule->dayType }} 0</span>
-                                    @endif
-                                </div>
-                                @if($a->description)
-                                    <div class="cv-act-desc">{!! $a->description !!}</div>
-                                @endif
-                                <div class="cv-act-meta">
-                                    @if($a->lots->count() > 0)
-                                        <div class="cv-act-meta-row">
-                                            <i class="bx bx-map-pin"></i>
-                                            <strong>Lots:</strong>
-                                            @foreach($a->lots as $lot)
-                                                <span class="cv-chip">{{ $lot->lotName }}@if(!empty($lot->variety)) · {{ $lot->variety }}@endif</span>
-                                            @endforeach
+                                </li>
+                            @endforeach
+                        </ol>
+                    </section>
+                @endif
+
+                @if($activitiesForDay->count() > 0)
+                    <section class="cv-doc-section">
+                        <h2 class="cv-doc-section-head">
+                            Activities
+                            <span class="cv-doc-section-count">
+                                {{ $activitiesForDay->count() }}
+                                {{ \Illuminate\Support\Str::plural('item', $activitiesForDay->count()) }}
+                            </span>
+                        </h2>
+                        <ol class="cv-doc-list">
+                            @foreach($activitiesForDay as $a)
+                                @php
+                                    $start = $a->targetDate;
+                                    $end   = $a->targetEndDate ?: $start;
+                                    $isMultiDay = $end->gt($start);
+                                    $multiCurrent = $isMultiDay ? ($start->diffInDays($dateCarbon) + 1) : null;
+                                    $multiTotal   = $isMultiDay ? ($start->diffInDays($end) + 1) : null;
+                                    $timeLabel = ['half' => 'Half day', 'whole' => 'Whole day', 'n/a' => 'N/A'][$a->timeRequired] ?? ucfirst($a->timeRequired);
+                                    $typeLabel = $a->activityType ? (\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType] ?? null) : null;
+                                @endphp
+                                <li class="cv-doc-item cv-item-prio-{{ $a->priority }}">
+                                    <div class="cv-doc-item-head">
+                                        <span class="cv-doc-item-title">{{ $a->activityTitle }}</span>
+                                        @if($typeLabel)
+                                            <span class="cv-doc-tag">{{ $typeLabel }}</span>
+                                        @endif
+                                        <span class="cv-doc-tag cv-tag-prio-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
+                                        @if($isMultiDay)
+                                            <span class="cv-doc-tag cv-tag-multiday">
+                                                Day {{ $multiCurrent }} of {{ $multiTotal }}
+                                            </span>
+                                        @endif
+                                        @if($a->isDayZero)
+                                            <span class="cv-doc-tag cv-tag-day0">{{ $schedule->dayType }} 0</span>
+                                        @endif
+                                    </div>
+                                    <div class="cv-doc-meta">
+                                        @if($isMultiDay)
+                                            <div class="cv-doc-meta-row">
+                                                <span class="cv-doc-meta-label">Span</span>
+                                                <span class="cv-doc-meta-value">{{ $start->format('M j') }} &ndash; {{ $end->format('M j, Y') }}</span>
+                                            </div>
+                                        @endif
+                                        <div class="cv-doc-meta-row">
+                                            <span class="cv-doc-meta-label">Time</span>
+                                            <span class="cv-doc-meta-value">{{ $timeLabel }}</span>
                                         </div>
-                                    @endif
-                                    @if($a->workers->count() > 0)
-                                        <div class="cv-act-meta-row">
-                                            <i class="bx bx-user"></i>
-                                            <strong>Workers:</strong>
-                                            @foreach($a->workers as $w)
-                                                <span class="cv-chip cv-chip-worker">{{ $w->workerName }}</span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                    @if($a->items->count() > 0)
-                                        <div class="cv-act-meta-row">
-                                            <i class="bx bx-package"></i>
-                                            <strong>Items:</strong>
-                                            @foreach($a->items as $it)
-                                                @php
+                                        @if($a->lots->count() > 0)
+                                            <div class="cv-doc-meta-row">
+                                                <span class="cv-doc-meta-label">Lots</span>
+                                                <span class="cv-doc-meta-value">
+                                                    @foreach($a->lots as $lot)
+                                                        {{ $lot->lotName }}@if(!empty($lot->variety)) &middot; {{ $lot->variety }}@endif{{ $loop->last ? '' : ', ' }}
+                                                    @endforeach
+                                                </span>
+                                            </div>
+                                        @endif
+                                        @if($a->workers->count() > 0)
+                                            <div class="cv-doc-meta-row">
+                                                <span class="cv-doc-meta-label">Workers</span>
+                                                <span class="cv-doc-meta-value">
+                                                    <span class="cv-doc-workers">
+                                                        @foreach($a->workers as $w)
+                                                            <span class="cv-doc-worker"><i class="bx bx-user"></i>{{ $w->workerName }}</span>
+                                                        @endforeach
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        @endif
+                                        @if($a->items->count() > 0)
+                                            @php
+                                                $materialBits = [];
+                                                $serviceBits  = [];
+                                                foreach ($a->items as $it) {
                                                     $qtyTrim = rtrim(rtrim((string) $it->quantity, '0'), '.');
                                                     $unit = $it->unitOfMeasure ?: ($it->material->unitOfMeasure ?? '');
-                                                @endphp
-                                                @if($it->itemType === 'material' && $it->material)
-                                                    <span class="cv-chip cv-chip-material">{{ $it->material->materialName }} ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif</span>
-                                                @elseif($it->itemType === 'service' && $it->service)
-                                                    <span class="cv-chip cv-chip-service">{{ $it->service->serviceName }}@if($qtyTrim !== '1' || $unit) ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif @endif</span>
-                                                @endif
-                                            @endforeach
+                                                    if ($it->itemType === 'material' && $it->material) {
+                                                        $materialBits[] = $it->material->materialName . ' ×' . $qtyTrim . ($unit ? ' ' . $unit : '');
+                                                    } elseif ($it->itemType === 'service' && $it->service) {
+                                                        $svc = $it->service->serviceName;
+                                                        if ($qtyTrim !== '1' || $unit) {
+                                                            $svc .= ' ×' . $qtyTrim . ($unit ? ' ' . $unit : '');
+                                                        }
+                                                        $serviceBits[] = $svc;
+                                                    }
+                                                }
+                                            @endphp
+                                            @if(!empty($materialBits))
+                                                <div class="cv-doc-meta-row">
+                                                    <span class="cv-doc-meta-label">Materials</span>
+                                                    <span class="cv-doc-meta-value">{{ implode(', ', $materialBits) }}</span>
+                                                </div>
+                                            @endif
+                                            @if(!empty($serviceBits))
+                                                <div class="cv-doc-meta-row">
+                                                    <span class="cv-doc-meta-label">Services</span>
+                                                    <span class="cv-doc-meta-value">{{ implode(', ', $serviceBits) }}</span>
+                                                </div>
+                                            @endif
+                                        @endif
+                                    </div>
+                                    @if($a->description)
+                                        <div class="cv-doc-desc">{!! $a->description !!}</div>
+                                    @endif
+                                    @if($a->imagePath)
+                                        <div class="cv-doc-image">
+                                            <img src="{{ $a->imageUrl() }}" alt="Activity image" loading="lazy">
                                         </div>
                                     @endif
-                                </div>
-                            </div>
-                        @endforeach
+                                </li>
+                            @endforeach
+                        </ol>
+                    </section>
+                @endif
+
+                @if($activitiesForDay->count() === 0 && empty($irrEntries))
+                    <div class="cv-empty-msg">
+                        No activities or irrigation scheduled &mdash; this day has a note only.
                     </div>
-                </div>
-            @endif
+                @endif
 
-            @if($activitiesForDay->count() === 0 && empty($irrEntries))
-                <div class="cv-empty-msg">
-                    No activities or irrigation scheduled — this day has a note only.
+                {{-- Document foot — schedule + version on the left, day
+                     index + date on the right, mirroring a printed
+                     report's page footer. --}}
+                <div class="cv-doc-foot">
+                    <span>
+                        {{ $schedule->title }}@if($activeVersion) &middot; {{ $activeVersion->versionName }}@endif
+                    </span>
+                    <span>
+                        Day {{ $s['dayIndex'] }} of {{ count($slides) }}
+                        &middot; {{ $dateCarbon->format('M j, Y') }}
+                    </span>
                 </div>
-            @endif
-
             </div> {{-- /.cv-slide-body --}}
         </section>
     @endforeach
@@ -846,6 +1136,71 @@
     // Print — let the browser open its print dialog. The print CSS
     // forces one slide per page so the user gets a printed deck.
     document.getElementById('cvPrintBtn').addEventListener('click', () => window.print());
+
+    // Save current slide as a PNG image. Uses html2canvas to rasterize
+    // the .cv-slide.active element at 2x DPI (so text stays crisp on
+    // retina screens), then triggers a download via a blob URL.
+    // Filename: {schedule-slug}-day-{N}-{YYYY-MM-DD}.png  (or `-cover` for slide 0)
+    const SCHEDULE_SLUG = @json(\Illuminate\Support\Str::slug($schedule->title));
+    const $saveBtn = document.getElementById('cvSaveImageBtn');
+    const SAVE_BTN_LABEL = $saveBtn ? $saveBtn.innerHTML : '';
+    if ($saveBtn) {
+        $saveBtn.addEventListener('click', async () => {
+            if (typeof html2canvas === 'undefined') {
+                alert('Image capture library failed to load. Check your connection and try again.');
+                return;
+            }
+            const active = document.querySelector('.cv-slide.active');
+            if (!active) return;
+
+            $saveBtn.disabled = true;
+            $saveBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Capturing…';
+
+            try {
+                // Capture the full slide regardless of viewport scroll. We
+                // use the element's scrollWidth/Height for windowWidth/Height
+                // so html2canvas lays out at the slide's natural width
+                // (avoids mobile-breakpoint shrinkage when the browser
+                // window is narrower than the slide).
+                const canvas = await html2canvas(active, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: Math.max(active.scrollWidth, 1100),
+                    windowHeight: active.scrollHeight,
+                });
+
+                const idx  = active.getAttribute('data-index') || '0';
+                const date = active.getAttribute('data-date') || '';
+                const filename = (idx === '0' || !date)
+                    ? `${SCHEDULE_SLUG}-cover.png`
+                    : `${SCHEDULE_SLUG}-day-${idx}-${date}.png`;
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        alert('Failed to encode image.');
+                        return;
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const a   = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    // Give the download a beat to register before revoking.
+                    setTimeout(() => URL.revokeObjectURL(url), 1500);
+                }, 'image/png');
+            } catch (err) {
+                console.error('Save as Image failed:', err);
+                alert('Could not save image: ' + (err && err.message ? err.message : 'unknown error'));
+            } finally {
+                $saveBtn.disabled = false;
+                $saveBtn.innerHTML = SAVE_BTN_LABEL;
+            }
+        });
+    }
 
     // Critical rules quick-view modal: clicking the compact banner on a
     // day slide opens a popup with the full list, so workers don't have

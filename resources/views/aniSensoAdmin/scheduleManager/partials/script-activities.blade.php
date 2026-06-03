@@ -825,6 +825,7 @@ function renderActivityCard(a) {
             </div>
         </div>
         ${descHtml ? `<div class="text-dark mt-2 mb-2 activity-description-content" style="font-size:13px;">${descHtml}</div>` : ''}
+        ${a.imagePath && a.imageUrl ? `<div class="activity-card-image"><img src="${escapeHtml(a.imageUrl)}" alt="Activity image" loading="lazy"></div>` : ''}
         <div class="step-meta mt-1">
             <i class="bx bx-time"></i> ${escapeHtml(timeLabel)}
         </div>
@@ -1052,9 +1053,86 @@ function resetActivityModal() {
     setActivityDescriptionContent('');
     setActivityLots([]);
     setActivityWorkers([]);
+    setActivityImage('', '');
     $('#itemsContainer').empty();
     refreshItemsEmptyState();
 }
+
+// ---- Activity image upload + preview wiring ----
+// Image upload happens immediately on file select (separate /image-upload
+// endpoint) so the user sees the preview before committing the rest of
+// the activity form. The returned relative path is stashed in the hidden
+// #activityImagePath input; the activity save handler sends that path in
+// the payload, and the server persists it to the activity row.
+function setActivityImage(path, url) {
+    $('#activityImagePath').val(path || '');
+    if (path && url) {
+        $('#activityImagePreview').attr('src', url);
+        $('#activityImageWrap').show();
+        $('#activityImageEmpty').hide();
+    } else {
+        $('#activityImagePreview').attr('src', '');
+        $('#activityImageWrap').hide();
+        $('#activityImageEmpty').show();
+    }
+}
+
+// Both "Upload" (empty state) and "Replace" (preview state) buttons open
+// the same hidden file picker. We clear the picker value first so picking
+// the same filename twice in a row still fires the change event.
+$(document).on('click', '#activityImageUploadBtn, #activityImageReplaceBtn', function () {
+    const $fi = $('#activityImageFileInput');
+    $fi.val('');
+    $fi.trigger('click');
+});
+
+$(document).on('change', '#activityImageFileInput', function (e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)) {
+        toastr.warning('Pick an image file (JPG, PNG, WebP, GIF).');
+        return;
+    }
+    const fd = new FormData();
+    fd.append('_token', CSRF);
+    fd.append('image', file);
+
+    // Stash whatever's in the wrap right now so we can restore on failure.
+    const $wrap = $('#activityImageWrap');
+    const $empty = $('#activityImageEmpty');
+    const wasVisible = $wrap.is(':visible');
+    $wrap.hide();
+    $empty.html('<div class="activity-image-uploading"><i class="bx bx-loader-alt bx-spin"></i> Uploading…</div>');
+
+    $.ajax({
+        url: URLS.activitiesImageUpload(),
+        type: 'POST',
+        data: fd,
+        processData: false,
+        contentType: false,
+        success: (res) => {
+            if (!res.success || !res.data) {
+                toastr.error(res.message || 'Upload failed');
+                $empty.html('<button type="button" class="btn btn-outline-primary" id="activityImageUploadBtn"><i class="bx bx-cloud-upload me-1"></i> Upload Image</button>');
+                if (wasVisible) $wrap.show();
+                return;
+            }
+            setActivityImage(res.data.imagePath, res.data.imageUrl);
+            $empty.html('<button type="button" class="btn btn-outline-primary" id="activityImageUploadBtn"><i class="bx bx-cloud-upload me-1"></i> Upload Image</button>');
+            toastr.success('Image uploaded.');
+        },
+        error: (xhr) => {
+            const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Upload failed';
+            toastr.error(msg);
+            $empty.html('<button type="button" class="btn btn-outline-primary" id="activityImageUploadBtn"><i class="bx bx-cloud-upload me-1"></i> Upload Image</button>');
+            if (wasVisible) $wrap.show();
+        }
+    });
+});
+
+$(document).on('click', '#activityImageRemoveBtn', function () {
+    setActivityImage('', '');
+});
 
 $('#addActivityBtn').on('click', function () {
     $('#activityModalTitle').text('Add Activity');
@@ -1107,6 +1185,9 @@ $(document).on('click', '.edit-activity-btn', function () {
         // on the very first open). Modal's shown.bs.modal handler below catches it.
         $('#activityDescription').data('pending-content', a.description || '');
         setActivityDescriptionContent(a.description || '');
+        // Activity image preview — set from the resolved URL the server
+        // returns alongside the stored relative path.
+        setActivityImage(a.imagePath || '', a.imageUrl || '');
         (a.items || []).forEach(it => {
             const itemUnit = it.unitOfMeasure || (it.material ? it.material.unitOfMeasure : '');
             if (it.itemType === 'material' && it.material) {
@@ -1198,6 +1279,7 @@ $('#saveActivityBtn').on('click', function () {
         priority: $('#activityPriority').val(),
         activityType: $('#activityType').val() || '',
         description: getActivityDescriptionContent(),
+        imagePath: ($('#activityImagePath').val() || '').trim(),
         timeRequired: $('#activityTimeRequired').val(),
         isDayZero: $('#activityIsDayZero').is(':checked') ? 1 : 0,
         lotIds: getActivityLotIds(),

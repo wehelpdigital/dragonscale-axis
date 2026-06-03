@@ -243,6 +243,16 @@
         .chip-service { background: #def4ea; color: #156d4e; }
 
         .desc-on-card { margin-top: 6px; font-size: 10pt; }
+        .activity-image {
+            margin-top: 6px;
+            padding: 4px;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            display: inline-block;
+            max-width: 100%;
+            page-break-inside: avoid;
+        }
+        .activity-image img { display: block; max-width: 100%; max-height: 220px; }
 
         .lot-table, .worker-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10pt; table-layout: fixed; }
         .lot-table th, .worker-table th, .lot-table td, .worker-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #ecedf0; word-break: break-word; vertical-align: top; }
@@ -509,6 +519,11 @@
                         </div>
                         @if($a->description)
                             <div class="desc-on-card description-block">{!! $a->description !!}</div>
+                        @endif
+                        @if($a->imagePath)
+                            <div class="activity-image">
+                                <img src="{{ $a->imageUrl() }}" alt="">
+                            </div>
                         @endif
                         <div class="activity-line">
                             <span class="label">Time:</span>{{ $timeLabel }}
