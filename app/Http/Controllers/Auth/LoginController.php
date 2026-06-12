@@ -45,6 +45,22 @@ class LoginController extends Controller
     }
 
     /**
+     * Render the login form with cache-busting headers so the browser's
+     * back-forward cache (bfcache) and any intermediate proxy can never
+     * replay a stale CSRF token. Without this, hitting Back or refreshing
+     * after a redirect can serve an old form whose _token no longer
+     * matches the current session, producing 419.
+     */
+    public function showLoginForm()
+    {
+        return response()
+            ->view('auth.login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    }
+
+    /**
      * Attempt to log the user into the application.
      *
      * @param  \Illuminate\Http\Request  $request

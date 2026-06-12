@@ -384,6 +384,27 @@
         .cv-doc-item.cv-item-prio-low      { border-left-color: #6c7280; }
         /* Irrigation items inherit the task color via the --c CSS var */
         .cv-doc-item.cv-item-irr { border-left-color: var(--c, #1976d2); }
+
+        /* Toolbar toggle: when body.cv-hide-irrigation is set, every
+           per-day irrigation section disappears (both on-screen + print).
+           Days whose only content was irrigation become visually empty,
+           so we also surface a small placeholder pulled in by JS. */
+        body.cv-hide-irrigation [data-section="irrigation"] { display: none !important; }
+        .cv-doc-section-head .cv-toggle-on-hidden { display: none; }
+        body.cv-hide-irrigation .cv-iconbtn#cvToggleIrrigationBtn {
+            background: rgba(255, 213, 107, .25);
+            border-color: rgba(255, 213, 107, .65);
+        }
+        .cv-doc-hidden-msg {
+            margin: 18px 0;
+            padding: 14px 18px;
+            text-align: center;
+            color: var(--cv-muted);
+            font-style: italic;
+            border: 1px dashed #d9dde3;
+            font-family: 'Cambria', 'Georgia', serif;
+            font-size: 14px;
+        }
         .cv-doc-item-head {
             display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
             margin: 0 0 6px;
@@ -496,7 +517,9 @@
         }
 
         /* Description block — body prose under the metadata, separated
-           by a hairline rule. Renders user-entered HTML formatting. */
+           by a hairline rule. Renders user-entered HTML formatting
+           (Quill output): paragraphs, lists, headings, inline marks,
+           images. Plus the alignment classes Quill emits. */
         .cv-doc-desc {
             margin: 12px 0 0;
             padding: 10px 0 0;
@@ -506,9 +529,120 @@
             font-size: 16.5px;
             line-height: 1.6;
         }
+        /* Paragraphs */
         .cv-doc-desc p { margin: 0.6em 0; }
         .cv-doc-desc p:first-child { margin-top: 0; }
         .cv-doc-desc p:last-child { margin-bottom: 0; }
+        /* Lists — generous left padding so bullets sit cleanly inside
+           the item block, and tighter li spacing so multi-bullet lists
+           don't sprawl. Google Docs / Quill commonly nests <p> inside
+           <li>; strip those margins so list items stay compact. */
+        .cv-doc-desc ul,
+        .cv-doc-desc ol {
+            margin: 0.6em 0;
+            padding-left: 1.6em;
+        }
+        .cv-doc-desc ul ul,
+        .cv-doc-desc ol ol,
+        .cv-doc-desc ul ol,
+        .cv-doc-desc ol ul { margin: 0.2em 0; }
+        .cv-doc-desc li { margin: 0.25em 0; }
+        .cv-doc-desc li > p {
+            margin: 0;
+            display: inline;
+        }
+        .cv-doc-desc li > p + p { margin-top: 0.3em; display: block; }
+
+        /* Quill 2 stores BOTH bulleted and ordered lists as <ol>, with
+           the marker type encoded on each <li> via data-list. Without
+           this override, an authored bullet list renders as a numbered
+           list because the browser honors the <ol>'s default decimal
+           counter. Per-item list-style-type lets each <li> pick its own
+           marker regardless of the wrapper. */
+        .cv-doc-desc ol > li[data-list="bullet"]  { list-style-type: disc; }
+        .cv-doc-desc ol > li[data-list="ordered"] { list-style-type: decimal; }
+        /* Quill's editor-only UI span ships with the saved HTML. It's
+           contenteditable=false, inert, and adds whitespace if visible. */
+        .cv-doc-desc .ql-ui { display: none; }
+        /* Indentation levels Quill applies to nested outline items
+           (e.g. sub-bullets under a parent step). 1.5em per level
+           matches Quill's snow theme. */
+        .cv-doc-desc li.ql-indent-1 { margin-left: 1.5em; }
+        .cv-doc-desc li.ql-indent-2 { margin-left: 3em; }
+        .cv-doc-desc li.ql-indent-3 { margin-left: 4.5em; }
+        .cv-doc-desc li.ql-indent-4 { margin-left: 6em; }
+        .cv-doc-desc li.ql-indent-5 { margin-left: 7.5em; }
+        .cv-doc-desc li.ql-indent-6 { margin-left: 9em; }
+        .cv-doc-desc li.ql-indent-7 { margin-left: 10.5em; }
+        .cv-doc-desc li.ql-indent-8 { margin-left: 12em; }
+        /* Headings — keep the same serif family but smaller than the
+           item title above so they don't compete with the activity
+           title for visual weight. */
+        .cv-doc-desc h1,
+        .cv-doc-desc h2,
+        .cv-doc-desc h3,
+        .cv-doc-desc h4,
+        .cv-doc-desc h5,
+        .cv-doc-desc h6 {
+            font-family: 'Cambria', 'Georgia', serif;
+            font-weight: 700;
+            color: var(--cv-ink);
+            margin: 0.8em 0 0.3em;
+            line-height: 1.25;
+        }
+        .cv-doc-desc h1 { font-size: 19px; }
+        .cv-doc-desc h2 { font-size: 18px; }
+        .cv-doc-desc h3 { font-size: 17px; }
+        .cv-doc-desc h4,
+        .cv-doc-desc h5,
+        .cv-doc-desc h6 { font-size: 16.5px; }
+        .cv-doc-desc h1:first-child,
+        .cv-doc-desc h2:first-child,
+        .cv-doc-desc h3:first-child,
+        .cv-doc-desc h4:first-child { margin-top: 0; }
+        /* Inline marks */
+        .cv-doc-desc strong,
+        .cv-doc-desc b { font-weight: 700; color: var(--cv-ink); }
+        .cv-doc-desc em,
+        .cv-doc-desc i { font-style: italic; }
+        .cv-doc-desc u { text-decoration: underline; }
+        .cv-doc-desc s,
+        .cv-doc-desc del { text-decoration: line-through; color: var(--cv-muted); }
+        .cv-doc-desc a {
+            color: var(--cv-accent);
+            text-decoration: underline;
+        }
+        /* Blockquote — printed-document style */
+        .cv-doc-desc blockquote {
+            margin: 0.6em 0;
+            padding: 6px 14px;
+            border-left: 3px solid #c8cdd8;
+            color: #4a5160;
+            font-style: italic;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        /* Code (rarely used but harmless) */
+        .cv-doc-desc code,
+        .cv-doc-desc pre {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.92em;
+            background: #f4f5f8;
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+        .cv-doc-desc pre {
+            padding: 8px 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        /* Quill alignment classes (the card viewer never loads quill.snow.css
+           because it's a read-only render surface — replicate the rules we
+           actually need so Quill-aligned text stays aligned). */
+        .cv-doc-desc .ql-align-center  { text-align: center; }
+        .cv-doc-desc .ql-align-right   { text-align: right; }
+        .cv-doc-desc .ql-align-justify { text-align: justify; }
+        .cv-doc-desc .ql-align-left    { text-align: left; }
+        /* Images */
         .cv-doc-desc img { max-width: 100%; height: auto; }
 
         /* Activity reference image — rendered below the description as a
@@ -683,6 +817,7 @@
         @endforeach
     </select>
     <span class="cv-spacer"></span>
+    <button class="cv-iconbtn" id="cvToggleIrrigationBtn" title="Hide / show irrigation sections on every slide"><i class="bx bx-water"></i> <span class="cv-toggle-irr-label">Hide Irrigation</span></button>
     <button class="cv-iconbtn" id="cvFullscreenBtn" title="Toggle fullscreen"><i class="bx bx-fullscreen"></i> Fullscreen</button>
     <button class="cv-iconbtn" id="cvSaveImageBtn" title="Save current page as a PNG image"><i class="bx bx-image-add"></i> Save as Image</button>
     <button class="cv-iconbtn" id="cvPrintBtn" title="Print all slides (one per page)"><i class="bx bx-printer"></i> Print</button>
@@ -822,7 +957,10 @@
                 @endif
 
                 @if(!empty($irrEntries))
-                    <section class="cv-doc-section">
+                    {{-- data-section="irrigation" so the toolbar toggle
+                         can hide all irrigation sections at once via a
+                         single body-level class. --}}
+                    <section class="cv-doc-section" data-section="irrigation">
                         <h2 class="cv-doc-section-head">
                             Irrigation
                             <span class="cv-doc-section-count">
@@ -1074,6 +1212,11 @@
     const $jump    = document.querySelector('.cv-jump');
     let current = 0;
 
+    // Schedule slug used as a namespace prefix for localStorage keys
+    // (irrigation toggle, etc.) AND as the default filename for the
+    // "Save as Image" downloads further down.
+    const SCHEDULE_SLUG = @json(\Illuminate\Support\Str::slug($schedule->title));
+
     // Initialize total counters (in case slide count came from JS)
     $total.forEach(el => el.textContent = String(total));
 
@@ -1133,6 +1276,26 @@
     }
     document.getElementById('cvFullscreenBtn').addEventListener('click', toggleFullscreen);
 
+    // Irrigation visibility toggle — global per-deck preference stored in
+    // localStorage so the choice survives refresh. The CSS rule does the
+    // actual hiding; this just flips the body class + button label.
+    const IRR_HIDE_KEY = 'cvHideIrrigation:' + SCHEDULE_SLUG;
+    const $irrBtn      = document.getElementById('cvToggleIrrigationBtn');
+    const $irrLabel    = $irrBtn ? $irrBtn.querySelector('.cv-toggle-irr-label') : null;
+    function applyIrrigationHidden(hidden) {
+        document.body.classList.toggle('cv-hide-irrigation', hidden);
+        if ($irrLabel) $irrLabel.textContent = hidden ? 'Show Irrigation' : 'Hide Irrigation';
+        if ($irrBtn)   $irrBtn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+    }
+    if ($irrBtn) {
+        applyIrrigationHidden(localStorage.getItem(IRR_HIDE_KEY) === '1');
+        $irrBtn.addEventListener('click', () => {
+            const next = !document.body.classList.contains('cv-hide-irrigation');
+            applyIrrigationHidden(next);
+            localStorage.setItem(IRR_HIDE_KEY, next ? '1' : '0');
+        });
+    }
+
     // Print — let the browser open its print dialog. The print CSS
     // forces one slide per page so the user gets a printed deck.
     document.getElementById('cvPrintBtn').addEventListener('click', () => window.print());
@@ -1141,7 +1304,6 @@
     // the .cv-slide.active element at 2x DPI (so text stays crisp on
     // retina screens), then triggers a download via a blob URL.
     // Filename: {schedule-slug}-day-{N}-{YYYY-MM-DD}.png  (or `-cover` for slide 0)
-    const SCHEDULE_SLUG = @json(\Illuminate\Support\Str::slug($schedule->title));
     const $saveBtn = document.getElementById('cvSaveImageBtn');
     const SAVE_BTN_LABEL = $saveBtn ? $saveBtn.innerHTML : '';
     if ($saveBtn) {
