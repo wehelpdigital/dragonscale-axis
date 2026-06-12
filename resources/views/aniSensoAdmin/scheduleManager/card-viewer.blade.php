@@ -257,11 +257,44 @@
            Horizontal padding matches .cv-slide-body so the header content
            edge-aligns with the body content edge. */
         .cv-day-head {
+            position: relative;
             flex: 0 0 auto;
             padding: 40px 80px 22px;
             border-bottom: 2px solid var(--cv-ink);
             font-family: 'Cambria', 'Georgia', serif;
             background: #fff;
+        }
+        /* Page indicator — top-right corner of the slide header.
+           Visible on screen so the user can cross-reference the deck
+           while navigating, and stays in the same corner in print so a
+           shuffled stack can be re-ordered. Server-rendered (not a
+           live counter) so single-slide "Print Page" mode still shows
+           the slide's true position in the full deck. */
+        .cv-page-num {
+            position: absolute;
+            top: 14px;
+            right: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--cv-muted);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            background: #fff;
+            padding: 4px 9px;
+            border: 1px solid var(--cv-line);
+            border-radius: 2px;
+        }
+        @media print {
+            .cv-page-num {
+                top: 0;
+                right: 4px;
+                font-size: 9pt;
+                border: 0;
+                background: transparent;
+                padding: 0;
+                color: #555;
+            }
         }
         .cv-doc-org {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -732,7 +765,30 @@
            When printing, ditch the 16:9 aspect-ratio frame (which would
            leave a huge blank area on letter/A4 paper) and let each slide
            fill the printable page naturally. */
-        @page { size: A4 portrait; margin: 16mm 14mm; }
+        /* Physical-sheet counter via @page margin box. The top-right
+           .cv-page-num shows the slide's LOGICAL position in the full
+           deck (e.g. "Page 17 of 114"); this bottom-right counter shows
+           the PHYSICAL sheet number, which differs only when a single
+           slide overflows onto a second printed sheet. The two
+           indicators use different wording on purpose so they never
+           read as contradictory.
+           Chrome 131+ / Safari 18.2+ render this. Firefox ignores
+           @page margin boxes — acceptable graceful degradation for an
+           internal admin tool. */
+        @page {
+            size: A4 portrait;
+            margin: 16mm 14mm;
+            @bottom-right {
+                content: "Sheet " counter(page) " of " counter(pages);
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: 9pt;
+                color: #999;
+            }
+        }
+        /* Cover sheet: omit the page-number margin per Chicago title-page
+           convention. The cover already says "Cover · Page 1 of N" in
+           its own footer text — no need to duplicate it in the margin. */
+        @page :first { @bottom-right { content: none; } }
         @media print {
             body { background: #fff; padding: 0; }
             .cv-toolbar, .cv-footer { display: none !important; }
@@ -769,6 +825,17 @@
             .cv-cover-rules,
             .cv-cover-intro,
             .cv-cover-facts { page-break-inside: avoid; }
+
+            /* Single-page print mode — toggled by the "Print Page" button.
+               Hide every slide except the active one so the print dialog
+               sees a single document. Strip the page-break rule on the
+               active slide so it doesn't push the (empty) trailing page. */
+            body.cv-print-current-only .cv-slide { display: none !important; }
+            body.cv-print-current-only .cv-slide.active {
+                display: block !important;
+                page-break-after: auto;
+                break-after: auto;
+            }
         }
 
         /* ============ TINY RULES MODAL (compact viewer trigger) ============ */
@@ -820,7 +887,8 @@
     <button class="cv-iconbtn" id="cvToggleIrrigationBtn" title="Hide / show irrigation sections on every slide"><i class="bx bx-water"></i> <span class="cv-toggle-irr-label">Hide Irrigation</span></button>
     <button class="cv-iconbtn" id="cvFullscreenBtn" title="Toggle fullscreen"><i class="bx bx-fullscreen"></i> Fullscreen</button>
     <button class="cv-iconbtn" id="cvSaveImageBtn" title="Save current page as a PNG image"><i class="bx bx-image-add"></i> Save as Image</button>
-    <button class="cv-iconbtn" id="cvPrintBtn" title="Print all slides (one per page)"><i class="bx bx-printer"></i> Print</button>
+    <button class="cv-iconbtn" id="cvPrintPageBtn" title="Print only the current page"><i class="bx bx-file"></i> Print Page</button>
+    <button class="cv-iconbtn" id="cvPrintBtn" title="Print all slides (one per page)"><i class="bx bx-printer"></i> Print All</button>
     <button class="cv-iconbtn" id="cvCloseBtn" title="Close (Esc) — returns to setup" onclick="window.close()"><i class="bx bx-x"></i> Close</button>
 </div>
 
@@ -904,7 +972,7 @@
             {{-- Document foot — generated date + page marker --}}
             <div class="cv-cover-foot">
                 <span>Generated {{ $generatedAt->format('M j, Y') }}</span>
-                <span>Title page &middot; 1 of {{ count($slides) + 1 }}</span>
+                <span>Cover &middot; Page 1 of {{ count($slides) + 1 }}</span>
             </div>
         </div> {{-- /.cv-slide-body --}}
     </section>
@@ -927,6 +995,13 @@
                  Schedule micro-line, then the date heading, then the
                  dateline (weekday + day index). --}}
             <div class="cv-day-head">
+                {{-- Page indicator badge sits in the top-right corner of
+                     the slide header. Server-rendered with the slide's
+                     logical position in the full deck so it stays
+                     correct in both "Print All" and single-slide
+                     "Print Page" modes (which the live counter(page)
+                     can't do). --}}
+                <span class="cv-page-num">Page {{ $slideIdx + 1 }} of {{ count($slides) + 1 }}</span>
                 <p class="cv-doc-org">
                     {{ $schedule->title }}
                     @if($activeVersion) &middot; {{ $activeVersion->versionName }} @endif
@@ -1296,9 +1371,30 @@
         });
     }
 
-    // Print — let the browser open its print dialog. The print CSS
+    // Print all — let the browser open its print dialog. The print CSS
     // forces one slide per page so the user gets a printed deck.
     document.getElementById('cvPrintBtn').addEventListener('click', () => window.print());
+
+    // Print only the current slide. Adds a body class that the print CSS
+    // uses to hide every non-active slide, fires window.print(), then
+    // clears the class on afterprint (with a setTimeout fallback for
+    // browsers that don't fire afterprint reliably — Safari historically).
+    const $printPageBtn = document.getElementById('cvPrintPageBtn');
+    if ($printPageBtn) {
+        $printPageBtn.addEventListener('click', () => {
+            document.body.classList.add('cv-print-current-only');
+            let cleared = false;
+            const clear = () => {
+                if (cleared) return;
+                cleared = true;
+                document.body.classList.remove('cv-print-current-only');
+                window.removeEventListener('afterprint', clear);
+            };
+            window.addEventListener('afterprint', clear);
+            setTimeout(clear, 5000);
+            window.print();
+        });
+    }
 
     // Save current slide as a PNG image. Uses html2canvas to rasterize
     // the .cv-slide.active element at 2x DPI (so text stays crisp on
