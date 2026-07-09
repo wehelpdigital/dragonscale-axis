@@ -810,7 +810,12 @@ function renderActivityCard(a) {
     const typeBadge = typeLabel
         ? `<span class="badge ms-1 activity-type-badge" style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;" title="Activity type">${escapeHtml(typeLabel)}</span>`
         : '';
-    return `<div class="activity-card" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-activity-type="${escapeHtml(a.activityType || '')}">
+    const isHiddenFlag = (a.isHidden === true || a.isHidden === 1 || a.isHidden === '1') ? 1 : 0;
+    const hiddenClass = isHiddenFlag ? ' is-hidden' : '';
+    const hiddenTag = isHiddenFlag
+        ? `<span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;"><i class="bx bx-hide"></i> Hidden</span>`
+        : '';
+    return `<div class="activity-card${hiddenClass}" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-activity-type="${escapeHtml(a.activityType || '')}" data-is-hidden="${isHiddenFlag}">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
             <div class="flex-grow-1" style="min-width:0;">
                 <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${typeBadge}${dayZeroBadge}${rangeBadge}</h6>
@@ -818,6 +823,10 @@ function renderActivityCard(a) {
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
                 <span class="sm-pill ${priorityCls}">${escapeHtml(priorityCap)}</span>
+                <label class="hide-activity-switch form-check form-switch m-0" title="Toggle visibility in worker presentation, card viewer, and export">
+                    <input type="checkbox" class="form-check-input hide-activity-toggle" data-id="${a.id}" ${isHiddenFlag ? '' : 'checked'} aria-label="Show or hide this activity in presentations">
+                </label>
+                ${hiddenTag}
                 <button class="btn btn-sm btn-outline-primary edit-activity-btn" data-id="${a.id}" title="Edit"><i class="bx bx-edit-alt"></i></button>
                 <button class="btn btn-sm btn-outline-secondary duplicate-activity-btn" data-id="${a.id}" data-name="${escapeHtml(a.activityTitle)}" title="Duplicate"><i class="bx bx-copy"></i></button>
                 <button class="btn btn-sm btn-outline-info to-draft-activity-btn" data-id="${a.id}" data-name="${escapeHtml(a.activityTitle)}" title="Move to drafts (hide without deleting)"><i class="bx bx-archive-in"></i></button>
@@ -924,6 +933,29 @@ function reorderAndRenumberActivities() {
         notesByDate[key] = $(this).attr('data-existing') || '';
     });
 
+    // Same snapshot for progress markers — keyed by Y-m-d. Each entry keeps
+    // { id, note } so the rebuild can recreate the marker line in the right
+    // spot AND keep the date-header bookmark button's flagged state in sync.
+    const markersByDate = {};
+    $list.find('.progress-marker[data-date]').each(function () {
+        const key = ($(this).attr('data-date') || '').trim();
+        if (!key) return;
+        markersByDate[key] = {
+            id:   $(this).attr('data-marker-id') || '',
+            note: $(this).attr('data-note') || '',
+        };
+    });
+    // The date-marker-btn carries the same flag (for dates whose marker has
+    // no own .progress-marker row yet — shouldn't happen normally, but
+    // belt-and-braces in case the partial was rebuilt without that row).
+    $list.find('.date-marker-btn').each(function () {
+        const key = ($(this).attr('data-date') || '').trim();
+        if (!key || markersByDate[key]) return;
+        const mid = ($(this).attr('data-marker-id') || '').trim();
+        if (!mid) return;
+        markersByDate[key] = { id: mid, note: $(this).attr('data-existing') || '' };
+    });
+
     // Wipe and rebuild the list interleaving groups + rest markers.
     $list.empty();
     timeline.forEach(item => {
@@ -998,6 +1030,17 @@ function reorderAndRenumberActivities() {
         // (outline vs solid) and the inline block stay in sync.
         const noteContent = (key !== '__no-date__') ? (notesByDate[key] || '') : '';
         const hasNote     = noteContent !== '';
+        // Quick-add: opens the Activity modal with this date pre-filled.
+        // Same handler as the rest-day "Add Activity" button (the JS
+        // selector matches both .rest-day-add-btn and .group-add-activity-btn).
+        const addBtn = (key !== '__no-date__')
+            ? `<button type="button"
+                       class="date-header-edit-btn group-add-activity-btn"
+                       data-date="${escapeHtml(key)}"
+                       title="Add a new activity to this date">
+                       <i class="bx bx-plus"></i>
+               </button>`
+            : '';
         const noteBtn = (key !== '__no-date__')
             ? `<button type="button"
                        class="date-header-edit-btn date-note-btn${hasNote ? ' has-note' : ''}"
@@ -1005,6 +1048,20 @@ function reorderAndRenumberActivities() {
                        data-existing="${escapeHtml(noteContent)}"
                        title="${hasNote ? 'Edit the note for this date' : 'Add a note for this date'}">
                        <i class="bx ${hasNote ? 'bxs-note' : 'bx-note'}"></i>
+               </button>`
+            : '';
+        const markerInfo  = (key !== '__no-date__') ? (markersByDate[key] || null) : null;
+        const hasMarker   = !!markerInfo;
+        const markerNote  = markerInfo ? (markerInfo.note || '') : '';
+        const markerId    = markerInfo ? (markerInfo.id || '')   : '';
+        const markerBtn = (key !== '__no-date__')
+            ? `<button type="button"
+                       class="date-header-edit-btn date-marker-btn${hasMarker ? ' has-marker' : ''}"
+                       data-date="${escapeHtml(key)}"
+                       data-marker-id="${escapeHtml(markerId)}"
+                       data-existing="${escapeHtml(markerNote)}"
+                       title="${hasMarker ? 'Edit the resume-here marker on this date' : 'Drop a &quot;resume here&quot; marker after this date'}">
+                       <i class="bx ${hasMarker ? 'bxs-bookmark' : 'bx-bookmark'}"></i>
                </button>`
             : '';
         const editBtn = (key !== '__no-date__')
@@ -1019,12 +1076,42 @@ function reorderAndRenumberActivities() {
                    </div>
                </div>`
             : '';
+        // All-hidden detection — when every card on this date carries
+        // is-hidden, the CSS collapses the date-group. We render a
+        // rest-day-marker twin BEFORE the group so the date still reads
+        // as "No activities scheduled" instead of vanishing entirely.
+        // Mirrors the server-rendered output in activities.blade.php.
+        const allHidden = (key !== '__no-date__')
+            && cardsForDate.length > 0
+            && cardsForDate.every(el => $(el).hasClass('is-hidden'));
+        if (allHidden) {
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const pretty = `${dayNames[dateObj.getDay()]}, ${monthNames[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+            $list.append(`
+                <div class="rest-day-marker rest-day-substitute" data-date="${escapeHtml(key)}">
+                    <i class="bx bx-moon rest-day-icon"></i>
+                    <div class="rest-day-text">
+                        <span class="rest-day-date">${escapeHtml(pretty)}</span>
+                        <span class="rest-day-tag">No activities scheduled</span>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary rest-day-add-btn"
+                            data-date="${escapeHtml(key)}"
+                            title="Add a new activity to this date">
+                        <i class="bx bx-plus"></i> Add Activity
+                    </button>
+                </div>
+            `);
+        }
         const $group = $(`
             <div class="date-group date-color-${item.color}" data-date="${key === '__no-date__' ? '' : escapeHtml(key)}">
                 <div class="date-header">
                     ${headerHtml}
                     <span class="date-header-count">${count} ${count === 1 ? 'activity' : 'activities'}</span>
+                    ${addBtn}
                     ${noteBtn}
+                    ${markerBtn}
                     ${editBtn}
                 </div>
                 ${noteBlockHtml}
@@ -1033,7 +1120,65 @@ function reorderAndRenumberActivities() {
         `);
         cardsForDate.forEach(el => $group.find('.date-activities').append(el));
         $list.append($group);
+        // Marker line — sits AFTER the group whose date matches markerDate.
+        if (markerInfo) {
+            $list.append(_buildProgressMarkerHtml(item.key, markerInfo));
+        }
     });
+
+    // Orphan markers — markerDate didn't match any group on the timeline.
+    // Surface them at the bottom so the user can still find / clear them.
+    Object.keys(markersByDate).forEach(dateKey => {
+        if ($list.find(`.progress-marker[data-date="${dateKey}"]`).length) return;
+        $list.append(_buildProgressMarkerHtml(dateKey, markersByDate[dateKey]));
+    });
+}
+
+// Build the marker DOM. Mirrors the server-rendered output in activities.blade.php.
+function _buildProgressMarkerHtml(dateKey, info) {
+    const dateObj = parseLocalDate(dateKey);
+    const pretty = dateObj
+        ? `${MONTH_SHORT[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`
+        : dateKey;
+    const noteRaw = info.note || '';
+    const noteHtml = noteRaw
+        ? `<div class="progress-marker-note">
+               <i class="bx bxs-note progress-marker-note-icon"></i>
+               <div class="progress-marker-note-text">${escapeHtml(noteRaw).replace(/\n/g, '<br>')}</div>
+           </div>`
+        : '';
+    return `
+        <div class="progress-marker ${noteRaw ? 'has-note' : ''}"
+             data-marker-id="${escapeHtml(info.id || '')}"
+             data-date="${escapeHtml(dateKey)}"
+             data-note="${escapeHtml(noteRaw)}">
+            <div class="progress-marker-line">
+                <span class="progress-marker-bookmark">
+                    <i class="bx bxs-bookmark"></i>
+                    <span class="progress-marker-label">Resume here</span>
+                    <span class="progress-marker-date">— ${escapeHtml(pretty)}</span>
+                </span>
+                <div class="progress-marker-actions">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary progress-marker-edit-btn"
+                            data-marker-id="${escapeHtml(info.id || '')}"
+                            data-date="${escapeHtml(dateKey)}"
+                            data-note="${escapeHtml(noteRaw)}"
+                            title="Edit the note on this resume-here marker">
+                        <i class="bx bx-edit-alt"></i>
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger progress-marker-delete-btn"
+                            data-marker-id="${escapeHtml(info.id || '')}"
+                            data-date="${escapeHtml(dateKey)}"
+                            title="Remove this resume-here marker">
+                        <i class="bx bx-trash"></i>
+                    </button>
+                </div>
+            </div>
+            ${noteHtml}
+        </div>
+    `;
 }
 
 function refreshItemsEmptyState() {
@@ -1146,7 +1291,7 @@ $('#addActivityBtn').on('click', function () {
 // day opens the same modal as the toolbar button, but with the target
 // date pre-filled to the clicked day so the user doesn't have to type
 // it. Mirrors the toolbar handler exactly otherwise.
-$(document).on('click', '.rest-day-add-btn', function (e) {
+$(document).on('click', '.rest-day-add-btn, .group-add-activity-btn', function (e) {
     e.preventDefault();
     e.stopPropagation();
     const dateKey = ($(this).data('date') || '').trim();
@@ -1559,6 +1704,132 @@ $(document).on('drop', '.date-activities', function (e) {
     dragBoardSnapshot = null;
 });
 
+// ---------- Drag onto a rest-day marker (date with no activities) ----------
+// Mirrors the .date-activities handlers: visual outline on hover, accept drop,
+// re-date the card to that day, then trigger the same reorder/rebuild path so
+// the rest-day marker auto-converts into a populated date-group on save.
+$(document).on('dragover', '.rest-day-marker', function (e) {
+    if (!dragSourceCard) return;
+    e.preventDefault();
+    if (e.originalEvent && e.originalEvent.dataTransfer) {
+        e.originalEvent.dataTransfer.dropEffect = 'move';
+    }
+});
+
+$(document).on('dragenter', '.rest-day-marker', function (e) {
+    if (!dragSourceCard) return;
+    e.preventDefault();
+    $(this).addClass('drop-target');
+});
+
+$(document).on('dragleave', '.rest-day-marker', function (e) {
+    if (e.target === this) $(this).removeClass('drop-target');
+});
+
+$(document).on('drop', '.rest-day-marker', function (e) {
+    e.preventDefault();
+    $(this).removeClass('drop-target');
+    if (!dragSourceCard) return;
+
+    const $card   = $(dragSourceCard);
+    const newDate = ($(this).attr('data-date') || '').trim();
+    const oldDate = (dragOrigin && dragOrigin.date) || '';
+    if (!newDate) return;
+
+    // Preserve duration for multi-day activities (shift end by the same delta).
+    function daysBetween(a, b) {
+        const da = parseLocalDate(a);
+        const db = parseLocalDate(b);
+        if (!da || !db) return null;
+        return Math.round((db - da) / 86400000);
+    }
+    function addDaysIso(iso, days) {
+        const d = parseLocalDate(iso);
+        if (!d) return '';
+        d.setDate(d.getDate() + days);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+    let newEndDate = '';
+    if (dragOrigin && dragOrigin.endDate && dragOrigin.date) {
+        const delta = daysBetween(dragOrigin.date, newDate);
+        if (delta !== null) newEndDate = addDaysIso(dragOrigin.endDate, delta);
+    }
+
+    // Stamp the card with the new date + reset its sequence so it lands as
+    // the lone (sole) activity in the freshly-formed date group.
+    $card.attr('data-target-date', newDate);
+    $card.attr('data-target-end-date', newEndDate);
+    $card.attr('data-sequence-order', 0);
+
+    // Build the items payload. The dragged card goes to the new date at seq 0.
+    // The source container's remaining cards get tightened sequence numbers
+    // so they keep predictable order after the leaver is gone.
+    const items = [{
+        id: parseInt($card.attr('data-id'), 10),
+        targetDate: newDate,
+        targetEndDate: newEndDate || null,
+        sequenceOrder: 0,
+    }];
+    if (dragOrigin && dragOrigin.parent && dragOrigin.parent.nodeType) {
+        const sourceDate = ($(dragOrigin.parent).closest('.date-group').attr('data-date') || '').trim();
+        if (sourceDate && sourceDate !== newDate) {
+            $(dragOrigin.parent).children('.activity-card[data-id]').each(function (idx) {
+                const cardId = parseInt($(this).attr('data-id'), 10);
+                if (cardId === items[0].id) return;
+                items.push({
+                    id: cardId,
+                    targetDate: sourceDate,
+                    targetEndDate: ($(this).attr('data-target-end-date') || '').trim() || null,
+                    sequenceOrder: idx * 10,
+                });
+                $(this).attr('data-sequence-order', idx * 10);
+            });
+        }
+    }
+
+    // Rebuild the timeline — the rest-day marker for this date dissolves into
+    // a brand-new .date-group containing the dragged card.
+    reorderAndRenumberActivities();
+
+    const snapshotForUndo = dragBoardSnapshot;
+    $.ajax({
+        url: URLS.activitiesReorder(),
+        type: 'POST',
+        data: { _token: CSRF, items: items },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message); return; }
+            toastr.success('Moved to ' + newDate);
+            if (typeof recomputeLotDayZero === 'function') recomputeLotDayZero();
+            if (snapshotForUndo && snapshotForUndo.length) {
+                const undoSnapshot = snapshotForUndo.slice();
+                pushUndo('Move activity to ' + newDate, async () => {
+                    const r = await $.ajax({
+                        url: URLS.activitiesReorder(),
+                        type: 'POST',
+                        data: { _token: CSRF, items: undoSnapshot },
+                    });
+                    if (!r || !r.success) throw new Error((r && r.message) || 'reorder failed');
+                    undoSnapshot.forEach(it => {
+                        const $c = $('#activitiesList [data-id="' + it.id + '"]');
+                        $c.attr('data-target-date', it.targetDate || '');
+                        $c.attr('data-target-end-date', it.targetEndDate || '');
+                        $c.attr('data-sequence-order', it.sequenceOrder);
+                    });
+                    reorderAndRenumberActivities();
+                    if (typeof recomputeLotDayZero === 'function') recomputeLotDayZero();
+                });
+            }
+        },
+        error: (xhr) => {
+            toastr.error(xhr.responseJSON?.message || 'Save failed — refresh to see saved order.');
+        }
+    });
+    dragBoardSnapshot = null;
+});
+
 // Duplicate handler — create a server-side copy, render & open it for editing.
 $(document).on('click', '.duplicate-activity-btn', function () {
     const id = $(this).data('id');
@@ -1732,6 +2003,116 @@ $(document).on('click', '#openDraftsModalBtn', function () {
     }).fail(function (xhr) {
         toastr.error(xhr.responseJSON?.message || 'Could not load drafts');
         renderDraftsList([]);
+    });
+});
+
+// ---- Hidden-activities visibility toggle for the Activities tab ----
+// By default, activities flagged isHidden=true are removed from the tab
+// (CSS rule .activity-card.is-hidden { display: none; }) so the user
+// gets a clean list of what's active. The "Show Hidden (N)" pill below
+// the search bar lets them re-surface hidden activities in a dimmed
+// state to access the per-card visibility switch.
+//
+// Persisted per-schedule in localStorage so the choice survives refresh.
+const HIDDEN_TOGGLE_KEY = 'showHiddenActivities:{{ $schedule->id }}';
+const $hiddenToggleBtn = $('#toggleHiddenActivitiesBtn');
+const $hiddenCountEl   = $('#hiddenActivityCount');
+const $hiddenToggleLbl = $('.cv-hidden-toggle-label');
+
+function refreshHiddenActivityCount() {
+    const n = $('.activity-card.is-hidden').length;
+    $hiddenCountEl.text(n);
+    // Only surface the toggle button when there's something to surface.
+    if (n > 0) {
+        $hiddenToggleBtn.show();
+    } else {
+        $hiddenToggleBtn.hide();
+        // If user happens to be in "show hidden" mode but nothing is
+        // hidden anymore, drop the body class so the layout is clean.
+        if (document.body.classList.contains('show-hidden-activities')) {
+            document.body.classList.remove('show-hidden-activities');
+            localStorage.setItem(HIDDEN_TOGGLE_KEY, '0');
+        }
+    }
+}
+
+function applyHiddenActivitiesVisibility(show) {
+    document.body.classList.toggle('show-hidden-activities', show);
+    $hiddenToggleLbl.text(show ? 'Hide Hidden' : 'Show Hidden');
+    $hiddenToggleBtn.toggleClass('btn-secondary', show).toggleClass('btn-outline-secondary', !show);
+    $hiddenToggleBtn.attr('aria-pressed', show ? 'true' : 'false');
+}
+
+// Init on page load: read localStorage state + compute initial count
+applyHiddenActivitiesVisibility(localStorage.getItem(HIDDEN_TOGGLE_KEY) === '1');
+refreshHiddenActivityCount();
+
+$hiddenToggleBtn.on('click', function () {
+    const next = !document.body.classList.contains('show-hidden-activities');
+    applyHiddenActivitiesVisibility(next);
+    localStorage.setItem(HIDDEN_TOGGLE_KEY, next ? '1' : '0');
+});
+
+// Per-activity visibility toggle. Lighter-weight than "to drafts" — the
+// card stays on the timeline but is dimmed (.is-hidden class) and the
+// server-side workerPresentation / cardViewer / export queries skip it.
+// The switch state is bound to the change event so keyboard toggles work.
+$(document).on('change', '.hide-activity-toggle', function () {
+    const $input = $(this);
+    const id     = $input.data('id');
+    const $card  = $input.closest('.activity-card');
+    const wantHide = !$input.is(':checked'); // checked = visible, unchecked = hidden
+
+    // Optimistic UI — flip immediately, revert on AJAX failure.
+    $card.toggleClass('is-hidden', wantHide);
+    $card.attr('data-is-hidden', wantHide ? 1 : 0);
+    const $tag = $card.find('.hide-activity-tag');
+    if (wantHide) {
+        if (!$tag.length) {
+            $input.closest('label').after('<span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;"><i class="bx bx-hide"></i> Hidden</span>');
+        }
+    } else {
+        $tag.remove();
+    }
+    refreshHiddenActivityCount();
+
+    $input.prop('disabled', true);
+    $.ajax({
+        url: URLS.activitiesToggleHidden(id),
+        type: 'POST',
+        data: { _token: CSRF },
+        success: (res) => {
+            if (!res || !res.success) {
+                toastr.error(res && res.message ? res.message : 'Toggle failed.');
+                // Revert
+                $input.prop('checked', !wantHide);
+                $card.toggleClass('is-hidden', !wantHide);
+                $card.attr('data-is-hidden', !wantHide ? 1 : 0);
+                if (!wantHide) {
+                    $card.find('.hide-activity-tag').remove();
+                } else if (!$card.find('.hide-activity-tag').length) {
+                    $input.closest('label').after('<span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;"><i class="bx bx-hide"></i> Hidden</span>');
+                }
+                refreshHiddenActivityCount();
+                return;
+            }
+            toastr.success(res.message || (wantHide ? 'Activity hidden.' : 'Activity restored.'));
+        },
+        error: (xhr) => {
+            const msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Toggle failed.';
+            toastr.error(msg);
+            // Revert
+            $input.prop('checked', !wantHide);
+            $card.toggleClass('is-hidden', !wantHide);
+            $card.attr('data-is-hidden', !wantHide ? 1 : 0);
+            if (!wantHide) {
+                $card.find('.hide-activity-tag').remove();
+            } else if (!$card.find('.hide-activity-tag').length) {
+                $input.closest('label').after('<span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;"><i class="bx bx-hide"></i> Hidden</span>');
+            }
+            refreshHiddenActivityCount();
+        },
+        complete: () => $input.prop('disabled', false),
     });
 });
 
@@ -3181,6 +3562,166 @@ $(document).on('click', '#dateNoteClearBtn', function () {
         },
         error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to clear note'),
         complete: () => $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Clear Note')
+    });
+});
+
+// ---------- PROGRESS MARKERS ("resume here" bookmarks) ----------
+//
+// Each date can carry a single marker that renders as a horizontal line
+// AFTER its date-group. Optional note explains "where I left off / what's
+// next." Markers are version-scoped (same pattern as date notes) so each
+// fork keeps its own resume-here pins.
+
+// Refresh the marker line + date-header bookmark icon for one date without
+// a full reload. info = { id, note } when present, null to clear.
+function _refreshProgressMarkerUI(dateKey, info) {
+    const $btn = $('.date-marker-btn[data-date="' + dateKey + '"]');
+    const $row = $('.progress-marker[data-date="' + dateKey + '"]');
+
+    if (!info) {
+        $btn.removeClass('has-marker')
+            .attr('data-marker-id', '')
+            .attr('data-existing', '')
+            .attr('title', 'Drop a "resume here" marker after this date')
+            .find('i').removeClass('bxs-bookmark').addClass('bx-bookmark');
+        $row.remove();
+        return;
+    }
+
+    $btn.addClass('has-marker')
+        .attr('data-marker-id', info.id || '')
+        .attr('data-existing', info.note || '')
+        .attr('title', 'Edit the resume-here marker on this date')
+        .find('i').removeClass('bx-bookmark').addClass('bxs-bookmark');
+
+    const html = _buildProgressMarkerHtml(dateKey, info);
+    if ($row.length) {
+        $row.replaceWith(html);
+    } else {
+        // No existing row — insert AFTER its date-group, or append if orphan.
+        const $group = $('.date-group[data-date="' + dateKey + '"]').first();
+        if ($group.length) {
+            $group.after(html);
+        } else {
+            $('#activitiesList').append(html);
+        }
+    }
+}
+
+// Clicking the bookmark icon on a date header opens the modal pre-populated.
+$(document).on('click', '.date-marker-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dateKey   = ($(this).attr('data-date') || '').trim();
+    const existing  = $(this).attr('data-existing') || '';
+    const markerId  = $(this).attr('data-marker-id') || '';
+    if (!dateKey) return;
+
+    $('#progressMarkerDate').val(dateKey);
+    $('#progressMarkerId').val(markerId);
+    $('#progressMarkerModalDate').text(_prettyDateLabel(dateKey));
+    $('#progressMarkerNote').val(existing);
+    $('#progressMarkerModalTitle').text(markerId ? 'Edit resume-here marker' : 'Drop resume-here marker');
+    $('#progressMarkerClearBtn').toggle(!!markerId);
+    $('#progressMarkerModal').modal('show');
+    setTimeout(() => $('#progressMarkerNote').trigger('focus'), 200);
+});
+
+// Edit button ON the marker line itself — opens the modal in edit mode.
+$(document).on('click', '.progress-marker-edit-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dateKey  = ($(this).attr('data-date') || '').trim();
+    const note     = $(this).attr('data-note') || '';
+    const markerId = $(this).attr('data-marker-id') || '';
+    if (!dateKey) return;
+
+    $('#progressMarkerDate').val(dateKey);
+    $('#progressMarkerId').val(markerId);
+    $('#progressMarkerModalDate').text(_prettyDateLabel(dateKey));
+    $('#progressMarkerNote').val(note);
+    $('#progressMarkerModalTitle').text('Edit resume-here marker');
+    $('#progressMarkerClearBtn').toggle(!!markerId);
+    $('#progressMarkerModal').modal('show');
+    setTimeout(() => $('#progressMarkerNote').trigger('focus'), 200);
+});
+
+// Delete button ON the marker line — soft-delete without opening the modal.
+$(document).on('click', '.progress-marker-delete-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const markerId = $(this).attr('data-marker-id') || '';
+    const dateKey  = ($(this).attr('data-date') || '').trim();
+    if (!markerId) return;
+
+    confirmAction({
+        title: 'Remove resume-here marker',
+        message: 'Remove the marker on <strong>' + escapeHtml(_prettyDateLabel(dateKey)) + '</strong>?',
+        detail: 'The note attached to it (if any) will be cleared too.',
+        confirmText: 'Remove Marker',
+        onConfirm: () => {
+            $.ajax({
+                url: URLS.markersDelete(markerId),
+                type: 'DELETE',
+                data: { _token: CSRF },
+                success: (res) => {
+                    if (!res.success) { toastr.error(res.message || 'Failed to remove marker'); return; }
+                    _refreshProgressMarkerUI(dateKey, null);
+                    toastr.success('Marker removed.');
+                },
+                error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to remove marker'),
+            });
+        }
+    });
+});
+
+$(document).on('click', '#progressMarkerSaveBtn', function () {
+    const dateKey = $('#progressMarkerDate').val();
+    const content = $('#progressMarkerNote').val();
+    if (!dateKey) return;
+
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
+    $.ajax({
+        url: URLS.markersSave(),
+        type: 'POST',
+        data: {
+            _token:      CSRF,
+            markerDate:  dateKey,
+            noteContent: content || '',
+        },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message || 'Failed to save marker'); return; }
+            const data = (res && res.data) ? res.data : {};
+            _refreshProgressMarkerUI(dateKey, {
+                id:   String(data.id || ''),
+                note: data.noteContent || '',
+            });
+            toastr.success('Marker saved.');
+            $('#progressMarkerModal').modal('hide');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to save marker'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i> Save Marker')
+    });
+});
+
+$(document).on('click', '#progressMarkerClearBtn', function () {
+    const dateKey  = $('#progressMarkerDate').val();
+    const markerId = $('#progressMarkerId').val();
+    if (!markerId) return;
+
+    const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Removing...');
+    $.ajax({
+        url: URLS.markersDelete(markerId),
+        type: 'DELETE',
+        data: { _token: CSRF },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message || 'Failed to remove marker'); return; }
+            _refreshProgressMarkerUI(dateKey, null);
+            toastr.success('Marker removed.');
+            $('#progressMarkerModal').modal('hide');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to remove marker'),
+        complete: () => $btn.prop('disabled', false).html('<i class="bx bx-trash me-1"></i> Remove Marker')
     });
 });
 

@@ -59,6 +59,38 @@ class ActivityController extends BaseScheduleController
     }
 
     /**
+     * Toggle the per-activity isHidden flag. Hidden activities stay on
+     * the setup timeline (dimmed, with a "Hidden" tag) so the user knows
+     * they exist, but are filtered out of the worker presentation, card
+     * viewer, and export schedule. Use case: skip an optional activity
+     * for this print run without unscheduling it from the timeline.
+     *
+     * Distinct from isDraft: isDraft archives the activity entirely
+     * (moves it off the timeline into a separate drafts panel). isHidden
+     * is lighter-weight — quick toggle, easy to flip back.
+     */
+    public function toggleHidden(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $id = $this->queryId($request);
+        $activity = AsScheduleActivity::active()
+            ->where('croppingScheduleId', $schedule->id)
+            ->where('id', $id)
+            ->first();
+        if (!$activity) return $this->jsonFail('Activity not found.', 404);
+
+        $next = !((bool) $activity->isHidden);
+        $activity->update(['isHidden' => $next]);
+
+        return $this->jsonOk($next ? 'Activity hidden from presentations.' : 'Activity restored to presentations.', [
+            'data' => [
+                'id'       => $activity->id,
+                'isHidden' => $next,
+            ],
+        ]);
+    }
+
+    /**
      * Upload a reference image for an activity. The file is written under
      * `public/storage/schedule-activities/{scheduleId}/{uuid}.{ext}` and
      * the relative path is returned to the client. The client stashes that
@@ -598,7 +630,10 @@ class ActivityController extends BaseScheduleController
         $schedule->load([
             'lots',
             'workers' => fn ($q) => $q->orderBy('priority', 'asc'),
-            'activities' => fn ($q) => $q->orderBy('targetDate', 'asc'),
+            // Skip activities the user toggled as hidden — they stay
+            // visible on the setup timeline (dimmed) but are excluded
+            // from the worker briefing.
+            'activities' => fn ($q) => $q->where('isHidden', false)->orderBy('targetDate', 'asc'),
             'activities.workers',
             'activities.lots',
             'activities.items.material',
@@ -1217,7 +1252,12 @@ class ActivityController extends BaseScheduleController
             'lots',
             'workers',
             'activities' => function ($q) {
-                $q->orderBy('targetDate')->orderBy('sequenceOrder')->orderBy('id');
+                // Hidden activities are excluded from the export — same
+                // policy as worker presentation and card viewer.
+                $q->where('isHidden', false)
+                    ->orderBy('targetDate')
+                    ->orderBy('sequenceOrder')
+                    ->orderBy('id');
             },
             'activities.lots',
             'activities.workers',
@@ -1662,7 +1702,9 @@ class ActivityController extends BaseScheduleController
         $schedule->load([
             'lots',
             'workers',
-            'activities' => fn ($q) => $q->orderBy('targetDate', 'asc'),
+            // Hidden activities are excluded from the card viewer — same
+            // policy as worker presentation and export.
+            'activities' => fn ($q) => $q->where('isHidden', false)->orderBy('targetDate', 'asc'),
             'activities.workers',
             'activities.lots',
             'activities.items.material',

@@ -65,15 +65,36 @@ class RgBlogController extends Controller
 
     private function validatePost(Request $request): array
     {
-        return $request->validate([
+        $rules = [
             'title' => 'required|string|max:255',
+            'subtitle' => 'nullable|string|max:300',
             'excerpt' => 'nullable|string|max:500',
+            'tldr' => 'nullable|string|max:1500',
             'content_html' => 'nullable|string',
             'cover_path' => 'nullable|string|max:500',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'status' => 'required|in:draft,published',
-        ]);
+        ];
+        $data = $request->validate($rules);
+
+        // WWWW comes in as 4 separate fields and is stored as JSON
+        $wwww = [
+            'why'   => trim((string) $request->input('wwww_why', '')),
+            'when'  => trim((string) $request->input('wwww_when', '')),
+            'where' => trim((string) $request->input('wwww_where', '')),
+            'whom'  => trim((string) $request->input('wwww_whom', '')),
+        ];
+        $wwww = array_filter($wwww, fn ($v) => $v !== '');
+        $data['wwww_json'] = $wwww ? json_encode($wwww) : null;
+
+        // Strip fields that don't exist yet on installations missing the
+        // migration (defensive — keep the controller forward-compatible).
+        if (!Schema::hasColumn('rg_blog_posts', 'subtitle')) unset($data['subtitle']);
+        if (!Schema::hasColumn('rg_blog_posts', 'tldr')) unset($data['tldr']);
+        if (!Schema::hasColumn('rg_blog_posts', 'wwww_json')) unset($data['wwww_json']);
+
+        return $data;
     }
 
     private function uniqueSlug(string $title): string

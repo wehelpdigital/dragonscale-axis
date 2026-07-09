@@ -626,6 +626,21 @@
             border-radius: 3px;
             border-left: 2px solid #d1d5db;
         }
+        /* Quill 2 unified-list fix: bullet/ordered marker per <li> via
+           data-list. Without this, an authored bullet list looks numbered
+           because <ol> defaults to decimal. Indent classes follow Quill
+           snow theme spacing. */
+        .activity-desc ol > li[data-list="bullet"]  { list-style-type: disc; }
+        .activity-desc ol > li[data-list="ordered"] { list-style-type: decimal; }
+        .activity-desc .ql-ui { display: none; }
+        .activity-desc li.ql-indent-1 { margin-left: 1.5em; }
+        .activity-desc li.ql-indent-2 { margin-left: 3em; }
+        .activity-desc li.ql-indent-3 { margin-left: 4.5em; }
+        .activity-desc li.ql-indent-4 { margin-left: 6em; }
+        .activity-desc li.ql-indent-5 { margin-left: 7.5em; }
+        .activity-desc li.ql-indent-6 { margin-left: 9em; }
+        .activity-desc li.ql-indent-7 { margin-left: 10.5em; }
+        .activity-desc li.ql-indent-8 { margin-left: 12em; }
         .activity-image {
             margin-top: 6px;
             padding: 4px;

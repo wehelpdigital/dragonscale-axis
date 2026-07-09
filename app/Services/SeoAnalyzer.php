@@ -25,7 +25,7 @@ class SeoAnalyzer
         $checks[] = $this->checkH1($page->h1);
         $checks[] = $this->checkWordCount($wordCount);
         $checks[] = $this->checkKeywordDensity($contentText, $phrase, $wordCount);
-        $checks[] = $this->checkImages($blocks, $contentHtml);
+        foreach ($this->imageChecks($blocks) as $ic) $checks[] = $ic;
         $checks[] = $this->checkInternalLinks($contentHtml);
         $checks[] = $this->checkFAQ($blocks);
         $checks[] = $this->checkListingSlot($blocks);
@@ -48,7 +48,7 @@ class SeoAnalyzer
         $checks[] = $this->checkTitle($post->meta_title ?: $post->title);
         $checks[] = $this->checkMetaDesc($post->meta_description);
         $checks[] = $this->checkWordCount($wordCount);
-        $checks[] = $this->checkImages($blocks, $contentHtml);
+        foreach ($this->imageChecks($blocks) as $ic) $checks[] = $ic;
         $checks[] = $this->checkInternalLinks($contentHtml);
         $checks[] = $this->checkExcerpt($post->excerpt);
         $checks[] = $this->checkCover($post->cover_path);
@@ -164,24 +164,125 @@ class SeoAnalyzer
         return $this->pass('kd', 'Keyword usage', "Keyword appears $count times. Good distribution.");
     }
 
-    private function checkImages($blocks, string $html): array
+    /**
+     * Image SEO checks across EVERY block type (not just the generic
+     * image / gallery blocks). Walks each block payload, resolves every
+     * editable content image's alt + title, and returns up to two
+     * check rows: alt-text coverage and title-attribute coverage. Used
+     * by the SEO-page + blog analyzers here and reused by the static-
+     * page scorer so the homepage ranks images the same way.
+     *
+     * @return array<int,array> one or two check rows (status/label/message)
+     */
+    public function imageChecks($blocks): array
     {
-        $imageBlocks = 0; $missingAlt = 0;
+        $imgs = $this->extractImagesFromBlocks($blocks);
+        $total = count($imgs);
+        if ($total === 0) {
+            return [$this->warn('img', 'Images', 'No images yet. Add at least one with descriptive alt text for visual SEO.')];
+        }
+        $missingAlt = 0;
+        $missingTitle = 0;
+        foreach ($imgs as $im) {
+            if (trim((string) ($im['alt'] ?? '')) === '') $missingAlt++;
+            if (trim((string) ($im['title'] ?? '')) === '') $missingTitle++;
+        }
+        $checks = [];
+        $checks[] = $missingAlt > 0
+            ? $this->warn('img_alt', 'Image alt tags', "$missingAlt of $total image(s) missing alt text. Alt text is a direct ranking + accessibility signal.")
+            : $this->pass('img_alt', 'Image alt tags', "All $total image(s) have alt text.");
+        $checks[] = $missingTitle > 0
+            ? $this->warn('img_title', 'Image title tags', "$missingTitle of $total image(s) missing a title attribute. Optional, but adds context for users + crawlers.")
+            : $this->pass('img_title', 'Image title tags', "All $total image(s) have a title attribute.");
+        return $checks;
+    }
+
+    /**
+     * Flatten every block payload into a list of editable content images,
+     * each ['src','alt','title'], tolerating the many payload shapes used
+     * across blocks. Decorative CSS-background collages stored as bare
+     * string arrays (e.g. the season mosaic) carry no per-image alt slot
+     * and are skipped.
+     *
+     * @return array<int,array{src:string,alt:string,title:string}>
+     */
+    public function extractImagesFromBlocks($blocks): array
+    {
+        $images = [];
         foreach ($blocks as $b) {
             $p = json_decode($b->payload_json, true) ?: [];
-            if ($b->block_type === 'image') {
-                $imageBlocks++;
-                if (empty($p['alt'])) $missingAlt++;
-            } elseif ($b->block_type === 'gallery') {
-                foreach ($p['images'] ?? [] as $i) {
-                    $imageBlocks++;
-                    if (empty($i['alt'])) $missingAlt++;
-                }
+            $this->collectImages($p, $images);
+        }
+        return $images;
+    }
+
+    private function collectImages($node, array &$out): void
+    {
+        if (!is_array($node)) return;
+        $isAssoc = array_keys($node) !== range(0, count($node) - 1);
+        if ($isAssoc) {
+            foreach ($node as $k => $v) {
+                if (!is_string($v) || trim($v) === '') continue;
+                if (!$this->isImageKey($k) || !$this->looksLikeImage($v)) continue;
+                $out[] = [
+                    'src'   => $v,
+                    'alt'   => $this->siblingValue($node, $this->altKeysFor($k)),
+                    'title' => $this->siblingValue($node, $this->titleKeysFor($k)),
+                ];
             }
         }
-        if ($imageBlocks === 0) return $this->warn('img', 'Images', 'No images yet. Add at least one for visual SEO.');
-        if ($missingAlt > 0) return $this->warn('img', 'Image alt tags', "$missingAlt of $imageBlocks images missing alt text.");
-        return $this->pass('img', 'Images', "$imageBlocks images, all with alt text.");
+        foreach ($node as $v) {
+            if (is_array($v)) $this->collectImages($v, $out);
+        }
+    }
+
+    private function isImageKey(string $k): bool
+    {
+        $k = strtolower($k);
+        if (preg_match('/_(alt|title|url|caption)$/', $k)) return false;
+        $exact = ['image', 'img', 'src', 'avatar', 'logo', 'photo', 'poster', 'cover', 'cover_image', 'thumbnail', 'badge_image', 'background_image', 'bg_image'];
+        if (in_array($k, $exact, true)) return true;
+        return (bool) preg_match('/(_image|_src)$/', $k);
+    }
+
+    private function looksLikeImage(string $v): bool
+    {
+        $v = trim($v);
+        if ($v === '') return false;
+        return str_starts_with($v, 'http')
+            || str_starts_with($v, '/')
+            || str_contains($v, '/storage/')
+            || (bool) preg_match('/\.(jpe?g|png|webp|gif|avif|svg)(\?|#|$)/i', $v);
+    }
+
+    /** Candidate sibling keys that may hold this image key's alt text. */
+    private function altKeysFor(string $k): array
+    {
+        return array_values(array_unique([
+            $k . '_alt',
+            preg_replace('/(src|image)$/i', 'alt', $k),
+            'alt', 'image_alt', 'name', 'author',
+        ]));
+    }
+
+    /** Candidate sibling keys that may hold this image key's title text. */
+    private function titleKeysFor(string $k): array
+    {
+        return array_values(array_unique([
+            $k . '_title',
+            preg_replace('/(src|image)$/i', 'title', $k),
+            'title', 'image_title',
+        ]));
+    }
+
+    private function siblingValue(array $node, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (isset($node[$key]) && is_string($node[$key]) && trim($node[$key]) !== '') {
+                return trim($node[$key]);
+            }
+        }
+        return '';
     }
 
     private function checkInternalLinks(string $html): array

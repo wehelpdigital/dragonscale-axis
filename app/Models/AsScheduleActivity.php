@@ -37,6 +37,7 @@ class AsScheduleActivity extends BaseModel
         'activityType',
         'isDayZero',
         'isDraft',
+        'isHidden',
         'description',
         'imagePath',
         'timeRequired',
@@ -49,6 +50,7 @@ class AsScheduleActivity extends BaseModel
         'targetEndDate' => 'date:Y-m-d',
         'isDayZero' => 'boolean',
         'isDraft' => 'boolean',
+        'isHidden' => 'boolean',
         'sequenceOrder' => 'integer',
         'deleteStatus' => 'integer',
     ];

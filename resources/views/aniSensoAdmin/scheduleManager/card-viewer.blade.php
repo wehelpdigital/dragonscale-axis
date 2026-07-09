@@ -465,6 +465,31 @@
             background: #fff;
             white-space: nowrap;
         }
+        /* Per-activity download button. Sits at the end of the item head
+           (after the priority + multiday + day-0 tags), matched to the
+           same height as the tags so it doesn't break the row. Hidden in
+           print AND excluded from the html2canvas capture (see onclone
+           strip in the JS handler), so neither the printed deck nor the
+           saved PNG carry the button itself. */
+        .cv-item-download-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            border: 1px solid #c8cdd8;
+            background: #fff;
+            color: #4a5160;
+            padding: 2px 7px;
+            border-radius: 2px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background .12s ease;
+        }
+        .cv-item-download-btn:hover { background: #f4f5f8; color: var(--cv-ink); }
+        .cv-item-download-btn:active { background: #e8eaef; }
+        .cv-item-download-btn.is-busy { opacity: 0.55; cursor: wait; }
+        .cv-item-download-btn i { display: block; }
+        @media print {
+            .cv-item-download-btn { display: none !important; }
+        }
         .cv-doc-tag.cv-tag-prio-critical {
             border-color: #8a1d1d; color: #8a1d1d; background: #fff4f4;
         }
@@ -1135,6 +1160,12 @@
                                         @if($a->isDayZero)
                                             <span class="cv-doc-tag cv-tag-day0">{{ $schedule->dayType }} 0</span>
                                         @endif
+                                        {{-- Per-activity image download. Click captures the
+                                             whole .cv-doc-item with html2canvas, excluding
+                                             the button itself via the onclone strip below. --}}
+                                        <button type="button" class="cv-item-download-btn" title="Download this activity as a PNG image" aria-label="Download activity image">
+                                            <i class="bx bx-image-add"></i>
+                                        </button>
                                     </div>
                                     <div class="cv-doc-meta">
                                         @if($isMultiDay)
@@ -1459,6 +1490,66 @@
             }
         });
     }
+
+    // Per-activity download — small icon button at the end of every
+    // activity item's head row. Captures just that single .cv-doc-item
+    // element via html2canvas, scrubs the button itself out of the
+    // cloned DOM via onclone so it doesn't leak into the saved PNG.
+    // Event-delegated on document so it works regardless of slide state.
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.cv-item-download-btn');
+        if (!btn) return;
+        if (btn.classList.contains('is-busy')) return;
+
+        const item = btn.closest('.cv-doc-item');
+        if (!item) return;
+        if (typeof html2canvas === 'undefined') {
+            alert('Image capture library failed to load. Reload the page and try again.');
+            return;
+        }
+
+        // Filename: {schedule}-{date}-{activity-slug}.png
+        const titleEl = item.querySelector('.cv-doc-item-title');
+        const title   = titleEl ? titleEl.textContent.trim() : 'activity';
+        const slug    = title.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .substring(0, 60) || 'activity';
+        const slide   = item.closest('.cv-slide');
+        const date    = (slide && slide.getAttribute('data-date')) || 'cover';
+        const filename = `${SCHEDULE_SLUG}-${date}-${slug}.png`;
+
+        btn.classList.add('is-busy');
+        try {
+            const canvas = await html2canvas(item, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false,
+                // Strip the download button from the cloned DOM so the
+                // captured image doesn't show a tiny "download" icon
+                // floating in the upper-right corner.
+                onclone: (doc) => {
+                    doc.querySelectorAll('.cv-item-download-btn').forEach(b => b.remove());
+                },
+            });
+            canvas.toBlob((blob) => {
+                if (!blob) { alert('Failed to encode image.'); return; }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1500);
+            }, 'image/png');
+        } catch (err) {
+            console.error('Activity image capture failed:', err);
+            alert('Could not save image: ' + (err && err.message ? err.message : 'unknown error'));
+        } finally {
+            btn.classList.remove('is-busy');
+        }
+    });
 
     // Critical rules quick-view modal: clicking the compact banner on a
     // day slide opens a popup with the full list, so workers don't have

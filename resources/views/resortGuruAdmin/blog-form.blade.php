@@ -37,6 +37,10 @@
                         <input type="text" name="title" class="form-control" value="{{ old('title', $post->title ?? '') }}" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Subtitle <small class="text-muted">(one line below the title; replaces the publish date on the public page)</small></label>
+                        <input type="text" name="subtitle" class="form-control" value="{{ old('subtitle', $post->subtitle ?? '') }}" maxlength="300">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Excerpt <small class="text-muted">(shown on blog index)</small></label>
                         <textarea name="excerpt" class="form-control" rows="2">{{ old('excerpt', $post->excerpt ?? '') }}</textarea>
                     </div>
@@ -44,6 +48,37 @@
                         <label class="form-label">Cover Image URL</label>
                         <input type="text" name="cover_path" class="form-control" value="{{ old('cover_path', $post->cover_path ?? '') }}" placeholder="/storage/...">
                     </div>
+
+                    <hr>
+                    <h6>TL;DR <small class="text-muted">(summary card at top of post — accepts plain paragraph OR `* bullet` lines)</small></h6>
+                    <div class="mb-3">
+                        <textarea name="tldr" class="form-control" rows="4" placeholder="* First takeaway&#10;* Second takeaway&#10;* Third takeaway">{{ old('tldr', $post->tldr ?? '') }}</textarea>
+                    </div>
+
+                    <hr>
+                    <h6>WWWW Summary <small class="text-muted">(4 short answers — Why/When/Where/Whom — rendered as a grid below TL;DR)</small></h6>
+                    @php
+                        $wwww = is_string($post->wwww_json ?? null) ? (json_decode($post->wwww_json, true) ?: []) : ($post->wwww_json ?? []);
+                    @endphp
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Why go</label>
+                            <textarea name="wwww_why" class="form-control" rows="3">{{ old('wwww_why', $wwww['why'] ?? '') }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">When to go</label>
+                            <textarea name="wwww_when" class="form-control" rows="3">{{ old('wwww_when', $wwww['when'] ?? '') }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Where to go</label>
+                            <textarea name="wwww_where" class="form-control" rows="3">{{ old('wwww_where', $wwww['where'] ?? '') }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Whom to go with</label>
+                            <textarea name="wwww_whom" class="form-control" rows="3">{{ old('wwww_whom', $wwww['whom'] ?? '') }}</textarea>
+                        </div>
+                    </div>
+
                     <hr>
                     <h6>SEO</h6>
                     <div class="mb-3">

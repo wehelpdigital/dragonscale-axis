@@ -11,6 +11,14 @@
     $dateNotesByDate = $schedule->dateNotes->keyBy(function ($n) {
         return $n->noteDate->format('Y-m-d');
     });
+
+    // Same trick for progress markers — keyed by the date AFTER which the
+    // marker line sits. Each entry exposes id + noteContent so the timeline
+    // can render a horizontal line with the optional note inline, and the
+    // date-header bookmark button can flag dates that already have one.
+    $markersByDate = $schedule->progressMarkers->keyBy(function ($m) {
+        return $m->markerDate->format('Y-m-d');
+    });
 @endphp
 
 {{-- Activity versions sub-tabs — every version is a branch of the schedule.
@@ -114,6 +122,16 @@
     <small class="text-secondary" id="activitySearchHint" style="display:none;">
         Showing <strong id="activitySearchCount">0</strong> matching activities.
     </small>
+    {{-- Show/hide toggle for activities the user has marked as hidden
+         via the per-card switch. Defaults to hidden (matches user
+         expectation: hidden = gone from the tab). Button is rendered
+         hidden and surfaced by JS only when there's at least one
+         hidden activity to reveal. --}}
+    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="toggleHiddenActivitiesBtn" style="display:none;" title="Toggle visibility of hidden activities">
+        <i class="bx bx-hide me-1"></i>
+        <span class="cv-hidden-toggle-label">Show Hidden</span>
+        (<span id="hiddenActivityCount">0</span>)
+    </button>
 </div>
 
 {{-- Activity type filter — toggle chips. Tap one (or more) to narrow the
@@ -191,6 +209,43 @@
         if (isset($byDate['__no-date__'])) {
             $timeline[] = ['type' => 'group', 'date' => '__no-date__', 'color' => 0, 'carbon' => null];
         }
+
+        // Splice progress markers into the timeline immediately AFTER their
+        // markerDate row. The marker line then visually separates "what you
+        // already worked through" from "where you'll pick up next." If the
+        // markerDate isn't in the timeline at all (e.g. marker dropped on a
+        // date that no longer has activities AND falls outside the covered
+        // range), we still surface it on its own row so the user can find
+        // and edit / clear it.
+        if ($markersByDate->count()) {
+            $expanded = [];
+            $seenMarkerDates = [];
+            foreach ($timeline as $row) {
+                $expanded[] = $row;
+                $rowDate = $row['date'];
+                if ($rowDate !== '__no-date__' && isset($markersByDate[$rowDate])) {
+                    $expanded[] = [
+                        'type' => 'marker',
+                        'date' => $rowDate,
+                        'carbon' => $row['carbon'] ?? \Illuminate\Support\Carbon::parse($rowDate),
+                        'marker' => $markersByDate[$rowDate],
+                    ];
+                    $seenMarkerDates[$rowDate] = true;
+                }
+            }
+            // Orphans — markers whose date wasn't on the timeline. Append at the end.
+            foreach ($markersByDate as $dateKey => $marker) {
+                if (!isset($seenMarkerDates[$dateKey])) {
+                    $expanded[] = [
+                        'type' => 'marker',
+                        'date' => $dateKey,
+                        'carbon' => \Illuminate\Support\Carbon::parse($dateKey),
+                        'marker' => $marker,
+                    ];
+                }
+            }
+            $timeline = $expanded;
+        }
     @endphp
     @if($sortedActivities->count() === 0)
         <div id="activitiesEmpty">
@@ -215,6 +270,43 @@
                         title="Add a new activity to this date">
                     <i class="bx bx-plus"></i> Add Activity
                 </button>
+            </div>
+        @elseif($item['type'] === 'marker')
+            @php $marker = $item['marker']; @endphp
+            <div class="progress-marker {{ $marker->noteContent ? 'has-note' : '' }}"
+                 data-marker-id="{{ $marker->id }}"
+                 data-date="{{ $item['date'] }}"
+                 data-note="{{ e($marker->noteContent) }}">
+                <div class="progress-marker-line">
+                    <span class="progress-marker-bookmark">
+                        <i class="bx bxs-bookmark"></i>
+                        <span class="progress-marker-label">Resume here</span>
+                        <span class="progress-marker-date">— {{ $item['carbon']->format('M j, Y') }}</span>
+                    </span>
+                    <div class="progress-marker-actions">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary progress-marker-edit-btn"
+                                data-marker-id="{{ $marker->id }}"
+                                data-date="{{ $item['date'] }}"
+                                data-note="{{ e($marker->noteContent) }}"
+                                title="Edit the note on this resume-here marker">
+                            <i class="bx bx-edit-alt"></i>
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger progress-marker-delete-btn"
+                                data-marker-id="{{ $marker->id }}"
+                                data-date="{{ $item['date'] }}"
+                                title="Remove this resume-here marker">
+                            <i class="bx bx-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                @if($marker->noteContent)
+                    <div class="progress-marker-note">
+                        <i class="bx bxs-note progress-marker-note-icon"></i>
+                        <div class="progress-marker-note-text">{!! nl2br(e($marker->noteContent)) !!}</div>
+                    </div>
+                @endif
             </div>
         @else
         @php
@@ -242,7 +334,30 @@
                 }
             }
             $groupSpanDays = $latestEndCarbon ? ($dateCarbon->diffInDays($latestEndCarbon) + 1) : 0;
+            // When every activity on this date is hidden, the date-group CSS
+            // collapses to display:none — without a substitute the date would
+            // disappear from the timeline entirely. Render a rest-day-marker
+            // twin (.rest-day-substitute) so the user sees "No activities
+            // scheduled" instead of a gap, mirroring genuinely empty dates.
+            $allHidden = $dateCarbon
+                && $activitiesForDate->isNotEmpty()
+                && $activitiesForDate->every(fn ($_a) => (int) ($_a->isHidden ?? 0) === 1);
         @endphp
+        @if($allHidden)
+            <div class="rest-day-marker rest-day-substitute" data-date="{{ $dateKey }}">
+                <i class="bx bx-moon rest-day-icon"></i>
+                <div class="rest-day-text">
+                    <span class="rest-day-date">{{ $dateCarbon->format('l, F j, Y') }}</span>
+                    <span class="rest-day-tag">No activities scheduled</span>
+                </div>
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary rest-day-add-btn"
+                        data-date="{{ $dateKey }}"
+                        title="Add a new activity to this date">
+                    <i class="bx bx-plus"></i> Add Activity
+                </button>
+            </div>
+        @endif
         <div class="date-group date-color-{{ $colorIndex }}" data-date="{{ $dateKey }}">
             <div class="date-header">
                 @if($dateCarbon)
@@ -262,6 +377,14 @@
                 @endif
                 <span class="date-header-count">{{ $activitiesForDate->count() }} {{ \Illuminate\Support\Str::plural('activity', $activitiesForDate->count()) }}</span>
                 @if($dateKey !== '__no-date__')
+                    {{-- Quick-add: open the Activity modal with this date pre-filled,
+                         same handler the rest-day "Add Activity" button uses. --}}
+                    <button type="button"
+                            class="date-header-edit-btn group-add-activity-btn"
+                            data-date="{{ $dateKey }}"
+                            title="Add a new activity to this date">
+                        <i class="bx bx-plus"></i>
+                    </button>
                     @php $existingNote = $dateNotesByDate->get($dateKey); @endphp
                     <button type="button"
                             class="date-header-edit-btn date-note-btn {{ $existingNote ? 'has-note' : '' }}"
@@ -269,6 +392,15 @@
                             data-existing="{{ $existingNote ? e($existingNote->noteContent) : '' }}"
                             title="{{ $existingNote ? 'Edit the note for this date' : 'Add a note for this date' }}">
                         <i class="bx {{ $existingNote ? 'bxs-note' : 'bx-note' }}"></i>
+                    </button>
+                    @php $existingMarker = $markersByDate->get($dateKey); @endphp
+                    <button type="button"
+                            class="date-header-edit-btn date-marker-btn {{ $existingMarker ? 'has-marker' : '' }}"
+                            data-date="{{ $dateKey }}"
+                            data-marker-id="{{ $existingMarker?->id }}"
+                            data-existing="{{ $existingMarker ? e($existingMarker->noteContent) : '' }}"
+                            title="{{ $existingMarker ? 'Edit the resume-here marker on this date' : 'Drop a "resume here" marker after this date' }}">
+                        <i class="bx {{ $existingMarker ? 'bxs-bookmark' : 'bx-bookmark' }}"></i>
                     </button>
                     <button type="button"
                             class="date-header-edit-btn change-group-date-btn"
@@ -304,7 +436,7 @@
                         $rangeDays = $isRange ? ($startDateCarbon->diffInDays($endDateCarbon) + 1) : 0;
                         $endDateStr = $endDateCarbon ? $endDateCarbon->format('Y-m-d') : '';
                     @endphp
-                    <div class="activity-card" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}">
+                    <div class="activity-card{{ $a->isHidden ? ' is-hidden' : '' }}" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}" data-is-hidden="{{ $a->isHidden ? 1 : 0 }}">
                         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
                             <div class="flex-grow-1" style="min-width:0;">
                                 <h6 class="text-dark mb-1">
@@ -360,6 +492,23 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                 <span class="sm-pill priority-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
+                                {{-- Visibility switch — toggles isHidden. When OFF
+                                     (switch unchecked), the activity is excluded
+                                     from the worker presentation, card viewer,
+                                     and export. The card itself stays on the
+                                     timeline (dimmed via .is-hidden) so the user
+                                     knows the activity exists. --}}
+                                <label class="hide-activity-switch form-check form-switch m-0" title="Toggle visibility in worker presentation, card viewer, and export">
+                                    <input type="checkbox" class="form-check-input hide-activity-toggle"
+                                           data-id="{{ $a->id }}"
+                                           {{ $a->isHidden ? '' : 'checked' }}
+                                           aria-label="Show or hide this activity in presentations">
+                                </label>
+                                @if($a->isHidden)
+                                    <span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;">
+                                        <i class="bx bx-hide"></i> Hidden
+                                    </span>
+                                @endif
                                 <button class="btn btn-sm btn-outline-primary edit-activity-btn" data-id="{{ $a->id }}" title="Edit"><i class="bx bx-edit-alt"></i></button>
                                 <button class="btn btn-sm btn-outline-secondary duplicate-activity-btn" data-id="{{ $a->id }}" data-name="{{ $a->activityTitle }}" title="Duplicate"><i class="bx bx-copy"></i></button>
                                 <button class="btn btn-sm btn-outline-info to-draft-activity-btn" data-id="{{ $a->id }}" data-name="{{ $a->activityTitle }}" title="Move to drafts (hide without deleting)"><i class="bx bx-archive-in"></i></button>
@@ -490,6 +639,46 @@
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="dateNoteSaveBtn">
                     <i class="bx bx-save me-1"></i> Save Note
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Progress-marker modal: drop / edit / clear a "resume here" bookmark
+     on a specific date. The marker renders as a horizontal line in the
+     timeline so the user can find where they left off yesterday. --}}
+<div class="modal fade" id="progressMarkerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark">
+                    <i class="bx bxs-bookmark me-2"></i>
+                    <span id="progressMarkerModalTitle">Resume-here marker</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-dark mb-2">
+                    Drop a horizontal line after
+                    <strong id="progressMarkerModalDate" class="text-primary">—</strong>
+                    so you can find where you stopped working yesterday.
+                </p>
+                <small class="text-secondary d-block mb-2">
+                    Optional note — write a short reminder for what to pick up next ("continue with weeding Apartado 2", "review fertilizer plan", etc.). Line breaks are preserved.
+                </small>
+                <textarea class="form-control" id="progressMarkerNote" rows="5" maxlength="5000"
+                          placeholder="e.g. Continue here tomorrow — weeding Apartado 2 not yet planned."></textarea>
+                <input type="hidden" id="progressMarkerDate">
+                <input type="hidden" id="progressMarkerId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" id="progressMarkerClearBtn" style="display:none;">
+                    <i class="bx bx-trash me-1"></i> Remove Marker
+                </button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="progressMarkerSaveBtn">
+                    <i class="bx bx-save me-1"></i> Save Marker
                 </button>
             </div>
         </div>

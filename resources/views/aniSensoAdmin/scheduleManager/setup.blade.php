@@ -173,8 +173,39 @@
         padding: 12px 14px;
         margin-bottom: 8px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-        transition: box-shadow .15s ease;
+        transition: box-shadow .15s ease, opacity .15s ease, filter .15s ease;
     }
+    /* Hidden activities — by default, completely removed from the
+       activities tab (display: none) so the user gets a clean view
+       of only the active activities. Toggle "Show Hidden (N)" at the
+       top of the tab to surface them in a dimmed state for re-enabling.
+       Hidden activities remain excluded from worker presentation,
+       card viewer, and export at the server level regardless of
+       this client-side toggle. */
+    .activity-card.is-hidden { display: none; }
+    body.show-hidden-activities .activity-card.is-hidden {
+        display: block;
+        opacity: 0.55;
+        filter: grayscale(0.4);
+        background: #fafbfc;
+    }
+    body.show-hidden-activities .activity-card.is-hidden .activity-card-image img { opacity: 0.7; }
+    /* Date-group wrapper (the day row that holds activity cards) gets
+       auto-hidden when every card inside it is in the hidden state.
+       A sibling .rest-day-marker.rest-day-substitute (rendered next to
+       the group server-side AND in the JS rebuild) takes its place so
+       all-hidden dates read like a true rest day instead of vanishing.
+       Toggling "Show Hidden" inverts: date-group reappears (with dimmed
+       cards), substitute hides. Uses :has() — stable in Chrome 105+/Firefox 121+/Safari 15.4+. */
+    .date-group:not(:has(.activity-card:not(.is-hidden))) { display: none; }
+    .rest-day-marker.rest-day-substitute { display: flex; }
+    body.show-hidden-activities .date-group { display: block; }
+    body.show-hidden-activities .rest-day-marker.rest-day-substitute { display: none; }
+    /* Visibility switch in the activity card actions row */
+    .hide-activity-switch { padding-left: 1.8em; }
+    .hide-activity-switch .form-check-input { cursor: pointer; }
+    .hide-activity-switch .form-check-input:checked { background-color: #34c38f; border-color: #34c38f; }
+    .hide-activity-tag i { vertical-align: middle; margin-right: 2px; }
     .activity-card:last-child { margin-bottom: 0; }
     .activity-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .activity-card .step-meta { color:#74788d; font-size:12px; }
@@ -257,6 +288,111 @@
     .activity-card[draggable="true"] { cursor: grab; }
     .activity-card.dragging { opacity: .45; cursor: grabbing; }
     .date-activities.drop-target { background: rgba(0,0,0,0.04); outline: 2px dashed var(--date-color); outline-offset: -4px; }
+    /* Rest-day markers (no-activities-scheduled placeholders) are now
+       drop targets too: dragging an activity card onto one re-dates it
+       to that day. The drop-target outline mirrors .date-activities so
+       the user sees the same visual confirmation everywhere. */
+    .rest-day-marker.drop-target {
+        background: rgba(85, 110, 230, 0.08);
+        outline: 2px dashed #556ee6;
+        outline-offset: -4px;
+    }
+
+    /* Progress markers — "resume here" bookmarks the user drops into the
+       timeline to remember where they left off. The line itself reads as a
+       horizontal divider with a small bookmark chip floating on top of it
+       (centered, so the divider passes behind the label). Optional note
+       renders as a small callout right under the line. */
+    .progress-marker {
+        position: relative;
+        margin: 14px 0 16px;
+        padding: 0;
+    }
+    .progress-marker-line {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 8px;
+    }
+    .progress-marker-line::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 0;
+        border-top: 2px dashed #f0a020;
+        z-index: 0;
+    }
+    .progress-marker.has-note .progress-marker-line::before {
+        border-top-style: solid;
+    }
+    .progress-marker-bookmark {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: linear-gradient(180deg, #fff7e0 0%, #ffe6a8 100%);
+        border: 1px solid #f0a020;
+        border-radius: 14px;
+        color: #6b4e00;
+        font-weight: 600;
+        font-size: 12.5px;
+        box-shadow: 0 1px 3px rgba(240, 160, 32, 0.18);
+    }
+    .progress-marker-bookmark i {
+        font-size: 14px;
+        color: #d18a00;
+    }
+    .progress-marker-label { letter-spacing: 0.2px; }
+    .progress-marker-date {
+        font-weight: 500;
+        color: #8a6800;
+        font-size: 12px;
+    }
+    .progress-marker-actions {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        gap: 4px;
+        background: #fff;
+        padding: 2px 4px;
+        border-radius: 10px;
+    }
+    .progress-marker-actions .btn {
+        font-size: 11.5px;
+        padding: 2px 7px;
+        line-height: 1.2;
+    }
+    .progress-marker-actions .btn i { font-size: 13px; vertical-align: middle; }
+    .progress-marker-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 6px 12px 0 12px;
+        padding: 8px 12px;
+        background: #fffaef;
+        border-left: 3px solid #f0a020;
+        border-radius: 0 6px 6px 0;
+        font-size: 13px;
+        color: #5c4300;
+    }
+    .progress-marker-note-icon { color: #d18a00; font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .progress-marker-note-text { flex-grow: 1; line-height: 1.45; }
+
+    /* Date-header bookmark button — yellow tint when a marker exists,
+       neutral when no marker is set. Keeps the rest of the date-header
+       buttons visually consistent. */
+    .date-header-edit-btn.date-marker-btn.has-marker {
+        color: #d18a00;
+    }
+    .date-header-edit-btn.date-marker-btn.has-marker i {
+        color: #d18a00;
+    }
 
     /* Flat color palette — cycled by date order (0..7) */
     .date-color-0 { --date-color: #4A90E2; } /* blue   */
@@ -315,6 +451,23 @@
     .activity-description-content a { color: #556ee6; text-decoration: underline; }
     .activity-description-content table { border-collapse: collapse; }
     .activity-description-content table td, .activity-description-content table th { border: 1px solid #e6e8ec; padding: 2px 6px; }
+    /* Quill 2 stores BOTH bullet + ordered lists in <ol> with the marker
+       type on each <li> via data-list. Without this override, an
+       authored bullet list renders as numbered because <ol> defaults to
+       decimal. Per-item list-style-type lets the marker follow Quill's
+       intent. Sub-bullets get progressive left indent (matches Quill
+       snow theme). */
+    .activity-description-content ol > li[data-list="bullet"]  { list-style-type: disc; }
+    .activity-description-content ol > li[data-list="ordered"] { list-style-type: decimal; }
+    .activity-description-content .ql-ui { display: none; }
+    .activity-description-content li.ql-indent-1 { margin-left: 1.5em; }
+    .activity-description-content li.ql-indent-2 { margin-left: 3em; }
+    .activity-description-content li.ql-indent-3 { margin-left: 4.5em; }
+    .activity-description-content li.ql-indent-4 { margin-left: 6em; }
+    .activity-description-content li.ql-indent-5 { margin-left: 7.5em; }
+    .activity-description-content li.ql-indent-6 { margin-left: 9em; }
+    .activity-description-content li.ql-indent-7 { margin-left: 10.5em; }
+    .activity-description-content li.ql-indent-8 { margin-left: 12em; }
 
     /* ---- Documentation subtabs (pill strip) ----
        Pills inside the Documentation tab so the four sections share a
@@ -840,6 +993,7 @@ const URLS = {
     activitiesUpdate:    (id) => `${ROOT}/anisenso-schedule-manager-activities-update${Q}&id=${id}`,
     activitiesDelete:    (id) => `${ROOT}/anisenso-schedule-manager-activities-delete${Q}&id=${id}`,
     activitiesImageUpload: () => `${ROOT}/anisenso-schedule-manager-activities-image-upload${Q}`,
+    activitiesToggleHidden: (id) => `${ROOT}/anisenso-schedule-manager-activities-toggle-hidden${Q}&id=${id}`,
     activitiesDuplicate: (id) => `${ROOT}/anisenso-schedule-manager-activities-duplicate${Q}&id=${id}`,
     activitiesSetDate:   (id) => `${ROOT}/anisenso-schedule-manager-activities-set-date${Q}&id=${id}`,
     activitiesReorder:   () => `${ROOT}/anisenso-schedule-manager-activities-reorder${Q}`,
@@ -861,6 +1015,9 @@ const URLS = {
 
     activitiesDateNoteSave:     () => `${ROOT}/anisenso-schedule-manager-activities-date-note-save${Q}`,
     activitiesDateNoteDelete:   () => `${ROOT}/anisenso-schedule-manager-activities-date-note-delete${Q}`,
+
+    markersSave:    () => `${ROOT}/anisenso-schedule-manager-markers-save${Q}`,
+    markersDelete:  (id) => `${ROOT}/anisenso-schedule-manager-markers-delete${Q}&id=${id}`,
 
     irrigationsStore:  () => `${ROOT}/anisenso-schedule-manager-irrigations-store${Q}`,
     irrigationsUpdate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-update${Q}&id=${id}`,

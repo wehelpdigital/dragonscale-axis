@@ -139,6 +139,26 @@ class AsCroppingSchedule extends BaseModel
             ->orderBy('noteDate', 'asc');
     }
 
+    /**
+     * Progress markers / bookmarks the user drops into the activities
+     * timeline ("where I left off yesterday"). Scoped to the active version
+     * via the same correlated-subquery trick used by dateNotes() so each
+     * fork carries its own markers.
+     */
+    public function progressMarkers()
+    {
+        return $this->hasMany(AsScheduleProgressMarker::class, 'croppingScheduleId')
+            ->where('as_schedule_progress_markers.deleteStatus', 1)
+            ->whereIn('as_schedule_progress_markers.versionId', function ($sub) {
+                $sub->select('id')
+                    ->from('as_schedule_activity_versions')
+                    ->whereColumn('as_schedule_activity_versions.croppingScheduleId', 'as_schedule_progress_markers.croppingScheduleId')
+                    ->where('as_schedule_activity_versions.isActive', 1)
+                    ->where('as_schedule_activity_versions.deleteStatus', 1);
+            })
+            ->orderBy('markerDate', 'asc');
+    }
+
     public function irrigations()
     {
         return $this->hasMany(AsScheduleIrrigation::class, 'croppingScheduleId')

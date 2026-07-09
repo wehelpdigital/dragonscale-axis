@@ -95,7 +95,7 @@
                                         <td><small>{{ \Carbon\Carbon::parse($p->updated_at)->diffForHumans() }}</small></td>
                                         <td class="text-end">
                                             @if($p->is_published)
-                                                <a href="{{ rtrim(config('app.frontend_url','http://localhost:8001'),'/') }}/{{ $p->slug }}" target="_blank" class="btn btn-sm btn-outline-success" title="View live"><i class="bx bx-link-external"></i></a>
+                                                <a href="{{ \App\Support\RgFrontend::urlFor($p->slug) }}" target="_blank" class="btn btn-sm btn-outline-success" title="View live"><i class="bx bx-link-external"></i></a>
                                             @endif
                                             <a href="{{ route('resort-guru-pages.edit', ['id' => $p->id]) }}" class="btn btn-sm btn-primary"><i class="bx bx-edit-alt"></i> Edit</a>
                                             @if(!$p->is_primary)

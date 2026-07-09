@@ -31,7 +31,7 @@
                         <div class="col-md-12 mb-3">
                             <label class="form-label">URL Slug <small class="text-muted">(optional, auto-generated from title if blank)</small></label>
                             <div class="input-group">
-                                <span class="input-group-text">/</span>
+                                <span class="input-group-text">{{ \App\Support\RgFrontend::url() }}/</span>
                                 <input type="text" name="slug" class="form-control" value="{{ old('slug') }}" pattern="[a-z0-9-]+" placeholder="auto-generated">
                             </div>
                             <small class="text-muted">Lowercase letters, numbers, hyphens only. Must be unique across the whole site.</small>

@@ -47,7 +47,12 @@
                             <i class="bx bx-arrow-back"></i> All pages
                         </a>
                         @if($page->is_published)
-                            <a href="{{ rtrim(config('app.frontend_url', 'http://localhost:8001'),'/') }}/{{ $page->slug }}" target="_blank" class="btn btn-sm btn-outline-success">
+                            <a href="{{ route('resort-guru-pages.live-edit', ['id' => $page->id]) }}"
+                               class="btn btn-sm btn-primary"
+                               title="Open the rendered page with inline edit, drag-reorder, and add buttons on every block">
+                                <i class="bx bx-edit-alt"></i> Live Editor
+                            </a>
+                            <a href="{{ \App\Support\RgFrontend::urlFor($page->slug) }}" target="_blank" class="btn btn-sm btn-outline-success">
                                 <i class="bx bx-link-external"></i> View live
                             </a>
                         @endif
@@ -57,7 +62,7 @@
         </div>
 
         {{-- Page metadata form --}}
-        <form action="{{ route('resort-guru-pages.update', ['id' => $page->id]) }}" method="POST">
+        <form action="{{ route('resort-guru-pages.update', ['id' => $page->id]) }}" method="POST" id="rg-page-meta-form">
             @csrf
             @method('PUT')
             <div class="card mb-3">
@@ -72,6 +77,12 @@
                             <input type="checkbox" class="form-check-input" name="is_primary" id="isPrimary" value="1" {{ $page->is_primary ? 'checked' : '' }}>
                             <label class="form-check-label" for="isPrimary">Primary (canonical)</label>
                         </div>
+                        {{-- Duplicate save button in the header: the original
+                             save lives at the bottom of the form which the
+                             user reported was easy to miss on long pages. --}}
+                        <button type="submit" form="rg-page-meta-form" class="btn btn-primary btn-sm">
+                            <i class="bx bx-save me-1"></i>Save
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -83,7 +94,7 @@
                         <div class="col-md-12 mb-3">
                             <label class="form-label">URL Slug <small class="text-muted">(unique across all pages)</small></label>
                             <div class="input-group">
-                                <span class="input-group-text">{{ rtrim(config('app.frontend_url', 'http://localhost:8001'),'/') }}/</span>
+                                <span class="input-group-text">{{ \App\Support\RgFrontend::url() }}/</span>
                                 <input type="text" name="slug" class="form-control" value="{{ old('slug', $page->slug) }}" pattern="[a-z0-9-]+" required>
                             </div>
                             <small class="text-muted">Lowercase letters, numbers, hyphens. Changing the slug breaks any existing links.</small>
@@ -92,6 +103,39 @@
                             <label class="form-label">H1 Heading</label>
                             <input type="text" name="h1" class="form-control" value="{{ old('h1', $page->h1) }}">
                         </div>
+                        {{-- The Italic Intro (subtitle), TL;DR, and WWWW Summary
+                             fields used to live here. They moved to content
+                             blocks (subtitle_intro, tldr_card, wwww_card) so
+                             admins reorder / remove / add them through the
+                             builder below and through the Live Editor like
+                             any other block. The source columns are kept on
+                             rg_seo_pages as a rollback path but are no longer
+                             written from this form. --}}
+                        <div class="col-md-12 mb-3">
+                            <div class="alert alert-info py-2 px-3 mb-0 small">
+                                <i class="bx bx-info-circle me-1"></i>
+                                <strong>Italic Intro / TL;DR / WWWW</strong> are now content blocks. Edit them in the <strong>Page Content Builder</strong> below, or hover them in the Live Editor.
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6 class="mb-3"><i class="bx bx-user-pin me-1"></i>Byline</h6>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Author</label>
+                            @php
+                                $authors = \Illuminate\Support\Facades\Schema::hasTable('rg_authors')
+                                    ? \Illuminate\Support\Facades\DB::table('rg_authors')->where('status', 'active')->orderBy('sort_order')->orderBy('name')->get()
+                                    : collect();
+                            @endphp
+                            <select name="author_id" class="form-select">
+                                <option value="">— No byline —</option>
+                                @foreach($authors as $a)
+                                    <option value="{{ $a->id }}" {{ (int) old('author_id', $page->author_id ?? 0) === (int) $a->id ? 'selected' : '' }}>{{ $a->name }}@if($a->role) — {{ $a->role }}@endif</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Shown on the public page as the byline. Manage the author list at <a href="/resort-guru-authors">Authors</a>.</small>
+                        </div>
+
                         <hr>
                         <h6 class="mb-3"><i class="bx bx-search me-1"></i>SEO Meta</h6>
                         <div class="col-md-12 mb-3">
@@ -159,6 +203,13 @@
                 @include('resortGuruAdmin.blocks.builder', [
                     'ownerType' => 'seo_page',
                     'ownerId' => $page->id,
+                    // The legacy warning pops if there is non-empty seeded
+                    // body_html and zero blocks yet; adding the first block
+                    // hides this banner because the public render switches
+                    // from body_html to the block list.
+                    'legacyBodyHtml' => trim((string) ($page->body_html ?? '')) !== '',
+                    'hasBlocks' => \App\Models\RgContentBlock::where('owner_type', 'seo_page')
+                        ->where('owner_id', $page->id)->exists(),
                 ])
             </div>
         </div>

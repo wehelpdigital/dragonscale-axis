@@ -311,6 +311,10 @@ Route::get('/anisenso-schedule-manager-activities-show',      [App\Http\Controll
 Route::put('/anisenso-schedule-manager-activities-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'update'])->name('anisenso-schedule-manager.activities.update')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-activities-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'destroy'])->name('anisenso-schedule-manager.activities.destroy')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-image-upload', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'uploadImage'])->name('anisenso-schedule-manager.activities.image-upload')->middleware('auth');
+Route::post('/anisenso-schedule-manager-activities-toggle-hidden', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'toggleHidden'])->name('anisenso-schedule-manager.activities.toggle-hidden')->middleware('auth');
+// Progress markers — "where I left off" bookmarks in the activities timeline
+Route::post('/anisenso-schedule-manager-markers-save',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'save'])->name('anisenso-schedule-manager.markers.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-markers-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'destroy'])->name('anisenso-schedule-manager.markers.destroy')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-duplicate',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'duplicate'])->name('anisenso-schedule-manager.activities.duplicate')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-set-date',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'setDate'])->name('anisenso-schedule-manager.activities.set-date')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-reorder',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'reorder'])->name('anisenso-schedule-manager.activities.reorder')->middleware('auth');
@@ -959,6 +963,9 @@ Route::post('/resort-guru-keywords-pages-store', [App\Http\Controllers\resortGur
 Route::delete('/resort-guru-keywords-pages-delete', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'destroy'])->name('resort-guru-keywords-pages.delete')->middleware('auth');
 Route::post('/resort-guru-keywords-pages-set-primary', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'setPrimary'])->name('resort-guru-keywords-pages.set-primary')->middleware('auth');
 Route::get('/resort-guru-pages-edit', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'edit'])->name('resort-guru-pages.edit')->middleware('auth');
+Route::get('/resort-guru-pages-live-edit', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'liveEdit'])->name('resort-guru-pages.live-edit')->middleware('auth');
+Route::get('/resort-guru-pages-meta-edit', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'editMetaSingle'])->name('resort-guru-pages.meta-edit')->middleware('auth');
+Route::post('/resort-guru-pages-meta-update', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'updateMetaSingle'])->name('resort-guru-pages.meta-update')->middleware('auth');
 Route::put('/resort-guru-pages-update', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'update'])->name('resort-guru-pages.update')->middleware('auth');
 Route::post('/resort-guru-pages-toggle-publish', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'togglePublish'])->name('resort-guru-pages.toggle-publish')->middleware('auth');
 Route::post('/resort-guru-pages-ai-generate', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'aiGenerate'])->name('resort-guru-pages.ai-generate')->middleware('auth');
@@ -1003,10 +1010,46 @@ Route::get('/resort-guru-blog-edit', [App\Http\Controllers\resortGuruAdmin\RgBlo
 Route::put('/resort-guru-blog-update', [App\Http\Controllers\resortGuruAdmin\RgBlogController::class, 'update'])->name('resort-guru-blog.update')->middleware('auth');
 Route::delete('/resort-guru-blog-delete', [App\Http\Controllers\resortGuruAdmin\RgBlogController::class, 'destroy'])->name('resort-guru-blog.destroy')->middleware('auth');
 
+// Restaurants (master list — drives Food Trip listings + resort-page Restaurant Recommendations)
+Route::get('/resort-guru-restaurants', [App\Http\Controllers\resortGuruAdmin\RgRestaurantsController::class, 'index'])->name('resort-guru-restaurants.index')->middleware('auth');
+
+// Adventures (master list — surf schools, ATV, dive, paintball — for the Memorable Adventures section)
+Route::get('/resort-guru-adventures', [App\Http\Controllers\resortGuruAdmin\RgAdventuresController::class, 'index'])->name('resort-guru-adventures.index')->middleware('auth');
+
+// Fiestas (Activities > Fiestas vertical — full CRUD + content block builder)
+Route::get('/resort-guru-fiestas',                    [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'index'])->name('resort-guru-fiestas.index')->middleware('auth');
+Route::get('/resort-guru-fiestas/create',             [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'create'])->name('resort-guru-fiestas.create')->middleware('auth');
+Route::post('/resort-guru-fiestas',                   [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'store'])->name('resort-guru-fiestas.store')->middleware('auth');
+Route::get('/resort-guru-fiestas/{id}/edit',          [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'edit'])->name('resort-guru-fiestas.edit')->middleware('auth');
+Route::put('/resort-guru-fiestas/{id}',               [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'update'])->name('resort-guru-fiestas.update')->middleware('auth');
+Route::delete('/resort-guru-fiestas/{id}',            [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'destroy'])->name('resort-guru-fiestas.destroy')->middleware('auth');
+Route::get('/resort-guru-fiestas/{id}/blocks',        [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'blocks'])->name('resort-guru-fiestas.blocks')->middleware('auth');
+
+// Food Trip (separate keyword + page modules — different bid pool from resorts)
+Route::get('/resort-guru-food-keywords', [App\Http\Controllers\resortGuruAdmin\RgFoodController::class, 'keywords'])->name('resort-guru-food-keywords.index')->middleware('auth');
+Route::get('/resort-guru-food-pages', [App\Http\Controllers\resortGuruAdmin\RgFoodController::class, 'pages'])->name('resort-guru-food-pages.index')->middleware('auth');
+
+// Tourist Spots (builder for the carousel + typeahead search index)
+Route::get('/resort-guru-tourist-spots', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'index'])->name('resort-guru-tourist-spots.index')->middleware('auth');
+Route::get('/resort-guru-tourist-spots-create', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'create'])->name('resort-guru-tourist-spots.create')->middleware('auth');
+Route::post('/resort-guru-tourist-spots-store', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'store'])->name('resort-guru-tourist-spots.store')->middleware('auth');
+Route::get('/resort-guru-tourist-spots-edit', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'edit'])->name('resort-guru-tourist-spots.edit')->middleware('auth');
+Route::post('/resort-guru-tourist-spots-update', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'update'])->name('resort-guru-tourist-spots.update')->middleware('auth');
+Route::post('/resort-guru-tourist-spots-delete', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'destroy'])->name('resort-guru-tourist-spots.destroy')->middleware('auth');
+
 // Static Pages
 Route::get('/resort-guru-static', [App\Http\Controllers\resortGuruAdmin\RgStaticPagesController::class, 'index'])->name('resort-guru-static.index')->middleware('auth');
 Route::get('/resort-guru-static-edit', [App\Http\Controllers\resortGuruAdmin\RgStaticPagesController::class, 'edit'])->name('resort-guru-static.edit')->middleware('auth');
 Route::put('/resort-guru-static-update', [App\Http\Controllers\resortGuruAdmin\RgStaticPagesController::class, 'update'])->name('resort-guru-static.update')->middleware('auth');
+Route::get('/resort-guru-static-seo-analyze', [App\Http\Controllers\resortGuruAdmin\RgStaticPagesController::class, 'seoAnalyze'])->name('resort-guru-static.seo-analyze')->middleware('auth');
+Route::get('/resort-guru-static-live-edit', [App\Http\Controllers\resortGuruAdmin\RgStaticPagesController::class, 'liveEdit'])->name('resort-guru-static.live-edit')->middleware('auth');
+
+// Media Library
+Route::get('/resort-guru-media', [App\Http\Controllers\resortGuruAdmin\RgMediaController::class, 'index'])->name('resort-guru-media.index')->middleware('auth');
+Route::get('/resort-guru-media-show', [App\Http\Controllers\resortGuruAdmin\RgMediaController::class, 'show'])->name('resort-guru-media.show')->middleware('auth');
+Route::post('/resort-guru-media-upload', [App\Http\Controllers\resortGuruAdmin\RgMediaController::class, 'upload'])->name('resort-guru-media.upload')->middleware('auth');
+Route::post('/resort-guru-media-delete', [App\Http\Controllers\resortGuruAdmin\RgMediaController::class, 'destroy'])->name('resort-guru-media.delete')->middleware('auth');
+Route::post('/resort-guru-media-update-meta', [App\Http\Controllers\resortGuruAdmin\RgMediaController::class, 'updateMeta'])->name('resort-guru-media.update-meta')->middleware('auth');
 
 // Settings
 Route::get('/resort-guru-settings', [App\Http\Controllers\resortGuruAdmin\RgSettingsController::class, 'index'])->name('resort-guru-settings.index')->middleware('auth');
@@ -1018,12 +1061,43 @@ Route::get('/resort-guru-test-guides', [App\Http\Controllers\resortGuruAdmin\RgS
 // TinyMCE image uploads scoped to resort-guru
 Route::post('/resort-guru-upload-image', [App\Http\Controllers\resortGuruAdmin\RgSeoPagesController::class, 'uploadImage'])->name('resort-guru.upload-image')->middleware('auth');
 
+// Blog comments (moderation queue)
+Route::get('/resort-guru-blog-comments', [App\Http\Controllers\resortGuruAdmin\RgBlogCommentsController::class, 'index'])->name('resort-guru-blog-comments.index')->middleware('auth');
+Route::post('/resort-guru-blog-comments-status', [App\Http\Controllers\resortGuruAdmin\RgBlogCommentsController::class, 'setStatus'])->name('resort-guru-blog-comments.status')->middleware('auth');
+Route::post('/resort-guru-blog-comments-delete', [App\Http\Controllers\resortGuruAdmin\RgBlogCommentsController::class, 'destroy'])->name('resort-guru-blog-comments.delete')->middleware('auth');
+
+// Schemas (read-only viewer + custom JSON-LD overrides per SEO page)
+Route::get('/resort-guru-schemas', [App\Http\Controllers\resortGuruAdmin\RgSchemasController::class, 'index'])->name('resort-guru-schemas.index')->middleware('auth');
+Route::get('/resort-guru-schemas-edit', [App\Http\Controllers\resortGuruAdmin\RgSchemasController::class, 'editForPage'])->name('resort-guru-schemas.edit')->middleware('auth');
+Route::post('/resort-guru-schemas-update', [App\Http\Controllers\resortGuruAdmin\RgSchemasController::class, 'updateForPage'])->name('resort-guru-schemas.update')->middleware('auth');
+Route::get('/resort-guru-schemas-preview', [App\Http\Controllers\resortGuruAdmin\RgSchemasController::class, 'preview'])->name('resort-guru-schemas.preview')->middleware('auth');
+
+// Reviews (positive social proof on destination/keyword pages)
+Route::get('/resort-guru-reviews', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'index'])->name('resort-guru-reviews.index')->middleware('auth');
+Route::get('/resort-guru-reviews-create', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'create'])->name('resort-guru-reviews.create')->middleware('auth');
+Route::post('/resort-guru-reviews-store', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'store'])->name('resort-guru-reviews.store')->middleware('auth');
+Route::get('/resort-guru-reviews-edit', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'edit'])->name('resort-guru-reviews.edit')->middleware('auth');
+Route::post('/resort-guru-reviews-update', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'update'])->name('resort-guru-reviews.update')->middleware('auth');
+Route::post('/resort-guru-reviews-delete', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'destroy'])->name('resort-guru-reviews.delete')->middleware('auth');
+Route::post('/resort-guru-reviews-generate', [App\Http\Controllers\resortGuruAdmin\RgReviewsController::class, 'generate'])->name('resort-guru-reviews.generate')->middleware('auth');
+
+// Authors (bylines shown on keyword pages)
+Route::get('/resort-guru-authors', [App\Http\Controllers\resortGuruAdmin\RgAuthorsController::class, 'index'])->name('resort-guru-authors.index')->middleware('auth');
+Route::get('/resort-guru-authors-create', [App\Http\Controllers\resortGuruAdmin\RgAuthorsController::class, 'create'])->name('resort-guru-authors.create')->middleware('auth');
+Route::post('/resort-guru-authors-store', [App\Http\Controllers\resortGuruAdmin\RgAuthorsController::class, 'store'])->name('resort-guru-authors.store')->middleware('auth');
+Route::get('/resort-guru-authors-edit', [App\Http\Controllers\resortGuruAdmin\RgAuthorsController::class, 'edit'])->name('resort-guru-authors.edit')->middleware('auth');
+Route::post('/resort-guru-authors-update', [App\Http\Controllers\resortGuruAdmin\RgAuthorsController::class, 'update'])->name('resort-guru-authors.update')->middleware('auth');
+Route::post('/resort-guru-authors-delete', [App\Http\Controllers\resortGuruAdmin\RgAuthorsController::class, 'destroy'])->name('resort-guru-authors.delete')->middleware('auth');
+
 // Content Blocks (polymorphic: seo_page, blog_post, static_page, homepage)
 Route::get('/resort-guru-blocks-list', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'list'])->name('resort-guru-blocks.list')->middleware('auth');
+Route::get('/resort-guru-blocks-edit-single', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'editSingle'])->name('resort-guru-blocks.edit-single')->middleware('auth');
 Route::post('/resort-guru-blocks-save', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'save'])->name('resort-guru-blocks.save')->middleware('auth');
 Route::post('/resort-guru-blocks-delete', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'destroy'])->name('resort-guru-blocks.delete')->middleware('auth');
 Route::post('/resort-guru-blocks-reorder', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'reorder'])->name('resort-guru-blocks.reorder')->middleware('auth');
 Route::post('/resort-guru-blocks-upload-media', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'uploadMedia'])->name('resort-guru-blocks.upload-media')->middleware('auth');
+Route::get('/resort-guru-blocks-media-list', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'mediaList'])->name('resort-guru-blocks.media-list')->middleware('auth');
+Route::post('/resort-guru-blocks-update-image', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'updateImage'])->name('resort-guru-blocks.update-image')->middleware('auth');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

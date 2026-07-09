@@ -14,6 +14,10 @@ class RgSettingsController extends Controller
         if (!Schema::hasTable('rg_settings')) {
             return view('resortGuruAdmin.pending', ['title' => 'Settings']);
         }
+        // Touch the helper so the Frontend URL row self-seeds if
+        // missing — the operator sees a populated tab on first visit.
+        \App\Support\RgFrontend::url();
+
         $rows = DB::table('rg_settings')->orderBy('group')->orderBy('key')->get();
         $grouped = $rows->groupBy('group');
         return view('resortGuruAdmin.settings', compact('grouped'));
@@ -28,6 +32,10 @@ class RgSettingsController extends Controller
                 'updated_at' => now(),
             ]);
         }
+        // The frontend-URL cache is request-scoped — flush so the
+        // redirect-target page renders any "View live" links with
+        // the new value immediately.
+        \App\Support\RgFrontend::flushCache();
         return redirect()->route('resort-guru-settings.index')->with('success', 'Settings saved.');
     }
 
@@ -77,7 +85,7 @@ class RgSettingsController extends Controller
             'gp_topups_pending' => Schema::hasTable('rg_gp_topups') ? DB::table('rg_gp_topups')->where('status', 'pending')->count() : 0,
         ];
 
-        $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:8001'), '/');
+        $frontendUrl = \App\Support\RgFrontend::url();
 
         return view('resortGuruAdmin.test-guides', compact(
             'dummyClients', 'sampleProperties', 'keywordsWithBids', 'stats', 'frontendUrl'

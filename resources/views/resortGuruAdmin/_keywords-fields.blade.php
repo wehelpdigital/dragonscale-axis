@@ -22,8 +22,35 @@
         <input type="number" name="keyword_difficulty" value="{{ old('keyword_difficulty', $k->keyword_difficulty ?? 0) }}" class="form-control" min="0" max="100">
     </div>
     <div class="col-md-4">
-        <label class="form-label">Cluster Tag</label>
-        <input type="text" name="cluster_tag" value="{{ old('cluster_tag', $k->cluster_tag ?? '') }}" class="form-control" placeholder="e.g. luzon-resorts">
+        <label class="form-label">Region Cluster</label>
+        @php
+            // Canonical region clusters (must match App\Support\RegionResolver
+            // / DestinationsController::clusterMetadata() in the frontend app).
+            $rgClusters = [
+                'north-luzon'  => 'North Luzon (Pangasinan, La Union, Ilocos, Zambales, Bataan, Baguio)',
+                'metro-manila' => 'Metro Manila',
+                'bulacan'      => 'Bulacan',
+                'pampanga'     => 'Pampanga',
+                'rizal'        => 'Rizal',
+                'cavite'       => 'Cavite',
+                'laguna'       => 'Laguna',
+                'batangas'     => 'Batangas',
+                'quezon'       => 'Quezon',
+                'bicol'        => 'Bicol',
+                'palawan'      => 'Palawan & Mindoro',
+                'visayas'      => 'Visayas',
+                'mindanao'     => 'Mindanao',
+                'other'        => 'Other',
+            ];
+            $rgClusterCurrent = old('cluster_tag', $k->cluster_tag ?? '');
+        @endphp
+        <select name="cluster_tag" class="form-select">
+            <option value="">Auto-detect from location</option>
+            @foreach($rgClusters as $v => $l)
+                <option value="{{ $v }}" {{ $rgClusterCurrent === $v ? 'selected' : '' }}>{{ $l }}</option>
+            @endforeach
+        </select>
+        <small class="text-muted">Groups this page in the destination footer. Leave on "Auto-detect" to group by the place named in the phrase.</small>
     </div>
     <div class="col-md-6">
         <label class="form-label">Intent</label>

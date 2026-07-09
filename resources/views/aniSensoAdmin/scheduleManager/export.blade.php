@@ -44,6 +44,20 @@
         .description-block ul, .description-block ol { margin: 0.25em 0 0.5em 1.4em; padding: 0; }
         .description-block li { margin-bottom: 0.15em; }
         .description-block h1, .description-block h2, .description-block h3, .description-block h4 { font-size: 10.5pt; font-weight: 700; margin: 0.5em 0 0.25em; }
+        /* Quill 2 unified-list fix: bullet/ordered marker per <li> via
+           data-list. Without this, an authored bullet list prints as a
+           numbered list because <ol> defaults to decimal. */
+        .description-block ol > li[data-list="bullet"]  { list-style-type: disc; }
+        .description-block ol > li[data-list="ordered"] { list-style-type: decimal; }
+        .description-block .ql-ui { display: none; }
+        .description-block li.ql-indent-1 { margin-left: 1.5em; }
+        .description-block li.ql-indent-2 { margin-left: 3em; }
+        .description-block li.ql-indent-3 { margin-left: 4.5em; }
+        .description-block li.ql-indent-4 { margin-left: 6em; }
+        .description-block li.ql-indent-5 { margin-left: 7.5em; }
+        .description-block li.ql-indent-6 { margin-left: 9em; }
+        .description-block li.ql-indent-7 { margin-left: 10.5em; }
+        .description-block li.ql-indent-8 { margin-left: 12em; }
 
         /* date-block is allowed to flow across pages — a date with many
            activities (10+) was forcing the whole block to the next page

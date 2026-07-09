@@ -30,4 +30,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'resort_guru' => [
+        'frontend_url' => env('RG_FRONTEND_URL', 'http://localhost:8001'),
+    ],
+
 ];

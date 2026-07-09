@@ -19,12 +19,12 @@
     <div class="col-lg-8">
         <div class="card">
             @if($resort->hero_path)
-                <img src="{{ asset('storage/' . $resort->hero_path) }}" class="card-img-top" style="max-height: 320px; object-fit: cover;">
+                <img src="{{ \App\Http\Controllers\resortGuruAdmin\RgMediaController::mediaUrl($resort->hero_path) }}" class="card-img-top" style="max-height: 320px; object-fit: cover;">
             @endif
             <div class="card-body">
                 <div class="d-flex align-items-center mb-3">
                     @if($resort->logo_path)
-                        <img src="{{ asset('storage/' . $resort->logo_path) }}" class="me-3 rounded" style="height: 64px;">
+                        <img src="{{ \App\Http\Controllers\resortGuruAdmin\RgMediaController::mediaUrl($resort->logo_path) }}" class="me-3 rounded" style="height: 64px;">
                     @endif
                     <div>
                         <h3 class="mb-0" style="color: {{ $resort->primary_color }}">{{ $resort->name }}</h3>
@@ -45,7 +45,7 @@
                     <div class="row g-2">
                         @foreach($media as $m)
                             <div class="col-md-3 col-6">
-                                <img src="{{ asset('storage/' . $m->path) }}" class="img-fluid rounded">
+                                <img src="{{ \App\Http\Controllers\resortGuruAdmin\RgMediaController::mediaUrl($m->path) }}" class="img-fluid rounded">
                             </div>
                         @endforeach
                     </div>

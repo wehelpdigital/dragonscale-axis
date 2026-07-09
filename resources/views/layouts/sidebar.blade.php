@@ -323,6 +323,42 @@
                                 <span key="t-rg-listings">Listings &amp; Bids</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('resort-guru-tourist-spots*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-tourist-spots.index') }}" class="waves-effect {{ request()->is('resort-guru-tourist-spots*') ? 'active' : '' }}">
+                                <i class="bx bx-map-pin"></i>
+                                <span key="t-rg-spots">Tourist Spots</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-restaurants*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-restaurants.index') }}" class="waves-effect {{ request()->is('resort-guru-restaurants*') ? 'active' : '' }}">
+                                <i class="bx bx-restaurant"></i>
+                                <span key="t-rg-restaurants">Restaurants</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-adventures*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-adventures.index') }}" class="waves-effect {{ request()->is('resort-guru-adventures*') ? 'active' : '' }}">
+                                <i class="bx bx-cycling"></i>
+                                <span key="t-rg-adventures">Adventures</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-fiestas*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-fiestas.index') }}" class="waves-effect {{ request()->is('resort-guru-fiestas*') ? 'active' : '' }}">
+                                <i class="bx bx-calendar-event"></i>
+                                <span key="t-rg-fiestas">Fiestas</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-food-keywords*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-food-keywords.index') }}" class="waves-effect {{ request()->is('resort-guru-food-keywords*') ? 'active' : '' }}">
+                                <i class="bx bx-dish"></i>
+                                <span key="t-rg-food-kw">Food Keywords</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-food-pages*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-food-pages.index') }}" class="waves-effect {{ request()->is('resort-guru-food-pages*') ? 'active' : '' }}">
+                                <i class="bx bx-book-open"></i>
+                                <span key="t-rg-food-pages">Food Pages</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('resort-guru-gp*') ? 'mm-active' : '' }}">
                             <a href="{{ route('resort-guru-gp.index') }}" class="waves-effect {{ request()->is('resort-guru-gp*') ? 'active' : '' }}">
                                 <i class="bx bx-coin-stack"></i>
@@ -345,6 +381,36 @@
                             <a href="{{ route('resort-guru-static.index') }}" class="waves-effect {{ request()->is('resort-guru-static*') ? 'active' : '' }}">
                                 <i class="bx bx-detail"></i>
                                 <span key="t-rg-site-pages">Site Pages</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-media*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-media.index') }}" class="waves-effect {{ request()->is('resort-guru-media*') ? 'active' : '' }}">
+                                <i class="bx bx-image"></i>
+                                <span key="t-rg-media">Media Library</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-authors*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-authors.index') }}" class="waves-effect {{ request()->is('resort-guru-authors*') ? 'active' : '' }}">
+                                <i class="bx bx-user-pin"></i>
+                                <span key="t-rg-authors">Authors</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-reviews*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-reviews.index') }}" class="waves-effect {{ request()->is('resort-guru-reviews*') ? 'active' : '' }}">
+                                <i class="bx bx-star"></i>
+                                <span key="t-rg-reviews">Reviews</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-blog-comments*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-blog-comments.index') }}" class="waves-effect {{ request()->is('resort-guru-blog-comments*') ? 'active' : '' }}">
+                                <i class="bx bx-comment-detail"></i>
+                                <span key="t-rg-comments">Blog Comments</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('resort-guru-schemas*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-schemas.index') }}" class="waves-effect {{ request()->is('resort-guru-schemas*') ? 'active' : '' }}">
+                                <i class="bx bx-code-curly"></i>
+                                <span key="t-rg-schemas">Schemas</span>
                             </a>
                         </li>
                         <li class="{{ request()->is('resort-guru-settings*') ? 'mm-active' : '' }}">
