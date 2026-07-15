@@ -59,6 +59,8 @@ class RgAdventuresController extends Controller
                 ->make(true);
         }
 
-        return view('resortGuruAdmin.adventures-index');
+        // Full-page requests land on the unified Spots screen; the ajax
+        // branch above still serves this tab's DataTable JSON.
+        return redirect()->route('resort-guru-spots.index', ['tab' => 'adventures']);
     }
 }

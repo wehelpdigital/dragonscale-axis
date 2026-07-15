@@ -286,11 +286,11 @@
                 <!-- Divider -->
                 <li class="menu-title">─</li>
 
-                <!-- Resort Guru Navigation -->
+                <!-- TouristGuidePh (Resort Guru) Navigation -->
                 <li class="{{ request()->is('resort-guru*') ? 'mm-active' : '' }}">
                     <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('resort-guru*') ? 'mm-active' : '' }}">
                         <i class="bx bx-buildings"></i>
-                        <span key="t-resort-guru">Resort Guru</span>
+                        <span key="t-resort-guru">TouristGuidePh</span>
                     </a>
                     <ul class="sub-menu {{ request()->is('resort-guru*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('resort-guru*') ? 'true' : 'false' }}">
                         <li class="{{ request()->is('resort-guru') ? 'mm-active' : '' }}">
@@ -323,40 +323,14 @@
                                 <span key="t-rg-listings">Listings &amp; Bids</span>
                             </a>
                         </li>
-                        <li class="{{ request()->is('resort-guru-tourist-spots*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-tourist-spots.index') }}" class="waves-effect {{ request()->is('resort-guru-tourist-spots*') ? 'active' : '' }}">
+                        @php
+                            // Child add/edit/blocks pages of the merged modules should keep Spots highlighted.
+                            $rgSpotsActive = request()->is('resort-guru-spots*', 'resort-guru-tourist-spots*', 'resort-guru-restaurants*', 'resort-guru-adventures*', 'resort-guru-fiestas*');
+                        @endphp
+                        <li class="{{ $rgSpotsActive ? 'mm-active' : '' }}">
+                            <a href="{{ route('resort-guru-spots.index') }}" class="waves-effect {{ $rgSpotsActive ? 'active' : '' }}">
                                 <i class="bx bx-map-pin"></i>
-                                <span key="t-rg-spots">Tourist Spots</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-restaurants*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-restaurants.index') }}" class="waves-effect {{ request()->is('resort-guru-restaurants*') ? 'active' : '' }}">
-                                <i class="bx bx-restaurant"></i>
-                                <span key="t-rg-restaurants">Restaurants</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-adventures*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-adventures.index') }}" class="waves-effect {{ request()->is('resort-guru-adventures*') ? 'active' : '' }}">
-                                <i class="bx bx-cycling"></i>
-                                <span key="t-rg-adventures">Adventures</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-fiestas*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-fiestas.index') }}" class="waves-effect {{ request()->is('resort-guru-fiestas*') ? 'active' : '' }}">
-                                <i class="bx bx-calendar-event"></i>
-                                <span key="t-rg-fiestas">Fiestas</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-food-keywords*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-food-keywords.index') }}" class="waves-effect {{ request()->is('resort-guru-food-keywords*') ? 'active' : '' }}">
-                                <i class="bx bx-dish"></i>
-                                <span key="t-rg-food-kw">Food Keywords</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-food-pages*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-food-pages.index') }}" class="waves-effect {{ request()->is('resort-guru-food-pages*') ? 'active' : '' }}">
-                                <i class="bx bx-book-open"></i>
-                                <span key="t-rg-food-pages">Food Pages</span>
+                                <span key="t-rg-spots">Spots</span>
                             </a>
                         </li>
                         <li class="{{ request()->is('resort-guru-gp*') ? 'mm-active' : '' }}">
@@ -399,12 +373,6 @@
                             <a href="{{ route('resort-guru-reviews.index') }}" class="waves-effect {{ request()->is('resort-guru-reviews*') ? 'active' : '' }}">
                                 <i class="bx bx-star"></i>
                                 <span key="t-rg-reviews">Reviews</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-blog-comments*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-blog-comments.index') }}" class="waves-effect {{ request()->is('resort-guru-blog-comments*') ? 'active' : '' }}">
-                                <i class="bx bx-comment-detail"></i>
-                                <span key="t-rg-comments">Blog Comments</span>
                             </a>
                         </li>
                         <li class="{{ request()->is('resort-guru-schemas*') ? 'mm-active' : '' }}">

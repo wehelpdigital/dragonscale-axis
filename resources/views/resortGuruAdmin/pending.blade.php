@@ -1,10 +1,10 @@
 @extends('layouts.master')
 
-@section('title') {{ $title ?? 'Resort Guru' }} @endsection
+@section('title') {{ $title ?? 'TouristGuidePh' }} @endsection
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('title') {{ $title ?? 'Module' }} @endslot
 @endcomponent
 

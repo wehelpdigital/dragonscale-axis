@@ -4,7 +4,7 @@
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('li_2') <a href="{{ route('resort-guru-fiestas.index') }}">Fiestas</a> @endslot
 @slot('title') {{ $fiesta->name }} — Content Blocks @endslot
 @endcomponent

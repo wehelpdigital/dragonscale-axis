@@ -1,11 +1,25 @@
 <div class="row g-3 mb-3">
-    <div class="col-md-8">
+    <div class="col-md-6">
         <label class="form-label">Phrase / Keyphrase <span class="text-danger">*</span></label>
         <input type="text" name="phrase" value="{{ old('phrase', $k->phrase ?? '') }}" class="form-control" required>
         <small class="text-muted">e.g. "resort in Bulacan", "beach resort Palawan"</small>
         @error('phrase') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <label class="form-label">Type <span class="text-danger">*</span></label>
+        @php
+            $rgKwCategories = $categories ?? ['resort' => 'Resorts', 'food' => 'Food', 'destination' => 'Destinations'];
+            $rgKwCategoryCurrent = old('category', $k->category ?? ($selectedCategory ?? 'resort'));
+        @endphp
+        <select name="category" class="form-select" required>
+            @foreach($rgKwCategories as $v => $l)
+                <option value="{{ $v }}" {{ $rgKwCategoryCurrent === $v ? 'selected' : '' }}>{{ $l }}</option>
+            @endforeach
+        </select>
+        <small class="text-muted">Groups this keyword by vertical on the Keywords screen.</small>
+        @error('category') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+    </div>
+    <div class="col-md-3">
         <label class="form-label">Status</label>
         <select name="status" class="form-select">
             @foreach(['active' => 'Active', 'draft' => 'Draft', 'archived' => 'Archived'] as $v => $l)

@@ -9,7 +9,7 @@
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('li_2') GCash Approvals @endslot
 @slot('li_2_link') {{ route('resort-guru-gcash.index') }} @endslot
 @slot('title') Review Top-up #{{ $topup->id }} @endslot

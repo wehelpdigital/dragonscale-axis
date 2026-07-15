@@ -17,7 +17,7 @@ class UsersController extends Controller
      */
     public function index()
     {
-        $users = User::select('id', 'name', 'email', 'created_at')
+        $users = User::select('id', 'name', 'email', 'created_at', 'allow_multiple_logins')
                     ->where('delete_status', 'active')
                     ->orderBy('created_at', 'desc')
                     ->paginate(10);
@@ -263,6 +263,9 @@ class UsersController extends Controller
             $updateData = [
                 'name' => $request->name,
                 'email' => $request->email,
+                // Checkbox: present in POST body when checked, absent when
+                // not — coerce to 0/1 so unchecking actually persists.
+                'allow_multiple_logins' => $request->boolean('allow_multiple_logins') ? 1 : 0,
             ];
 
             // Only update password if provided
@@ -271,6 +274,15 @@ class UsersController extends Controller
             }
 
             $user->update($updateData);
+
+            // If the admin JUST turned multi-login OFF, clear the stale
+            // session_id so a fresh single-session enforcement starts
+            // cleanly on the user's next login. Without this, the old
+            // NULL session_id would still be there and the first login
+            // after the flip would seed enforcement on the new device.
+            if (empty($updateData['allow_multiple_logins']) && $user->session_id !== null) {
+                $user->update(['session_id' => null]);
+            }
 
             return response()->json([
                 'success' => true,

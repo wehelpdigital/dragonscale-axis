@@ -158,17 +158,25 @@ class LoginController extends Controller
      */
     protected function updateUserSession($user, Request $request)
     {
-        $user->update([
-            'session_id' => session()->getId(),
+        // Users with allow_multiple_logins=1 skip session_id stamping so
+        // a second concurrent login on the same account doesn't overwrite
+        // the first device's session pointer — SingleSession middleware
+        // is bypassed for these users anyway.
+        $updates = [
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
-        ]);
+        ];
+        if (empty($user->allow_multiple_logins)) {
+            $updates['session_id'] = session()->getId();
+        }
+        $user->update($updates);
 
-        Log::info('User session updated for single-session enforcement', [
+        Log::info('User session updated', [
             'user_id' => $user->id,
             'user_email' => $user->email,
             'session_id' => substr(session()->getId(), 0, 10) . '...',
             'ip' => $request->ip(),
+            'multi_login' => (bool) ($user->allow_multiple_logins ?? false),
         ]);
     }
 

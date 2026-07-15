@@ -1,10 +1,10 @@
 @extends('layouts.master')
 
-@section('title') Resort Guru Settings @endsection
+@section('title') TouristGuidePh Settings @endsection
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('title') Settings @endslot
 @endcomponent
 

@@ -55,6 +55,14 @@ class SingleSession
             return $next($request);
         }
 
+        // Per-user opt-out: admin can grant "allow multiple logins" to a
+        // specific account (see users.edit toggle). When set, the account
+        // can be logged in from any number of devices simultaneously — no
+        // session comparison, no forced logout.
+        if (!empty($user->allow_multiple_logins)) {
+            return $next($request);
+        }
+
         if ($user->session_id && $user->session_id !== $currentSessionId) {
             Log::info('Single session enforcement: User logged out due to new session', [
                 'user_id'     => $user->id,

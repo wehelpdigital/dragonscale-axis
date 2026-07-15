@@ -4,7 +4,7 @@
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('li_2') Listings & Bids @endslot
 @slot('li_2_link') {{ route('resort-guru-listings.index') }} @endslot
 @slot('title') Listing #{{ $listing->id }} @endslot

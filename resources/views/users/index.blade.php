@@ -70,6 +70,11 @@
                                                     </span>
                                                 </div>
                                                 <strong>{{ $user->name }}</strong>
+                                                @if($user->allow_multiple_logins)
+                                                    <span class="badge bg-info text-white ms-2" title="This account allows multiple simultaneous logins (single-session enforcement is off)">
+                                                        <i class="bx bx-devices"></i> Multi-login
+                                                    </span>
+                                                @endif
                                             </div>
                                         </td>
                                         <td>{{ $user->email }}</td>

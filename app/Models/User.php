@@ -27,6 +27,7 @@ class User extends Authenticatable
         'session_id',
         'last_login_at',
         'last_login_ip',
+        'allow_multiple_logins',
     ];
 
     /**
@@ -51,6 +52,7 @@ class User extends Authenticatable
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s',
         'last_login_at' => 'datetime:Y-m-d H:i:s',
+        'allow_multiple_logins' => 'boolean',
     ];
 
     /**

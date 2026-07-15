@@ -4,7 +4,7 @@
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('li_2') Fiestas @endslot
 @slot('title') {{ $fiesta->exists ? $fiesta->name : 'Add Fiesta' }} @endslot
 @endcomponent

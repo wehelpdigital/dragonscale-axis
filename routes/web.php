@@ -1026,10 +1026,12 @@ Route::delete('/resort-guru-fiestas/{id}',            [App\Http\Controllers\reso
 Route::get('/resort-guru-fiestas/{id}/blocks',        [App\Http\Controllers\resortGuruAdmin\RgFiestasController::class, 'blocks'])->name('resort-guru-fiestas.blocks')->middleware('auth');
 
 // Food Trip (separate keyword + page modules — different bid pool from resorts)
-Route::get('/resort-guru-food-keywords', [App\Http\Controllers\resortGuruAdmin\RgFoodController::class, 'keywords'])->name('resort-guru-food-keywords.index')->middleware('auth');
-Route::get('/resort-guru-food-pages', [App\Http\Controllers\resortGuruAdmin\RgFoodController::class, 'pages'])->name('resort-guru-food-pages.index')->middleware('auth');
+// Food keywords/pages now live inside the unified Keywords screen (Food tab / SEO Pages view); old URLs redirect there.
+Route::get('/resort-guru-food-keywords', fn() => redirect()->route('resort-guru-keywords.index', ['category' => 'food']))->name('resort-guru-food-keywords.index')->middleware('auth');
+Route::get('/resort-guru-food-pages', fn() => redirect()->route('resort-guru-keywords.index', ['category' => 'food', 'view' => 'pages']))->name('resort-guru-food-pages.index')->middleware('auth');
 
 // Tourist Spots (builder for the carousel + typeahead search index)
+Route::get('/resort-guru-spots', [App\Http\Controllers\resortGuruAdmin\RgSpotsController::class, 'index'])->name('resort-guru-spots.index')->middleware('auth');
 Route::get('/resort-guru-tourist-spots', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'index'])->name('resort-guru-tourist-spots.index')->middleware('auth');
 Route::get('/resort-guru-tourist-spots-create', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'create'])->name('resort-guru-tourist-spots.create')->middleware('auth');
 Route::post('/resort-guru-tourist-spots-store', [App\Http\Controllers\resortGuruAdmin\RgTouristSpotsController::class, 'store'])->name('resort-guru-tourist-spots.store')->middleware('auth');

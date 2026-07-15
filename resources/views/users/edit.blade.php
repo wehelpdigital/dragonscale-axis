@@ -83,6 +83,27 @@
                         <div class="form-text">Must match the password above (only required if changing password)</div>
                     </div>
 
+                    <!-- Multi-login toggle: default off (single-session enforced).
+                         When on, this user can be logged in on multiple devices
+                         simultaneously — SingleSession middleware skips them. -->
+                    <div class="mb-4 p-3 rounded" style="background:#f8fafc; border:1px solid #e6e8ec;">
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="allow_multiple_logins" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="allow_multiple_logins" name="allow_multiple_logins" value="1"
+                                   {{ old('allow_multiple_logins', $user->allow_multiple_logins) ? 'checked' : '' }}>
+                            <label class="form-check-label text-dark fw-semibold" for="allow_multiple_logins">
+                                <i class="bx bx-devices me-1 text-primary"></i>
+                                Allow multiple simultaneous logins
+                            </label>
+                        </div>
+                        <small class="text-secondary d-block mt-2" style="margin-left:2.6em;">
+                            By default, logging in from a new device forces the previous session to log out.
+                            Turn this on to let this account stay logged in on <strong>multiple devices at the same time</strong>
+                            — useful for shared/service accounts. Leave off for personal admin accounts.
+                        </small>
+                    </div>
+
                     <!-- Form Buttons -->
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('users.index') }}" class="btn btn-secondary">

@@ -4,7 +4,7 @@
 
 @section('content')
 @component('components.breadcrumb')
-@slot('li_1') Resort Guru @endslot
+@slot('li_1') TouristGuidePh @endslot
 @slot('li_2') Clients @endslot
 @slot('li_2_link') {{ route('resort-guru-owners.index') }} @endslot
 @slot('title') {{ $owner->name }} @endslot

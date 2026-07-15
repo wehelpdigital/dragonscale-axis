@@ -42,7 +42,9 @@ class RgBlogCommentsController extends Controller
                 ->rawColumns(['post', 'rating_stars', 'status_pill', 'seeded_pill', 'actions'])
                 ->make(true);
         }
-        return view('resortGuruAdmin.blog-comments-index');
+        // Full-page requests land on the Blog screen's Comments tab; the
+        // ajax branch above still serves the DataTable JSON.
+        return redirect()->route('resort-guru-blog.index', ['tab' => 'comments']);
     }
 
     public function setStatus(Request $request)

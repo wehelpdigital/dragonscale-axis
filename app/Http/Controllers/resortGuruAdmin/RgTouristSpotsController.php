@@ -37,6 +37,9 @@ class RgTouristSpotsController extends Controller
                 ]);
 
             return DataTables::of($rows)
+                // Unfeatured rows have featured_order NULL; without this,
+                // ASC puts every NULL row before featured #1..#n.
+                ->orderColumn('featured_order', 'featured_order IS NULL, featured_order $1')
                 ->addColumn('thumb', function ($r) {
                     if (!$r->media_path) {
                         return '<div style="width:48px;height:48px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8"><i class="bx bx-image"></i></div>';
@@ -73,7 +76,9 @@ class RgTouristSpotsController extends Controller
                 ->make(true);
         }
 
-        return view('resortGuruAdmin.tourist-spots-index');
+        // Full-page requests land on the unified Spots screen; the ajax
+        // branch above still serves this tab's DataTable JSON.
+        return redirect()->route('resort-guru-spots.index', ['tab' => 'tourist-spots']);
     }
 
     public function create()
@@ -95,7 +100,7 @@ class RgTouristSpotsController extends Controller
         $data['created_at'] = now();
         $data['updated_at'] = now();
         DB::table('rg_tourist_spots')->insert($data);
-        return redirect('/resort-guru-tourist-spots')->with('success', 'Tourist spot created.');
+        return redirect()->route('resort-guru-spots.index', ['tab' => 'tourist-spots'])->with('success', 'Tourist spot created.');
     }
 
     public function edit(Request $request)
@@ -121,7 +126,7 @@ class RgTouristSpotsController extends Controller
         $data['featured_order'] = $request->filled('featured_order') ? (int) $request->input('featured_order') : null;
         $data['updated_at'] = now();
         DB::table('rg_tourist_spots')->where('id', $id)->update($data);
-        return redirect('/resort-guru-tourist-spots')->with('success', 'Tourist spot updated.');
+        return redirect()->route('resort-guru-spots.index', ['tab' => 'tourist-spots'])->with('success', 'Tourist spot updated.');
     }
 
     public function destroy(Request $request)

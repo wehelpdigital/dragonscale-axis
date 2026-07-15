@@ -11,13 +11,29 @@ use Illuminate\Support\Str;
 
 class RgBlogController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         if (!Schema::hasTable('rg_blog_posts')) {
             return view('resortGuruAdmin.pending', ['title' => 'Blog']);
         }
         $posts = DB::table('rg_blog_posts')->orderByDesc('id')->paginate(20);
-        return view('resortGuruAdmin.blog', compact('posts'));
+
+        $commentStats = null;
+        if (Schema::hasTable('rg_blog_comments')) {
+            $byStatus = DB::table('rg_blog_comments')
+                ->select('status', DB::raw('COUNT(*) as c'))
+                ->groupBy('status')
+                ->pluck('c', 'status');
+            $commentStats = [
+                'total' => $byStatus->sum(),
+                'approved' => (int) $byStatus->get('approved', 0),
+                'pending' => (int) $byStatus->get('pending', 0),
+                'user' => DB::table('rg_blog_comments')->where('is_seeded', 0)->count(),
+            ];
+        }
+
+        $activeTab = $request->query('tab') === 'comments' ? 'comments' : 'posts';
+        return view('resortGuruAdmin.blog', compact('posts', 'commentStats', 'activeTab'));
     }
 
     public function create()
