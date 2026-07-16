@@ -157,6 +157,55 @@
     </button>
 </div>
 
+{{-- Lot visibility filter — toggle chips, multi-select. Tapping a lot hides
+     its activities from THIS tab only: nothing is deleted and the per-card
+     visibility switch (isHidden) is untouched, so the calendar, card viewer,
+     presentation, and export are unaffected.
+
+     An activity only disappears once EVERY lot it covers is hidden. Hiding
+     "Lot A" therefore never removes a card that also covers a still-visible
+     "Lot B" — otherwise you'd lose sight of Lot B's work. Activities with no
+     lots at all are governed by the separate N/A chip.
+
+     "Hide all" + un-picking one chip is the focus-on-a-single-lot workflow.
+     Combines with the search + type filters via AND. --}}
+@if($schedule->lots->count() > 0)
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="activityLotFilterRow">
+        <small class="text-secondary me-1" style="white-space:nowrap;">
+            <i class="bx bx-hide"></i> Hide lots:
+        </small>
+        @foreach($schedule->lots as $lot)
+            <span class="lot-chip activity-lot-chip"
+                  data-lot-id="{{ $lot->id }}"
+                  role="button"
+                  aria-pressed="false"
+                  title="Hide {{ $lot->lotName }} — cards covering another visible lot stay put"
+                  style="font-size:11.5px; padding:3px 10px;">
+                {{ $lot->lotName }}@if(!empty($lot->variety))<small style="opacity:.75;"> · {{ $lot->variety }}</small>@endif
+            </span>
+        @endforeach
+        <span class="lot-chip lot-chip-na activity-lot-chip"
+              data-lot-id="__na__"
+              role="button"
+              aria-pressed="false"
+              title="Hide activities that aren't tied to any specific lot"
+              style="font-size:11.5px; padding:3px 10px;">
+            <i class="bx bx-globe"></i> N/A
+        </span>
+        <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+                id="activityLotFilterAllBtn"
+                style="font-size:11.5px;"
+                title="Hide every lot — then tap one to view it on its own">
+            Hide all
+        </button>
+        <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+                id="activityLotFilterClearBtn"
+                style="font-size:11.5px; display:none;">
+            Show all lots
+        </button>
+    </div>
+@endif
+
 <div class="activity-timeline" id="activitiesList">
     @php
         // Eager-load workers + lots once for the server-rendered cards.
@@ -719,6 +768,157 @@
     </div>
 </div>
 
+{{-- Export options — chosen before the preview renders, mirroring the
+     Worker Presentation options modal. The picks become query params on the
+     export URL; the controller does the filtering so every derived figure
+     (totals, spans, date groups) reflects the same filtered set. --}}
+<div class="modal fade" id="exportScheduleOptionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark"><i class="bx bx-file-blank me-2"></i>Export Schedule Options</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="expActivitiesOnly">
+                    <label class="form-check-label text-dark" for="expActivitiesOnly">
+                        <strong>Show only the activities</strong>
+                        <div class="text-secondary" style="font-size: 12.5px;">
+                            Drop the critical rules, protocol introduction, attachments, summary,
+                            lots, workers, and irrigation sections — leaving just the activity timeline.
+                        </div>
+                    </label>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="mb-3">
+                    <label class="form-label text-dark mb-1" style="font-weight:600;font-size:13px;">
+                        <i class="bx bx-calendar-event me-1"></i> Start from date
+                    </label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="expStartDate">
+                        <button type="button" class="btn btn-outline-secondary" id="expStartDateClear"
+                                title="Clear — start from the schedule's first activity">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </div>
+                    <small class="text-secondary d-block mt-1" style="font-size: 12.5px;">
+                        Empty = start at the schedule's first activity. A multi-day activity that began
+                        earlier but is still running on this date is kept, so in-progress work isn't lost.
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-dark mb-1" style="font-weight:600;font-size:13px;">
+                        <i class="bx bx-trending-up me-1"></i>
+                        Up to <span class="day-type-label">{{ $schedule->dayType }}</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" step="1" class="form-control" id="expDasMax"
+                               placeholder="e.g. 45 — leave empty for the whole season">
+                        <button type="button" class="btn btn-outline-secondary" id="expDasMaxClear"
+                                title="Clear — run to the end of the schedule">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </div>
+                    <small class="text-secondary d-block mt-1" style="font-size: 12.5px;">
+                        Ends the document at this day number. An activity is measured by its
+                        <strong>earliest <span class="day-type-label">{{ $schedule->dayType }}</span></strong>
+                        across the lots being shown — the same rule the Labor Summary uses.
+                        Activities with no Day 0 anchor have no
+                        <span class="day-type-label">{{ $schedule->dayType }}</span> to compare, so they
+                        drop out when this is set (that includes general <strong>N/A</strong> activities).
+                    </small>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="mb-1">
+                    <label class="form-label text-dark mb-2" style="font-weight:600;font-size:13px;">
+                        <i class="bx bx-hide me-1"></i> Hide from the document
+                    </label>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="expHideWorkers">
+                        <label class="form-check-label text-dark" for="expHideWorkers">
+                            <strong>Workers</strong>
+                            <div class="text-secondary" style="font-size: 12.5px;">
+                                Drop worker names from every activity, plus the Workers roster and headcount.
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="expHideNotes">
+                        <label class="form-check-label text-dark" for="expHideNotes">
+                            <strong>Notes</strong>
+                            <div class="text-secondary" style="font-size: 12.5px;">
+                                Drop the per-date notes and the version-wide note. Dates that carried
+                                only a note disappear with them.
+                            </div>
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="expHideCriticality">
+                        <label class="form-check-label text-dark" for="expHideCriticality">
+                            <strong>Criticality</strong>
+                            <div class="text-secondary" style="font-size: 12.5px;">
+                                Drop the Critical / High / Medium / Low pill from each activity.
+                                The <em>Critical Rules</em> section is separate — untick
+                                <strong>Show only the activities</strong> above to keep it.
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="mb-1">
+                    <label class="form-label text-dark mb-1" style="font-weight:600;font-size:13px;">
+                        <i class="bx bx-map-pin me-1"></i> Lots to include
+                    </label>
+                    <small class="text-secondary d-block mb-2" style="font-size: 12.5px;">
+                        All lots are included by default — <strong>uncheck</strong> any you don't want.
+                    </small>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" class="btn btn-link btn-sm p-0" id="expLotsSelectAllBtn">Select all</button>
+                        <span class="text-secondary">·</span>
+                        <button type="button" class="btn btn-link btn-sm p-0" id="expLotsClearBtn">Clear</button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 p-2 rounded" id="expLotsList"
+                         style="border:1px solid #e6e8ec; background:#fafbfc; max-height: 180px; overflow-y: auto;">
+                        @foreach($schedule->lots as $lot)
+                            <div class="form-check form-check-inline m-0" style="min-width: 32%;">
+                                <input class="form-check-input exp-lot-pick" type="checkbox"
+                                       id="expLot{{ $lot->id }}" value="{{ $lot->id }}" checked>
+                                <label class="form-check-label text-dark" for="expLot{{ $lot->id }}" style="font-size: 13px;">
+                                    {{ $lot->lotName }}@if(!empty($lot->variety))<small class="text-secondary"> · {{ $lot->variety }}</small>@endif
+                                </label>
+                            </div>
+                        @endforeach
+                        @if($schedule->lots->count() === 0)
+                            <small class="text-secondary"><i class="bx bx-info-circle me-1"></i>No lots defined on this schedule.</small>
+                        @endif
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" id="expIncludeNa" checked>
+                        <label class="form-check-label text-dark" for="expIncludeNa" style="font-size: 13px;">
+                            Include general activities
+                            <span class="text-secondary">— those marked <strong>N/A</strong>, which aren't tied to any lot</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="expGenerateBtn">
+                    <i class="bx bx-show me-1"></i> Generate Preview
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Export schedule modal: preview + download PDF + copy to clipboard --}}
 <div class="modal fade" id="exportScheduleModal" tabindex="-1" data-bs-focus="false">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down" style="max-width: 1000px;">
@@ -1040,6 +1240,53 @@
                         </div>
                         <small class="text-secondary">Leave empty for a single-day activity. Set for a multi-day range (e.g. land preparation over 5 days).</small>
                     </div>
+                </div>
+
+                {{-- Day-number entry — the DAS/DAP twin of the date row above.
+                     Farm work is planned as "basal fertilizer at DAS 21", not
+                     as a calendar date, so this lets the user type the day
+                     number and have the date fill itself in. Two-way: editing
+                     a date refreshes the day numbers, editing a day number
+                     rewrites the date.
+
+                     The date inputs above remain the only thing submitted —
+                     these fields are purely a lens over them, so nothing
+                     downstream (calendar, export, presentation) changes.
+
+                     Rendered hidden; JS reveals it only when a selected lot
+                     carries a Day 0 anchor, since without an anchor a day
+                     number has nothing to count from. --}}
+                <div class="mb-3 p-3 rounded" id="activityDasRow"
+                     style="display:none; background:#eef4fb; border:1px solid #c9dcf0;">
+                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                        <label class="form-label text-dark mb-0 fw-semibold" style="font-size:13px;">
+                            <i class="bx bx-trending-up"></i>
+                            Set by <span class="day-type-label">{{ $schedule->dayType }}</span> day number
+                        </label>
+                        <span class="badge bg-light text-secondary" style="font-weight:500;">Optional</span>
+                    </div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label text-dark mb-1" style="font-size:12px;">Relative to lot</label>
+                            <select class="form-select form-select-sm" id="activityDasRefLot"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-dark mb-1" style="font-size:12px;">
+                                Start <span class="day-type-label">{{ $schedule->dayType }}</span>
+                            </label>
+                            <input type="number" step="1" class="form-control form-control-sm"
+                                   id="activityStartDas" placeholder="e.g. 21">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-dark mb-1" style="font-size:12px;">
+                                End <span class="day-type-label">{{ $schedule->dayType }}</span>
+                                <span class="text-secondary fw-normal">— optional</span>
+                            </label>
+                            <input type="number" step="1" class="form-control form-control-sm"
+                                   id="activityEndDas" placeholder="e.g. 25">
+                        </div>
+                    </div>
+                    <small class="text-secondary d-block mt-2" id="activityDasAnchorNote"></small>
                 </div>
 
                 <div class="mb-3">

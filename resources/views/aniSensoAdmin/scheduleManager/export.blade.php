@@ -338,6 +338,45 @@
                 </span>
             @endif
             <span><strong>Generated:</strong> {{ $generatedAt->format('M j, Y · g:i A') }}</span>
+            {{-- Filter provenance. A narrowed export must say so on its face:
+                 printed and handed over, it is otherwise indistinguishable
+                 from the complete schedule. --}}
+            @if($exportActivitiesOnly || $exportStartFrom || $exportHasLotFilter || $exportHasDasMax || $exportHideWorkers || $exportHideNotes || $exportHideCriticality)
+                @php
+                    $exportFilterBits = [];
+                    if ($exportActivitiesOnly) {
+                        $exportFilterBits[] = 'activities only';
+                    }
+                    if ($exportStartFrom) {
+                        $exportFilterBits[] = 'from ' . $exportStartFrom->format('M j, Y');
+                    }
+                    if ($exportHasDasMax) {
+                        $exportFilterBits[] = 'up to ' . $schedule->dayType . ' ' . $exportDasMax;
+                    }
+                    $exportHiddenBits = [];
+                    if ($exportHideWorkers)     { $exportHiddenBits[] = 'workers'; }
+                    if ($exportHideNotes)       { $exportHiddenBits[] = 'notes'; }
+                    if ($exportHideCriticality) { $exportHiddenBits[] = 'criticality'; }
+                    if (count($exportHiddenBits)) {
+                        $exportFilterBits[] = 'hidden: ' . implode(' + ', $exportHiddenBits);
+                    }
+                    if ($exportHasLotFilter) {
+                        $exportLotNames = $schedule->lots
+                            ->whereIn('id', $exportLotIds)
+                            ->pluck('lotName')
+                            ->all();
+                        $exportFilterBits[] = count($exportLotNames)
+                            ? 'lots: ' . implode(', ', $exportLotNames)
+                                . ($exportIncludeNa ? ' (+ general)' : '')
+                            : 'no lots selected';
+                    } elseif (!$exportIncludeNa) {
+                        $exportFilterBits[] = 'general activities excluded';
+                    }
+                @endphp
+                <span class="export-filter-note">
+                    <strong>Filtered:</strong> {{ implode(' · ', $exportFilterBits) }}
+                </span>
+            @endif
         </div>
     </header>
 
@@ -350,8 +389,8 @@
     @endphp
 
     {{-- Critical Rules — most prominent — render at the very top so the
-         reader hits them first. --}}
-    @if($schedule->criticalRules->count() > 0)
+         reader hits them first. Suppressed in activities-only mode. --}}
+    @if(!$exportActivitiesOnly && $schedule->criticalRules->count() > 0)
         <section class="section">
             <div class="critical-rules-callout">
                 <div class="critical-rules-heading">
@@ -367,7 +406,7 @@
     @endif
 
     {{-- Protocol Introduction (rich text from the active version) --}}
-    @if($exportHasProtocolIntro)
+    @if(!$exportActivitiesOnly && $exportHasProtocolIntro)
         <section class="section">
             <h2>Protocol Introduction</h2>
             <div class="protocol-intro-print">
@@ -378,7 +417,7 @@
 
     {{-- Reference Attachments — print as a grid of images + descriptions.
          Falls back to a "file attached" placeholder for non-image types. --}}
-    @if($schedule->attachments->count() > 0)
+    @if(!$exportActivitiesOnly && $schedule->attachments->count() > 0)
         <section class="section">
             <h2>Reference Attachments</h2>
             <div class="attachments-print-grid">
@@ -404,17 +443,24 @@
         </section>
     @endif
 
-    <section class="section">
-        <h2>Summary</h2>
-        <div class="summary-grid">
-            <div><div class="label">Total Activities</div><div class="value">{{ $totalActivities }}</div></div>
-            <div><div class="label">Date Groups</div><div class="value">{{ $dateKeys->filter(fn($k) => $k !== '__no-date__')->count() }}</div></div>
-            <div><div class="label">Lots</div><div class="value">{{ $schedule->lots->count() }}</div></div>
-            <div><div class="label">Workers</div><div class="value">{{ $schedule->workers->count() }}</div></div>
-        </div>
-    </section>
+    @if(!$exportActivitiesOnly)
+        <section class="section">
+            <h2>Summary</h2>
+            <div class="summary-grid">
+                <div><div class="label">Total Activities</div><div class="value">{{ $totalActivities }}</div></div>
+                <div><div class="label">Date Groups</div><div class="value">{{ $dateKeys->filter(fn($k) => $k !== '__no-date__')->count() }}</div></div>
+                <div><div class="label">Lots</div><div class="value">{{ $schedule->lots->count() }}</div></div>
+                {{-- Suppressed alongside the roster: a worker headcount is still
+                     a worker fact, so leaving it would half-answer a request to
+                     hide workers. --}}
+                @if(!$exportHideWorkers)
+                    <div><div class="label">Workers</div><div class="value">{{ $schedule->workers->count() }}</div></div>
+                @endif
+            </div>
+        </section>
+    @endif
 
-    @if($schedule->lots->count())
+    @if(!$exportActivitiesOnly && $schedule->lots->count())
         <section class="section">
             <h2>Lots</h2>
             <table class="lot-table">
@@ -433,7 +479,7 @@
         </section>
     @endif
 
-    @if($schedule->workers->count())
+    @if(!$exportActivitiesOnly && !$exportHideWorkers && $schedule->workers->count())
         <section class="section">
             <h2>Workers</h2>
             @php $skillsCatalog = \App\Models\AsScheduleWorker::SKILLS; @endphp
@@ -476,7 +522,7 @@
                 ?? $schedule->versions->firstWhere('isOriginal', true)
                 ?? $schedule->versions->first();
         @endphp
-        @if($exportActiveVersion && !empty($exportActiveVersion->globalActivityNote))
+        @if(!$exportHideNotes && $exportActiveVersion && !empty($exportActiveVersion->globalActivityNote))
             <div class="global-version-note">
                 <div class="global-version-note-label">Note for this version ({{ $exportActiveVersion->versionName }})</div>
                 <div class="global-version-note-body">{!! $exportActiveVersion->globalActivityNote !!}</div>
@@ -529,7 +575,9 @@
                             @if($a->activityType && isset(\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType]))
                                 <span class="type-pill">{{ \App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType] }}</span>
                             @endif
-                            <span class="priority-pill priority-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
+                            @if(!$exportHideCriticality)
+                                <span class="priority-pill priority-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
+                            @endif
                         </div>
                         @if($a->description)
                             <div class="desc-on-card description-block">{!! $a->description !!}</div>
@@ -550,7 +598,7 @@
                                 @endforeach
                             </div>
                         @endif
-                        @if($a->workers->count())
+                        @if(!$exportHideWorkers && $a->workers->count())
                             <div class="activity-line">
                                 <span class="label">Workers:</span>
                                 @foreach($a->workers as $worker)
@@ -587,7 +635,7 @@
          range, lots, workers, and description. Ordered by sortOrder
          (drag-drop position) then startDay so the printed copy matches
          the on-screen card list. --}}
-    @if($schedule->irrigations->count() > 0)
+    @if(!$exportActivitiesOnly && $schedule->irrigations->count() > 0)
         <section class="section">
             <h2 class="page-break">Irrigation Schedules</h2>
             <p>Each entry shows the irrigation cycle, the task type, its priority for overlap resolution,
@@ -612,9 +660,11 @@
                         <span class="irr-range-badge" style="background: {{ $iIsDateMode ? '#6b7280' : '#0c84d1' }};">
                             {{ $iIsDateMode ? '📅 ' : '' }}{{ $iRangeLabel }}
                         </span>
-                        <span class="irr-prio-badge" style="background: {{ $iPrioColor }}; color: {{ $iPrioTextColor }};">
-                            P{{ $iPrio }}
-                        </span>
+                        @if(!$exportHideCriticality)
+                            <span class="irr-prio-badge" style="background: {{ $iPrioColor }}; color: {{ $iPrioTextColor }};">
+                                P{{ $iPrio }}
+                            </span>
+                        @endif
                     </div>
                     @if($i->lots->count() > 0)
                         <div class="irr-block-line">
@@ -624,7 +674,11 @@
                             @endforeach
                         </div>
                     @endif
-                    @if($i->workers->count() > 0)
+                    {{-- Irrigation carries worker names too. "Hide workers" has to
+                         mean the whole document, or names leak back in here. --}}
+                    @if($exportHideWorkers)
+                        {{-- nothing --}}
+                    @elseif($i->workers->count() > 0)
                         <div class="irr-block-line">
                             <span class="irr-block-label">Workers:</span>
                             @foreach($i->workers as $iWk)

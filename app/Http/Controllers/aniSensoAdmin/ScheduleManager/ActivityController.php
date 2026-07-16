@@ -1274,7 +1274,175 @@ class ActivityController extends BaseScheduleController
             'criticalRules',
         ]);
 
-        return view('aniSensoAdmin.scheduleManager.export', compact('schedule'));
+        // ---- Export view options (all optional query params) ----
+        //
+        // activitiesOnly  : drop every non-activity section (rules, protocol,
+        //                   attachments, summary, lots, workers, irrigation)
+        //                   so the document is just the activity timeline.
+        // startFrom       : Y-m-d cutoff — the document begins on this date.
+        // dasMax          : upper DAS/DAP bound — the document ends at this
+        //                   day number.
+        // lotIds[]        : restrict activities to these lots.
+        // includeNa       : keep activities not tied to any lot (default yes).
+        // hideWorkers     : drop worker names (roster section + per-activity).
+        // hideNotes       : drop the per-date notes + the version-wide note.
+        // hideCriticality : drop the per-activity priority pill.
+        //
+        // Filtering happens here rather than in the view so every figure the
+        // view derives from $schedule->activities (totals, first/last date,
+        // the date-group keys) is computed from the SAME filtered set — a
+        // view-level filter would leave the Summary counting rows the reader
+        // can no longer see.
+        $exportActivitiesOnly = $request->boolean('activitiesOnly');
+
+        $exportStartFrom = null;
+        if ($request->filled('startFrom')) {
+            try {
+                $exportStartFrom = \Illuminate\Support\Carbon::parse($request->input('startFrom'))->startOfDay();
+            } catch (\Throwable $e) {
+                $exportStartFrom = null; // unparseable date → treat as "no cutoff"
+            }
+        }
+
+        // A lot filter is "present" whenever the param was sent at all. The
+        // client sends the sentinel -1 when the user unchecks every lot, so
+        // "none selected" narrows to zero rows instead of silently meaning
+        // "show everything" (the empty-array ambiguity).
+        $exportLotIds = array_values(array_filter(array_map(
+            'intval',
+            (array) $request->input('lotIds', [])
+        )));
+        $exportHasLotFilter = $request->has('lotIds');
+        $exportIncludeNa = !$request->has('includeNa') || $request->boolean('includeNa');
+
+        $exportHideWorkers     = $request->boolean('hideWorkers');
+        $exportHideNotes       = $request->boolean('hideNotes');
+        $exportHideCriticality = $request->boolean('hideCriticality');
+
+        $exportHasDasMax = $request->filled('dasMax') && is_numeric($request->input('dasMax'));
+        $exportDasMax = $exportHasDasMax ? (int) $request->input('dasMax') : null;
+
+        // Effective Day 0 anchor per lot, mirroring laborSummary() and the JS
+        // recomputeLotDayZero(): the lot's manual date is the baseline, and any
+        // activity flagged as Day 0 overrides it (earliest wins). Built from the
+        // UNFILTERED activity set — a DAS cap has to be measured against the
+        // schedule's real anchors, not against whatever survives the filter.
+        $exportLotDayZero = [];
+        foreach ($schedule->lots as $lot) {
+            if ($lot->dayZeroDate) {
+                $exportLotDayZero[$lot->id] = \Illuminate\Support\Carbon::parse($lot->dayZeroDate);
+            }
+        }
+        foreach ($schedule->activities as $a) {
+            if (!$a->isDayZero || !$a->targetDate) {
+                continue;
+            }
+            $aDate = \Illuminate\Support\Carbon::parse($a->targetDate);
+            foreach ($a->lots as $lot) {
+                if (!isset($exportLotDayZero[$lot->id]) || $aDate->lt($exportLotDayZero[$lot->id])) {
+                    $exportLotDayZero[$lot->id] = $aDate->copy();
+                }
+            }
+        }
+
+        if ($exportStartFrom || $exportHasLotFilter || $exportHasDasMax) {
+            $filteredActivities = $schedule->activities->filter(
+                function ($a) use (
+                    $exportStartFrom,
+                    $exportHasLotFilter,
+                    $exportLotIds,
+                    $exportIncludeNa,
+                    $exportHasDasMax,
+                    $exportDasMax,
+                    $exportLotDayZero
+                ) {
+                    $aLotIds = $a->lots->pluck('id')->all();
+
+                    if ($exportStartFrom) {
+                        // Compare the END of the range, not the start: an activity
+                        // that began earlier but is still running on the cutoff is
+                        // work the reader still needs. Undated activities have
+                        // nothing to compare, so a date-bounded document drops them.
+                        $end = $a->targetEndDate ?: $a->targetDate;
+                        if (!$end || \Illuminate\Support\Carbon::parse($end)->lt($exportStartFrom)) {
+                            return false;
+                        }
+                    }
+
+                    if ($exportHasLotFilter) {
+                        // No lots at all = a general "N/A" activity; it applies to
+                        // every lot, so it's governed by its own toggle.
+                        if (count($aLotIds) === 0) {
+                            return $exportIncludeNa;
+                        }
+                        if (count(array_intersect($aLotIds, $exportLotIds)) === 0) {
+                            return false;
+                        }
+                    }
+
+                    if ($exportHasDasMax) {
+                        if (!$a->targetDate) {
+                            return false;
+                        }
+                        $aDate = \Illuminate\Support\Carbon::parse($a->targetDate);
+                        // Only measure against lots the reader is actually seeing.
+                        $consideredLotIds = $exportHasLotFilter
+                            ? array_values(array_intersect($aLotIds, $exportLotIds))
+                            : $aLotIds;
+                        $deltas = [];
+                        foreach ($consideredLotIds as $lotId) {
+                            if (!isset($exportLotDayZero[$lotId])) {
+                                continue;
+                            }
+                            $deltas[] = (int) $exportLotDayZero[$lotId]->diffInDays($aDate, false);
+                        }
+                        // No anchor → no DAS → nothing to compare a bound against,
+                        // so the activity can't satisfy it. Same rule laborSummary
+                        // applies. This is what drops general N/A activities (they
+                        // have no lot, hence no Day 0) once a DAS cap is set.
+                        if (empty($deltas)) {
+                            return false;
+                        }
+                        // Earliest DAS across the activity's lots — matches the
+                        // "earliest DAS across its lots" convention used by the
+                        // labor summary's DAS range filter.
+                        if (min($deltas) > $exportDasMax) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            )->values();
+            $schedule->setRelation('activities', $filteredActivities);
+        }
+
+        // Per-date notes are keyed off dates too — without this a note sitting
+        // before the cutoff would still print and re-introduce a date the
+        // document is supposed to start after. Dropping them outright when the
+        // user asked to hide notes also stops note-only dates from rendering as
+        // empty date blocks.
+        if ($exportHideNotes) {
+            $schedule->setRelation('dateNotes', $schedule->dateNotes->take(0));
+        } elseif ($exportStartFrom) {
+            $schedule->setRelation('dateNotes', $schedule->dateNotes->filter(
+                fn ($n) => $n->noteDate && $n->noteDate->gte($exportStartFrom)
+            )->values());
+        }
+
+        return view('aniSensoAdmin.scheduleManager.export', compact(
+            'schedule',
+            'exportActivitiesOnly',
+            'exportStartFrom',
+            'exportLotIds',
+            'exportHasLotFilter',
+            'exportIncludeNa',
+            'exportHasDasMax',
+            'exportDasMax',
+            'exportHideWorkers',
+            'exportHideNotes',
+            'exportHideCriticality'
+        ));
     }
 
     /**

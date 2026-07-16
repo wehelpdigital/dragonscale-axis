@@ -338,12 +338,71 @@ function _removeCardById(id) {
 }
 
 // ---------- EXPORT SCHEDULE (preview / PDF / copy) ----------
+// The toolbar button now opens the options dialog; the preview is rendered by
+// #expGenerateBtn once the user has picked what to include.
 $(document).on('click', '#openExportScheduleBtn', function () {
-    const url = URLS.activitiesExport();
-    // Load the document view into the iframe. Cache-bust so freshly-edited
-    // activities show up without a hard refresh.
-    $('#exportScheduleFrame').attr('src', url + '&_=' + Date.now());
-    $('#exportScheduleModal').modal('show');
+    $('#exportScheduleOptionsModal').modal('show');
+});
+
+$(document).on('click', '#expStartDateClear', function () {
+    $('#expStartDate').val('');
+});
+
+$(document).on('click', '#expDasMaxClear', function () {
+    $('#expDasMax').val('');
+});
+
+$(document).on('click', '#expLotsSelectAllBtn', function () {
+    $('#expLotsList .exp-lot-pick').prop('checked', true);
+});
+
+$(document).on('click', '#expLotsClearBtn', function () {
+    $('#expLotsList .exp-lot-pick').prop('checked', false);
+});
+
+// Build the export URL from the chosen options and render the preview.
+$(document).on('click', '#expGenerateBtn', function () {
+    let qs = '';
+    if ($('#expActivitiesOnly').is(':checked')) qs += '&activitiesOnly=1';
+
+    const startFrom = $('#expStartDate').val();
+    if (startFrom) qs += '&startFrom=' + encodeURIComponent(startFrom);
+
+    // DAS cap. Guard on '' rather than falsiness — DAS 0 is a real, meaningful
+    // bound (the Day 0 anchor itself) and must not be dropped as "empty".
+    const dasMax = $('#expDasMax').val();
+    if (dasMax !== '' && dasMax !== null) qs += '&dasMax=' + encodeURIComponent(dasMax);
+
+    if ($('#expHideWorkers').is(':checked'))     qs += '&hideWorkers=1';
+    if ($('#expHideNotes').is(':checked'))       qs += '&hideNotes=1';
+    if ($('#expHideCriticality').is(':checked')) qs += '&hideCriticality=1';
+
+    // The lot filter is opt-out: every box starts checked. Only send the param
+    // when the user actually narrowed something, so an untouched dialog exports
+    // the whole schedule and the server skips the filter entirely.
+    const $allLots  = $('#expLotsList .exp-lot-pick');
+    const $checked  = $allLots.filter(':checked');
+    const narrowed  = $allLots.length > 0 && $checked.length < $allLots.length;
+    const dropNa    = !$('#expIncludeNa').is(':checked');
+    if (narrowed || dropNa) {
+        let lotIds = $checked.map(function () { return parseInt($(this).val(), 10); }).get();
+        // Sentinel -1 when every lot is unchecked: a negative id matches no real
+        // lot AND survives the server's array_filter(), so "none selected" means
+        // none rather than collapsing back to "show all" via the empty-array
+        // ambiguity (the same trap the worker-presentation filter hit).
+        if (lotIds.length === 0) lotIds = [-1];
+        qs += lotIds.map(id => `&lotIds[]=${id}`).join('');
+        qs += '&includeNa=' + (dropNa ? 0 : 1);
+    }
+
+    // Show the preview only once the options modal has finished hiding —
+    // stacking two Bootstrap modals in the same tick leaves a stuck backdrop.
+    $('#exportScheduleOptionsModal').one('hidden.bs.modal', function () {
+        // Cache-bust so freshly-edited activities show up without a hard refresh.
+        $('#exportScheduleFrame').attr('src', URLS.activitiesExport() + qs + '&_=' + Date.now());
+        $('#exportScheduleModal').modal('show');
+    });
+    $('#exportScheduleOptionsModal').modal('hide');
 });
 
 $(document).on('click', '#downloadSchedulePdfBtn', function () {
@@ -459,9 +518,11 @@ function getScheduleDayType() {
     return ($('.day-type-label').first().text() || 'DAS').trim();
 }
 
-// Clear button for the optional end-date input.
+// Clear button for the optional end-date input. Re-derive the day numbers so
+// the End DAS field doesn't keep showing a value for a now-cleared date.
 $(document).on('click', '#activityTargetEndDateClear', function () {
     $('#activityTargetEndDate').val('');
+    if (typeof syncActivityDasFromDates === 'function') syncActivityDasFromDates();
 });
 
 // Decide whether the "Mark as Day 0" checkbox should be visible right now.
@@ -521,7 +582,7 @@ $(document).on('click', '#activityLotsContainer .lot-chip', function () {
         $chip.toggleClass('active');
         $chip.attr('aria-pressed', $chip.hasClass('active') ? 'true' : 'false');
     }
-    refreshDayZeroToggleVisibility();
+    refreshActivityModalLotState();
 });
 
 function setActivityLots(lotIds) {
@@ -546,6 +607,143 @@ function getActivityLotIds() {
         .map((_, e) => parseInt($(e).data('lot-id'), 10))
         .get();
 }
+
+// ---------- DAS / DAP DAY-NUMBER ENTRY ----------
+// Farm work is planned in day numbers ("basal fertilizer at DAS 21"), not in
+// calendar dates, so the activity modal accepts either. The date inputs stay
+// the single source of truth that gets submitted — the day-number fields are
+// a two-way lens over them:
+//     type a day number → the matching date input is rewritten
+//     change a date     → the day numbers re-derive
+// Because the date is still what's saved, no controller or schema change is
+// involved and every downstream consumer (calendar, export, presentation)
+// keeps reading targetDate exactly as before.
+//
+// A day number only means something relative to a Day 0 anchor, so the row
+// hides unless a selected lot carries one (LOT_DAY_ZERO_DATES).
+
+// Anchor (Y-m-d) for the currently-picked reference lot, or null.
+function _activityDasAnchor() {
+    const lotId = parseInt($('#activityDasRefLot').val(), 10);
+    if (!lotId) return null;
+    return (window.LOT_DAY_ZERO_DATES || {})[lotId] || null;
+}
+
+// Day number → Y-m-d. Built via parseLocalDate + local Date arithmetic so we
+// never tip over a UTC/DST boundary the way new Date('2026-06-01') would.
+function _dasToDateStr(das, anchorStr) {
+    const a = parseLocalDate(anchorStr);
+    const n = parseInt(das, 10);
+    if (!a || isNaN(n)) return '';
+    const d = new Date(a.getFullYear(), a.getMonth(), a.getDate() + n);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+// Y-m-d → day number relative to the anchor ('' when either side is unset).
+function _dateStrToDas(dateStr, anchorStr) {
+    const a = parseLocalDate(anchorStr);
+    const b = parseLocalDate(dateStr);
+    if (!a || !b) return '';
+    return Math.round((b - a) / 86400000);
+}
+
+// Dates → day numbers. The dates are the truth; this only re-derives the lens
+// and repaints the anchor note.
+function syncActivityDasFromDates() {
+    const anchor = _activityDasAnchor();
+    if (!anchor) return;
+    $('#activityStartDas').val(_dateStrToDas($('#activityTargetDate').val(), anchor));
+    $('#activityEndDas').val(_dateStrToDas($('#activityTargetEndDate').val(), anchor));
+
+    const dayType = getScheduleDayType();
+    const lotName = $('#activityDasRefLot option:selected').text();
+    const aObj = parseLocalDate(anchor);
+    const pretty = aObj
+        ? `${MONTH_SHORT[aObj.getMonth()]} ${aObj.getDate()}, ${aObj.getFullYear()}`
+        : anchor;
+    $('#activityDasAnchorNote').html(
+        `<i class="bx bx-target-lock"></i> <strong>${escapeHtml(dayType)} 0</strong> for ` +
+        `<strong>${escapeHtml(lotName)}</strong> = ${escapeHtml(pretty)}. ` +
+        `Typing a ${escapeHtml(dayType)} number rewrites the date above — the date is what gets saved.`
+    );
+}
+
+// Rebuild the reference-lot options from the lots currently selected, keeping
+// the existing pick when it survives. Lots anchored by THIS activity are
+// excluded: their Day 0 IS this activity's start date, so counting from it
+// would be circular (always 0).
+function refreshActivityDasRow() {
+    const $row = $('#activityDasRow');
+    if ($row.length === 0) return;
+
+    const currentActivityId = parseInt($('#activityId').val(), 10);
+    const hasCurrentId = !isNaN(currentActivityId) && currentActivityId > 0;
+    const anchors = window.LOT_DAY_ZERO_DATES || {};
+    const sources = window.LOT_DAY_ZERO_SOURCE || {};
+
+    const candidates = getActivityLotIds().filter(lotId => {
+        if (!anchors[lotId]) return false;
+        if (hasCurrentId && sources[lotId] === currentActivityId) return false;
+        return true;
+    });
+
+    // This activity defines Day 0, or no selected lot is anchored → a day
+    // number has nothing to count from.
+    if ($('#activityIsDayZero').is(':checked') || candidates.length === 0) {
+        $row.hide();
+        $('#activityStartDas, #activityEndDas').val('');
+        return;
+    }
+
+    const $sel = $('#activityDasRefLot');
+    const prev = parseInt($sel.val(), 10);
+    $sel.empty();
+    candidates.forEach(lotId => {
+        $sel.append($('<option>').val(lotId).text(ACTIVITY_LOT_NAMES[lotId] || ('Lot #' + lotId)));
+    });
+    if (candidates.indexOf(prev) !== -1) $sel.val(prev);
+
+    $row.show();
+    syncActivityDasFromDates();
+}
+
+// Recompute every modal control keyed off the current lot selection. The Day 0
+// toggle and the DAS row read the same inputs (selected lots + this activity's
+// id + the Day 0 flag), so they always refresh together — and in this order,
+// since refreshDayZeroToggleVisibility() may force-uncheck the Day 0 box that
+// refreshActivityDasRow() then reads.
+function refreshActivityModalLotState() {
+    refreshDayZeroToggleVisibility();
+    refreshActivityDasRow();
+}
+
+// Day number → date. Blank input is left alone rather than wiping the start
+// date the user may have set by hand.
+$(document).on('input', '#activityStartDas', function () {
+    const anchor = _activityDasAnchor();
+    if (!anchor || $(this).val() === '') return;
+    $('#activityTargetDate').val(_dasToDateStr($(this).val(), anchor));
+});
+
+// Blank end-DAS clears the end date — that's the documented way to say
+// "single-day activity", so it's a meaningful input rather than a no-op.
+$(document).on('input', '#activityEndDas', function () {
+    const anchor = _activityDasAnchor();
+    if (!anchor) return;
+    if ($(this).val() === '') { $('#activityTargetEndDate').val(''); return; }
+    $('#activityTargetEndDate').val(_dasToDateStr($(this).val(), anchor));
+});
+
+$(document).on('change', '#activityTargetDate, #activityTargetEndDate', syncActivityDasFromDates);
+
+// Changing the reference lot changes the lens, not the plan: keep the dates
+// and re-derive the day numbers against the newly-picked anchor.
+$(document).on('change', '#activityDasRefLot', syncActivityDasFromDates);
+
+// Ticking "Mark as Day 0" makes the day numbers self-referential — drop the row.
+$(document).on('change', '#activityIsDayZero', refreshActivityDasRow);
 
 // Worker chips inside the Activity modal — toggle selection.
 $(document).on('click', '#activityWorkersContainer .lot-chip', function () {
@@ -1283,7 +1481,7 @@ $('#addActivityBtn').on('click', function () {
     $('#activityModalTitle').text('Add Activity');
     resetActivityModal();
     $('#activityModal').removeData('before-snapshot');
-    refreshDayZeroToggleVisibility();
+    refreshActivityModalLotState();
     $('#activityModal').modal('show');
 });
 
@@ -1301,7 +1499,7 @@ $(document).on('click', '.rest-day-add-btn, .group-add-activity-btn', function (
         $('#activityTargetDate').val(dateKey);
     }
     $('#activityModal').removeData('before-snapshot');
-    refreshDayZeroToggleVisibility();
+    refreshActivityModalLotState();
     $('#activityModal').modal('show');
 });
 
@@ -1341,7 +1539,7 @@ $(document).on('click', '.edit-activity-btn', function () {
                 appendItemTag('service', it.serviceId, it.service.serviceName, it.quantity, it.unitOfMeasure || '');
             }
         });
-        refreshDayZeroToggleVisibility();
+        refreshActivityModalLotState();
         $('#activityModal').modal('show');
     });
 });
@@ -3007,6 +3205,21 @@ $(document).on('click', '#laborCopyBtn', function () {
 // material/service chips — anything the user can see on the card). Hides
 // date groups and rest-day markers when no card inside them matches. Runs
 // purely client-side, no server round-trip.
+// True when a card should be hidden by the lot filter. A card drops out
+// only once EVERY lot it covers is hidden — a card spanning a hidden and a
+// visible lot stays, because the visible lot's work still has to be seen.
+// data-lot-signature is sorted numeric lot ids joined by "," (empty string
+// when the activity isn't tied to any lot), written identically by the
+// server render and by buildActivityCard().
+function _activityLotHidden($card, hiddenLotIds) {
+    const sig = String($card.attr('data-lot-signature') || '').trim();
+    const lotIds = sig ? sig.split(',').filter(Boolean) : [];
+    if (lotIds.length === 0) {
+        return hiddenLotIds.indexOf('__na__') !== -1;
+    }
+    return lotIds.every(id => hiddenLotIds.indexOf(id) !== -1);
+}
+
 function applyActivityFilter() {
     const raw = ($('#activitySearchInput').val() || '').trim().toLowerCase();
     const $list = $('#activitiesList');
@@ -3020,12 +3233,22 @@ function applyActivityFilter() {
         .filter(Boolean);
     const hasTypeFilter = activeTypes.length > 0;
 
-    // Toggle the "Clear types" link visibility based on whether anything
-    // is selected.
+    // Collect the lots the user has chosen to hide. Empty array = no lot
+    // filter (show every lot). The pseudo-id "__na__" covers cards with no
+    // lots at all.
+    const hiddenLotIds = $('#activityLotFilterRow .activity-lot-chip.active')
+        .map(function () { return String($(this).attr('data-lot-id') || ''); })
+        .get()
+        .filter(Boolean);
+    const hasLotFilter = hiddenLotIds.length > 0;
+
+    // Toggle the "Clear types" / "Show all lots" links based on whether
+    // anything is selected.
     $('#activityTypeFilterClearBtn').toggle(hasTypeFilter);
+    $('#activityLotFilterClearBtn').toggle(hasLotFilter);
 
     // No filters at all → show everything and exit early.
-    if (!raw && !hasTypeFilter) {
+    if (!raw && !hasTypeFilter && !hasLotFilter) {
         $cards.show().removeClass('search-hidden');
         $list.find('.date-group, .rest-day-marker').show();
         $('#activitySearchHint').hide();
@@ -3045,7 +3268,8 @@ function applyActivityFilter() {
         const cardType = String($card.attr('data-activity-type') || '');
         const matchesSearch = !needle || text.includes(needle);
         const matchesType   = !hasTypeFilter || activeTypes.indexOf(cardType) !== -1;
-        if (matchesSearch && matchesType) {
+        const matchesLot    = !hasLotFilter || !_activityLotHidden($card, hiddenLotIds);
+        if (matchesSearch && matchesType && matchesLot) {
             $card.show().removeClass('search-hidden');
             visible++;
         } else {
@@ -3085,6 +3309,32 @@ $(document).on('click', '#activityTypeFilterClearBtn', function () {
     applyActivityFilter();
 });
 
+// Lot-chip toggle — an active chip means "this lot is hidden from the tab".
+$(document).on('click', '#activityLotFilterRow .activity-lot-chip', function () {
+    const $chip = $(this);
+    $chip.toggleClass('active');
+    $chip.attr('aria-pressed', $chip.hasClass('active') ? 'true' : 'false');
+    applyActivityFilter();
+});
+
+// "Hide all" — hide every lot at once. On its own this empties the timeline;
+// its purpose is the focus workflow: hide all, then tap the one lot you want
+// back to review it in isolation.
+$(document).on('click', '#activityLotFilterAllBtn', function () {
+    $('#activityLotFilterRow .activity-lot-chip')
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+    applyActivityFilter();
+});
+
+// "Show all lots" — clear the lot filter entirely.
+$(document).on('click', '#activityLotFilterClearBtn', function () {
+    $('#activityLotFilterRow .activity-lot-chip')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+    applyActivityFilter();
+});
+
 // Debounce the search slightly so we don't recompute on every keystroke.
 let activitySearchTimer = null;
 $(document).on('input', '#activitySearchInput', function () {
@@ -3101,12 +3351,13 @@ $(document).on('click', '#activitySearchClear', function () {
 const _origReorderAndRenumber = reorderAndRenumberActivities;
 reorderAndRenumberActivities = function () {
     _origReorderAndRenumber.apply(this, arguments);
-    // Re-apply filter after a DOM rebuild if EITHER the search box has
-    // text OR at least one type chip is active — otherwise the rebuilt
-    // cards would all show regardless of the user's current filter state.
+    // Re-apply filter after a DOM rebuild if the search box has text OR at
+    // least one type/lot chip is active — otherwise the rebuilt cards would
+    // all show regardless of the user's current filter state.
     const hasSearch = ($('#activitySearchInput').val() || '').trim() !== '';
     const hasTypePick = $('#activityTypeFilterRow .activity-type-chip.active').length > 0;
-    if (hasSearch || hasTypePick) {
+    const hasLotPick = $('#activityLotFilterRow .activity-lot-chip.active').length > 0;
+    if (hasSearch || hasTypePick || hasLotPick) {
         applyActivityFilter();
     }
 };
