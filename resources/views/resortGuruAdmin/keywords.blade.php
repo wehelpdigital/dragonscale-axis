@@ -28,14 +28,22 @@
                             <li class="nav-item">
                                 <a class="nav-link py-1 {{ $activeView === 'pages' ? 'active' : '' }}" href="javascript:void(0);" data-view="pages">SEO Pages</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link py-1 {{ $activeView === 'reviews' ? 'active' : '' }}" href="javascript:void(0);" data-view="reviews">Reviews</a>
+                            </li>
                         </ul>
                     </div>
-                    <div class="d-flex gap-2 kw-only {{ $activeView === 'pages' ? 'd-none' : '' }}">
+                    <div class="d-flex gap-2 kw-only {{ $activeView !== 'keywords' ? 'd-none' : '' }}">
                         <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="bx bx-upload"></i> Import CSV
                         </button>
                         <a href="{{ route('resort-guru-keywords.create') }}" id="addKeywordBtn" class="btn btn-primary">
                             <i class="bx bx-plus"></i> Add Keyword
+                        </a>
+                    </div>
+                    <div class="d-flex gap-2 rv-only {{ $activeView !== 'reviews' ? 'd-none' : '' }}">
+                        <a href="/resort-guru-reviews-create" class="btn btn-primary">
+                            <i class="bx bx-plus"></i> Add Review
                         </a>
                     </div>
                 </div>
@@ -64,7 +72,7 @@
                     @endforeach
                 </ul>
 
-                <div id="kwPaneKeywords" class="{{ $activeView === 'pages' ? 'd-none' : '' }}">
+                <div id="kwPaneKeywords" class="{{ $activeView !== 'keywords' ? 'd-none' : '' }}">
                     <div class="table-responsive">
                         <table id="keywordsTable" class="table table-bordered table-striped align-middle" style="width:100%">
                             <thead class="table-light">
@@ -88,7 +96,9 @@
 
                 <div id="kwPanePages" class="{{ $activeView === 'pages' ? '' : 'd-none' }}">
                     <p class="text-muted small mb-3" style="max-width:70ch">
-                        The SEO article pages generated for each keyword. Edit opens the block builder.
+                        The SEO article pages generated for each keyword. Edit opens the block builder; the
+                        <i class="bx bx-code-curly"></i> button edits the page's custom JSON-LD schema
+                        (<a href="{{ route('resort-guru-schemas.index') }}">schema reference</a>).
                         To add or remove pages for a keyword, use the <strong>Pages</strong> button on its row in the Keywords view.
                     </p>
                     <div class="table-responsive">
@@ -103,6 +113,45 @@
                                     <th>30d Views</th>
                                     <th>Status</th>
                                     <th>Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="kwPaneReviews" class="{{ $activeView === 'reviews' ? '' : 'd-none' }}">
+                    <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+                        <p class="text-muted small mb-0" style="max-width:60ch">
+                            Guest reviews attached to keywords. Each review renders on its keyword's pages and
+                            feeds that page's AggregateRating schema; reviews without a keyword are global.
+                        </p>
+                        <form method="POST" action="/resort-guru-reviews-generate" class="d-flex align-items-end gap-2">
+                            @csrf
+                            <div>
+                                <label class="form-label small mb-1">Per keyword</label>
+                                <input type="number" name="per_keyword" min="1" max="8" value="4" class="form-control form-control-sm" style="width:80px">
+                            </div>
+                            <div class="form-check mb-1">
+                                <input type="checkbox" name="clear_existing" value="1" class="form-check-input" id="rvClearExisting">
+                                <label class="form-check-label small" for="rvClearExisting">Clear existing first</label>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-warning" title="Auto-create reviews per active keyword"><i class="bx bx-shuffle me-1"></i>Generate</button>
+                        </form>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="reviewsTable" class="table table-bordered table-striped align-middle" style="width:100%">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Reviewer</th>
+                                    <th>Location</th>
+                                    <th>Keyword</th>
+                                    <th>Type</th>
+                                    <th>Rating</th>
+                                    <th>Review</th>
+                                    <th>Date</th>
+                                    <th>Featured</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -149,6 +198,7 @@ var currentView = @json($activeView);
 
 $(function () {
     var pagesTable = null;
+    var reviewsTable = null;
 
     var table = $('#keywordsTable').DataTable({
         processing: true,
@@ -178,7 +228,7 @@ $(function () {
     // Keep the tab count badges in sync with the data (deletes, imports in
     // another tab, etc.). Each view reports its own counts (keywords vs SEO
     // pages), so remember the last payload per view and re-apply on switch.
-    var tabCountsByView = { keywords: null, pages: null };
+    var tabCountsByView = { keywords: null, pages: null, reviews: null };
 
     function applyBadges(counts) {
         $('#kwCategoryTabs [data-count-for]').each(function () {
@@ -190,7 +240,8 @@ $(function () {
 
     function syncBadges(e, settings, json) {
         if (!json || !json.tabCounts) return;
-        var view = settings.nTable.id === 'pagesTable' ? 'pages' : 'keywords';
+        var view = settings.nTable.id === 'pagesTable' ? 'pages'
+            : (settings.nTable.id === 'reviewsTable' ? 'reviews' : 'keywords');
         tabCountsByView[view] = json.tabCounts;
         if (view === currentView) applyBadges(json.tabCounts);
     }
@@ -224,10 +275,38 @@ $(function () {
         syncTypeColumns();
     }
 
+    function initReviewsTable() {
+        if (reviewsTable) return;
+        reviewsTable = $('#reviewsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            order: [[6, 'desc']],
+            ajax: {
+                url: '/resort-guru-reviews',
+                data: function (d) { d.category = currentCategory; }
+            },
+            columns: [
+                { data: 'reviewer_name', name: 'reviewer_name' },
+                { data: 'reviewer_location', name: 'reviewer_location', width: '120px' },
+                { data: 'keyword', name: 'k.phrase' },
+                { data: 'category', name: 'k.category', searchable: false, width: '100px' },
+                { data: 'stars', name: 'rating', searchable: false, width: '90px' },
+                { data: 'snippet', name: 'r.review_text', orderable: false },
+                { data: 'review_date', name: 'review_date', width: '100px' },
+                { data: 'featured_pill', name: 'is_featured', searchable: false, width: '80px' },
+                { data: 'status_pill', name: 'status', searchable: false, width: '90px' },
+                { data: 'actions', name: 'actions', orderable: false, searchable: false, width: '90px' },
+            ]
+        });
+        reviewsTable.on('xhr.dt', syncBadges);
+        syncTypeColumns();
+    }
+
     function syncTypeColumns() {
         // The Type column is redundant when a single type tab is active.
         table.column(2).visible(currentCategory === 'all');
         if (pagesTable) pagesTable.column(3).visible(currentCategory === 'all');
+        if (reviewsTable) reviewsTable.column(3).visible(currentCategory === 'all');
     }
 
     function syncCategoryUi() {
@@ -248,10 +327,15 @@ $(function () {
         $('#kwViewTabs .nav-link[data-view="' + currentView + '"]').addClass('active');
         $('#kwPaneKeywords').toggleClass('d-none', currentView !== 'keywords');
         $('#kwPanePages').toggleClass('d-none', currentView !== 'pages');
+        $('#kwPaneReviews').toggleClass('d-none', currentView !== 'reviews');
         $('.kw-only').toggleClass('d-none', currentView !== 'keywords');
+        $('.rv-only').toggleClass('d-none', currentView !== 'reviews');
         if (currentView === 'pages') {
             initPagesTable();
             pagesTable.columns.adjust();
+        } else if (currentView === 'reviews') {
+            initReviewsTable();
+            reviewsTable.columns.adjust();
         } else {
             table.columns.adjust();
         }
@@ -278,12 +362,28 @@ $(function () {
         syncCategoryUi();
         table.ajax.reload();
         if (pagesTable) pagesTable.ajax.reload();
+        if (reviewsTable) reviewsTable.ajax.reload();
         updateUrl();
     });
 
     syncCategoryUi();
     syncViewUi();
 });
+
+function deleteReview(id) {
+    Swal.fire({
+        title: 'Delete this review?', icon: 'warning', showCancelButton: true,
+        confirmButtonText: 'Delete', confirmButtonColor: '#dc3545'
+    }).then(function (r) {
+        if (!r.isConfirmed) return;
+        $.post('/resort-guru-reviews-delete', { _token: '{{ csrf_token() }}', id: id })
+            .done(function () {
+                toastr.success('Review deleted.');
+                $('#reviewsTable').DataTable().ajax.reload();
+            })
+            .fail(function () { toastr.error('Delete failed.'); });
+    });
+}
 
 function confirmDelete(id) {
     Swal.fire({

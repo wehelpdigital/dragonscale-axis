@@ -17,12 +17,21 @@ class RgReviewsController extends Controller
         }
 
         if ($request->ajax()) {
+            $category = trim((string) $request->input('category', 'all'));
+
             $rows = DB::table('rg_destination_reviews as r')
                 ->leftJoin('rg_keywords as k', 'k.id', '=', 'r.keyword_id')
-                ->select('r.*', 'k.phrase as keyword_phrase');
+                ->select('r.*', 'k.phrase as keyword_phrase', 'k.category as category');
+
+            if ($category !== '' && $category !== 'all') {
+                $rows->where('k.category', $category);
+            }
 
             return DataTables::of($rows)
-                ->addColumn('keyword', fn($r) => $r->keyword_phrase ?: '— Global —')
+                ->addColumn('keyword', fn($r) => $r->keyword_phrase ? e($r->keyword_phrase) : '<span class="text-muted">— Global —</span>')
+                ->editColumn('category', fn($r) => $r->category
+                    ? RgKeywordsController::categoryBadge($r->category)
+                    : '<span class="text-muted small">&mdash;</span>')
                 ->addColumn('stars', function ($r) {
                     return str_repeat('★', (int) $r->rating) . str_repeat('☆', 5 - (int) $r->rating);
                 })
@@ -38,11 +47,30 @@ class RgReviewsController extends Controller
                         . '<button onclick="deleteReview(' . $r->id . ')" class="btn btn-sm btn-danger"><i class="bx bx-trash"></i></button>'
                         . '</div>';
                 })
-                ->rawColumns(['status_pill', 'featured_pill', 'actions'])
+                ->rawColumns(['keyword', 'category', 'status_pill', 'featured_pill', 'actions'])
+                ->with('tabCounts', $this->reviewsTabCounts())
                 ->make(true);
         }
 
-        return view('resortGuruAdmin.reviews-index');
+        // Full-page requests land on the Keywords screen's Reviews view; the
+        // ajax branch above still serves the DataTable JSON.
+        return redirect()->route('resort-guru-keywords.index', ['view' => 'reviews']);
+    }
+
+    /**
+     * Type-tab counts for the Reviews view of the Keywords screen: reviews
+     * per keyword category. Global reviews (no keyword) count only in "all".
+     */
+    private function reviewsTabCounts(): array
+    {
+        $counts = DB::table('rg_destination_reviews as r')
+            ->join('rg_keywords as k', 'k.id', '=', 'r.keyword_id')
+            ->select('k.category', DB::raw('COUNT(*) as c'))
+            ->groupBy('k.category')
+            ->pluck('c', 'category')
+            ->map(fn($c) => (int) $c)
+            ->all();
+        return ['all' => DB::table('rg_destination_reviews')->count()] + $counts;
     }
 
     public function create()
@@ -59,7 +87,7 @@ class RgReviewsController extends Controller
         $data['created_at'] = now();
         $data['updated_at'] = now();
         DB::table('rg_destination_reviews')->insert($data);
-        return redirect('/resort-guru-reviews')->with('success', 'Review added.');
+        return redirect()->route('resort-guru-keywords.index', ['view' => 'reviews'])->with('success', 'Review added.');
     }
 
     public function edit(Request $request)
@@ -78,7 +106,7 @@ class RgReviewsController extends Controller
         $data = $this->validateData($request);
         $data['updated_at'] = now();
         DB::table('rg_destination_reviews')->where('id', $id)->update($data);
-        return redirect('/resort-guru-reviews')->with('success', 'Review updated.');
+        return redirect()->route('resort-guru-keywords.index', ['view' => 'reviews'])->with('success', 'Review updated.');
     }
 
     public function destroy(Request $request)

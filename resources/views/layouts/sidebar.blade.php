@@ -369,18 +369,6 @@
                                 <span key="t-rg-authors">Authors</span>
                             </a>
                         </li>
-                        <li class="{{ request()->is('resort-guru-reviews*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-reviews.index') }}" class="waves-effect {{ request()->is('resort-guru-reviews*') ? 'active' : '' }}">
-                                <i class="bx bx-star"></i>
-                                <span key="t-rg-reviews">Reviews</span>
-                            </a>
-                        </li>
-                        <li class="{{ request()->is('resort-guru-schemas*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('resort-guru-schemas.index') }}" class="waves-effect {{ request()->is('resort-guru-schemas*') ? 'active' : '' }}">
-                                <i class="bx bx-code-curly"></i>
-                                <span key="t-rg-schemas">Schemas</span>
-                            </a>
-                        </li>
                         <li class="{{ request()->is('resort-guru-settings*') ? 'mm-active' : '' }}">
                             <a href="{{ route('resort-guru-settings.index') }}" class="waves-effect {{ request()->is('resort-guru-settings*') ? 'active' : '' }}">
                                 <i class="bx bx-cog"></i>

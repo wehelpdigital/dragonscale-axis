@@ -101,7 +101,7 @@ class RgSchemasController extends Controller
             'schema_json' => $json !== '' ? $json : null,
             'updated_at' => now(),
         ]);
-        return redirect('/resort-guru-schemas')->with('success', 'Custom schema saved.');
+        return redirect()->route('resort-guru-keywords.index', ['view' => 'pages'])->with('success', 'Custom schema saved.');
     }
 
     /**

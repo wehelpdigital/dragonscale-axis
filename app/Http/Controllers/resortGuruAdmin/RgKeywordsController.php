@@ -73,7 +73,7 @@ class RgKeywordsController extends Controller
                            ->orWhere('k.slug', 'like', '%' . $kw . '%');
                     });
                 })
-                ->editColumn('category', fn($r) => $this->categoryBadge($r->category))
+                ->editColumn('category', fn($r) => self::categoryBadge($r->category))
                 ->editColumn('cluster_tag', fn($r) => $r->cluster_tag
                     ? e(Str::of($r->cluster_tag)->replace('-', ' ')->title())
                     : '<span class="text-muted small">&mdash;</span>')
@@ -110,7 +110,9 @@ class RgKeywordsController extends Controller
         if ($activeCategory !== 'all' && !array_key_exists($activeCategory, $tabs)) {
             $activeCategory = 'all';
         }
-        $activeView = $request->query('view') === 'pages' ? 'pages' : 'keywords';
+        $activeView = in_array($request->query('view'), ['pages', 'reviews'], true)
+            ? $request->query('view')
+            : 'keywords';
         return view('resortGuruAdmin.keywords', compact('tabs', 'activeCategory', 'activeView'));
     }
 
@@ -145,7 +147,7 @@ class RgKeywordsController extends Controller
                        ->orWhere('p.slug', 'like', '%' . $kw . '%');
                 });
             })
-            ->editColumn('category', fn($r) => $this->categoryBadge($r->category))
+            ->editColumn('category', fn($r) => self::categoryBadge($r->category))
             ->editColumn('search_volume_monthly', fn($r) => number_format((int) $r->search_volume_monthly))
             ->editColumn('updated_at', fn($r) => $r->updated_at ? \Carbon\Carbon::parse($r->updated_at)->format('Y-m-d') : '')
             ->addColumn('status_pill', fn($r) => $r->is_published
@@ -153,7 +155,9 @@ class RgKeywordsController extends Controller
                 : '<span class="badge bg-secondary">Draft</span>')
             ->addColumn('actions', function ($r) {
                 $editUrl = route('resort-guru-pages.edit', ['id' => $r->id]);
-                $html = '<a href="' . $editUrl . '" class="btn btn-sm btn-primary me-1" title="Open block builder"><i class="bx bx-edit"></i> Edit</a>';
+                $schemaUrl = route('resort-guru-schemas.edit', ['id' => $r->id]);
+                $html = '<a href="' . $editUrl . '" class="btn btn-sm btn-primary me-1" title="Open block builder"><i class="bx bx-edit"></i> Edit</a>'
+                    . '<a href="' . $schemaUrl . '" class="btn btn-sm btn-outline-secondary me-1" title="Edit JSON-LD schema"><i class="bx bx-code-curly"></i></a>';
                 $slug = ltrim((string) $r->slug, '/');
                 if ($slug !== '') {
                     $viewUrl = \App\Support\RgFrontend::urlFor($slug);
@@ -182,7 +186,7 @@ class RgKeywordsController extends Controller
         return ['all' => array_sum($counts)] + $counts;
     }
 
-    private function categoryBadge(?string $category): string
+    public static function categoryBadge(?string $category): string
     {
         $cat = $category ?: 'resort';
         $c = self::CATEGORY_BADGES[$cat] ?? 'secondary';

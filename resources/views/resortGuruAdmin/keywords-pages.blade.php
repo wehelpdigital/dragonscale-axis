@@ -98,6 +98,7 @@
                                                 <a href="{{ \App\Support\RgFrontend::urlFor($p->slug) }}" target="_blank" class="btn btn-sm btn-outline-success" title="View live"><i class="bx bx-link-external"></i></a>
                                             @endif
                                             <a href="{{ route('resort-guru-pages.edit', ['id' => $p->id]) }}" class="btn btn-sm btn-primary"><i class="bx bx-edit-alt"></i> Edit</a>
+                                            <a href="{{ route('resort-guru-schemas.edit', ['id' => $p->id]) }}" class="btn btn-sm btn-outline-secondary" title="Edit JSON-LD schema"><i class="bx bx-code-curly"></i></a>
                                             @if(!$p->is_primary)
                                                 <button class="btn btn-sm btn-outline-warning" onclick="setPrimary({{ $p->id }})" title="Mark as primary"><i class="bx bx-star"></i></button>
                                             @endif
