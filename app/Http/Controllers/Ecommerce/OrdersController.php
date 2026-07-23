@@ -13,6 +13,7 @@ use App\Models\EcomProductStore;
 use App\Models\EcomOrderPayment;
 use App\Models\EcomStoreInvoiceSetting;
 use App\Services\TriggerFlowProcessorService;
+use App\Services\AnisystemSubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -346,6 +347,16 @@ class OrdersController extends Controller
                 ]);
             }
 
+            // AniSystem subscription hook (guarded internally — never breaks ecom flow)
+            if (in_array($newStatus, ['cancelled', 'refunded'])) {
+                try {
+                    app(AnisystemSubscriptionService::class)->handleOrderDecision($order);
+                    app(\App\Services\AnisystemAiCreditService::class)->handleOrderDecision($order);
+                } catch (\Throwable $e) {
+                    Log::error('AniSystem subscription hook failed on status change: ' . $e->getMessage(), ['order_id' => $order->id]);
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order status updated successfully',
@@ -521,6 +532,14 @@ class OrdersController extends Controller
                 ], Auth::id());
             } catch (\Exception $e) {
                 Log::error('Failed to trigger flows for order cancellation: ' . $e->getMessage());
+            }
+
+            // AniSystem subscription hook (guarded internally — never breaks ecom flow)
+            try {
+                app(AnisystemSubscriptionService::class)->handleOrderDecision($order);
+                app(\App\Services\AnisystemAiCreditService::class)->handleOrderDecision($order);
+            } catch (\Throwable $e) {
+                Log::error('AniSystem subscription hook failed on cancel: ' . $e->getMessage(), ['order_id' => $order->id]);
             }
 
             return response()->json([
@@ -779,6 +798,14 @@ class OrdersController extends Controller
                         'order_id' => $order->id,
                     ]);
                 }
+            }
+
+            // AniSystem subscription hook (guarded internally — never breaks ecom flow)
+            try {
+                app(AnisystemSubscriptionService::class)->handleOrderDecision($order);
+                app(\App\Services\AnisystemAiCreditService::class)->handleOrderDecision($order);
+            } catch (\Throwable $e) {
+                Log::error('AniSystem subscription hook failed on verify-payment: ' . $e->getMessage(), ['order_id' => $order->id]);
             }
 
             Log::info('Payment verification status updated', [
@@ -1292,6 +1319,14 @@ class OrdersController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to trigger flows for payment status change: ' . $e->getMessage());
+            }
+
+            // AniSystem subscription hook (guarded internally — never breaks ecom flow)
+            try {
+                app(AnisystemSubscriptionService::class)->handleOrderDecision($order);
+                app(\App\Services\AnisystemAiCreditService::class)->handleOrderDecision($order);
+            } catch (\Throwable $e) {
+                Log::error('AniSystem subscription hook failed on payment verify: ' . $e->getMessage(), ['order_id' => $order->id]);
             }
 
             Log::info('Payment verification updated', [

@@ -361,6 +361,32 @@ Route::post('/anisenso-schedule-manager-calendar-event-uncomplete',[App\Http\Con
 Route::get('/anisenso-schedule-manager-reports',       [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ReportController::class, 'index'])->name('anisenso-schedule-manager.reports')->middleware('auth');
 Route::get('/anisenso-schedule-manager-reports-data',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ReportController::class, 'data'])->name('anisenso-schedule-manager.reports.data')->middleware('auth');
 
+// AniSystem Clients (paying subscribers of the AniSystem SaaS)
+Route::get('/anisenso-clients', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'index'])->name('anisenso-clients.index')->middleware('auth');
+Route::get('/anisenso-clients/data', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'data'])->name('anisenso-clients.data')->middleware('auth');
+Route::get('/anisenso-clients/{id}', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'show'])->name('anisenso-clients.show')->middleware('auth');
+Route::put('/anisenso-clients/{id}/suspend', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'suspend'])->name('anisenso-clients.suspend')->middleware('auth');
+Route::put('/anisenso-clients/{id}/unsuspend', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'unsuspend'])->name('anisenso-clients.unsuspend')->middleware('auth');
+Route::put('/anisenso-clients/{id}/cancel', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'cancel'])->name('anisenso-clients.cancel')->middleware('auth');
+
+Route::post('/anisenso-clients/{id}/ai-credits', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'adjustCredits'])->name('anisenso-clients.ai-credits')->middleware('auth');
+
+// AniSystem AI (provider, prompt, avatar, credit pricing and packs)
+Route::get('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'index'])->name('anisenso-ai-settings.index')->middleware('auth');
+Route::post('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'save'])->name('anisenso-ai-settings.save')->middleware('auth');
+Route::post('/anisenso-ai-settings/avatar', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'uploadAvatar'])->name('anisenso-ai-settings.avatar')->middleware('auth');
+Route::post('/anisenso-ai-settings/packs', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'savePacks'])->name('anisenso-ai-settings.packs')->middleware('auth');
+
+// Ani-Senso Mail Settings (SMTP groups + email templates)
+Route::get('/anisenso-mail-settings', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'index'])->name('anisenso-mail-settings.index')->middleware('auth');
+Route::post('/anisenso-mail-settings/smtp', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'saveSmtp'])->name('anisenso-mail-settings.smtp.save')->middleware('auth');
+Route::post('/anisenso-mail-settings/smtp/test', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'testSmtp'])->name('anisenso-mail-settings.smtp.test')->middleware('auth');
+Route::post('/anisenso-mail-settings/smtp/toggle', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'toggleSmtp'])->name('anisenso-mail-settings.smtp.toggle')->middleware('auth');
+Route::get('/anisenso-mail-settings/templates', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'templates'])->name('anisenso-mail-settings.templates')->middleware('auth');
+Route::put('/anisenso-mail-settings/templates/{id}', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'updateTemplate'])->name('anisenso-mail-settings.templates.update')->middleware('auth');
+Route::post('/anisenso-mail-settings/templates/{id}/toggle', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'toggleTemplate'])->name('anisenso-mail-settings.templates.toggle')->middleware('auth');
+Route::post('/anisenso-mail-settings/templates/{id}/test', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'testTemplate'])->name('anisenso-mail-settings.templates.test')->middleware('auth');
+
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
 

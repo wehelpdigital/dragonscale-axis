@@ -104,6 +104,24 @@
                                 <span key="t-ani-senso-schedule">Schedule Manager</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-clients*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-clients.index') }}" class="waves-effect {{ request()->is('anisenso-clients*') ? 'active' : '' }}">
+                                <i class="bx bx-group"></i>
+                                <span key="t-anisenso-clients">Clients</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('anisenso-ai-settings*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-ai-settings.index') }}" class="waves-effect {{ request()->is('anisenso-ai-settings*') ? 'active' : '' }}">
+                                <i class="bx bx-brain"></i>
+                                <span key="t-anisenso-ai-settings">AniSystem AI</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('anisenso-mail-settings*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-mail-settings.index') }}" class="waves-effect {{ request()->is('anisenso-mail-settings*') ? 'active' : '' }}">
+                                <i class="bx bx-envelope"></i>
+                                <span key="t-anisenso-mail-settings">Mail Settings</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                             <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                                 <i class="bx bx-bot"></i>
