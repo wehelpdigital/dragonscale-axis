@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\aniSensoAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnisystemUser;
 use App\Models\AsCroppingSchedule;
 use App\Models\CommunityComment;
+use App\Models\CommunityConnection;
 use App\Models\CommunityGroup;
 use App\Models\CommunityGroupMember;
 use App\Models\CommunityGroupPost;
 use App\Models\CommunityGroupReply;
 use App\Models\CommunityRating;
+use App\Models\CommunityWallComment;
+use App\Models\CommunityWallPost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -170,5 +174,88 @@ class AniSensoCommunityController extends Controller
         $reply->update(['deleteStatus' => 0]);
 
         return response()->json(['success' => true, 'message' => 'Reply removed.']);
+    }
+
+    // ================================================================
+    // MEMBERS & WALLS
+    // ================================================================
+
+    public function members(Request $request)
+    {
+        $search = trim((string) $request->query('q'));
+
+        $members = AnisystemUser::query()
+            ->where('anisystem_users.deleteStatus', 1)
+            ->when($search !== '', function ($w) use ($search) {
+                $w->where(function ($q) use ($search) {
+                    $q->where('firstName', 'like', "%{$search}%")
+                        ->orWhere('lastName', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%")
+                        ->orWhere('province', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->selectSub(
+                DB::table('as_cropping_schedules')->selectRaw('COUNT(*)')
+                    ->whereColumn('anisystemUserId', 'anisystem_users.id')
+                    ->where('deleteStatus', 1)->where('isPublic', 1),
+                'sharedPlanCount'
+            )
+            ->selectSub(
+                DB::table('as_community_connections')->selectRaw('COUNT(*)')
+                    ->where('deleteStatus', 1)->where('status', 'accepted')
+                    ->where(fn ($q) => $q->whereColumn('userId', 'anisystem_users.id')->orWhereColumn('friendUserId', 'anisystem_users.id')),
+                'connectionCount'
+            )
+            ->select('anisystem_users.*')
+            ->orderBy('firstName')->orderBy('lastName')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('aniSensoAdmin.community.members', compact('members', 'search'));
+    }
+
+    public function memberShow($id)
+    {
+        $member = AnisystemUser::where('deleteStatus', 1)->where('id', $id)->firstOrFail();
+
+        $plans = AsCroppingSchedule::where('deleteStatus', 1)
+            ->where('anisystemUserId', $member->id)->where('isPublic', 1)
+            ->orderByDesc('publishedAt')->get();
+
+        $groups = CommunityGroupMember::active()->where('userId', $member->id)
+            ->get()->pluck('groupId');
+        $groupList = CommunityGroup::active()->whereIn('id', $groups)->get();
+
+        $connectionIds = CommunityConnection::connectedIds($member->id);
+        $connections = AnisystemUser::whereIn('id', $connectionIds)->where('deleteStatus', 1)->get();
+
+        $wallPosts = CommunityWallPost::active()
+            ->where('wallUserId', $member->id)
+            ->with(['author', 'comments.author'])
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('aniSensoAdmin.community.member-show', compact('member', 'plans', 'groupList', 'connections', 'wallPosts'));
+    }
+
+    public function deleteWallPost($id)
+    {
+        $post = CommunityWallPost::active()->where('id', $id)->firstOrFail();
+        DB::transaction(function () use ($post) {
+            CommunityWallComment::where('wallPostId', $post->id)->update(['deleteStatus' => 0]);
+            $post->update(['deleteStatus' => 0]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'Wall post removed.']);
+    }
+
+    public function deleteWallComment($id)
+    {
+        $comment = CommunityWallComment::active()->where('id', $id)->firstOrFail();
+        $comment->update(['deleteStatus' => 0]);
+
+        return response()->json(['success' => true, 'message' => 'Comment removed.']);
     }
 }
