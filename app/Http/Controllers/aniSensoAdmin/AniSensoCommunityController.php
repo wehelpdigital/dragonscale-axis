@@ -5,6 +5,10 @@ namespace App\Http\Controllers\aniSensoAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\AsCroppingSchedule;
 use App\Models\CommunityComment;
+use App\Models\CommunityGroup;
+use App\Models\CommunityGroupMember;
+use App\Models\CommunityGroupPost;
+use App\Models\CommunityGroupReply;
 use App\Models\CommunityRating;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -96,5 +100,75 @@ class AniSensoCommunityController extends Controller
         });
 
         return response()->json(['success' => true, 'message' => 'Comment removed.']);
+    }
+
+    // ================================================================
+    // GROUPS
+    // ================================================================
+
+    public function groups(Request $request)
+    {
+        $search = trim((string) $request->query('q'));
+
+        $groups = CommunityGroup::active()
+            ->with('creator')
+            ->withCount([
+                'members as member_count',
+                'posts as post_count',
+            ])
+            ->when($search !== '', fn ($w) => $w->where('name', 'like', "%{$search}%"))
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('aniSensoAdmin.community.groups', compact('groups', 'search'));
+    }
+
+    public function groupShow($id)
+    {
+        $group = CommunityGroup::active()->where('id', $id)->with('creator')->firstOrFail();
+        $memberCount = $group->members()->count();
+
+        $posts = CommunityGroupPost::active()
+            ->where('groupId', $group->id)
+            ->with(['author', 'replies.author'])
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('aniSensoAdmin.community.group-show', compact('group', 'posts', 'memberCount'));
+    }
+
+    public function deleteGroup($id)
+    {
+        $group = CommunityGroup::active()->where('id', $id)->firstOrFail();
+        DB::transaction(function () use ($group) {
+            $postIds = CommunityGroupPost::where('groupId', $group->id)->pluck('id');
+            CommunityGroupReply::whereIn('postId', $postIds)->update(['deleteStatus' => 0]);
+            CommunityGroupPost::where('groupId', $group->id)->update(['deleteStatus' => 0]);
+            CommunityGroupMember::where('groupId', $group->id)->update(['deleteStatus' => 0]);
+            $group->update(['deleteStatus' => 0]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'Group removed.']);
+    }
+
+    public function deletePost($id)
+    {
+        $post = CommunityGroupPost::active()->where('id', $id)->firstOrFail();
+        DB::transaction(function () use ($post) {
+            CommunityGroupReply::where('postId', $post->id)->update(['deleteStatus' => 0]);
+            $post->update(['deleteStatus' => 0]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'Post removed.']);
+    }
+
+    public function deleteReply($id)
+    {
+        $reply = CommunityGroupReply::active()->where('id', $id)->firstOrFail();
+        $reply->update(['deleteStatus' => 0]);
+
+        return response()->json(['success' => true, 'message' => 'Reply removed.']);
     }
 }
