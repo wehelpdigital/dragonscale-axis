@@ -258,4 +258,57 @@ class AniSensoCommunityController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Comment removed.']);
     }
+
+    // ================================================================
+    // ANNOUNCEMENTS (broadcast into members' notification bells)
+    // ================================================================
+
+    public function announcements()
+    {
+        $memberCount = AnisystemUser::where('deleteStatus', 1)->count();
+
+        // Recent broadcasts, grouped so one announcement = one row.
+        $recent = DB::table('anisystem_notifications')
+            ->where('deleteStatus', 1)
+            ->where('type', 'system')
+            ->select('title', 'body', 'url', DB::raw('MAX(created_at) as sentAt'), DB::raw('COUNT(*) as recipients'))
+            ->groupBy('title', 'body', 'url')
+            ->orderByDesc('sentAt')
+            ->limit(20)
+            ->get();
+
+        return view('aniSensoAdmin.community.announcements', compact('memberCount', 'recent'));
+    }
+
+    public function broadcast(Request $request)
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:191',
+            'body' => 'nullable|string|max:500',
+            'url' => 'nullable|url|max:500',
+        ]);
+
+        $now = now();
+        $memberIds = AnisystemUser::where('deleteStatus', 1)->pluck('id');
+
+        $memberIds->chunk(500)->each(function ($chunk) use ($data, $now) {
+            $rows = $chunk->map(fn ($uid) => [
+                'userId' => $uid,
+                'type' => 'system',
+                'title' => $data['title'],
+                'body' => $data['body'] ?? null,
+                'url' => $data['url'] ?? null,
+                'actorUserId' => null,
+                'croppingScheduleId' => null,
+                'readAt' => null,
+                'deleteStatus' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])->all();
+            DB::table('anisystem_notifications')->insert($rows);
+        });
+
+        return redirect()->route('anisenso-community.announcements')
+            ->with('success', 'Announcement sent to ' . $memberIds->count() . ' members.');
+    }
 }

@@ -401,6 +401,8 @@ Route::get('/anisenso-community/members', [App\Http\Controllers\aniSensoAdmin\An
 Route::get('/anisenso-community/members/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'memberShow'])->whereNumber('id')->name('anisenso-community.members.show')->middleware('auth');
 Route::delete('/anisenso-community/wall-posts/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
 Route::delete('/anisenso-community/wall-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');
+Route::get('/anisenso-community/announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'announcements'])->name('anisenso-community.announcements')->middleware('auth');
+Route::post('/anisenso-community/announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'broadcast'])->name('anisenso-community.announcements.send')->middleware('auth');
 
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
