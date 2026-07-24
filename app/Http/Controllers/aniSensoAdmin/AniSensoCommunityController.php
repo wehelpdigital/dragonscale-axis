@@ -1,0 +1,100 @@
+<?php
+
+namespace App\Http\Controllers\aniSensoAdmin;
+
+use App\Http\Controllers\Controller;
+use App\Models\AsCroppingSchedule;
+use App\Models\CommunityComment;
+use App\Models\CommunityRating;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * AniSenso admin — Community moderation. Staff review and moderate the
+ * give-to-get space AniSystem members use: shared plans (with their comments
+ * and ratings), groups, member walls, and broadcast announcements.
+ *
+ * All data lives in the shared `as_community_*` / `anisystem_*` tables.
+ */
+class AniSensoCommunityController extends Controller
+{
+    // ================================================================
+    // SHARED PLANS
+    // ================================================================
+
+    /** Published plans with owner, crop, rating + comment counts. */
+    public function plans(Request $request)
+    {
+        $search = trim((string) $request->query('q'));
+
+        $ratings = DB::table('as_community_ratings')->where('deleteStatus', 1)
+            ->select('croppingScheduleId', DB::raw('AVG(rating) as avgRating'), DB::raw('COUNT(*) as ratingCount'))
+            ->groupBy('croppingScheduleId');
+        $comments = DB::table('as_community_comments')->where('deleteStatus', 1)
+            ->select('croppingScheduleId', DB::raw('COUNT(*) as commentCount'))
+            ->groupBy('croppingScheduleId');
+
+        $plans = AsCroppingSchedule::query()
+            ->where('as_cropping_schedules.deleteStatus', 1)
+            ->where('as_cropping_schedules.isPublic', 1)
+            ->leftJoinSub($ratings, 'r', 'r.croppingScheduleId', '=', 'as_cropping_schedules.id')
+            ->leftJoinSub($comments, 'c', 'c.croppingScheduleId', '=', 'as_cropping_schedules.id')
+            ->with('anisystemUser')
+            ->when($search !== '', function ($w) use ($search) {
+                $w->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhere('cropType', 'like', "%{$search}%")
+                        ->orWhere('publicRegion', 'like', "%{$search}%");
+                });
+            })
+            ->select('as_cropping_schedules.*', 'r.avgRating', 'r.ratingCount', 'c.commentCount')
+            ->orderByDesc('publishedAt')
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('aniSensoAdmin.community.plans', compact('plans', 'search'));
+    }
+
+    /** One shared plan, read-only, with its thread and ratings. */
+    public function planShow($id)
+    {
+        $plan = AsCroppingSchedule::where('deleteStatus', 1)->where('id', $id)->with('anisystemUser')->firstOrFail();
+        $plan->load(['lots', 'workers']);
+
+        $comments = CommunityComment::active()
+            ->where('croppingScheduleId', $plan->id)
+            ->with('author')
+            ->orderBy('id')
+            ->get();
+        $byParent = $comments->whereNotNull('parentId')->groupBy('parentId');
+        $thread = $comments->whereNull('parentId')->values()->map(function ($c) use ($byParent) {
+            $c->setRelation('replies', $byParent->get($c->id, collect())->values());
+            return $c;
+        });
+
+        $ratings = CommunityRating::active()->where('croppingScheduleId', $plan->id)->with('author')->orderByDesc('id')->get();
+        $avg = $ratings->count() ? round($ratings->avg('rating'), 1) : null;
+
+        return view('aniSensoAdmin.community.plan-show', compact('plan', 'thread', 'ratings', 'avg'));
+    }
+
+    public function unpublishPlan($id)
+    {
+        $plan = AsCroppingSchedule::where('deleteStatus', 1)->where('id', $id)->firstOrFail();
+        $plan->update(['isPublic' => 0]);
+
+        return response()->json(['success' => true, 'message' => 'Plan removed from the Community.']);
+    }
+
+    public function deleteComment($id)
+    {
+        $comment = CommunityComment::active()->where('id', $id)->firstOrFail();
+        DB::transaction(function () use ($comment) {
+            CommunityComment::where('parentId', $comment->id)->update(['deleteStatus' => 0]);
+            $comment->update(['deleteStatus' => 0]);
+        });
+
+        return response()->json(['success' => true, 'message' => 'Comment removed.']);
+    }
+}

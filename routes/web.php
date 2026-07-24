@@ -387,6 +387,12 @@ Route::put('/anisenso-mail-settings/templates/{id}', [App\Http\Controllers\aniSe
 Route::post('/anisenso-mail-settings/templates/{id}/toggle', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'toggleTemplate'])->name('anisenso-mail-settings.templates.toggle')->middleware('auth');
 Route::post('/anisenso-mail-settings/templates/{id}/test', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'testTemplate'])->name('anisenso-mail-settings.templates.test')->middleware('auth');
 
+// AniSenso — Community moderation
+Route::get('/anisenso-community/plans', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'plans'])->name('anisenso-community.plans')->middleware('auth');
+Route::get('/anisenso-community/plans/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'planShow'])->whereNumber('id')->name('anisenso-community.plans.show')->middleware('auth');
+Route::post('/anisenso-community/plans/{id}/unpublish', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'unpublishPlan'])->whereNumber('id')->name('anisenso-community.plans.unpublish')->middleware('auth');
+Route::delete('/anisenso-community/comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-community.comments.delete')->middleware('auth');
+
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
 
