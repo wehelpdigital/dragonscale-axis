@@ -1,34 +1,50 @@
 <!-- JAVASCRIPT -->
 <script src="{{ URL::asset('build/libs/jquery/jquery.min.js')}}"></script>
 <script>
-    // Global CSRF token setup for all jQuery AJAX requests
+    // Always attach the CURRENT csrf token (read live from the meta tag) to
+    // every jQuery AJAX request. Reading it per-request — rather than once at
+    // page load — means a token refreshed by the 419 handler below is picked
+    // up immediately, so a stale token can never cause a mismatch.
     $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        // credentials for same-origin requests, so the session cookie is
+        // always sent (fixes intermittent "has_cookie:false" 419s).
+        xhrFields: { withCredentials: true },
+        beforeSend: function (xhr) {
+            var token = $('meta[name="csrf-token"]').attr('content');
+            if (token) xhr.setRequestHeader('X-CSRF-TOKEN', token);
         }
     });
 
-    // Global 419 handler: refresh CSRF token and retry the failed request
-    $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
-        if (jqXHR.status === 419 && !ajaxSettings._csrfRetried) {
-            // Fetch a fresh token from the server
-            $.get('/csrf-token', function(data) {
-                // Update the meta tag and ajaxSetup with the new token
-                $('meta[name="csrf-token"]').attr('content', data.token);
-                $.ajaxSetup({
-                    headers: { 'X-CSRF-TOKEN': data.token }
-                });
+    // Global 419 handler: refresh the CSRF token and retry the failed request
+    // once. Handles both string and object request bodies.
+    $(document).ajaxError(function (event, jqXHR, ajaxSettings, thrownError) {
+        if (jqXHR.status !== 419 || ajaxSettings._csrfRetried) return;
 
-                // Retry the original request
-                ajaxSettings._csrfRetried = true;
-                if (ajaxSettings.data && typeof ajaxSettings.data === 'string') {
-                    ajaxSettings.data = ajaxSettings.data.replace(/(_token=)[^&]*/, '$1' + encodeURIComponent(data.token));
-                }
-                ajaxSettings.headers = ajaxSettings.headers || {};
-                ajaxSettings.headers['X-CSRF-TOKEN'] = data.token;
-                $.ajax(ajaxSettings);
-            });
-        }
+        $.get('/csrf-token').done(function (data) {
+            if (!data || !data.token) {
+                // The session is genuinely gone (e.g. logged out elsewhere) —
+                // /csrf-token returned a login redirect, not a token.
+                window.location.reload();
+                return;
+            }
+            // Publish the fresh token everywhere the app reads it from.
+            $('meta[name="csrf-token"]').attr('content', data.token);
+            if (typeof window.CSRF !== 'undefined') window.CSRF = data.token;
+
+            ajaxSettings._csrfRetried = true;
+            // Patch the token inside the request body — string OR object form.
+            if (typeof ajaxSettings.data === 'string') {
+                ajaxSettings.data = ajaxSettings.data.replace(/(_token=)[^&]*/, '$1' + encodeURIComponent(data.token));
+            } else if (ajaxSettings.data && typeof ajaxSettings.data === 'object' && '_token' in ajaxSettings.data) {
+                ajaxSettings.data._token = data.token;
+            }
+            ajaxSettings.headers = ajaxSettings.headers || {};
+            ajaxSettings.headers['X-CSRF-TOKEN'] = data.token;
+            $.ajax(ajaxSettings);
+        }).fail(function () {
+            // Couldn't even fetch a token — the session has ended.
+            window.location.reload();
+        });
     });
 </script>
 <script src="{{ URL::asset('build/libs/bootstrap/js/bootstrap.bundle.min.js')}}"></script>

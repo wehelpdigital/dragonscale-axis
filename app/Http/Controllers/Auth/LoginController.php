@@ -92,8 +92,14 @@ class LoginController extends Controller
 
         // Check password manually and only authenticate if user is active
         if (Hash::check($credentials['password'], $user->password)) {
-            // Manually log in the user since we've already verified their credentials
-            $this->guard()->login($user, $request->boolean('remember'));
+            // Always enable remember-me. If the file session cookie is ever
+            // dropped mid-work (a known fragility with concurrent AJAX like the
+            // drag-to-reorder board), Laravel silently re-authenticates from the
+            // remember cookie on the SAME request — so the action succeeds
+            // instead of failing with "Unauthenticated". The SingleSession
+            // middleware re-adopts the regenerated session rather than logging
+            // the user out.
+            $this->guard()->login($user, true);
             return true;
         }
 
@@ -167,7 +173,14 @@ class LoginController extends Controller
             'last_login_ip' => $request->ip(),
         ];
         if (empty($user->allow_multiple_logins)) {
-            $updates['session_id'] = session()->getId();
+            // Store a STABLE random token (not the raw session id) in both the
+            // session and the DB. Laravel regenerates the session id whenever it
+            // re-authenticates via the remember-me cookie (updateSession →
+            // migrate), so comparing raw ids would falsely log the user out.
+            // The token lives in the session data, which survives regeneration.
+            $token = \Illuminate\Support\Str::random(40);
+            session(['single_session_token' => $token]);
+            $updates['session_id'] = $token;
         }
         $user->update($updates);
 

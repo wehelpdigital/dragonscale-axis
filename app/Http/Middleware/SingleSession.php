@@ -47,7 +47,11 @@ class SingleSession
                 return $next($request);
             }
             $user = Auth::user();
-            $currentSessionId = session()->getId();
+            // Compare a STABLE token stored in the session (not the raw session
+            // id). Laravel regenerates the session id when it re-authenticates
+            // via the remember-me cookie, and comparing raw ids would boot the
+            // user on every such regeneration.
+            $sessionToken = $request->session()->get('single_session_token');
         } catch (\Throwable $e) {
             Log::warning('SingleSession: skipping enforcement due to error', [
                 'error' => $e->getMessage(),
@@ -63,12 +67,29 @@ class SingleSession
             return $next($request);
         }
 
-        if ($user->session_id && $user->session_id !== $currentSessionId) {
+        // The session was re-established without our token — this happens when
+        // Laravel silently re-authenticates via the remember-me cookie (a fresh
+        // session with no data) or for sessions that predate this token scheme.
+        // Re-adopt the session for this device instead of bouncing the user; a
+        // genuine login elsewhere goes through the login controller, which sets
+        // a brand-new token in the DB and would then be caught below.
+        if ($sessionToken === null) {
+            $token = \Illuminate\Support\Str::random(40);
+            $request->session()->put('single_session_token', $token);
+            try {
+                $user->forceFill(['session_id' => $token])->save();
+            } catch (\Throwable $e) {
+                // Non-fatal — worst case the next request re-adopts again.
+            }
+            return $next($request);
+        }
+
+        if ($user->session_id && $user->session_id !== $sessionToken) {
             Log::info('Single session enforcement: User logged out due to new session', [
                 'user_id'     => $user->id,
                 'user_email'  => $user->email,
-                'old_session' => substr($user->session_id, 0, 10) . '...',
-                'new_session' => substr($currentSessionId, 0, 10) . '...',
+                'old_token'   => substr((string) $user->session_id, 0, 8) . '...',
+                'this_token'  => substr((string) $sessionToken, 0, 8) . '...',
             ]);
 
             // Log the user out, but DO NOT regenerateToken() — the freshly
