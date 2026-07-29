@@ -23,6 +23,9 @@ class AsCroppingSchedule extends BaseModel
         'anisystemUserId' => 'integer',
         'isActive' => 'boolean',
         'deleteStatus' => 'integer',
+        // Live-sync counter — deliberately NOT fillable: only the
+        // TouchScheduleSync middleware writes it, via a raw increment.
+        'syncVersion' => 'integer',
     ];
 
     public function scopeActive($q)

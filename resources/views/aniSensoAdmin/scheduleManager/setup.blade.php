@@ -787,7 +787,10 @@
                     </h4>
                     <p class="text-secondary mb-0" id="scheduleHeaderDescription">{{ $schedule->description ?: 'No description provided.' }}</p>
                 </div>
-                <div class="d-flex gap-2 flex-wrap">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    {{-- Live-sync presence: filled by script-sync with the other
+                         users currently viewing this schedule. --}}
+                    <div id="syncPresence" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;"></div>
                     <a href="{{ $isReadyToGenerate ? route('anisenso-schedule-manager.generate.form', ['scheduleId' => $schedule->id]) : 'javascript:void(0);' }}"
                        class="btn btn-primary btn-sm @if(!$isReadyToGenerate) disabled @endif"
                        id="generateScheduleBtn"
@@ -1295,5 +1298,6 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
+@include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>
 @endsection

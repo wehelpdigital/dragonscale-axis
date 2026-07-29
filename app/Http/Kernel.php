@@ -39,6 +39,7 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\Localization::class,
             \App\Http\Middleware\SingleSession::class, // Single session per user enforcement
+            \App\Http\Middleware\TouchScheduleSync::class, // Schedule Manager live-sync version bump
         ],
 
         'api' => [

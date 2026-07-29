@@ -265,6 +265,9 @@ Route::get('/anisenso-schedule-manager-setup',    [App\Http\Controllers\aniSenso
 Route::put('/anisenso-schedule-manager-update',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\CroppingScheduleController::class, 'update'])->name('anisenso-schedule-manager.update')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-delete',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\CroppingScheduleController::class, 'destroy'])->name('anisenso-schedule-manager.destroy')->middleware('auth');
 
+// Live sync — polled by open setup pages to detect other users' changes + presence
+Route::get('/anisenso-schedule-manager-sync-status', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\SyncController::class, 'status'])->name('anisenso-schedule-manager.sync-status')->middleware('auth');
+
 // Default Groupings (schedule-level defaults reused at generation time)
 Route::post('/anisenso-schedule-manager-default-groupings-save', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DefaultGroupingController::class, 'save'])->name('anisenso-schedule-manager.default-groupings.save')->middleware('auth');
 
