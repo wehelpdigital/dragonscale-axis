@@ -554,7 +554,7 @@
                 </div>
                 @if($exportNote)
                     <div class="date-note">
-                        <strong>Note:</strong> {!! nl2br(e($exportNote->noteContent)) !!}
+                        <strong>Note:</strong> {!! $exportNote->noteContent !== strip_tags($exportNote->noteContent) ? $exportNote->noteContent : nl2br(e($exportNote->noteContent)) !!}
                     </div>
                 @endif
 
@@ -618,6 +618,9 @@
                                         <span class="chip chip-material">{{ $it->material->materialName }} ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif</span>
                                     @elseif($it->itemType === 'service' && $it->service)
                                         <span class="chip chip-service">{{ $it->service->serviceName }}@if($qtyTrim !== '1' || $unit) ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif @endif</span>
+                                    @elseif($it->itemName)
+                                        @php $priceTxt = $it->unitPrice !== null ? ' @ ₱'.number_format((float) $it->unitPrice, 2) : ''; @endphp
+                                        <span class="chip chip-material">{{ $it->itemName }}@if($it->quantity !== null) ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif @endif{{ $priceTxt }}</span>
                                     @endif
                                 @endforeach
                             </div>

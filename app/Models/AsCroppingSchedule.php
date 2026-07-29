@@ -8,6 +8,7 @@ class AsCroppingSchedule extends BaseModel
 
     protected $fillable = [
         'usersId',
+        'anisystemUserId',
         'title',
         'description',
         'dayType',
@@ -19,6 +20,7 @@ class AsCroppingSchedule extends BaseModel
 
     protected $casts = [
         'defaultStaggerDays' => 'integer',
+        'anisystemUserId' => 'integer',
         'isActive' => 'boolean',
         'deleteStatus' => 'integer',
     ];
@@ -28,9 +30,34 @@ class AsCroppingSchedule extends BaseModel
         return $q->where('deleteStatus', 1);
     }
 
+    /**
+     * Admin visibility scope: an admin sees their own schedules PLUS every
+     * schedule owned by an AniSystem client (anisystemUserId set). All child
+     * controllers flow through this scope, so admins can fully manage
+     * client-owned schedules too.
+     */
     public function scopeForUser($q, $userId)
     {
-        return $q->where('usersId', $userId);
+        return $q->where(function ($w) use ($userId) {
+            $w->where('usersId', $userId)
+              ->orWhereNotNull('anisystemUserId');
+        });
+    }
+
+    /**
+     * The AniSystem client who owns this schedule (NULL = admin-owned).
+     */
+    public function anisystemUser()
+    {
+        return $this->belongsTo(AnisystemUser::class, 'anisystemUserId');
+    }
+
+    /**
+     * The admin user recorded as creator/owner (users.id).
+     */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'usersId');
     }
 
     public function lots()

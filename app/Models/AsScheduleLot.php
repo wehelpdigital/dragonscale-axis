@@ -13,6 +13,7 @@ class AsScheduleLot extends BaseModel
         'lotSizeUnit',
         'variety',
         'dayZeroDate',
+        'transplantDate',
         'notes',
         'deleteStatus',
     ];
@@ -20,6 +21,7 @@ class AsScheduleLot extends BaseModel
     protected $casts = [
         'lotSize' => 'decimal:4',
         'dayZeroDate' => 'date:Y-m-d',
+        'transplantDate' => 'date:Y-m-d',
         'deleteStatus' => 'integer',
     ];
 

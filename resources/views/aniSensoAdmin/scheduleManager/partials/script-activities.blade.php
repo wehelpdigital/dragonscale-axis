@@ -217,64 +217,143 @@ $(document).on('click', '.delete-group-date-btn', function (e) {
 const ACTIVITY_UNDO_STACK = [];
 const ACTIVITY_UNDO_MAX = 10;
 
-function pushUndo(label, undoFn) {
-    ACTIVITY_UNDO_STACK.push({ label, undoFn });
+const ACTIVITY_REDO_STACK = [];
+
+// Restore board positions/dates from a snapshot via /reorder — the generic
+// "redo" for move / reorder / date-change actions (mirrors the drag-undo path).
+async function restoreBoardSnapshot(snapshot) {
+    const r = await $.ajax({
+        url: URLS.activitiesReorder(),
+        type: 'POST',
+        data: { _token: CSRF, items: snapshot },
+    });
+    if (!r || !r.success) throw new Error((r && r.message) || 'restore failed');
+    snapshot.forEach(function (it) {
+        const $c = $('#activitiesList [data-id="' + it.id + '"]');
+        $c.attr('data-target-date', it.targetDate || '');
+        $c.attr('data-target-end-date', it.targetEndDate || '');
+        $c.attr('data-sequence-order', it.sequenceOrder);
+    });
+    reorderAndRenumberActivities();
+    if (typeof recomputeLotDayZero === 'function') recomputeLotDayZero();
+}
+
+// A fresh action defaults its redo to "return the board to the post-action
+// state" via a snapshot, so redo works without every call site supplying one.
+function pushUndo(label, undoFn, redoFn) {
+    if (!redoFn) {
+        const after = captureBoardSnapshot();
+        redoFn = function () { return restoreBoardSnapshot(after); };
+    }
+    ACTIVITY_UNDO_STACK.push({ label, undoFn, redoFn });
     if (ACTIVITY_UNDO_STACK.length > ACTIVITY_UNDO_MAX) {
         ACTIVITY_UNDO_STACK.shift();
     }
-    refreshUndoBtn();
+    ACTIVITY_REDO_STACK.length = 0;   // a new action abandons the redo branch
+    refreshHistoryBtns();
 }
 
-function refreshUndoBtn() {
-    const n = ACTIVITY_UNDO_STACK.length;
-    const $btn = $('#activityUndoBtn');
-    if (n === 0) {
-        $btn.prop('disabled', true).attr('title', 'Nothing to undo');
-        $('#activityUndoCount').hide().text('');
-        $('#activityUndoLabel').text('Undo');
-    } else {
-        $btn.prop('disabled', false);
-        const last = ACTIVITY_UNDO_STACK[ACTIVITY_UNDO_STACK.length - 1];
-        $btn.attr('title', 'Undo: ' + last.label + ' (' + n + ' available, Ctrl+Z)');
-        $('#activityUndoCount').show().text(n);
-        $('#activityUndoLabel').text('Undo ' + last.label);
-    }
+function refreshHistoryBtns() {
+    [['#activityUndoBtn', '#activityUndoCount', '#activityUndoLabel', ACTIVITY_UNDO_STACK, 'Undo', 'Ctrl+Z'],
+     ['#activityRedoBtn', '#activityRedoCount', '#activityRedoLabel', ACTIVITY_REDO_STACK, 'Redo', 'Ctrl+Shift+Z']]
+    .forEach(function (row) {
+        const $btn = $(row[0]); const $count = $(row[1]); const $label = $(row[2]);
+        const stack = row[3]; const verb = row[4]; const keys = row[5];
+        const n = stack.length;
+        if (n === 0) {
+            $btn.prop('disabled', true).attr('title', 'Nothing to ' + verb.toLowerCase());
+            $count.hide().text('');
+            $label.text(verb);
+        } else {
+            const last = stack[n - 1];
+            $btn.prop('disabled', false).attr('title', verb + ': ' + last.label + ' (' + n + ' available, ' + keys + ')');
+            $count.show().text(n);
+            $label.text(verb + ' ' + last.label);
+        }
+    });
 }
 
-async function performUndo() {
-    const action = ACTIVITY_UNDO_STACK.pop();
-    refreshUndoBtn();
-    if (!action) {
-        toastr.info('Nothing to undo');
-        return;
-    }
+// Shared body for undo and redo — they differ only in direction.
+async function travelHistory(from, to, key, verb, doneWord) {
+    const action = from.pop();
+    refreshHistoryBtns();
+    if (!action) { toastr.info('Nothing to ' + verb); return; }
     try {
-        await action.undoFn();
-        toastr.success('Undone: ' + action.label);
+        await action[key]();
+        to.push(action);
+        if (to.length > ACTIVITY_UNDO_MAX) to.shift();
+        toastr.success(doneWord + ': ' + action.label);
     } catch (err) {
-        toastr.error('Undo failed: ' + (err && err.message ? err.message : 'unknown error'));
+        from.push(action);   // put it back so the user can retry
+        toastr.error(verb.charAt(0).toUpperCase() + verb.slice(1) + ' failed: ' + (err && err.message ? err.message : 'unknown error'));
     }
+    refreshHistoryBtns();
 }
+
+function performUndo() { return travelHistory(ACTIVITY_UNDO_STACK, ACTIVITY_REDO_STACK, 'undoFn', 'undo', 'Undone'); }
+function performRedo() { return travelHistory(ACTIVITY_REDO_STACK, ACTIVITY_UNDO_STACK, 'redoFn', 'redo', 'Redone'); }
 
 $(document).on('click', '#activityUndoBtn', function (e) {
     e.preventDefault();
-    if ($(this).prop('disabled')) return;
-    performUndo();
+    if (!$(this).prop('disabled')) performUndo();
+});
+$(document).on('click', '#activityRedoBtn', function (e) {
+    e.preventDefault();
+    if (!$(this).prop('disabled')) performRedo();
 });
 
-// Ctrl+Z / Cmd+Z anywhere on the schedule setup page (but not while typing).
+// Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) anywhere on the page (but not while typing).
 $(document).on('keydown', function (e) {
-    if (!(e.ctrlKey || e.metaKey) || e.shiftKey) return;
-    if (e.key !== 'z' && e.key !== 'Z') return;
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const k = (e.key || '').toLowerCase();
+    const isUndo = k === 'z' && !e.shiftKey;
+    const isRedo = (k === 'z' && e.shiftKey) || k === 'y';
+    if (!isUndo && !isRedo) return;
     const tag = (e.target.tagName || '').toLowerCase();
-    // contenteditable catches Quill's editor area (.ql-editor) so the
-    // rich-text editor's own undo stack handles Ctrl+Z while focused.
+    // contenteditable catches Quill's editor so its own history handles Ctrl+Z.
     if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
     e.preventDefault();
-    performUndo();
+    (isUndo ? performUndo : performRedo)();
 });
 
-refreshUndoBtn();
+// Backwards-compat alias (older call sites reference refreshUndoBtn).
+function refreshUndoBtn() { refreshHistoryBtns(); }
+
+refreshHistoryBtns();
+
+/* ---------- Today & Tomorrow: jump to those days (no filtering) ---------- */
+(function () {
+    function _ttDates() {
+        const d = new Date();
+        const iso = function (x) { return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+        const tom = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+        return { today: iso(d), tomorrow: iso(tom) };
+    }
+    function _group(dateIso) { return document.querySelector('#activitiesList .date-group[data-date="' + dateIso + '"]'); }
+    function _nearestUpcoming(todayIso) {
+        let best = null;
+        document.querySelectorAll('#activitiesList .date-group[data-date]').forEach(function (g) {
+            const d = g.getAttribute('data-date');
+            if (!d || d < todayIso) return;
+            if (!best || d < best.getAttribute('data-date')) best = g;
+        });
+        return best;
+    }
+    $(document).on('click', '#todayTomorrowBtn', function (e) {
+        e.preventDefault();
+        const t = _ttDates();
+        const todayG = _group(t.today);
+        const tomorrowG = _group(t.tomorrow);
+        const target = todayG || tomorrowG || _nearestUpcoming(t.today);
+        if (!target) { toastr.info('No upcoming activities to jump to.'); return; }
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        [todayG, tomorrowG].filter(Boolean).forEach(function (g) {
+            g.classList.add('tt-highlight');
+            setTimeout(function () { g.classList.remove('tt-highlight'); }, 2200);
+        });
+        toastr.success(todayG || tomorrowG ? 'Jumped to today & tomorrow' : 'Jumped to the next scheduled day');
+    });
+})();
 
 // Convert an Activity model JSON (as returned by /show or /save) back into a
 // payload shape suitable for /update — used by the edit-undo path.
@@ -297,6 +376,7 @@ function activityToPayload(a) {
         description: a.description || '',
         timeRequired: a.timeRequired,
         isDayZero: (a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1') ? 1 : 0,
+        isTransplant: (a.isTransplant === true || a.isTransplant === 1 || a.isTransplant === '1') ? 1 : 0,
         lotIds: lotIds,
         workerIds: workerIds,
         items: items,
@@ -622,11 +702,48 @@ function getActivityLotIds() {
 // A day number only means something relative to a Day 0 anchor, so the row
 // hides unless a selected lot carries one (LOT_DAY_ZERO_DATES).
 
-// Anchor (Y-m-d) for the currently-picked reference lot, or null.
-function _activityDasAnchor() {
+// The day-number row works in one of two FRAMES: the schedule's base type
+// (e.g. DAS, from sowing) or DAT (from transplanting). Transplanted rice uses
+// both — seedbed activities in DAS, field activities in DAT.
+function _activityDayFrame() {
+    return $('#activityDayFrameDat').is(':checked') ? 'dat' : 'base';
+}
+function _activityDayFrameLabel() {
+    return _activityDayFrame() === 'dat' ? 'DAT' : getScheduleDayType();
+}
+
+// The anchor date (Y-m-d) for a given frame + lot, or null.
+function _frameAnchorFor(frame, lotId) {
+    return frame === 'dat'
+        ? ((window.LOT_DAT_ZERO_DATES || {})[lotId] || null)
+        : ((window.LOT_DAY_ZERO_DATES || {})[lotId] || null);
+}
+
+// Can this lot be counted from in the base (DAS) frame? False when the lot has
+// no sowing anchor, when THIS activity is itself the sowing anchor (circular),
+// or when the base anchor comes from this very activity.
+function _lotBaseUsable(lotId) {
+    if (!((window.LOT_DAY_ZERO_DATES || {})[lotId])) return false;
+    if ($('#activityIsDayZero').is(':checked')) return false;
+    const cid = parseInt($('#activityId').val(), 10);
+    if (!isNaN(cid) && cid > 0 && (window.LOT_DAY_ZERO_SOURCE || {})[lotId] === cid) return false;
+    return true;
+}
+// Same, for the DAT (transplant) frame — a transplant activity can't count DAT
+// from itself (its own DAT is 0).
+function _lotDatUsable(lotId) {
+    if (!((window.LOT_DAT_ZERO_DATES || {})[lotId])) return false;
+    if ($('#activityIsTransplant').is(':checked')) return false;
+    const cid = parseInt($('#activityId').val(), 10);
+    if (!isNaN(cid) && cid > 0 && (window.LOT_DAT_ZERO_SOURCE || {})[lotId] === cid) return false;
+    return true;
+}
+
+// Anchor for the currently-picked reference lot in the active frame, or null.
+function _activityDayAnchor() {
     const lotId = parseInt($('#activityDasRefLot').val(), 10);
     if (!lotId) return null;
-    return (window.LOT_DAY_ZERO_DATES || {})[lotId] || null;
+    return _frameAnchorFor(_activityDayFrame(), lotId);
 }
 
 // Day number → Y-m-d. Built via parseLocalDate + local Date arithmetic so we
@@ -650,48 +767,93 @@ function _dateStrToDas(dateStr, anchorStr) {
 }
 
 // Dates → day numbers. The dates are the truth; this only re-derives the lens
-// and repaints the anchor note.
+// (in the active frame) and repaints the anchor note. Also keeps the frame-name
+// labels ("Start DAS" / "Start DAT") in sync with the active frame.
 function syncActivityDasFromDates() {
-    const anchor = _activityDasAnchor();
+    const frameLabel = _activityDayFrameLabel();
+    $('.activity-day-frame-name').text(frameLabel);
+
+    const anchor = _activityDayAnchor();
     if (!anchor) return;
     $('#activityStartDas').val(_dateStrToDas($('#activityTargetDate').val(), anchor));
     $('#activityEndDas').val(_dateStrToDas($('#activityTargetEndDate').val(), anchor));
 
-    const dayType = getScheduleDayType();
     const lotName = $('#activityDasRefLot option:selected').text();
     const aObj = parseLocalDate(anchor);
     const pretty = aObj
         ? `${MONTH_SHORT[aObj.getMonth()]} ${aObj.getDate()}, ${aObj.getFullYear()}`
         : anchor;
+
+    // When this activity is being marked as the transplant, spell out the DAS
+    // it converts FROM — "this is DAS 21, becoming DAT 0" — so the user sees
+    // exactly which day they're pivoting on. (Frame is forced to base here, so
+    // frameLabel is the sowing type and Start = the DAS number.)
+    if ($('#activityIsTransplant').is(':checked')) {
+        const startDas = $('#activityStartDas').val();
+        const dasTxt = startDas === '' ? '—' : `${frameLabel} ${startDas}`;
+        $('#activityDasAnchorNote').html(
+            `<i class="bx bx-transfer-alt"></i> This activity is <strong>${escapeHtml(dasTxt)}</strong> for ` +
+            `<strong>${escapeHtml(lotName)}</strong> (anchor ${escapeHtml(frameLabel)} 0 = ${escapeHtml(pretty)}). ` +
+            `Marking it as the transplant converts this day to <strong>DAT 0</strong>.`
+        );
+        return;
+    }
+
+    const zeroLabel = _activityDayFrame() === 'dat' ? 'DAT 0 (transplant)' : (frameLabel + ' 0');
     $('#activityDasAnchorNote').html(
-        `<i class="bx bx-target-lock"></i> <strong>${escapeHtml(dayType)} 0</strong> for ` +
+        `<i class="bx bx-target-lock"></i> <strong>${escapeHtml(zeroLabel)}</strong> for ` +
         `<strong>${escapeHtml(lotName)}</strong> = ${escapeHtml(pretty)}. ` +
-        `Typing a ${escapeHtml(dayType)} number rewrites the date above — the date is what gets saved.`
+        `Typing a ${escapeHtml(frameLabel)} number rewrites the date above — the date is what gets saved.`
     );
 }
 
+// Pick the frame for the current reference lot, show/hide the base⇄DAT toggle,
+// and re-derive the day numbers. Called after the ref-lot dropdown is (re)built
+// and whenever the ref lot changes.
+function applyRefLotFrame() {
+    const refLot = parseInt($('#activityDasRefLot').val(), 10);
+    const baseOK = !!refLot && _lotBaseUsable(refLot);
+    const datOK  = !!refLot && _lotDatUsable(refLot);
+
+    let frame = _activityDayFrame();
+    if (baseOK && !datOK) frame = 'base';
+    else if (!baseOK && datOK) frame = 'dat';
+    else if (baseOK && datOK) {
+        // Both phases available for this lot — count in DAT once the start date
+        // is on/after the transplant anchor, otherwise in the base (seedbed)
+        // frame. The user can still flip the toggle by hand.
+        const d = parseLocalDate($('#activityTargetDate').val());
+        const t = parseLocalDate((window.LOT_DAT_ZERO_DATES || {})[refLot]);
+        if (d && t) frame = (d >= t) ? 'dat' : 'base';
+    }
+    $('#activityDayFrameBase').prop('checked', frame === 'base');
+    $('#activityDayFrameDat').prop('checked', frame === 'dat');
+    // The toggle only makes sense when both frames are actually available.
+    $('#activityDayFrameToggle').toggle(baseOK && datOK);
+
+    syncActivityDasFromDates();
+}
+
 // Rebuild the reference-lot options from the lots currently selected, keeping
-// the existing pick when it survives. Lots anchored by THIS activity are
-// excluded: their Day 0 IS this activity's start date, so counting from it
-// would be circular (always 0).
+// the existing pick when it survives. A lot qualifies if it can be counted from
+// in EITHER frame (base or DAT). Lots anchored by THIS activity are excluded
+// for the relevant frame (counting from itself is circular).
 function refreshActivityDasRow() {
     const $row = $('#activityDasRow');
     if ($row.length === 0) return;
 
-    const currentActivityId = parseInt($('#activityId').val(), 10);
-    const hasCurrentId = !isNaN(currentActivityId) && currentActivityId > 0;
-    const anchors = window.LOT_DAY_ZERO_DATES || {};
-    const sources = window.LOT_DAY_ZERO_SOURCE || {};
+    // A sowing (DAS 0) activity's own day number is 0 by definition — there's
+    // nothing to enter, so hide the row entirely. A transplant activity is
+    // different: "transplant at DAS 21" is meaningful, so the row stays (base
+    // frame, since _lotDatUsable() is false while isTransplant is checked).
+    if ($('#activityIsDayZero').is(':checked')) {
+        $row.hide();
+        $('#activityStartDas, #activityEndDas').val('');
+        return;
+    }
 
-    const candidates = getActivityLotIds().filter(lotId => {
-        if (!anchors[lotId]) return false;
-        if (hasCurrentId && sources[lotId] === currentActivityId) return false;
-        return true;
-    });
-
-    // This activity defines Day 0, or no selected lot is anchored → a day
-    // number has nothing to count from.
-    if ($('#activityIsDayZero').is(':checked') || candidates.length === 0) {
+    const candidates = getActivityLotIds().filter(lotId => _lotBaseUsable(lotId) || _lotDatUsable(lotId));
+    if (candidates.length === 0) {
         $row.hide();
         $('#activityStartDas, #activityEndDas').val('');
         return;
@@ -706,23 +868,55 @@ function refreshActivityDasRow() {
     if (candidates.indexOf(prev) !== -1) $sel.val(prev);
 
     $row.show();
-    syncActivityDasFromDates();
+    applyRefLotFrame();
 }
 
-// Recompute every modal control keyed off the current lot selection. The Day 0
-// toggle and the DAS row read the same inputs (selected lots + this activity's
-// id + the Day 0 flag), so they always refresh together — and in this order,
-// since refreshDayZeroToggleVisibility() may force-uncheck the Day 0 box that
-// refreshActivityDasRow() then reads.
+// Show/hide the "Mark as transplant (DAT 0)" toggle. Hidden — and force-
+// unchecked — when a selected lot is already transplant-anchored elsewhere
+// (another activity or a manual lot transplant date), mirroring the DAS-0
+// toggle's rule so the user can't create a conflicting anchor.
+function shouldShowTransplantToggle() {
+    const currentActivityId = parseInt($('#activityId').val(), 10);
+    const hasCurrentId = !isNaN(currentActivityId) && currentActivityId > 0;
+    const selectedLotIds = getActivityLotIds();
+    if (selectedLotIds.length === 0) return true;
+    const sources = window.LOT_DAT_ZERO_SOURCE || {};
+    for (const lotId of selectedLotIds) {
+        const src = sources[lotId];
+        if (!src) continue;
+        if (hasCurrentId && src === currentActivityId) continue;
+        return false;
+    }
+    return true;
+}
+
+function refreshTransplantToggleVisibility() {
+    const $checkbox = $('#activityIsTransplant');
+    if ($checkbox.length === 0) return;
+    const $wrapper = $checkbox.closest('.mb-3');
+    if (shouldShowTransplantToggle()) {
+        $wrapper.show();
+    } else {
+        $checkbox.prop('checked', false);
+        $wrapper.hide();
+    }
+}
+
+// Recompute every modal control keyed off the current lot selection. The two
+// anchor toggles (Day 0 / transplant) and the day-number row read the same
+// inputs (selected lots + this activity's id + the flags), so they always
+// refresh together — and in this order, since the visibility helpers may
+// force-uncheck a box that refreshActivityDasRow() then reads.
 function refreshActivityModalLotState() {
     refreshDayZeroToggleVisibility();
+    refreshTransplantToggleVisibility();
     refreshActivityDasRow();
 }
 
-// Day number → date. Blank input is left alone rather than wiping the start
-// date the user may have set by hand.
+// Day number → date, in the active frame. Blank input is left alone rather
+// than wiping the start date the user may have set by hand.
 $(document).on('input', '#activityStartDas', function () {
-    const anchor = _activityDasAnchor();
+    const anchor = _activityDayAnchor();
     if (!anchor || $(this).val() === '') return;
     $('#activityTargetDate').val(_dasToDateStr($(this).val(), anchor));
 });
@@ -730,7 +924,7 @@ $(document).on('input', '#activityStartDas', function () {
 // Blank end-DAS clears the end date — that's the documented way to say
 // "single-day activity", so it's a meaningful input rather than a no-op.
 $(document).on('input', '#activityEndDas', function () {
-    const anchor = _activityDasAnchor();
+    const anchor = _activityDayAnchor();
     if (!anchor) return;
     if ($(this).val() === '') { $('#activityTargetEndDate').val(''); return; }
     $('#activityTargetEndDate').val(_dasToDateStr($(this).val(), anchor));
@@ -738,12 +932,25 @@ $(document).on('input', '#activityEndDas', function () {
 
 $(document).on('change', '#activityTargetDate, #activityTargetEndDate', syncActivityDasFromDates);
 
-// Changing the reference lot changes the lens, not the plan: keep the dates
-// and re-derive the day numbers against the newly-picked anchor.
-$(document).on('change', '#activityDasRefLot', syncActivityDasFromDates);
+// Changing the reference lot re-derives which frames apply (base/DAT) and the
+// day numbers — the dates are untouched.
+$(document).on('change', '#activityDasRefLot', applyRefLotFrame);
 
-// Ticking "Mark as Day 0" makes the day numbers self-referential — drop the row.
-$(document).on('change', '#activityIsDayZero', refreshActivityDasRow);
+// Manual base⇄DAT switch: keep the dates, re-derive the numbers in the new
+// frame and repaint the labels/note.
+$(document).on('change', 'input[name="activityDayFrame"]', syncActivityDasFromDates);
+
+// Sowing (DAS 0) and transplant (DAT 0) are mutually exclusive — ticking one
+// clears the other, then the whole modal state (toggles + day-number row)
+// re-derives.
+$(document).on('change', '#activityIsDayZero', function () {
+    if ($(this).is(':checked')) $('#activityIsTransplant').prop('checked', false);
+    refreshActivityModalLotState();
+});
+$(document).on('change', '#activityIsTransplant', function () {
+    if ($(this).is(':checked')) $('#activityIsDayZero').prop('checked', false);
+    refreshActivityModalLotState();
+});
 
 // Worker chips inside the Activity modal — toggle selection.
 $(document).on('click', '#activityWorkersContainer .lot-chip', function () {
@@ -1004,6 +1211,10 @@ function renderActivityCard(a) {
     const dayZeroBadge = isDayZeroFlag
         ? `<span class="badge ms-1 day-zero-badge" style="background:#ff9800; color:#fff; font-weight:600; font-size:11px;" title="This activity is the ${escapeHtml(dayType)} 0 anchor — its date becomes ${escapeHtml(dayType)} 0 for every lot it covers."><i class="bx bxs-star"></i> ${escapeHtml(dayType)} 0</span>`
         : '';
+    const isTransplantFlag = (a.isTransplant === true || a.isTransplant === 1 || a.isTransplant === '1') ? 1 : 0;
+    const transplantBadge = isTransplantFlag
+        ? `<span class="badge ms-1 transplant-badge" style="background:#0ca678; color:#fff; font-weight:600; font-size:11px;" title="Transplant — its date becomes DAT 0 for every lot it covers. Later activities on those lots count in DAT."><i class="bx bx-transfer-alt"></i> &rarr; DAT 0</span>`
+        : '';
     const typeLabel = a.activityType && ACTIVITY_TYPE_LABELS[a.activityType] ? ACTIVITY_TYPE_LABELS[a.activityType] : '';
     const typeBadge = typeLabel
         ? `<span class="badge ms-1 activity-type-badge" style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;" title="Activity type">${escapeHtml(typeLabel)}</span>`
@@ -1013,10 +1224,10 @@ function renderActivityCard(a) {
     const hiddenTag = isHiddenFlag
         ? `<span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;"><i class="bx bx-hide"></i> Hidden</span>`
         : '';
-    return `<div class="activity-card${hiddenClass}" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-activity-type="${escapeHtml(a.activityType || '')}" data-is-hidden="${isHiddenFlag}">
+    return `<div class="activity-card${hiddenClass}" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-is-transplant="${isTransplantFlag}" data-activity-type="${escapeHtml(a.activityType || '')}" data-is-hidden="${isHiddenFlag}">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
             <div class="flex-grow-1" style="min-width:0;">
-                <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${typeBadge}${dayZeroBadge}${rangeBadge}</h6>
+                <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${typeBadge}${dayZeroBadge}${transplantBadge}${rangeBadge}</h6>
                 ${lotsHeaderBlock}
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -1393,6 +1604,10 @@ function resetActivityModal() {
     $('#activityType').val('');
     $('#activityTimeRequired').val('half');
     $('#activityIsDayZero').prop('checked', false);
+    $('#activityIsTransplant').prop('checked', false);
+    // Reset the day-number frame to the base type for the next open.
+    $('#activityDayFrameBase').prop('checked', true);
+    $('#activityDayFrameDat').prop('checked', false);
     setActivityDescriptionContent('');
     setActivityLots([]);
     setActivityWorkers([]);
@@ -1522,6 +1737,7 @@ $(document).on('click', '.edit-activity-btn', function () {
         $('#activityType').val(a.activityType || '');
         $('#activityTimeRequired').val(a.timeRequired);
         $('#activityIsDayZero').prop('checked', a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1');
+        $('#activityIsTransplant').prop('checked', a.isTransplant === true || a.isTransplant === 1 || a.isTransplant === '1');
         setActivityLots(a.lotIds || (a.lots || []).map(l => l.id));
         setActivityWorkers(a.workerIds || (a.workers || []).map(w => w.id));
         // Defer setContent until the modal is shown (Quill may not exist yet
@@ -1625,6 +1841,7 @@ $('#saveActivityBtn').on('click', function () {
         imagePath: ($('#activityImagePath').val() || '').trim(),
         timeRequired: $('#activityTimeRequired').val(),
         isDayZero: $('#activityIsDayZero').is(':checked') ? 1 : 0,
+        isTransplant: $('#activityIsTransplant').is(':checked') ? 1 : 0,
         lotIds: getActivityLotIds(),
         workerIds: getActivityWorkerIds(),
         items: items

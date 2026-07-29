@@ -31,6 +31,12 @@
                                 {{ \Illuminate\Support\Carbon::parse($lot->dayZeroDate)->format('M j, Y') }}
                             </span>
                         @endif
+                        @if($lot->transplantDate)
+                            <span class="badge ms-1 transplant-badge" style="background:#0ca678;color:#fff;font-size:10px;font-weight:500;" title="DAT 0 (transplant) anchor">
+                                <i class="bx bx-transfer-alt"></i>
+                                DAT 0: {{ \Illuminate\Support\Carbon::parse($lot->transplantDate)->format('M j, Y') }}
+                            </span>
+                        @endif
                     </td>
                     <td class="text-dark"><span data-field="lotSize">{{ rtrim(rtrim($lot->lotSize, '0'), '.') }}</span> <small class="text-secondary" data-field="lotSizeUnit">{{ $lot->lotSizeUnit }}</small></td>
                     <td>
@@ -51,6 +57,7 @@
                                 data-unit="{{ $lot->lotSizeUnit }}"
                                 data-variety="{{ $lot->variety }}"
                                 data-day-zero-date="{{ $lot->dayZeroDate ? \Illuminate\Support\Carbon::parse($lot->dayZeroDate)->format('Y-m-d') : '' }}"
+                                data-transplant-date="{{ $lot->transplantDate ? \Illuminate\Support\Carbon::parse($lot->transplantDate)->format('Y-m-d') : '' }}"
                                 data-notes="{{ $lot->notes }}"><i class="bx bx-edit-alt"></i></button>
                         <button class="btn btn-sm btn-outline-danger delete-lot-btn" data-id="{{ $lot->id }}" data-name="{{ $lot->lotName }}"><i class="bx bx-trash"></i></button>
                     </td>
@@ -113,9 +120,28 @@
                     </div>
                     <small class="text-secondary">
                         Anchor date for this lot's <span class="day-type-label">{{ $schedule->dayType }}</span> Day 0
-                        (planting / seeding / transplanting day).
+                        (sowing / seeding day).
                         Once set, every activity for this lot shows its day number
                         (e.g. <span class="day-type-label">{{ $schedule->dayType }}</span>+5).
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-transfer-alt me-1 text-success"></i>
+                        DAT 0 Date (Transplant)
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="lotTransplantDate">
+                        <button type="button" class="btn btn-outline-secondary" id="lotTransplantDateClear" title="Clear">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </div>
+                    <small class="text-secondary">
+                        For transplanted rice — the transplanting day. From this date on, activities
+                        for this lot are counted in <strong>DAT</strong> (e.g. DAT+14) instead of
+                        <span class="day-type-label">{{ $schedule->dayType }}</span>.
+                        An activity marked as the transplant overrides this (earliest wins).
                     </small>
                 </div>
                 <div class="mb-3">

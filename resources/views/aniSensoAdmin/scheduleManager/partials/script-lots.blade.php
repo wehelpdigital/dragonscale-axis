@@ -18,6 +18,17 @@ function renderLotRow(lot) {
             <span class="day-type-label">${escapeHtml(dayType)}</span> 0: ${escapeHtml(pretty)}
         </span>`;
     }
+    const tp = (lot.transplantDate || '').slice(0, 10);
+    let tpBadge = '';
+    if (tp) {
+        const tObj = parseLocalDate(tp);
+        const tPretty = tObj
+            ? `${MONTH_SHORT[tObj.getMonth()]} ${tObj.getDate()}, ${tObj.getFullYear()}`
+            : tp;
+        tpBadge = `<span class="badge ms-1 transplant-badge" style="background:#0ca678;color:#fff;font-size:10px;font-weight:500;" title="DAT 0 (transplant) anchor">
+            <i class="bx bx-transfer-alt"></i> DAT 0: ${escapeHtml(tPretty)}
+        </span>`;
+    }
     const variety = (lot.variety || '').trim();
     const varietyCell = variety
         ? `<span class="badge bg-success-subtle text-success" data-field="variety" style="font-weight:500;font-size:11px;">
@@ -28,6 +39,7 @@ function renderLotRow(lot) {
         <td class="text-dark">
             <strong data-field="lotName">${escapeHtml(lot.lotName)}</strong>
             ${d0Badge}
+            ${tpBadge}
         </td>
         <td class="text-dark"><span data-field="lotSize">${escapeHtml(trimZero(lot.lotSize))}</span> <small class="text-secondary" data-field="lotSizeUnit">${escapeHtml(lot.lotSizeUnit)}</small></td>
         <td>${varietyCell}</td>
@@ -40,6 +52,7 @@ function renderLotRow(lot) {
                     data-unit="${escapeHtml(lot.lotSizeUnit)}"
                     data-variety="${escapeHtml(variety)}"
                     data-day-zero-date="${escapeHtml(d0)}"
+                    data-transplant-date="${escapeHtml(tp)}"
                     data-notes="${escapeHtml(lot.notes || '')}"><i class="bx bx-edit-alt"></i></button>
             <button class="btn btn-sm btn-outline-danger delete-lot-btn" data-id="${lot.id}" data-name="${escapeHtml(lot.lotName)}"><i class="bx bx-trash"></i></button>
         </td>
@@ -54,6 +67,7 @@ $('#addLotBtn').on('click', function () {
     $('#lotSizeUnit').val('hectare');
     $('#lotVariety').val('');
     $('#lotDayZeroDate').val('');
+    $('#lotTransplantDate').val('');
     $('#lotNotes').val('');
 });
 
@@ -65,6 +79,7 @@ $(document).on('click', '.edit-lot-btn', function () {
     $('#lotSizeUnit').val($(this).data('unit'));
     $('#lotVariety').val($(this).data('variety') || '');
     $('#lotDayZeroDate').val(($(this).data('day-zero-date') || '').toString().slice(0, 10));
+    $('#lotTransplantDate').val(($(this).data('transplant-date') || '').toString().slice(0, 10));
     $('#lotNotes').val($(this).data('notes'));
     $('#lotModal').modal('show');
 });
@@ -73,9 +88,14 @@ $(document).on('click', '#lotDayZeroDateClear', function () {
     $('#lotDayZeroDate').val('');
 });
 
+$(document).on('click', '#lotTransplantDateClear', function () {
+    $('#lotTransplantDate').val('');
+});
+
 $('#saveLotBtn').on('click', function () {
     const id = $('#lotId').val();
     const dayZero = ($('#lotDayZeroDate').val() || '').trim();
+    const transplant = ($('#lotTransplantDate').val() || '').trim();
     const payload = {
         _token: CSRF,
         lotName: $('#lotName').val(),
@@ -83,6 +103,7 @@ $('#saveLotBtn').on('click', function () {
         lotSizeUnit: $('#lotSizeUnit').val(),
         variety: ($('#lotVariety').val() || '').trim(),
         dayZeroDate: dayZero || null,
+        transplantDate: transplant || null,
         notes: $('#lotNotes').val()
     };
     if (!payload.lotName) { toastr.warning('Lot name is required'); return; }
@@ -102,10 +123,13 @@ $('#saveLotBtn').on('click', function () {
                 $('#lotsTable tbody').append(renderLotRow(res.data));
                 bumpBadge('badge-lots', 1);
             }
-            // Update the manual baseline, then re-derive the effective map so
-            // any activity-flagged Day 0 still overrides correctly.
+            // Update the manual baselines (DAS + DAT), then re-derive the
+            // effective maps so any activity-flagged anchor still overrides.
             if (typeof LOT_MANUAL_DAY_ZERO === 'object' && LOT_MANUAL_DAY_ZERO !== null) {
                 LOT_MANUAL_DAY_ZERO[res.data.id] = (res.data.dayZeroDate || '').slice(0, 10) || null;
+            }
+            if (typeof LOT_MANUAL_TRANSPLANT === 'object' && LOT_MANUAL_TRANSPLANT !== null) {
+                LOT_MANUAL_TRANSPLANT[res.data.id] = (res.data.transplantDate || '').slice(0, 10) || null;
             }
             if (typeof recomputeLotDayZero === 'function') {
                 recomputeLotDayZero();
@@ -158,6 +182,9 @@ $(document).on('click', '.delete-lot-btn', function () {
                         // via stale references — recompute clears those too).
                         if (typeof LOT_MANUAL_DAY_ZERO === 'object' && LOT_MANUAL_DAY_ZERO !== null) {
                             delete LOT_MANUAL_DAY_ZERO[id];
+                        }
+                        if (typeof LOT_MANUAL_TRANSPLANT === 'object' && LOT_MANUAL_TRANSPLANT !== null) {
+                            delete LOT_MANUAL_TRANSPLANT[id];
                         }
                         if (typeof recomputeLotDayZero === 'function') {
                             recomputeLotDayZero();

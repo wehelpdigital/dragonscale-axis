@@ -89,6 +89,7 @@
                             <tr>
                                 <th>#</th>
                                 <th>Title</th>
+                                <th>Owner</th>
                                 <th>Status</th>
                                 <th>Created</th>
                                 <th class="text-end" style="width: 320px;">Actions</th>
@@ -102,6 +103,19 @@
                                         <div class="fw-semibold text-dark">{{ $s->title }}</div>
                                         @if($s->description)
                                             <small class="text-secondary d-block">{{ \Illuminate\Support\Str::limit($s->description, 100) }}</small>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($s->anisystemUserId)
+                                            <span class="badge bg-warning text-dark d-block mb-1" style="width: fit-content;">AniSystem Client</span>
+                                            <span class="badge bg-light text-dark d-block" style="width: fit-content;"
+                                                  title="{{ $s->anisystemUser->email ?? '' }}" data-bs-toggle="tooltip">
+                                                {{ $s->anisystemUser->fullName ?? 'Unknown client' }}
+                                            </span>
+                                        @elseif($s->usersId != Auth::id())
+                                            <span class="badge bg-secondary-subtle text-secondary border">Admin — {{ $s->owner->name ?? 'Unknown' }}</span>
+                                        @else
+                                            <span class="badge bg-secondary-subtle text-secondary border">Mine</span>
                                         @endif
                                     </td>
                                     <td>

@@ -1598,6 +1598,7 @@ class ActivityController extends BaseScheduleController
             'priority'         => 'required|in:critical,high,medium,low',
             'activityType'     => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(AsScheduleActivity::ACTIVITY_TYPES))],
             'isDayZero'        => 'nullable|boolean',
+            'isTransplant'     => 'nullable|boolean',
             'description'      => 'nullable|string|max:20000',
             // imagePath is a relative path under the `public` disk, set by
             // a prior /activities-image-upload call. Empty string / null
@@ -1625,6 +1626,13 @@ class ActivityController extends BaseScheduleController
 
         if ($validator->fails()) {
             return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        // Sowing (DAS 0) and transplanting (DAT 0) are different events on
+        // different dates — one activity can't be both anchors. The UI keeps
+        // the two toggles mutually exclusive; this guards a tampered payload.
+        if ($request->boolean('isDayZero') && $request->boolean('isTransplant')) {
+            return $this->jsonFail('An activity cannot be both the sowing (Day 0) and the transplant (DAT 0) anchor.', 422);
         }
 
         // Lots must belong to this schedule. Empty array is allowed —
@@ -1675,6 +1683,7 @@ class ActivityController extends BaseScheduleController
             'priority'           => $request->priority,
             'activityType'       => $request->filled('activityType') ? $request->activityType : null,
             'isDayZero'          => $request->boolean('isDayZero'),
+            'isTransplant'       => $request->boolean('isTransplant'),
             'description'        => $request->description,
             'imagePath'          => $submittedImagePath,
             'timeRequired'       => $request->timeRequired,
@@ -1715,7 +1724,12 @@ class ActivityController extends BaseScheduleController
                     $activity = AsScheduleActivity::create($payload);
                 }
 
-                AsScheduleActivityItem::where('activityId', $activity->id)->update(['deleteStatus' => 0]);
+                // Replace only the material/service items this admin form knows
+                // about — free-form "custom" items created in the client app
+                // (itemName + unitPrice) are preserved untouched.
+                AsScheduleActivityItem::where('activityId', $activity->id)
+                    ->whereIn('itemType', ['material', 'service'])
+                    ->update(['deleteStatus' => 0]);
 
                 foreach ((array) $request->input('items', []) as $item) {
                     AsScheduleActivityItem::create([

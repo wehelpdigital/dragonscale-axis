@@ -779,6 +779,11 @@
                     <h4 class="text-dark mb-1">
                         <span id="scheduleHeaderTitle">{{ $schedule->title }}</span>
                         <span class="badge {{ $cls }} ms-1" style="text-transform:capitalize;">{{ $schedule->status }}</span>
+                        @if($schedule->anisystemUserId)
+                            <span class="badge bg-warning text-dark ms-1" title="{{ $schedule->anisystemUser->email ?? '' }}">
+                                <i class="bx bx-user-pin me-1"></i>AniSystem Client Schedule — owned by {{ $schedule->anisystemUser->fullName ?? 'Unknown client' }}
+                            </span>
+                        @endif
                     </h4>
                     <p class="text-secondary mb-0" id="scheduleHeaderDescription">{{ $schedule->description ?: 'No description provided.' }}</p>
                 </div>
@@ -1050,16 +1055,27 @@ function bumpBadge(id, delta = 1) {
     recomputeReadiness();
 }
 
-// ---- Day 0 anchor per lot ----
-// Two layered maps:
-//   LOT_MANUAL_DAY_ZERO  → date manually set on each lot (fallback baseline)
-//   LOT_DAY_ZERO_DATES   → effective anchor used by computeDasLabel(). Built by
-//                          recomputeLotDayZero(): activity-card flags override
-//                          the manual baseline so the "anchor activity" wins.
+// ---- Day 0 anchors per lot: DAS (sowing) + DAT (transplant) ----
+// Transplanted rice has two anchors in one crop cycle: sowing (DAS 0) in the
+// seedbed, then transplanting (DAT 0) into the field. Days before transplant
+// are counted from DAS 0; days on/after are counted from DAT 0. Each phase has
+// three layered maps:
+//   LOT_MANUAL_DAY_ZERO  / LOT_MANUAL_TRANSPLANT → dates set on the lot itself
+//   LOT_DAY_ZERO_DATES   / LOT_DAT_ZERO_DATES    → effective anchors used by
+//         computeDayLabel(); recomputeLotDayZero() lets an activity flagged as
+//         the sowing (isDayZero) or transplant (isTransplant) anchor override
+//         the manual baseline (earliest date wins).
+//   LOT_DAY_ZERO_SOURCE  / LOT_DAT_ZERO_SOURCE   → 'manual' or the activity id
+//         that supplied each anchor, so the modal can hide a "mark as anchor"
+//         toggle when the lot is already anchored elsewhere.
 window.LOT_MANUAL_DAY_ZERO = @json($schedule->lots->mapWithKeys(fn($l) => [
     $l->id => $l->dayZeroDate ? $l->dayZeroDate->format('Y-m-d') : null,
 ]));
+window.LOT_MANUAL_TRANSPLANT = @json($schedule->lots->mapWithKeys(fn($l) => [
+    $l->id => $l->transplantDate ? $l->transplantDate->format('Y-m-d') : null,
+]));
 window.LOT_DAY_ZERO_DATES = Object.assign({}, window.LOT_MANUAL_DAY_ZERO);
+window.LOT_DAT_ZERO_DATES = Object.assign({}, window.LOT_MANUAL_TRANSPLANT);
 
 window.MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1074,17 +1090,47 @@ window.getScheduleDayType = window.getScheduleDayType || function () {
     return ($('.day-type-label').first().text() || 'DAS').trim();
 };
 
-// Compute the " · DAS+N" suffix for a lot/date pair, or '' when no anchor is set.
-window.computeDasLabel = function (lotId, targetDate) {
+// Compute the " · DAS+N" / " · DAT+N" suffix for a lot/date pair, or '' when
+// no anchor applies. Phase-aware: once the date reaches the lot's DAT 0
+// (transplant) anchor, the label switches from the schedule's base type
+// (e.g. DAS) to DAT and counts from transplanting — matching transplanted-rice
+// practice where day counting restarts at transplant. Before transplant (or
+// when no transplant anchor exists) it counts from DAS 0 as before.
+// Exposed under both names; computeDasLabel kept for existing callers.
+window.computeDayLabel = window.computeDasLabel = function (lotId, targetDate) {
     if (!targetDate) return '';
-    const anchor = LOT_DAY_ZERO_DATES[lotId];
-    if (!anchor) return '';
-    const a = parseLocalDate(anchor);
     const b = parseLocalDate(targetDate);
-    if (!a || !b) return '';
-    const delta = Math.round((b - a) / 86400000);
-    const sign = delta > 0 ? '+' : '';
-    return ' · ' + getScheduleDayType() + sign + delta;
+    if (!b) return '';
+
+    const datAnchor = (window.LOT_DAT_ZERO_DATES || {})[lotId];
+    if (datAnchor) {
+        const t = parseLocalDate(datAnchor);
+        if (t && b >= t) {
+            const delta = Math.round((b - t) / 86400000);
+            // At the transplant pivot itself (DAT 0), also surface the DAS it
+            // converts FROM, so the user sees e.g. "DAS+21 → DAT0". Needs a
+            // sowing anchor to know the DAS.
+            if (delta === 0) {
+                const dasAnchor = (window.LOT_DAY_ZERO_DATES || {})[lotId];
+                const a0 = parseLocalDate(dasAnchor);
+                if (a0) {
+                    const dasDelta = Math.round((b - a0) / 86400000);
+                    return ' · ' + getScheduleDayType() + (dasDelta > 0 ? '+' : '') + dasDelta + ' → DAT0';
+                }
+            }
+            return ' · DAT' + (delta > 0 ? '+' : '') + delta;
+        }
+    }
+
+    const dasAnchor = (window.LOT_DAY_ZERO_DATES || {})[lotId];
+    if (dasAnchor) {
+        const a = parseLocalDate(dasAnchor);
+        if (a) {
+            const delta = Math.round((b - a) / 86400000);
+            return ' · ' + getScheduleDayType() + (delta > 0 ? '+' : '') + delta;
+        }
+    }
+    return '';
 };
 
 // Walk every activity card on the timeline and refresh the DAS suffix on
@@ -1108,27 +1154,47 @@ window.refreshActivityCardDasLabels = function () {
 // flagged it. The activity modal uses this to hide the "Mark as Day 0"
 // checkbox whenever a selected lot is already anchored elsewhere.
 window.recomputeLotDayZero = function () {
+    // DAS (sowing) map — manual baseline first.
     const map = Object.assign({}, window.LOT_MANUAL_DAY_ZERO || {});
     const source = {};
     Object.keys(map).forEach(lotId => {
         if (map[lotId]) source[lotId] = 'manual';
     });
-    $('#activitiesList .activity-card[data-is-day-zero="1"]').each(function () {
-        const activityId = parseInt($(this).attr('data-id'), 10);
-        const targetDate = ($(this).attr('data-target-date') || '').trim();
+    // DAT (transplant) map — manual baseline first.
+    const datMap = Object.assign({}, window.LOT_MANUAL_TRANSPLANT || {});
+    const datSource = {};
+    Object.keys(datMap).forEach(lotId => {
+        if (datMap[lotId]) datSource[lotId] = 'manual';
+    });
+
+    // One pass over the timeline: a card flagged as the sowing anchor feeds the
+    // DAS map, one flagged as the transplant anchor feeds the DAT map. Earliest
+    // date wins per lot in each map (Day 0 = start of that phase).
+    $('#activitiesList .activity-card[data-id]').each(function () {
+        const $card = $(this);
+        const isDz = $card.attr('data-is-day-zero') === '1';
+        const isTp = $card.attr('data-is-transplant') === '1';
+        if (!isDz && !isTp) return;
+        const activityId = parseInt($card.attr('data-id'), 10);
+        const targetDate = ($card.attr('data-target-date') || '').trim();
         if (!targetDate) return;
-        $(this).find('.activity-card-lots .item-tag[data-lot-id]').each(function () {
+        $card.find('.activity-card-lots .item-tag[data-lot-id]').each(function () {
             const lotId = parseInt($(this).attr('data-lot-id'), 10);
             if (!lotId) return;
-            const existing = map[lotId];
-            if (!existing || targetDate < existing) {
+            if (isDz && (!map[lotId] || targetDate < map[lotId])) {
                 map[lotId] = targetDate;
                 source[lotId] = activityId;
+            }
+            if (isTp && (!datMap[lotId] || targetDate < datMap[lotId])) {
+                datMap[lotId] = targetDate;
+                datSource[lotId] = activityId;
             }
         });
     });
     window.LOT_DAY_ZERO_DATES = map;
     window.LOT_DAY_ZERO_SOURCE = source;
+    window.LOT_DAT_ZERO_DATES = datMap;
+    window.LOT_DAT_ZERO_SOURCE = datSource;
     refreshActivityCardDasLabels();
 };
 

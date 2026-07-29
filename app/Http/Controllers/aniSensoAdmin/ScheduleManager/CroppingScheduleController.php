@@ -15,6 +15,7 @@ class CroppingScheduleController extends Controller
     {
         $query = AsCroppingSchedule::active()
             ->forUser(Auth::id())
+            ->with(['anisystemUser', 'owner'])
             ->withCount([
                 'lots as lots_count' => fn($q) => $q->where('as_schedule_lots.deleteStatus', 1),
                 'workers as workers_count' => fn($q) => $q->where('as_schedule_workers.deleteStatus', 1),

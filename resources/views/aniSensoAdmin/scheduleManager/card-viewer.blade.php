@@ -1052,7 +1052,7 @@
                 @if($note)
                     <blockquote class="cv-day-note">
                         <span class="cv-day-note-label">Note &mdash;</span>
-                        {!! nl2br(e($note->noteContent)) !!}
+                        {!! $note->noteContent !== strip_tags($note->noteContent) ? $note->noteContent : nl2br(e($note->noteContent)) !!}
                     </blockquote>
                 @endif
 
@@ -1215,6 +1215,11 @@
                                                             $svc .= ' ×' . $qtyTrim . ($unit ? ' ' . $unit : '');
                                                         }
                                                         $serviceBits[] = $svc;
+                                                    } elseif (!empty($it->itemName)) {
+                                                        $bit = $it->itemName;
+                                                        if ($it->quantity !== null) $bit .= ' ×' . $qtyTrim . ($unit ? ' ' . $unit : '');
+                                                        if ($it->unitPrice !== null) $bit .= ' @ ₱' . number_format((float) $it->unitPrice, 2);
+                                                        $materialBits[] = $bit;
                                                     }
                                                 }
                                             @endphp

@@ -21,6 +21,13 @@
     });
 @endphp
 
+<style>
+    /* Brief highlight when "Today & Tomorrow" jumps to a day. */
+    @keyframes ttPulse { 0%, 100% { background: transparent; } 25% { background: rgba(85,110,230,.14); } }
+    #activitiesList .date-group.tt-highlight { animation: ttPulse 2.2s ease; border-radius: .5rem; }
+    @media (prefers-reduced-motion: reduce) { #activitiesList .date-group.tt-highlight { animation: none; } }
+</style>
+
 {{-- Activity versions sub-tabs — every version is a branch of the schedule.
      The currently-active version is the one feeding $schedule->activities,
      so calendar, export, presentation, and labor summary all follow it
@@ -93,6 +100,12 @@
     <div class="d-flex gap-2 flex-wrap">
         <button type="button" class="btn btn-outline-warning btn-sm" id="activityUndoBtn" title="Undo last action (Ctrl+Z) — up to 10 steps" disabled>
             <i class="bx bx-undo me-1"></i> <span id="activityUndoLabel">Undo</span> <span class="badge bg-light text-dark ms-1" id="activityUndoCount" style="display:none;font-weight:500;"></span>
+        </button>
+        <button type="button" class="btn btn-outline-warning btn-sm" id="activityRedoBtn" title="Redo (Ctrl+Shift+Z)" disabled>
+            <i class="bx bx-redo me-1"></i> <span id="activityRedoLabel">Redo</span> <span class="badge bg-light text-dark ms-1" id="activityRedoCount" style="display:none;font-weight:500;"></span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="todayTomorrowBtn" title="Jump to today &amp; tomorrow">
+            <i class="bx bx-calendar-event me-1"></i> Today &amp; Tomorrow
         </button>
         @php $draftsCount = $schedule->drafts->count(); @endphp
         <button type="button" class="btn btn-outline-info btn-sm" id="openDraftsModalBtn" title="View activities you've moved to drafts">
@@ -470,7 +483,7 @@
                 <div class="date-note-block" data-date="{{ $dateKey }}" @if(!$noteRow) style="display:none;" @endif>
                     <div class="date-note-inner">
                         <i class="bx bxs-note date-note-icon"></i>
-                        <div class="date-note-text">{!! $noteRow ? nl2br(e($noteRow->noteContent)) : '' !!}</div>
+                        <div class="date-note-text">{!! $noteRow ? ($noteRow->noteContent !== strip_tags($noteRow->noteContent) ? $noteRow->noteContent : nl2br(e($noteRow->noteContent))) : '' !!}</div>
                     </div>
                 </div>
             @endif
@@ -485,7 +498,7 @@
                         $rangeDays = $isRange ? ($startDateCarbon->diffInDays($endDateCarbon) + 1) : 0;
                         $endDateStr = $endDateCarbon ? $endDateCarbon->format('Y-m-d') : '';
                     @endphp
-                    <div class="activity-card{{ $a->isHidden ? ' is-hidden' : '' }}" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}" data-is-hidden="{{ $a->isHidden ? 1 : 0 }}">
+                    <div class="activity-card{{ $a->isHidden ? ' is-hidden' : '' }}" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-is-transplant="{{ $a->isTransplant ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}" data-is-hidden="{{ $a->isHidden ? 1 : 0 }}">
                         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
                             <div class="flex-grow-1" style="min-width:0;">
                                 <h6 class="text-dark mb-1">
@@ -504,6 +517,13 @@
                                             <i class="bx bxs-star"></i> {{ $schedule->dayType }} 0
                                         </span>
                                     @endif
+                                    @if($a->isTransplant)
+                                        <span class="badge ms-1 transplant-badge"
+                                              style="background:#0ca678; color:#fff; font-weight:600; font-size:11px;"
+                                              title="Transplant — its date becomes DAT 0 for every lot it covers. Later activities on those lots count in DAT.">
+                                            <i class="bx bx-transfer-alt"></i> &rarr; DAT 0
+                                        </span>
+                                    @endif
                                     @if($isRange)
                                         <span class="badge bg-light text-dark ms-1" style="font-weight:500;font-size:11px;" title="Multi-day range">
                                             <i class="bx bx-right-arrow-alt"></i> {{ $endDateCarbon->format('M j') }}
@@ -516,13 +536,32 @@
                                         <i class="bx bx-map-pin"></i>
                                         @foreach($activityLots as $lot)
                                             @php
+                                                // Phase-aware day-number suffix from the lot's MANUAL anchors
+                                                // (first paint). On load, recomputeLotDayZero() re-derives this
+                                                // client-side, folding in activity-flagged DAS 0 / DAT 0 anchors.
+                                                // Once the date reaches the lot's transplant date it counts in DAT.
                                                 $dasSuffix = '';
-                                                if ($lot->dayZeroDate && $a->targetDate) {
-                                                    $d0 = \Illuminate\Support\Carbon::parse($lot->dayZeroDate);
+                                                if ($a->targetDate) {
                                                     $dt = \Illuminate\Support\Carbon::parse($a->targetDate);
-                                                    $delta = (int) $d0->diffInDays($dt, false);
-                                                    $sign = $delta > 0 ? '+' : '';
-                                                    $dasSuffix = ' · ' . $schedule->dayType . $sign . $delta;
+                                                    if ($lot->transplantDate) {
+                                                        $tp = \Illuminate\Support\Carbon::parse($lot->transplantDate);
+                                                        if ($dt->gte($tp)) {
+                                                            $delta = (int) $tp->diffInDays($dt, false);
+                                                            // At the transplant pivot (DAT 0), also show the DAS it converts from.
+                                                            if ($delta === 0 && $lot->dayZeroDate) {
+                                                                $d0 = \Illuminate\Support\Carbon::parse($lot->dayZeroDate);
+                                                                $dasDelta = (int) $d0->diffInDays($dt, false);
+                                                                $dasSuffix = ' · ' . $schedule->dayType . ($dasDelta > 0 ? '+' : '') . $dasDelta . ' → DAT0';
+                                                            } else {
+                                                                $dasSuffix = ' · DAT' . ($delta > 0 ? '+' : '') . $delta;
+                                                            }
+                                                        }
+                                                    }
+                                                    if ($dasSuffix === '' && $lot->dayZeroDate) {
+                                                        $d0 = \Illuminate\Support\Carbon::parse($lot->dayZeroDate);
+                                                        $delta = (int) $d0->diffInDays($dt, false);
+                                                        $dasSuffix = ' · ' . $schedule->dayType . ($delta > 0 ? '+' : '') . $delta;
+                                                    }
                                                 }
                                             @endphp
                                             <span class="item-tag"
@@ -599,6 +638,10 @@
                                         <span class="item-tag">{{ $it->material->materialName }} ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif</span>
                                     @elseif($it->itemType === 'service' && $it->service)
                                         <span class="item-tag service">{{ $it->service->serviceName }}@if($qtyTrim !== '1' || $unit) ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif @endif</span>
+                                    @elseif($it->itemName)
+                                        {{-- Free-form item created in the client app (name + price). --}}
+                                        @php $priceTxt = $it->unitPrice !== null ? ' @ ₱'.number_format((float) $it->unitPrice, 2) : ''; @endphp
+                                        <span class="item-tag">{{ $it->itemName }}@if($it->quantity !== null) ×{{ $qtyTrim }}@if($unit) {{ $unit }}@endif @endif{{ $priceTxt }}</span>
                                     @endif
                                 @endforeach
                             </div>
@@ -1256,14 +1299,29 @@
                      Rendered hidden; JS reveals it only when a selected lot
                      carries a Day 0 anchor, since without an anchor a day
                      number has nothing to count from. --}}
+                {{-- NOTE: the frame-name spans below use class
+                     `activity-day-frame-name` (NOT `day-type-label`). JS flips
+                     their text to "DAT" when the DAT frame is active, and
+                     getScheduleDayType() reads the FIRST `.day-type-label` on the
+                     page — so reusing that class here would make it report "DAT"
+                     and corrupt every base-type label. Keep them separate. --}}
                 <div class="mb-3 p-3 rounded" id="activityDasRow"
                      style="display:none; background:#eef4fb; border:1px solid #c9dcf0;">
                     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
                         <label class="form-label text-dark mb-0 fw-semibold" style="font-size:13px;">
                             <i class="bx bx-trending-up"></i>
-                            Set by <span class="day-type-label">{{ $schedule->dayType }}</span> day number
+                            Set by <span class="activity-day-frame-name">{{ $schedule->dayType }}</span> day number
                         </label>
                         <span class="badge bg-light text-secondary" style="font-weight:500;">Optional</span>
+                        {{-- Base ⇄ DAT frame toggle — shown only when the chosen
+                             reference lot has BOTH a sowing and a transplant
+                             anchor, so the user can count from either. --}}
+                        <div class="btn-group btn-group-sm ms-auto" role="group" id="activityDayFrameToggle" style="display:none;">
+                            <input type="radio" class="btn-check" name="activityDayFrame" id="activityDayFrameBase" value="base" checked>
+                            <label class="btn btn-outline-primary" for="activityDayFrameBase"><span class="day-type-label">{{ $schedule->dayType }}</span></label>
+                            <input type="radio" class="btn-check" name="activityDayFrame" id="activityDayFrameDat" value="dat">
+                            <label class="btn btn-outline-success" for="activityDayFrameDat">DAT</label>
+                        </div>
                     </div>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
@@ -1272,14 +1330,14 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-dark mb-1" style="font-size:12px;">
-                                Start <span class="day-type-label">{{ $schedule->dayType }}</span>
+                                Start <span class="activity-day-frame-name">{{ $schedule->dayType }}</span>
                             </label>
                             <input type="number" step="1" class="form-control form-control-sm"
                                    id="activityStartDas" placeholder="e.g. 21">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-dark mb-1" style="font-size:12px;">
-                                End <span class="day-type-label">{{ $schedule->dayType }}</span>
+                                End <span class="activity-day-frame-name">{{ $schedule->dayType }}</span>
                                 <span class="text-secondary fw-normal">— optional</span>
                             </label>
                             <input type="number" step="1" class="form-control form-control-sm"
@@ -1358,6 +1416,29 @@
                         for every lot it covers. Other activities on those lots will be labeled relative to this anchor
                         (e.g. <span class="day-type-label">{{ $schedule->dayType }}</span>+7,
                         <span class="day-type-label">{{ $schedule->dayType }}</span>+14).
+                        If more than one activity on the same lot is marked, the <strong>earliest date</strong> wins.
+                    </small>
+                </div>
+
+                {{-- Transplant / DAT 0 anchor — for transplanted rice. Mutually
+                     exclusive with "Mark as {{ $schedule->dayType }} 0" (sowing
+                     and transplanting are different events); the JS keeps only
+                     one ticked. --}}
+                <div class="mb-3 p-3 rounded" style="background:#e6f7f1; border:1px solid #b3e6d5;">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="activityIsTransplant">
+                        <label class="form-check-label text-dark fw-semibold" for="activityIsTransplant">
+                            <i class="bx bx-transfer-alt text-success"></i>
+                            Mark this activity as the <strong>transplant</strong> — convert to <strong>DAT 0</strong>
+                            <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                        </label>
+                    </div>
+                    <small class="text-secondary d-block mt-1" style="margin-left:1.5rem;">
+                        For transplanted rice: seedbed activities count in
+                        <strong><span class="day-type-label">{{ $schedule->dayType }}</span></strong> (from sowing).
+                        Mark the transplanting activity here — its <strong>Start Date</strong> becomes
+                        <strong>DAT 0</strong> for every lot it covers, and later activities on those lots
+                        switch to <strong>DAT</strong> day numbers (DAT 14, DAT 30, …).
                         If more than one activity on the same lot is marked, the <strong>earliest date</strong> wins.
                     </small>
                 </div>
