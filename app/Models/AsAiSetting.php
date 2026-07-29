@@ -56,6 +56,30 @@ class AsAiSetting extends Model
         return filled($this->attributes['apiKey'] ?? null);
     }
 
+    public function isUsable(): bool
+    {
+        return (bool) $this->isEnabled && $this->hasKey();
+    }
+
+    public function effectiveModel(): string
+    {
+        return $this->model ?: (self::DEFAULT_MODELS[$this->provider] ?? self::DEFAULT_MODELS['claude']);
+    }
+
+    /** Decrypt the shared key for outbound LLM calls (null if unset/undecryptable). */
+    public function plainApiKey(): ?string
+    {
+        $enc = $this->attributes['apiKey'] ?? null;
+        if (! filled($enc)) {
+            return null;
+        }
+        try {
+            return AiKeyCipher::decrypt($enc);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     /**
      * Encrypt under the shared secret so AniSystem can read it back.
      * An empty value leaves the stored key untouched.

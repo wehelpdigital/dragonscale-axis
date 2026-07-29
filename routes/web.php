@@ -403,6 +403,13 @@ Route::delete('/anisenso-community/wall-posts/{id}', [App\Http\Controllers\aniSe
 Route::delete('/anisenso-community/wall-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');
 Route::get('/anisenso-community/announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'announcements'])->name('anisenso-community.announcements')->middleware('auth');
 Route::post('/anisenso-community/announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'broadcast'])->name('anisenso-community.announcements.send')->middleware('auth');
+// AniSenso — AI answers for community questions
+Route::get('/anisenso-community/ai-answers', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'index'])->name('anisenso-community.ai-answers')->middleware('auth');
+Route::post('/anisenso-community/ai-answers/generate', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'generate'])->name('anisenso-community.ai-answers.generate')->middleware('auth');
+Route::post('/anisenso-community/ai-answers/post-all', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'postAll'])->name('anisenso-community.ai-answers.post-all')->middleware('auth');
+Route::put('/anisenso-community/ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'update'])->whereNumber('id')->name('anisenso-community.ai-answers.update')->middleware('auth');
+Route::post('/anisenso-community/ai-answers/{id}/post', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'post'])->whereNumber('id')->name('anisenso-community.ai-answers.post')->middleware('auth');
+Route::delete('/anisenso-community/ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.ai-answers.dismiss')->middleware('auth');
 
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);
