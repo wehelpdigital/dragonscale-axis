@@ -1224,13 +1224,16 @@ function renderActivityCard(a) {
     const hiddenTag = isHiddenFlag
         ? `<span class="badge bg-secondary text-white hide-activity-tag" style="font-weight:500;font-size:11px;"><i class="bx bx-hide"></i> Hidden</span>`
         : '';
-    return `<div class="activity-card${hiddenClass}" draggable="true" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-is-transplant="${isTransplantFlag}" data-activity-type="${escapeHtml(a.activityType || '')}" data-is-hidden="${isHiddenFlag}">
+    const isDoneFlag = (a.isDone === true || a.isDone === 1 || a.isDone === '1') ? 1 : 0;
+    const doneClass = isDoneFlag ? ' is-done' : '';
+    return `<div class="activity-card${hiddenClass}${doneClass}" draggable="${isDoneFlag ? 'false' : 'true'}" data-id="${a.id}" data-target-date="${escapeHtml(targetDateStr)}" data-target-end-date="${escapeHtml(targetEndDateStr)}" data-lot-signature="${escapeHtml(lotSig)}" data-sequence-order="${seqOrder}" data-is-day-zero="${isDayZeroFlag}" data-is-transplant="${isTransplantFlag}" data-activity-type="${escapeHtml(a.activityType || '')}" data-is-hidden="${isHiddenFlag}" data-is-done="${isDoneFlag}">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
             <div class="flex-grow-1" style="min-width:0;">
                 <h6 class="text-dark mb-1">${escapeHtml(a.activityTitle)}${typeBadge}${dayZeroBadge}${transplantBadge}${rangeBadge}</h6>
                 ${lotsHeaderBlock}
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <button type="button" class="done-check${isDoneFlag ? ' is-checked' : ''}" data-id="${a.id}" aria-pressed="${isDoneFlag ? 'true' : 'false'}" title="${isDoneFlag ? 'Mark as not done' : 'Mark this activity as done'}"><i class="bx bx-check"></i></button>
                 <span class="sm-pill ${priorityCls}">${escapeHtml(priorityCap)}</span>
                 <label class="hide-activity-switch form-check form-switch m-0" title="Toggle visibility in worker presentation, card viewer, and export">
                     <input type="checkbox" class="form-check-input hide-activity-toggle" data-id="${a.id}" ${isHiddenFlag ? '' : 'checked'} aria-label="Show or hide this activity in presentations">
@@ -1551,6 +1554,7 @@ function reorderAndRenumberActivities() {
     // per-day accordion state (defined later in this file; guarded because
     // this function also runs during initial handler wiring).
     if (window.applyDateCollapseState) window.applyDateCollapseState();
+    if (window.applyHideEmptyDays) window.applyHideEmptyDays();
 }
 
 // Build the marker DOM. Mirrors the server-rendered output in activities.blade.php.
@@ -1933,6 +1937,8 @@ function captureBoardSnapshot() {
 }
 
 $(document).on('dragstart', '.activity-card', function (e) {
+    // Done activities are locked in place — matches the client app.
+    if ($(this).attr('data-is-done') === '1') { e.preventDefault(); return; }
     dragSourceCard = this;
     dragOrigin = {
         date: ($(this).attr('data-target-date') || '').trim(),
@@ -2549,6 +2555,67 @@ $(document).on('dragover', '.date-group.is-collapsed .date-header', function () 
 
 // Initial state for the server-rendered groups.
 window.applyDateCollapseState();
+
+// ---------- Hide/show days with no activities (mirrors the client app) ----------
+// Pure CSS collapse keyed off a container class; the choice persists per
+// schedule so it survives refreshes, including the live-sync auto-refresh.
+const HIDE_EMPTY_DAYS_KEY = 'hideEmptyDays:{{ $schedule->id }}';
+
+window.applyHideEmptyDays = function () {
+    const on = localStorage.getItem(HIDE_EMPTY_DAYS_KEY) === '1';
+    $('#activitiesList').toggleClass('hide-empty-days', on);
+    $('#toggleEmptyDaysBtn')
+        .toggleClass('btn-secondary', on)
+        .toggleClass('btn-outline-secondary', !on);
+    $('#toggleEmptyDaysLabel').text(on ? 'Show empty days' : 'Hide empty days');
+};
+$('#toggleEmptyDaysBtn').on('click', function () {
+    const next = localStorage.getItem(HIDE_EMPTY_DAYS_KEY) !== '1';
+    try { localStorage.setItem(HIDE_EMPTY_DAYS_KEY, next ? '1' : '0'); } catch (e) { /* private mode */ }
+    window.applyHideEmptyDays();
+});
+window.applyHideEmptyDays();
+
+// ---------- Done checkmark (mirrors the client app's big checkbox) ----------
+// Flips the same isDone column the farmer app writes. Done cards dim, strike
+// through, and refuse dragging; admin edit buttons stay live.
+$(document).on('click', '.done-check', function () {
+    const $btn = $(this);
+    if ($btn.data('busy')) return;
+    const id = $btn.data('id');
+    const $card = $btn.closest('.activity-card');
+    const wantDone = $card.attr('data-is-done') !== '1';
+
+    // Optimistic flip; revert on AJAX failure.
+    const paint = (done) => {
+        $card.toggleClass('is-done', done);
+        $card.attr('data-is-done', done ? 1 : 0);
+        $card.attr('draggable', done ? 'false' : 'true');
+        $btn.toggleClass('is-checked', done);
+        $btn.attr('aria-pressed', done ? 'true' : 'false');
+        $btn.attr('title', done ? 'Mark as not done' : 'Mark this activity as done');
+    };
+    paint(wantDone);
+    $btn.data('busy', 1);
+    $.ajax({
+        url: URLS.activitiesToggleDone(id),
+        type: 'POST',
+        data: { _token: CSRF },
+        success: (res) => {
+            if (!res || !res.success) {
+                toastr.error(res && res.message ? res.message : 'Toggle failed.');
+                paint(!wantDone);
+                return;
+            }
+            toastr.success(res.message || (wantDone ? 'Marked as done.' : 'Marked as not done.'));
+        },
+        error: (xhr) => {
+            toastr.error((xhr.responseJSON && xhr.responseJSON.message) || 'Toggle failed.');
+            paint(!wantDone);
+        },
+        complete: () => $btn.removeData('busy'),
+    });
+});
 
 // Per-activity visibility toggle. Lighter-weight than "to drafts" — the
 // card stays on the timeline but is dimmed (.is-hidden class) and the

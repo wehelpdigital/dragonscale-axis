@@ -1002,6 +1002,7 @@ const URLS = {
     activitiesDelete:    (id) => `${ROOT}/anisenso-schedule-manager-activities-delete${Q}&id=${id}`,
     activitiesImageUpload: () => `${ROOT}/anisenso-schedule-manager-activities-image-upload${Q}`,
     activitiesToggleHidden: (id) => `${ROOT}/anisenso-schedule-manager-activities-toggle-hidden${Q}&id=${id}`,
+    activitiesToggleDone: (id) => `${ROOT}/anisenso-schedule-manager-activities-toggle-done${Q}&id=${id}`,
     activitiesDuplicate: (id) => `${ROOT}/anisenso-schedule-manager-activities-duplicate${Q}&id=${id}`,
     activitiesSetDate:   (id) => `${ROOT}/anisenso-schedule-manager-activities-set-date${Q}&id=${id}`,
     activitiesReorder:   () => `${ROOT}/anisenso-schedule-manager-activities-reorder${Q}`,

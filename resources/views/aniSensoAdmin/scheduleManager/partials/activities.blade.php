@@ -42,6 +42,36 @@
        inside collapsed days — filtering temporarily overrides the accordion. */
     #activitiesList.is-filtering .date-group.is-collapsed .date-activities { display: block; }
     #activitiesList.is-filtering .date-group.is-collapsed .date-note-block { display: block; }
+
+    /* ---- Hide/show days with no activities (mirrors the client app) ----
+       Animated collapse: rest-day rows squeeze shut instead of snapping.
+       State persists per schedule in localStorage (hideEmptyDays:<id>). */
+    #activitiesList .rest-day-marker {
+        transition: opacity .28s cubic-bezier(.22,1,.36,1), max-height .28s cubic-bezier(.22,1,.36,1),
+                    margin .28s cubic-bezier(.22,1,.36,1), padding .28s cubic-bezier(.22,1,.36,1),
+                    border-width .28s cubic-bezier(.22,1,.36,1);
+        max-height: 9rem; overflow: hidden;
+    }
+    #activitiesList.hide-empty-days .rest-day-marker {
+        opacity: 0; max-height: 0; margin-top: 0; margin-bottom: 0;
+        padding-top: 0; padding-bottom: 0; border-width: 0; pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) { #activitiesList .rest-day-marker { transition: none; } }
+
+    /* ---- Done checkmark (mirrors the client app's big checkbox) ----
+       Same isDone column the farmer app writes, so both stay in step. */
+    .done-check {
+        width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; padding: 0;
+        border: 2px solid #b9c2cf; background: #fff; color: transparent;
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease;
+    }
+    .done-check:hover { border-color: #198754; color: rgba(25,135,84,.55); }
+    .done-check.is-checked { background: #198754; border-color: #198754; color: #fff; }
+    .done-check .bx { font-size: 17px; }
+    .activity-card.is-done { opacity: .78; }
+    .activity-card.is-done > .d-flex h6 { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+    .activity-card.is-done { cursor: default; }
 </style>
 
 {{-- Activity versions sub-tabs — every version is a branch of the schedule.
@@ -128,6 +158,9 @@
         </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" id="todayTomorrowBtn" title="Jump to today &amp; tomorrow">
             <i class="bx bx-calendar-event me-1"></i> Today &amp; Tomorrow
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleEmptyDaysBtn" title="Hide or show the &quot;No activities scheduled&quot; days">
+            <i class="bx bx-moon me-1"></i> <span id="toggleEmptyDaysLabel">Hide empty days</span>
         </button>
         @php $draftsCount = $schedule->drafts->count(); @endphp
         <button type="button" class="btn btn-outline-info btn-sm" id="openDraftsModalBtn" title="View activities you've moved to drafts">
@@ -525,7 +558,7 @@
                         $rangeDays = $isRange ? ($startDateCarbon->diffInDays($endDateCarbon) + 1) : 0;
                         $endDateStr = $endDateCarbon ? $endDateCarbon->format('Y-m-d') : '';
                     @endphp
-                    <div class="activity-card{{ $a->isHidden ? ' is-hidden' : '' }}" draggable="true" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-is-transplant="{{ $a->isTransplant ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}" data-is-hidden="{{ $a->isHidden ? 1 : 0 }}">
+                    <div class="activity-card{{ $a->isHidden ? ' is-hidden' : '' }}{{ $a->isDone ? ' is-done' : '' }}" draggable="{{ $a->isDone ? 'false' : 'true' }}" data-id="{{ $a->id }}" data-target-date="{{ $dateKey === '__no-date__' ? '' : $dateKey }}" data-target-end-date="{{ $endDateStr }}" data-lot-signature="{{ $lotSig }}" data-sequence-order="{{ (int) $a->sequenceOrder }}" data-is-day-zero="{{ $a->isDayZero ? 1 : 0 }}" data-is-transplant="{{ $a->isTransplant ? 1 : 0 }}" data-activity-type="{{ $a->activityType ?: '' }}" data-is-hidden="{{ $a->isHidden ? 1 : 0 }}" data-is-done="{{ $a->isDone ? 1 : 0 }}">
                         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
                             <div class="flex-grow-1" style="min-width:0;">
                                 <h6 class="text-dark mb-1">
@@ -606,6 +639,15 @@
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                {{-- Done checkmark — same isDone flag as the client app's
+                                     big checkbox. Done cards dim + strike through and
+                                     can't be dragged; admin editing stays allowed. --}}
+                                <button type="button" class="done-check{{ $a->isDone ? ' is-checked' : '' }}"
+                                        data-id="{{ $a->id }}"
+                                        aria-pressed="{{ $a->isDone ? 'true' : 'false' }}"
+                                        title="{{ $a->isDone ? 'Mark as not done' : 'Mark this activity as done' }}">
+                                    <i class="bx bx-check"></i>
+                                </button>
                                 <span class="sm-pill priority-{{ $a->priority }}">{{ ucfirst($a->priority) }}</span>
                                 {{-- Visibility switch — toggles isHidden. When OFF
                                      (switch unchecked), the activity is excluded

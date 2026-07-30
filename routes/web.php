@@ -315,6 +315,7 @@ Route::put('/anisenso-schedule-manager-activities-update',    [App\Http\Controll
 Route::delete('/anisenso-schedule-manager-activities-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'destroy'])->name('anisenso-schedule-manager.activities.destroy')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-image-upload', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'uploadImage'])->name('anisenso-schedule-manager.activities.image-upload')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-toggle-hidden', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'toggleHidden'])->name('anisenso-schedule-manager.activities.toggle-hidden')->middleware('auth');
+Route::post('/anisenso-schedule-manager-activities-toggle-done', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'toggleDone'])->name('anisenso-schedule-manager.activities.toggle-done')->middleware('auth');
 // Progress markers — "where I left off" bookmarks in the activities timeline
 Route::post('/anisenso-schedule-manager-markers-save',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'save'])->name('anisenso-schedule-manager.markers.save')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-markers-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'destroy'])->name('anisenso-schedule-manager.markers.destroy')->middleware('auth');

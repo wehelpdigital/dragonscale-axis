@@ -40,6 +40,7 @@ class AsScheduleActivity extends BaseModel
         'isTransplant',
         'isDraft',
         'isHidden',
+        'isDone',
         'description',
         'imagePath',
         'timeRequired',
@@ -54,6 +55,7 @@ class AsScheduleActivity extends BaseModel
         'isTransplant' => 'boolean',
         'isDraft' => 'boolean',
         'isHidden' => 'boolean',
+        'isDone' => 'boolean',
         'sequenceOrder' => 'integer',
         'deleteStatus' => 'integer',
     ];

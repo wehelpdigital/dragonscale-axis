@@ -91,6 +91,33 @@ class ActivityController extends BaseScheduleController
     }
 
     /**
+     * Flip the "done" checkmark on an activity — the same isDone flag the
+     * client app's big checkbox writes, so both apps stay in step. The client
+     * app locks done activities against editing; here the admin keeps full
+     * edit rights and only dragging is blocked client-side.
+     */
+    public function toggleDone(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $id = $this->queryId($request);
+        $activity = AsScheduleActivity::active()
+            ->where('croppingScheduleId', $schedule->id)
+            ->where('id', $id)
+            ->first();
+        if (!$activity) return $this->jsonFail('Activity not found.', 404);
+
+        $next = !((bool) $activity->isDone);
+        $activity->update(['isDone' => $next]);
+
+        return $this->jsonOk($next ? 'Marked as done.' : 'Marked as not done.', [
+            'data' => [
+                'id'     => $activity->id,
+                'isDone' => $next,
+            ],
+        ]);
+    }
+
+    /**
      * Upload a reference image for an activity. The file is written under
      * `public/storage/schedule-activities/{scheduleId}/{uuid}.{ext}` and
      * the relative path is returned to the client. The client stashes that
