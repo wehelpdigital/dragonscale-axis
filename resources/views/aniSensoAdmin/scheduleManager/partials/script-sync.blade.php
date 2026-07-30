@@ -1,6 +1,8 @@
-<script>
 // ============================================================================
 // Live sync — makes two setup pages on the same schedule feel collaborative.
+//
+// NOTE: like every script-* partial, this renders INSIDE the page's single
+// shared <script> block — raw JS only, no <script>/<style> tags here.
 //
 // How it works (no websockets — works on plain XAMPP / shared hosting):
 //   • Every mutation bumps `syncVersion` server-side (TouchScheduleSync
@@ -18,6 +20,17 @@
 //     schedule open right now and whether they're editing or dragging.
 // ============================================================================
 (function () {
+    // Presence-pulse CSS — injected from JS because this partial lives inside
+    // the page's shared <script> block and can't carry its own <style> tag.
+    $('<style>' +
+        '@keyframes syncPresencePulse {' +
+        '  0%, 100% { box-shadow: 0 0 0 0 rgba(85, 110, 230, .35); }' +
+        '  50%      { box-shadow: 0 0 0 4px rgba(85, 110, 230, .12); }' +
+        '}' +
+        '#syncPresence .sync-presence-pulse { animation: syncPresencePulse 1.6s ease infinite; border-radius: 14px; }' +
+        '@media (prefers-reduced-motion: reduce) { #syncPresence .sync-presence-pulse { animation: none; } }' +
+    '</style>').appendTo('head');
+
     // Per-browser-tab identity, stable across our own sync reloads
     // (sessionStorage is scoped to the tab, exactly what we want).
     let CID = sessionStorage.getItem('smgrSyncCid');
@@ -107,14 +120,40 @@
     function hidePendingBanner() { $('#syncPendingBanner').hide(); }
 
     // ---- Refresh ------------------------------------------------------------
+    // This page takes several seconds to re-render server-side, so the
+    // replacement navigation stays "in flight" for a while. doRefresh MUST
+    // fire only once: a second call would start a new navigation and Chrome
+    // aborts the provisional one, so repeated calls (poll + idle interval)
+    // would keep cancelling each other and the refresh would never commit.
+    let refreshing = false;
+
     function doRefresh(name) {
+        if (refreshing) return; // navigation already in flight — let it finish
+        refreshing = true;
+        // Escape hatch: if the navigation somehow dies (server hiccup), allow
+        // a retry instead of leaving sync dead until a manual reload.
+        setTimeout(function () { refreshing = false; }, 30000);
+
         // The active tab already survives reloads via the URL hash; keep the
         // scroll position and a note about who changed what for after reload.
         try {
             sessionStorage.setItem('smgrSyncScroll', String(window.scrollY || window.pageYOffset || 0));
             sessionStorage.setItem('smgrSyncNotice', name || '');
         } catch (e) { /* storage full/blocked — reload anyway */ }
-        location.reload();
+
+        // Feedback while the slow navigation is pending.
+        showPendingBanner(name);
+        $('#syncPendingText').text('Syncing changes' + (name ? ' by ' + name : '') + '…');
+        $('#syncPendingRefreshBtn').prop('disabled', true);
+
+        // Navigate to the same URL explicitly rather than location.reload():
+        // a changing _r param guarantees a genuine server round-trip even
+        // when a #tab hash is present (identical-URL assignments with a hash
+        // are fragment jumps, not loads); the param is ignored server-side
+        // and the hash keeps the active tab.
+        const params = new URLSearchParams(window.location.search);
+        params.set('_r', Date.now().toString(36));
+        window.location.href = window.location.pathname + '?' + params.toString() + window.location.hash;
     }
 
     // After a sync reload: restore scroll + tell the user what happened.
@@ -139,7 +178,7 @@
 
     // ---- Poll loop ----------------------------------------------------------
     function poll() {
-        if (polling || document.hidden) return; // skip overlapping/background polls
+        if (refreshing || polling || document.hidden) return; // skip while navigating/overlapping/backgrounded
         polling = true;
         $.get(SYNC_URL, { clientId: CID, state: myState() })
             .done(function (res) {
@@ -185,14 +224,14 @@
     document.addEventListener('visibilitychange', function () {
         if (!document.hidden) poll();
     });
-})();
-</script>
 
-<style>
-    @keyframes syncPresencePulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(85, 110, 230, .35); }
-        50%      { box-shadow: 0 0 0 4px rgba(85, 110, 230, .12); }
-    }
-    #syncPresence .sync-presence-pulse { animation: syncPresencePulse 1.6s ease infinite; border-radius: 14px; }
-    @media (prefers-reduced-motion: reduce) { #syncPresence .sync-presence-pulse { animation: none; } }
-</style>
+    // Debug/inspection handle (also lets support check sync state in devtools).
+    window.__smgrSync = {
+        cid: CID,
+        get knownVersion() { return knownVersion; },
+        get pendingRefresh() { return pendingRefresh; },
+        isBusy: isBusy,
+        poll: poll,
+        refresh: function () { doRefresh(pendingRefresh ? pendingRefresh.name : ''); },
+    };
+})();
