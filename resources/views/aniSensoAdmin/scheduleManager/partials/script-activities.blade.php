@@ -1516,6 +1516,11 @@ function reorderAndRenumberActivities() {
         const $group = $(`
             <div class="date-group date-color-${item.color}" data-date="${key === '__no-date__' ? '' : escapeHtml(key)}">
                 <div class="date-header">
+                    <button type="button"
+                            class="date-header-edit-btn date-collapse-btn"
+                            title="Collapse / expand this day's activities">
+                        <i class="bx bx-chevron-down"></i>
+                    </button>
                     ${headerHtml}
                     <span class="date-header-count">${count} ${count === 1 ? 'activity' : 'activities'}</span>
                     ${addBtn}
@@ -1541,6 +1546,11 @@ function reorderAndRenumberActivities() {
         if ($list.find(`.progress-marker[data-date="${dateKey}"]`).length) return;
         $list.append(_buildProgressMarkerHtml(dateKey, markersByDate[dateKey]));
     });
+
+    // Rebuilding recreates every group from scratch — re-apply the persisted
+    // per-day accordion state (defined later in this file; guarded because
+    // this function also runs during initial handler wiring).
+    if (window.applyDateCollapseState) window.applyDateCollapseState();
 }
 
 // Build the marker DOM. Mirrors the server-rendered output in activities.blade.php.
@@ -2467,6 +2477,78 @@ $hiddenToggleBtn.on('click', function () {
     applyHiddenActivitiesVisibility(next);
     localStorage.setItem(HIDDEN_TOGGLE_KEY, next ? '1' : '0');
 });
+
+// ---------- Per-day accordion: collapse/expand date groups ----------
+// Collapsed days are stored per schedule in localStorage so the choice
+// survives refreshes — including the live-sync auto-refresh. Days never
+// touched stay expanded (current behavior); only explicit collapses persist.
+const COLLAPSED_DATES_KEY = 'collapsedDates:{{ $schedule->id }}';
+
+function _collapsedDatesSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSED_DATES_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+}
+function _saveCollapsedDates(set) {
+    try { localStorage.setItem(COLLAPSED_DATES_KEY, JSON.stringify(Array.from(set))); } catch (e) { /* private mode */ }
+}
+// Server render uses data-date="__no-date__" for the undated group while the
+// JS rebuild uses "" — normalize both to the sentinel.
+function _dateGroupKey($group) {
+    return ($group.attr('data-date') || '').trim() || '__no-date__';
+}
+
+// Re-apply the persisted state to whatever groups are currently in the DOM.
+// Exposed on window because reorderAndRenumberActivities() (defined earlier)
+// calls it after every rebuild.
+window.applyDateCollapseState = function () {
+    const collapsed = _collapsedDatesSet();
+    $('#activitiesList .date-group').each(function () {
+        $(this).toggleClass('is-collapsed', collapsed.has(_dateGroupKey($(this))));
+    });
+};
+
+function _setDayCollapsed($group, wantCollapsed) {
+    $group.toggleClass('is-collapsed', wantCollapsed);
+    const key = _dateGroupKey($group);
+    const collapsed = _collapsedDatesSet();
+    if (wantCollapsed) collapsed.add(key); else collapsed.delete(key);
+    _saveCollapsedDates(collapsed);
+}
+
+// Chevron button + the date text itself both toggle.
+$(document).on('click', '.date-collapse-btn', function () {
+    const $group = $(this).closest('.date-group');
+    _setDayCollapsed($group, !$group.hasClass('is-collapsed'));
+});
+$(document).on('click', '.date-header .date-header-day, .date-header .date-header-date', function () {
+    const $group = $(this).closest('.date-group');
+    _setDayCollapsed($group, !$group.hasClass('is-collapsed'));
+});
+
+// Collapse-all / expand-all toolbar buttons. Collapse-all records the keys of
+// the CURRENT groups (a date added later by a teammate arrives expanded).
+$('#collapseAllDaysBtn').on('click', function () {
+    const collapsed = _collapsedDatesSet();
+    $('#activitiesList .date-group').each(function () {
+        $(this).addClass('is-collapsed');
+        collapsed.add(_dateGroupKey($(this)));
+    });
+    _saveCollapsedDates(collapsed);
+});
+$('#expandAllDaysBtn').on('click', function () {
+    $('#activitiesList .date-group').removeClass('is-collapsed');
+    _saveCollapsedDates(new Set());
+});
+
+// Dragging an activity over a collapsed day's header springs it open so the
+// drop target (.date-activities) becomes available — persisted, so it stays
+// open after the drop.
+$(document).on('dragover', '.date-group.is-collapsed .date-header', function () {
+    _setDayCollapsed($(this).closest('.date-group'), false);
+});
+
+// Initial state for the server-rendered groups.
+window.applyDateCollapseState();
 
 // Per-activity visibility toggle. Lighter-weight than "to drafts" — the
 // card stays on the timeline but is dimmed (.is-hidden class) and the
@@ -3458,6 +3540,10 @@ function applyActivityFilter() {
         .get()
         .filter(Boolean);
     const hasLotFilter = hiddenLotIds.length > 0;
+
+    // While any filter is active the accordion is overridden (CSS in the
+    // activities partial) so matches inside collapsed days stay visible.
+    $list.toggleClass('is-filtering', !!raw || hasTypeFilter || hasLotFilter);
 
     // Toggle the "Clear types" / "Show all lots" links based on whether
     // anything is selected.

@@ -26,6 +26,22 @@
     @keyframes ttPulse { 0%, 100% { background: transparent; } 25% { background: rgba(85,110,230,.14); } }
     #activitiesList .date-group.tt-highlight { animation: ttPulse 2.2s ease; border-radius: .5rem; }
     @media (prefers-reduced-motion: reduce) { #activitiesList .date-group.tt-highlight { animation: none; } }
+
+    /* ---- Per-day accordion (collapse/expand date groups) ----
+       State persists per schedule in localStorage (collapsedDates:<id>) so
+       it survives refreshes, including the live-sync auto-refresh. */
+    .date-collapse-btn .bx { transition: transform .15s ease; display: inline-block; }
+    .date-group.is-collapsed .date-collapse-btn .bx { transform: rotate(-90deg); }
+    .date-group.is-collapsed .date-activities,
+    .date-group.is-collapsed .date-note-block { display: none; }
+    .date-group.is-collapsed .date-header { border-radius: 8px; }
+    /* The date text doubles as a toggle target (bigger hit area than the chevron). */
+    .date-header .date-header-day,
+    .date-header .date-header-date { cursor: pointer; user-select: none; }
+    /* While search/type/lot filters are active, matches must be visible even
+       inside collapsed days — filtering temporarily overrides the accordion. */
+    #activitiesList.is-filtering .date-group.is-collapsed .date-activities { display: block; }
+    #activitiesList.is-filtering .date-group.is-collapsed .date-note-block { display: block; }
 </style>
 
 {{-- Activity versions sub-tabs — every version is a branch of the schedule.
@@ -103,6 +119,12 @@
         </button>
         <button type="button" class="btn btn-outline-warning btn-sm" id="activityRedoBtn" title="Redo (Ctrl+Shift+Z)" disabled>
             <i class="bx bx-redo me-1"></i> <span id="activityRedoLabel">Redo</span> <span class="badge bg-light text-dark ms-1" id="activityRedoCount" style="display:none;font-weight:500;"></span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="collapseAllDaysBtn" title="Collapse all days">
+            <i class="bx bx-chevrons-up"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="expandAllDaysBtn" title="Expand all days">
+            <i class="bx bx-chevrons-down"></i>
         </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" id="todayTomorrowBtn" title="Jump to today &amp; tomorrow">
             <i class="bx bx-calendar-event me-1"></i> Today &amp; Tomorrow
@@ -422,6 +444,11 @@
         @endif
         <div class="date-group date-color-{{ $colorIndex }}" data-date="{{ $dateKey }}">
             <div class="date-header">
+                <button type="button"
+                        class="date-header-edit-btn date-collapse-btn"
+                        title="Collapse / expand this day's activities">
+                    <i class="bx bx-chevron-down"></i>
+                </button>
                 @if($dateCarbon)
                     <i class="bx bx-calendar"></i>
                     <span class="date-header-day">{{ $dateCarbon->format('D') }}</span>
