@@ -27,6 +27,31 @@ class AsScheduleActivity extends BaseModel
         'other'          => 'Other',
     ];
 
+    /**
+     * Water-task catalog for irrigation-type activities (activityType =
+     * 'irrigation'). slug => label, plus a color for the card badge.
+     * Mirrors the client app so both systems read the same values.
+     */
+    public const WATER_TASKS = [
+        'irrigate'      => 'Irrigate',
+        'maintain'      => 'Maintain water',
+        'overflow'      => 'Overflow',
+        'drain'         => 'Drain',
+        'drain_water'   => 'Drain water',
+        'no_irrigation' => 'No irrigation',
+        'let_subside'   => 'Let subside',
+    ];
+
+    public const WATER_TASK_COLORS = [
+        'irrigate'      => '#2f8fd8',
+        'maintain'      => '#1aa3a3',
+        'overflow'      => '#7c6bd6',
+        'drain'         => '#c1873b',
+        'drain_water'   => '#c1873b',
+        'no_irrigation' => '#8a95a8',
+        'let_subside'   => '#5a8f4c',
+    ];
+
     protected $fillable = [
         'croppingScheduleId',
         'versionId',
@@ -36,6 +61,8 @@ class AsScheduleActivity extends BaseModel
         'targetEndDate',
         'priority',
         'activityType',
+        'waterTask',
+        'servicePrice',
         'isDayZero',
         'isTransplant',
         'isDraft',
@@ -56,9 +83,26 @@ class AsScheduleActivity extends BaseModel
         'isDraft' => 'boolean',
         'isHidden' => 'boolean',
         'isDone' => 'boolean',
+        'servicePrice' => 'decimal:2',
         'sequenceOrder' => 'integer',
         'deleteStatus' => 'integer',
     ];
+
+    /**
+     * Label + color for an irrigation activity's water task (or null when the
+     * activity isn't an irrigation type). Mirrors the client app so the card
+     * badge reads the same in both systems.
+     */
+    public function waterTaskMeta(): ?array
+    {
+        if ($this->activityType !== 'irrigation') return null;
+        $slug = $this->waterTask && isset(self::WATER_TASKS[$this->waterTask]) ? $this->waterTask : 'irrigate';
+        return [
+            'slug'  => $slug,
+            'label' => self::WATER_TASKS[$slug],
+            'color' => self::WATER_TASK_COLORS[$slug] ?? '#2f8fd8',
+        ];
+    }
 
     public function scopeActive($q)
     {

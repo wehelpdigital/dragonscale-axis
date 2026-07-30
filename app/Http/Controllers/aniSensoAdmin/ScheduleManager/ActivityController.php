@@ -1624,6 +1624,11 @@ class ActivityController extends BaseScheduleController
             'targetEndDate'    => 'nullable|date|after_or_equal:targetDate',
             'priority'         => 'required|in:critical,high,medium,low',
             'activityType'     => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(AsScheduleActivity::ACTIVITY_TYPES))],
+            // Irrigation activities carry a water task; service activities carry
+            // a price. Both are ignored server-side unless the matching type is
+            // set, so a stale value from switching tabs never persists.
+            'waterTask'        => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(AsScheduleActivity::WATER_TASKS))],
+            'servicePrice'     => 'nullable|numeric|min:0',
             'isDayZero'        => 'nullable|boolean',
             'isTransplant'     => 'nullable|boolean',
             'description'      => 'nullable|string|max:20000',
@@ -1709,6 +1714,15 @@ class ActivityController extends BaseScheduleController
             'targetEndDate'      => $request->filled('targetEndDate') ? $request->targetEndDate : null,
             'priority'           => $request->priority,
             'activityType'       => $request->filled('activityType') ? $request->activityType : null,
+            // Only keep the mode-specific field that matches the chosen type,
+            // so switching Task ⇄ Irrigation ⇄ Service never leaves a stale
+            // water task or price behind.
+            'waterTask'          => $request->activityType === 'irrigation'
+                ? ($request->filled('waterTask') ? $request->waterTask : 'irrigate')
+                : null,
+            'servicePrice'       => $request->activityType === 'service' && $request->filled('servicePrice')
+                ? $request->servicePrice
+                : null,
             'isDayZero'          => $request->boolean('isDayZero'),
             'isTransplant'       => $request->boolean('isTransplant'),
             'description'        => $request->description,

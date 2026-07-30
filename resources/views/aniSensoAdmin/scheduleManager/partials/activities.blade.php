@@ -72,6 +72,30 @@
     .activity-card.is-done { opacity: .78; }
     .activity-card.is-done > .d-flex h6 { text-decoration: line-through; text-decoration-thickness: 1.5px; }
     .activity-card.is-done { cursor: default; }
+
+    /* ---- Task / Irrigation / Service mode tabs (mirrors the client app) ----
+       A segmented control at the top of the Add/Edit Activity modal. Each mode
+       reveals its own field: Task→type select, Irrigation→water task,
+       Service→price; and hides the ones that don't apply. */
+    .activity-mode-tabs { display: flex; gap: 6px; padding: 5px; background: #eef1f6; border-radius: 12px; margin-bottom: 1.1rem; }
+    .activity-mode-tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 9px 12px; border: none; background: transparent; border-radius: 9px;
+        font-size: 14px; font-weight: 600; color: #5b6472; cursor: pointer;
+        transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+    .activity-mode-tab.is-active { background: #fff; color: #1f2937; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .activity-mode-tab:hover:not(.is-active) { color: #2d4d1c; }
+    .activity-mode-tab .bx { font-size: 18px; }
+    .activity-mode-tab:active { transform: scale(.98); }
+    @keyframes modeFieldIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+    .mode-field-in { animation: modeFieldIn .28s cubic-bezier(.22,1,.36,1); }
+    @media (prefers-reduced-motion: reduce) { .mode-field-in { animation: none; } }
+
+    /* Water-task + service badges on activity cards (mirrors the client app). */
+    .water-task-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--wt, #2f8fd8);
+        color: #fff; font-weight: 600; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+    .service-badge { display: inline-flex; align-items: center; gap: 4px; background: #6d5bd0;
+        color: #fff; font-weight: 600; font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+    .service-badge .item-tag-price { background: rgba(255,255,255,.22); padding: 0 5px; border-radius: 4px; }
 </style>
 
 {{-- Activity versions sub-tabs — every version is a branch of the schedule.
@@ -563,7 +587,17 @@
                             <div class="flex-grow-1" style="min-width:0;">
                                 <h6 class="text-dark mb-1">
                                     {{ $a->activityTitle }}
-                                    @if($a->activityType && isset(\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType]))
+                                    @if($a->activityType === 'irrigation')
+                                        @php $wtm = $a->waterTaskMeta(); @endphp
+                                        <span class="badge ms-1 water-task-badge" style="--wt:{{ $wtm['color'] }}" title="Water task">
+                                            <i class="bx bxs-droplet"></i> {{ $wtm['label'] }}
+                                        </span>
+                                    @elseif($a->activityType === 'service')
+                                        <span class="badge ms-1 service-badge" title="Hired service">
+                                            <i class="bx bx-wrench"></i> Service
+                                            @if($a->servicePrice !== null)<span class="item-tag-price">₱{{ number_format((float) $a->servicePrice, 2) }}</span>@endif
+                                        </span>
+                                    @elseif($a->activityType && isset(\App\Models\AsScheduleActivity::ACTIVITY_TYPES[$a->activityType]))
                                         <span class="badge ms-1 activity-type-badge"
                                               style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;"
                                               title="Activity type">
@@ -1328,6 +1362,23 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="activityId">
+
+                {{-- Task / Irrigation / Service mode tabs. Each saves as an
+                     activity of the matching type; the mode drives which
+                     type-specific field shows (type select / water task /
+                     service price). Mirrors the client app. --}}
+                <div class="activity-mode-tabs" id="activityModeTabs" role="tablist">
+                    <button type="button" class="activity-mode-tab is-active" data-mode="task" aria-selected="true">
+                        <i class="bx bx-task"></i> Task
+                    </button>
+                    <button type="button" class="activity-mode-tab" data-mode="irrigation" aria-selected="false">
+                        <i class="bx bxs-droplet"></i> Irrigation
+                    </button>
+                    <button type="button" class="activity-mode-tab" data-mode="service" aria-selected="false">
+                        <i class="bx bx-wrench"></i> Service
+                    </button>
+                </div>
+
                 <div class="row">
                     <div class="col-md-12 mb-3">
                         <label class="form-label text-dark">Activity Title <span class="text-danger">*</span></label>
@@ -1437,16 +1488,41 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
+                {{-- Task mode: pick a work type. Irrigation & Service are
+                     driven by their own tabs, so they're excluded here. --}}
+                <div class="mb-3" id="activityTypeWrap">
                     <label class="form-label text-dark">Activity Type
                         <small class="text-secondary fw-normal">— what kind of work is this?</small>
                     </label>
                     <select class="form-select" id="activityType">
                         <option value="">— select a type —</option>
                         @foreach(\App\Models\AsScheduleActivity::ACTIVITY_TYPES as $typeKey => $typeLabel)
-                            <option value="{{ $typeKey }}">{{ $typeLabel }}</option>
+                            @if(!in_array($typeKey, ['irrigation', 'service'], true))
+                                <option value="{{ $typeKey }}">{{ $typeLabel }}</option>
+                            @endif
                         @endforeach
                     </select>
+                </div>
+
+                {{-- Irrigation mode: which water task this is. --}}
+                <div class="mb-3" id="activityWaterTaskWrap" style="display:none;">
+                    <label class="form-label text-dark">Water Task
+                        <small class="text-secondary fw-normal">— what happens to the water?</small>
+                    </label>
+                    <select class="form-select" id="activityWaterTask">
+                        @foreach(\App\Models\AsScheduleActivity::WATER_TASKS as $wtKey => $wtLabel)
+                            <option value="{{ $wtKey }}">{{ $wtLabel }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Service mode: the cost of the hired service. --}}
+                <div class="mb-3" id="activityServicePriceWrap" style="display:none;">
+                    <label class="form-label text-dark">Service Price (₱)
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <input type="number" class="form-control" id="activityServicePrice" min="0" step="any" placeholder="0.00" inputmode="decimal">
+                    <small class="text-secondary">The cost of this hired service for the lot(s) it applies to.</small>
                 </div>
 
                 <div class="row">
@@ -1583,9 +1659,10 @@
                     <input type="hidden" id="activityImagePath" value="">
                 </div>
 
+                <div id="activityItemsSection">
                 <hr>
                 <h6 class="text-dark mb-1">
-                    Materials & Services Used
+                    <span id="activityItemsSectionLabel">Materials & Services Used</span>
                     <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
                 </h6>
                 <small class="text-secondary d-block mb-2">
@@ -1643,6 +1720,7 @@
                     <i class="bx bx-package"></i>
                     <small class="d-block mt-1">No materials or services added. That's fine — this activity will be marked as needing none.</small>
                 </div>
+                </div>{{-- /activityItemsSection --}}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>

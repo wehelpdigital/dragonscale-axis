@@ -373,6 +373,8 @@ function activityToPayload(a) {
         targetEndDate: a.targetEndDate ? a.targetEndDate.slice(0, 10) : null,
         priority: a.priority,
         activityType: a.activityType || '',
+        waterTask: a.waterTask || '',
+        servicePrice: a.servicePrice != null ? a.servicePrice : '',
         description: a.description || '',
         timeRequired: a.timeRequired,
         isDayZero: (a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1') ? 1 : 0,
@@ -978,6 +980,48 @@ const ACTIVITY_WORKER_NAMES = @json($schedule->workers->mapWithKeys(fn($w) => [$
 
 // Activity type slug → label, mirrors AsScheduleActivity::ACTIVITY_TYPES.
 const ACTIVITY_TYPE_LABELS = @json(\App\Models\AsScheduleActivity::ACTIVITY_TYPES);
+// Water-task slugs → label / color, mirrors AsScheduleActivity::WATER_TASKS.
+const WATER_TASK_LABELS = @json(\App\Models\AsScheduleActivity::WATER_TASKS);
+const WATER_TASK_COLORS = @json(\App\Models\AsScheduleActivity::WATER_TASK_COLORS);
+
+// ---- Task / Irrigation / Service mode tabs (mirrors the client app) ----
+// The chosen mode drives which type-specific field shows and what
+// activityType the save sends. Task keeps the type select; Irrigation swaps
+// in the water-task select (activityType='irrigation'); Service swaps in the
+// price input (activityType='service') and hides the materials picker.
+let activityMode = 'task';
+function _animateModeField($el) {
+    if (!$el || !$el.length) return;
+    $el.removeClass('mode-field-in');
+    void $el[0].offsetWidth;   // reflow so the animation re-runs
+    $el.addClass('mode-field-in');
+}
+function setActivityMode(mode) {
+    activityMode = ['irrigation', 'service'].includes(mode) ? mode : 'task';
+    $('#activityModeTabs .activity-mode-tab').each(function () {
+        const on = $(this).data('mode') === activityMode;
+        $(this).toggleClass('is-active', on).attr('aria-selected', on ? 'true' : 'false');
+    });
+    const isTask = activityMode === 'task';
+    const isIrr = activityMode === 'irrigation';
+    const isSvc = activityMode === 'service';
+    $('#activityTypeWrap').toggle(isTask);
+    $('#activityWaterTaskWrap').toggle(isIrr);
+    $('#activityServicePriceWrap').toggle(isSvc);
+    // Services don't consume materials; hide the picker in that mode.
+    $('#activityItemsSection').toggle(!isSvc);
+    $('#activityItemsSectionLabel').text(isIrr ? 'Materials' : 'Materials & Services Used');
+    $('#activityTitle').attr('placeholder',
+        isSvc ? 'e.g. Land preparation (tractor)'
+        : isIrr ? 'e.g. Irrigate Lot A — Day 20–35'
+        : 'e.g. Basal Fertilizer');
+    if (isIrr) _animateModeField($('#activityWaterTaskWrap'));
+    else if (isSvc) _animateModeField($('#activityServicePriceWrap'));
+    else _animateModeField($('#activityTypeWrap'));
+}
+$(document).on('click', '#activityModeTabs .activity-mode-tab', function () {
+    setActivityMode($(this).data('mode'));
+});
 
 // ---- Quill wiring for the Activity Description ----
 // Replaced TinyMCE (cloud build was capping editor loads and locking the
@@ -1215,10 +1259,23 @@ function renderActivityCard(a) {
     const transplantBadge = isTransplantFlag
         ? `<span class="badge ms-1 transplant-badge" style="background:#0ca678; color:#fff; font-weight:600; font-size:11px;" title="Transplant — its date becomes DAT 0 for every lot it covers. Later activities on those lots count in DAT."><i class="bx bx-transfer-alt"></i> &rarr; DAT 0</span>`
         : '';
-    const typeLabel = a.activityType && ACTIVITY_TYPE_LABELS[a.activityType] ? ACTIVITY_TYPE_LABELS[a.activityType] : '';
-    const typeBadge = typeLabel
-        ? `<span class="badge ms-1 activity-type-badge" style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;" title="Activity type">${escapeHtml(typeLabel)}</span>`
-        : '';
+    // Irrigation shows its water task, Service shows a price pill, everything
+    // else shows the plain activity-type badge — mirrors the client app.
+    let typeBadge = '';
+    if (a.activityType === 'irrigation') {
+        const wtSlug = (a.waterTask && WATER_TASK_LABELS[a.waterTask]) ? a.waterTask : 'irrigate';
+        const wtColor = WATER_TASK_COLORS[wtSlug] || '#2f8fd8';
+        typeBadge = `<span class="badge ms-1 water-task-badge" style="--wt:${wtColor}" title="Water task"><i class="bx bxs-droplet"></i> ${escapeHtml(WATER_TASK_LABELS[wtSlug])}</span>`;
+    } else if (a.activityType === 'service') {
+        const priceTxt = (a.servicePrice !== null && a.servicePrice !== undefined && a.servicePrice !== '')
+            ? `<span class="item-tag-price">₱${escapeHtml(Number(a.servicePrice).toFixed(2))}</span>` : '';
+        typeBadge = `<span class="badge ms-1 service-badge" title="Hired service"><i class="bx bx-wrench"></i> Service ${priceTxt}</span>`;
+    } else {
+        const typeLabel = a.activityType && ACTIVITY_TYPE_LABELS[a.activityType] ? ACTIVITY_TYPE_LABELS[a.activityType] : '';
+        typeBadge = typeLabel
+            ? `<span class="badge ms-1 activity-type-badge" style="background:#e2efd4; color:#2d4d1c; font-weight:600; font-size:11px;" title="Activity type">${escapeHtml(typeLabel)}</span>`
+            : '';
+    }
     const isHiddenFlag = (a.isHidden === true || a.isHidden === 1 || a.isHidden === '1') ? 1 : 0;
     const hiddenClass = isHiddenFlag ? ' is-hidden' : '';
     const hiddenTag = isHiddenFlag
@@ -1616,6 +1673,9 @@ function resetActivityModal() {
     $('#activityTargetEndDate').val('');
     $('#activityPriority').val('medium');
     $('#activityType').val('');
+    $('#activityWaterTask').val('irrigate');
+    $('#activityServicePrice').val('');
+    setActivityMode('task');
     $('#activityTimeRequired').val('half');
     $('#activityIsDayZero').prop('checked', false);
     $('#activityIsTransplant').prop('checked', false);
@@ -1748,7 +1808,18 @@ $(document).on('click', '.edit-activity-btn', function () {
         $('#activityTargetDate').val((a.targetDate || '').slice(0, 10));
         $('#activityTargetEndDate').val((a.targetEndDate || '').slice(0, 10));
         $('#activityPriority').val(a.priority);
-        $('#activityType').val(a.activityType || '');
+        // Restore the mode from the stored activityType: irrigation/service
+        // flip to their tabs, everything else is a Task with a type select.
+        if (a.activityType === 'irrigation') {
+            setActivityMode('irrigation');
+            $('#activityWaterTask').val(a.waterTask || 'irrigate');
+        } else if (a.activityType === 'service') {
+            setActivityMode('service');
+            $('#activityServicePrice').val(a.servicePrice != null ? a.servicePrice : '');
+        } else {
+            setActivityMode('task');
+            $('#activityType').val(a.activityType || '');
+        }
         $('#activityTimeRequired').val(a.timeRequired);
         $('#activityIsDayZero').prop('checked', a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1');
         $('#activityIsTransplant').prop('checked', a.isTransplant === true || a.isTransplant === 1 || a.isTransplant === '1');
@@ -1844,13 +1915,20 @@ $('#saveActivityBtn').on('click', function () {
         toastr.warning('End date must be on or after the start date.');
         return;
     }
+    const isIrrigation = activityMode === 'irrigation';
+    const isService = activityMode === 'service';
+    const resolvedType = isIrrigation ? 'irrigation'
+        : isService ? 'service'
+        : ($('#activityType').val() || '');
     const payload = {
         _token: CSRF,
         activityTitle: $('#activityTitle').val(),
         targetDate: startDateVal,
         targetEndDate: endDateVal || null,
         priority: $('#activityPriority').val(),
-        activityType: $('#activityType').val() || '',
+        activityType: resolvedType,
+        waterTask: isIrrigation ? ($('#activityWaterTask').val() || 'irrigate') : '',
+        servicePrice: isService ? ($('#activityServicePrice').val() || '') : '',
         description: getActivityDescriptionContent(),
         imagePath: ($('#activityImagePath').val() || '').trim(),
         timeRequired: $('#activityTimeRequired').val(),
@@ -1858,7 +1936,8 @@ $('#saveActivityBtn').on('click', function () {
         isTransplant: $('#activityIsTransplant').is(':checked') ? 1 : 0,
         lotIds: getActivityLotIds(),
         workerIds: getActivityWorkerIds(),
-        items: items
+        // Services carry a price, not material items.
+        items: isService ? [] : items
     };
     if (!payload.activityTitle) { toastr.warning('Activity title is required'); return; }
     if (!payload.targetDate) { toastr.warning('Pick a target date'); return; }
