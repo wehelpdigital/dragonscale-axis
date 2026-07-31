@@ -1301,4 +1301,23 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
 @include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>
+
+{{-- Machine-readable snapshot of the per-lot anchor maps. The live-sync
+     in-place update fetches this page in the background and reads this block
+     (from the fetched document) to refresh window.LOT_MANUAL_DAY_ZERO /
+     LOT_MANUAL_TRANSPLANT without re-running any scripts. Keep the
+     expressions identical to the window.* assignments above. --}}
+@php
+    // Blade's @json() directive can't parse a multi-line array argument, so
+    // build the payload here and echo the variable.
+    $smgrSyncState = [
+        'lotManualDayZero' => $schedule->lots->mapWithKeys(fn($l) => [
+            $l->id => $l->dayZeroDate ? $l->dayZeroDate->format('Y-m-d') : null,
+        ]),
+        'lotManualTransplant' => $schedule->lots->mapWithKeys(fn($l) => [
+            $l->id => $l->transplantDate ? $l->transplantDate->format('Y-m-d') : null,
+        ]),
+    ];
+@endphp
+<script type="application/json" id="smgrSyncState">@json($smgrSyncState)</script>
 @endsection

@@ -9,13 +9,14 @@
 //     middleware), tagged with this tab's client id via the X-Sync-Client
 //     header set below.
 //   • This script polls the sync-status endpoint every few seconds. When the
-//     version moves and the change was NOT made by this tab, the page reloads
-//     itself to show the fresh server-rendered state. The active tab survives
-//     via the existing URL-hash persistence; scroll position is restored from
-//     sessionStorage.
-//   • Refreshing never interrupts work: while a modal is open, a drag is in
+//     version moves and the change was NOT made by this tab, the page fetches
+//     its own URL in the background, parses the fresh HTML, and swaps the
+//     content regions in place — no navigation, no loading overlay, and the
+//     scroll position never moves. A full reload (doRefresh) remains only as
+//     a fallback when the fetch or swap fails.
+//   • Updating never interrupts work: while a modal is open, a drag is in
 //     progress, or an input is focused, a "changes pending" banner is shown
-//     instead and the refresh happens once the user is idle again.
+//     instead and the update happens once the user is idle again.
 //   • The poll also carries presence, so the header shows who else has this
 //     schedule open right now and whether they're editing or dragging.
 // ============================================================================
@@ -110,10 +111,10 @@
                     </div>
                 </div>`).appendTo('body');
             $(document).on('click', '#syncPendingRefreshBtn', function () {
-                doRefresh(pendingRefresh ? pendingRefresh.name : '');
+                applyRemoteUpdate(pendingRefresh ? pendingRefresh.name : '');
             });
         }
-        $('#syncPendingText').text((name ? name : 'Another user') + ' made changes — will refresh when you pause');
+        $('#syncPendingText').text((name ? name : 'Another user') + ' made changes — will update when you pause');
         $b.show();
     }
 
@@ -154,6 +155,140 @@
         const params = new URLSearchParams(window.location.search);
         params.set('_r', Date.now().toString(36));
         window.location.href = window.location.pathname + '?' + params.toString() + window.location.hash;
+    }
+
+    // ---- In-place update (the normal path — no reload, no scroll jump) -----
+    // Fetch this page's own URL in the background, parse the fresh HTML
+    // (DOMParser never executes scripts), and swap the server-rendered content
+    // regions into the live DOM. Handlers keep working because the page wires
+    // everything through delegated $(document).on(...) listeners; per-page
+    // widgets (Quill, filters, modals) are outside the swapped regions.
+
+    // Regions replaced wholesale (innerHTML). Every one is a pure
+    // server-rendered list container with no widget instances inside.
+    const SWAP_REGIONS = [
+        '#activitiesList',                 // activities timeline (groups, cards, rest days, markers)
+        '#lotsTable tbody',
+        '#workersTable tbody',
+        '#materialsTable tbody',
+        '#servicesTable tbody',
+        '#irrigationsList',
+        '#attachmentsGrid',
+        '#criticalRulesList',
+        '#activityLotsContainer',          // lot chips inside the activity modal
+        '.version-tabs',                   // activity version strip
+    ];
+    // Elements whose text content mirrors server-side counts/labels.
+    const TEXT_REGIONS = [
+        '#scheduleHeaderTitle', '#scheduleHeaderDescription',
+        '#badge-lots', '#badge-workers', '#badge-materials', '#badge-services',
+        '#badge-protocol-doc', '#badge-activities', '#badge-irrigations',
+    ];
+
+    function swapFromHtml(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        // A session bounce serves the login page — bail to the full-reload path.
+        if (!doc.querySelector('#activitiesList')) return false;
+
+        SWAP_REGIONS.forEach(function (sel) {
+            const from = doc.querySelector(sel);
+            const to = document.querySelector(sel);
+            if (from && to) to.innerHTML = from.innerHTML;
+        });
+
+        // Lot filter chips get replaced too, but the user's active filter
+        // selections must survive the swap.
+        (function () {
+            const from = doc.querySelector('#activityLotFilterRow');
+            const to = document.querySelector('#activityLotFilterRow');
+            if (!from || !to) return;
+            const active = $(to).find('.activity-lot-chip.active').map(function () {
+                return String($(this).attr('data-lot-id'));
+            }).get();
+            to.innerHTML = from.innerHTML;
+            active.forEach(function (id) {
+                $(to).find('.activity-lot-chip[data-lot-id="' + id + '"]').addClass('active');
+            });
+        })();
+
+        TEXT_REGIONS.forEach(function (sel) {
+            const from = doc.querySelector(sel);
+            const to = document.querySelector(sel);
+            if (from && to) to.textContent = from.textContent;
+        });
+
+        // Badges/blocks whose inline display state matters too.
+        ['#draftsBadge', '#activityLotsEmpty', '#activityLotsContainer'].forEach(function (sel) {
+            const from = doc.querySelector(sel);
+            const to = document.querySelector(sel);
+            if (from && to) {
+                if (sel === '#draftsBadge') to.textContent = from.textContent;
+                to.style.display = from.style.display;
+            }
+        });
+
+        // Fresh per-lot anchor maps (a teammate may have changed lot dates).
+        try {
+            const stateEl = doc.querySelector('#smgrSyncState');
+            if (stateEl) {
+                const st = JSON.parse(stateEl.textContent || '{}');
+                if (st.lotManualDayZero) window.LOT_MANUAL_DAY_ZERO = st.lotManualDayZero;
+                if (st.lotManualTransplant) window.LOT_MANUAL_TRANSPLANT = st.lotManualTransplant;
+            }
+        } catch (e) { /* keep the old maps — labels heal on next real reload */ }
+
+        // Re-apply client-side state to the fresh markup.
+        if (window.recomputeLotDayZero) window.recomputeLotDayZero();          // rebuilds anchors + DAS labels
+        if (window.applyDateCollapseState) window.applyDateCollapseState();    // per-day accordion
+        if (typeof refreshHiddenActivityCount === 'function') refreshHiddenActivityCount();
+        // Undo/redo snapshots reference the replaced DOM — clear rather than
+        // let an undo resurrect a teammate's overwritten state.
+        if (typeof ACTIVITY_UNDO_STACK !== 'undefined') {
+            ACTIVITY_UNDO_STACK.length = 0;
+            ACTIVITY_REDO_STACK.length = 0;
+            if (typeof refreshHistoryBtns === 'function') refreshHistoryBtns();
+        }
+        // Re-run search/type/lot filters against the new cards.
+        $('#activitySearchInput').trigger('input');
+        return true;
+    }
+
+    function applyRemoteUpdate(name) {
+        if (refreshing) return;
+        refreshing = true;
+
+        showPendingBanner(name);
+        $('#syncPendingText').text('Syncing changes' + (name ? ' by ' + name : '') + '…');
+        $('#syncPendingRefreshBtn').prop('disabled', true);
+
+        $.get(window.location.pathname + window.location.search)
+            .done(function (html) {
+                // Pin the scroll position across the swap — replacing large DOM
+                // regions can shift layout by a few px via scroll anchoring.
+                // Same-task restore happens before the next paint, so nothing
+                // visibly moves.
+                const scrollYBefore = window.scrollY || window.pageYOffset || 0;
+                let ok = false;
+                try { ok = swapFromHtml(html); } catch (e) { ok = false; }
+                if (ok) window.scrollTo(0, scrollYBefore);
+                if (!ok) {
+                    // Release the once-only flag so the fallback reload can run.
+                    refreshing = false;
+                    doRefresh(name);
+                    return;
+                }
+                refreshing = false;
+                // The fetched render reflects at least the version we saw last.
+                knownVersion = lastPolledVersion;
+                pendingRefresh = null;
+                hidePendingBanner();
+                $('#syncPendingRefreshBtn').prop('disabled', false);
+                toastr.info(name ? 'Updated with changes by ' + escapeHtml(name) : 'Updated with the latest changes');
+            })
+            .fail(function () {
+                refreshing = false;
+                doRefresh(name); // network hiccup — fall back to a real reload
+            });
     }
 
     // After a sync reload: restore scroll + tell the user what happened.
@@ -205,7 +340,7 @@
                 const burstOver = (v === lastPolledVersion);
                 lastPolledVersion = v;
                 if (burstOver && !isBusy()) {
-                    doRefresh(pendingRefresh.name);
+                    applyRemoteUpdate(pendingRefresh.name);
                 } else {
                     showPendingBanner(pendingRefresh.name);
                 }
@@ -214,10 +349,10 @@
     }
     setInterval(poll, POLL_MS);
 
-    // A pending refresh fires as soon as the user goes idle — checked more
+    // A pending update fires as soon as the user goes idle — checked more
     // often than the poll so it feels immediate after closing a modal.
     setInterval(function () {
-        if (pendingRefresh && !isBusy()) doRefresh(pendingRefresh.name);
+        if (pendingRefresh && !isBusy()) applyRemoteUpdate(pendingRefresh.name);
     }, 1200);
 
     // When the tab becomes visible again, sync immediately.
@@ -232,6 +367,7 @@
         get pendingRefresh() { return pendingRefresh; },
         isBusy: isBusy,
         poll: poll,
-        refresh: function () { doRefresh(pendingRefresh ? pendingRefresh.name : ''); },
+        refresh: function () { applyRemoteUpdate(pendingRefresh ? pendingRefresh.name : ''); },
+        hardRefresh: function () { doRefresh(pendingRefresh ? pendingRefresh.name : ''); },
     };
 })();
