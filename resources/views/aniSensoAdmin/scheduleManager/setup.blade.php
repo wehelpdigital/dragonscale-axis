@@ -1024,8 +1024,10 @@ const URLS = {
 
     activitiesDateNoteSave:     () => `${ROOT}/anisenso-schedule-manager-activities-date-note-save${Q}`,
     activitiesDateNoteDelete:   () => `${ROOT}/anisenso-schedule-manager-activities-date-note-delete${Q}`,
+    activitiesDateNoteMove:     () => `${ROOT}/anisenso-schedule-manager-activities-date-note-move${Q}`,
 
     markersSave:    () => `${ROOT}/anisenso-schedule-manager-markers-save${Q}`,
+    markersMove:    (id) => `${ROOT}/anisenso-schedule-manager-markers-move${Q}&id=${id}`,
     markersDelete:  (id) => `${ROOT}/anisenso-schedule-manager-markers-delete${Q}&id=${id}`,
 
     irrigationsStore:  () => `${ROOT}/anisenso-schedule-manager-irrigations-store${Q}`,

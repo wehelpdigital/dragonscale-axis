@@ -1540,7 +1540,8 @@ function reorderAndRenumberActivities() {
         const noteBlockHtml = (key !== '__no-date__')
             ? `<div class="date-note-block" data-date="${escapeHtml(key)}"${hasNote ? '' : ' style="display:none;"'}>
                    <div class="date-note-inner">
-                       <i class="bx bxs-note date-note-icon"></i>
+                       <i class="bx bxs-note date-note-icon" draggable="true"
+                          title="Drag onto another day to move this note"></i>
                        <div class="date-note-text">${hasNote ? escapeHtml(noteContent).replace(/\n/g, '<br>') : ''}</div>
                    </div>
                </div>`
@@ -1633,7 +1634,8 @@ function _buildProgressMarkerHtml(dateKey, info) {
              data-date="${escapeHtml(dateKey)}"
              data-note="${escapeHtml(noteRaw)}">
             <div class="progress-marker-line">
-                <span class="progress-marker-bookmark">
+                <span class="progress-marker-bookmark" draggable="true"
+                      title="Drag onto another day to move this marker">
                     <i class="bx bxs-bookmark"></i>
                     <span class="progress-marker-label">Resume here</span>
                     <span class="progress-marker-date">— ${escapeHtml(pretty)}</span>
@@ -4298,15 +4300,175 @@ function _refreshProgressMarkerUI(dateKey, info) {
     if ($row.length) {
         $row.replaceWith(html);
     } else {
-        // No existing row — insert AFTER its date-group, or append if orphan.
+        // No existing row — insert AFTER its date-group; empty days have a
+        // rest-day row instead of a group; append at the bottom as a last
+        // resort so an orphan marker is still findable.
         const $group = $('.date-group[data-date="' + dateKey + '"]').first();
+        const $rest  = $('.rest-day-marker[data-date="' + dateKey + '"]').first();
         if ($group.length) {
             $group.after(html);
+        } else if ($rest.length) {
+            $rest.after(html);
         } else {
             $('#activitiesList').append(html);
         }
     }
 }
+
+// ---------- Drag a marker onto another day ----------
+// The bookmark chip is the drag handle; dated groups and rest-day rows are
+// the targets. A separate state variable from the activity-card drag keeps
+// the two drag flows from tripping each other — every activity handler
+// already bails when dragSourceCard is null, and every handler below bails
+// when markerDrag is null.
+let markerDrag = null; // { id, fromDate, note }
+
+$(document).on('dragstart', '.progress-marker-bookmark', function (e) {
+    const $row = $(this).closest('.progress-marker');
+    const id = ($row.attr('data-marker-id') || '').trim();
+    if (!id) { e.preventDefault(); return; }
+    markerDrag = {
+        id:       id,
+        fromDate: ($row.attr('data-date') || '').trim(),
+        note:     $row.attr('data-note') || '',
+    };
+    $row.addClass('marker-dragging');
+    if (e.originalEvent && e.originalEvent.dataTransfer) {
+        e.originalEvent.dataTransfer.effectAllowed = 'move';
+        try { e.originalEvent.dataTransfer.setData('text/plain', 'marker:' + id); } catch (_) {}
+    }
+});
+
+$(document).on('dragend', '.progress-marker-bookmark', function () {
+    $('.progress-marker.marker-dragging').removeClass('marker-dragging');
+    $('.marker-drop-target').removeClass('marker-drop-target');
+    markerDrag = null;
+});
+
+// Valid targets are elements carrying a real date — the "No date" pseudo-
+// group (data-date "" / "__no-date__") is rejected.
+function _markerDropDate($el) {
+    const d = ($el.attr('data-date') || '').trim();
+    return (d && d !== '__no-date__') ? d : '';
+}
+
+$(document).on('dragover dragenter', '.date-group, .rest-day-marker', function (e) {
+    if (!markerDrag) return;
+    if (!_markerDropDate($(this))) return;
+    e.preventDefault();
+    if (e.originalEvent && e.originalEvent.dataTransfer) {
+        e.originalEvent.dataTransfer.dropEffect = 'move';
+    }
+    $('.marker-drop-target').not(this).removeClass('marker-drop-target');
+    $(this).addClass('marker-drop-target');
+});
+
+$(document).on('dragleave', '.date-group, .rest-day-marker', function (e) {
+    if (!markerDrag) return;
+    if (e.target === this) $(this).removeClass('marker-drop-target');
+});
+
+$(document).on('drop', '.date-group, .rest-day-marker', function (e) {
+    if (!markerDrag) return;
+    $(this).removeClass('marker-drop-target');
+    const newDate = _markerDropDate($(this));
+    if (!newDate) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const drag = markerDrag;
+    markerDrag = null;
+    if (newDate === drag.fromDate) return; // dropped back on its own day
+
+    $.ajax({
+        url: URLS.markersMove(drag.id),
+        type: 'POST',
+        data: { _token: CSRF, markerDate: newDate },
+        success: (res) => {
+            if (!res || !res.success) { toastr.error((res && res.message) || 'Failed to move marker'); return; }
+            const data = (res && res.data) ? res.data : {};
+            _refreshProgressMarkerUI(drag.fromDate, null);
+            _refreshProgressMarkerUI(newDate, {
+                id:   String(data.id || drag.id),
+                note: data.noteContent || drag.note || '',
+            });
+            toastr.success('Marker moved to ' + _prettyDateLabel(newDate) + '.');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to move marker'),
+    });
+});
+
+// ---------- Drag a date note onto another day ----------
+// Same pattern as the marker drag above, with its own state variable so all
+// three drag flows (activity cards, markers, notes) stay independent. Notes
+// render INSIDE a date group — empty rest days have no note slot — so only
+// dated groups accept the drop.
+let noteDrag = null; // { fromDate, note }
+
+$(document).on('dragstart', '.date-note-icon', function (e) {
+    const $row = $(this).closest('.date-note-block');
+    const fromDate = ($row.attr('data-date') || '').trim();
+    // The header button's data-existing carries the raw note text; the
+    // rendered block only has the nl2br'd HTML version.
+    const note = $('.date-note-btn[data-date="' + fromDate + '"]').attr('data-existing')
+              || $row.find('.date-note-text').text() || '';
+    if (!fromDate || !String(note).trim()) { e.preventDefault(); return; }
+    noteDrag = { fromDate: fromDate, note: String(note) };
+    $row.addClass('note-dragging');
+    if (e.originalEvent && e.originalEvent.dataTransfer) {
+        e.originalEvent.dataTransfer.effectAllowed = 'move';
+        try { e.originalEvent.dataTransfer.setData('text/plain', 'date-note:' + fromDate); } catch (_) {}
+    }
+});
+
+$(document).on('dragend', '.date-note-icon', function () {
+    $('.date-note-block.note-dragging').removeClass('note-dragging');
+    $('.note-drop-target').removeClass('note-drop-target');
+    noteDrag = null;
+});
+
+$(document).on('dragover dragenter', '.date-group', function (e) {
+    if (!noteDrag) return;
+    if (!_markerDropDate($(this))) return; // rejects "" / __no-date__
+    e.preventDefault();
+    if (e.originalEvent && e.originalEvent.dataTransfer) {
+        e.originalEvent.dataTransfer.dropEffect = 'move';
+    }
+    $('.note-drop-target').not(this).removeClass('note-drop-target');
+    $(this).addClass('note-drop-target');
+});
+
+$(document).on('dragleave', '.date-group', function (e) {
+    if (!noteDrag) return;
+    if (e.target === this) $(this).removeClass('note-drop-target');
+});
+
+$(document).on('drop', '.date-group', function (e) {
+    if (!noteDrag) return;
+    $(this).removeClass('note-drop-target');
+    const newDate = _markerDropDate($(this));
+    if (!newDate) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const drag = noteDrag;
+    noteDrag = null;
+    if (newDate === drag.fromDate) return; // dropped back on its own day
+
+    $.ajax({
+        url: URLS.activitiesDateNoteMove(),
+        type: 'POST',
+        data: { _token: CSRF, fromDate: drag.fromDate, toDate: newDate },
+        success: (res) => {
+            if (!res || !res.success) { toastr.error((res && res.message) || 'Failed to move note'); return; }
+            const data = (res && res.data) ? res.data : {};
+            _refreshDateNoteUI(drag.fromDate, null);
+            _refreshDateNoteUI(newDate, data.noteContent || drag.note);
+            toastr.success('Note moved to ' + _prettyDateLabel(newDate) + '.');
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Failed to move note'),
+    });
+});
 
 // Clicking the bookmark icon on a date header opens the modal pre-populated.
 $(document).on('click', '.date-marker-btn', function (e) {

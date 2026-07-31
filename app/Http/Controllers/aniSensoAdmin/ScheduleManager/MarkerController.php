@@ -69,6 +69,49 @@ class MarkerController extends BaseScheduleController
     }
 
     /**
+     * Drag-move: point an existing marker at a different date. Any marker
+     * already sitting on the target date (same version) is absorbed —
+     * one marker per date, and the dragged marker's note travels with it.
+     */
+    public function move(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $id = $this->queryId($request);
+
+        $validator = Validator::make($request->all(), [
+            'markerDate' => 'required|date',
+        ], [
+            'markerDate.required' => 'Target date is required.',
+        ]);
+        if ($validator->fails()) {
+            return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        $marker = AsScheduleProgressMarker::active()
+            ->where('croppingScheduleId', $schedule->id)
+            ->where('id', $id)
+            ->first();
+        if (!$marker) return $this->jsonFail('Marker not found.', 404);
+
+        AsScheduleProgressMarker::active()
+            ->where('croppingScheduleId', $schedule->id)
+            ->when($marker->versionId, fn ($q) => $q->where('versionId', $marker->versionId), fn ($q) => $q->whereNull('versionId'))
+            ->whereDate('markerDate', $request->input('markerDate'))
+            ->where('id', '!=', $marker->id)
+            ->update(['deleteStatus' => 0]);
+
+        $marker->update(['markerDate' => $request->input('markerDate')]);
+
+        return $this->jsonOk('Marker moved.', [
+            'data' => [
+                'id'          => $marker->id,
+                'markerDate'  => $marker->markerDate?->format('Y-m-d'),
+                'noteContent' => $marker->noteContent,
+            ],
+        ]);
+    }
+
+    /**
      * Soft-delete a marker by id (within the schedule for ownership safety).
      */
     public function destroy(Request $request)

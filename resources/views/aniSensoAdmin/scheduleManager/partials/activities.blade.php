@@ -43,6 +43,21 @@
     #activitiesList.is-filtering .date-group.is-collapsed .date-activities { display: block; }
     #activitiesList.is-filtering .date-group.is-collapsed .date-note-block { display: block; }
 
+    /* ---- Drag the resume-here marker / date note onto another day ---- */
+    .progress-marker-bookmark[draggable="true"] { cursor: grab; }
+    .progress-marker-bookmark[draggable="true"]:active { cursor: grabbing; }
+    .progress-marker.marker-dragging { opacity: .45; }
+    .date-note-icon[draggable="true"] { cursor: grab; }
+    .date-note-icon[draggable="true"]:active { cursor: grabbing; }
+    .date-note-block.note-dragging { opacity: .45; }
+    .date-group.marker-drop-target .date-header,
+    .date-group.note-drop-target .date-header,
+    .rest-day-marker.marker-drop-target {
+        outline: 2px dashed #f4a82a;
+        outline-offset: 2px;
+        border-radius: 8px;
+    }
+
     /* ---- Hide/show days with no activities (mirrors the client app) ----
        Animated collapse: rest-day rows squeeze shut instead of snapping.
        State persists per schedule in localStorage (hideEmptyDays:<id>). */
@@ -419,7 +434,8 @@
                  data-date="{{ $item['date'] }}"
                  data-note="{{ e($marker->noteContent) }}">
                 <div class="progress-marker-line">
-                    <span class="progress-marker-bookmark">
+                    <span class="progress-marker-bookmark" draggable="true"
+                          title="Drag onto another day to move this marker">
                         <i class="bx bxs-bookmark"></i>
                         <span class="progress-marker-label">Resume here</span>
                         <span class="progress-marker-date">— {{ $item['carbon']->format('M j, Y') }}</span>
@@ -566,7 +582,8 @@
                 @php $noteRow = $dateNotesByDate->get($dateKey); @endphp
                 <div class="date-note-block" data-date="{{ $dateKey }}" @if(!$noteRow) style="display:none;" @endif>
                     <div class="date-note-inner">
-                        <i class="bx bxs-note date-note-icon"></i>
+                        <i class="bx bxs-note date-note-icon" draggable="true"
+                           title="Drag onto another day to move this note"></i>
                         <div class="date-note-text">{!! $noteRow ? ($noteRow->noteContent !== strip_tags($noteRow->noteContent) ? $noteRow->noteContent : nl2br(e($noteRow->noteContent))) : '' !!}</div>
                     </div>
                 </div>

@@ -1905,6 +1905,53 @@ class ActivityController extends BaseScheduleController
     }
 
     /**
+     * Drag-move: shift the per-date note to a different date. Any note
+     * already sitting on the target date (same version) is absorbed —
+     * one note per date, and the dragged note's content travels with it.
+     */
+    public function moveDateNote(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+
+        $validator = Validator::make($request->all(), [
+            'fromDate' => 'required|date',
+            'toDate'   => 'required|date|different:fromDate',
+        ]);
+        if ($validator->fails()) {
+            return $this->jsonFail('Validation failed.', 422, ['errors' => $validator->errors()]);
+        }
+
+        $versionId = $this->activeVersionIdFor($schedule->id);
+        if (!$versionId) {
+            return $this->jsonFail('No active version found for this schedule.', 422);
+        }
+
+        $note = AsScheduleDateNote::active()
+            ->forSchedule($schedule->id)
+            ->forVersion($versionId)
+            ->whereDate('noteDate', $request->input('fromDate'))
+            ->first();
+        if (!$note) return $this->jsonFail('No note found on the source date.', 404);
+
+        AsScheduleDateNote::active()
+            ->forSchedule($schedule->id)
+            ->forVersion($versionId)
+            ->whereDate('noteDate', $request->input('toDate'))
+            ->where('id', '!=', $note->id)
+            ->update(['deleteStatus' => 0]);
+
+        $note->update(['noteDate' => $request->input('toDate')]);
+
+        return $this->jsonOk('Note moved.', [
+            'data' => [
+                'id'          => $note->id,
+                'noteDate'    => $note->noteDate->format('Y-m-d'),
+                'noteContent' => $note->noteContent,
+            ],
+        ]);
+    }
+
+    /**
      * Card Viewer — a PowerPoint-style per-day presentation.
      *
      * Each calendar day with any content (activity, irrigation, or note)
