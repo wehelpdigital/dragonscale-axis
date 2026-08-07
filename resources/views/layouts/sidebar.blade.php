@@ -158,7 +158,31 @@
                                         <span key="t-anisenso-community-announce">Announcements</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-blog*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-blog.index') }}" class="waves-effect {{ request()->is('anisenso-blog*') ? 'active' : '' }}">
+                                        <i class="bx bx-news"></i>
+                                        <span key="t-anisenso-blog">Technician's Blog</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-tutorials*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-tutorials.index') }}" class="waves-effect {{ request()->is('anisenso-tutorials*') ? 'active' : '' }}">
+                                        <i class="bx bx-video"></i>
+                                        <span key="t-anisenso-tutorials">Tutorials</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-legal*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-legal.index') }}" class="waves-effect {{ request()->is('anisenso-legal*') ? 'active' : '' }}">
+                                        <i class="bx bx-file"></i>
+                                        <span key="t-anisenso-legal">Legal &amp; Info Pages</span>
+                                    </a>
+                                </li>
                             </ul>
+                        </li>
+                        <li class="{{ request()->is('anisenso-support*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-support.index') }}" class="waves-effect {{ request()->is('anisenso-support*') ? 'active' : '' }}">
+                                <i class="bx bx-help-circle"></i>
+                                <span key="t-anisenso-support">Support</span>
+                            </a>
                         </li>
                         <li class="{{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                             <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ai-technician*') ? 'mm-active' : '' }}">

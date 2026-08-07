@@ -35,8 +35,12 @@
                                 <strong class="text-dark">{{ optional($post->author)->full_name ?: 'Member' }}</strong>
                                 <span class="text-secondary small ms-1">{{ $post->created_at?->diffForHumans() }}</span>
                             </div>
-                            <button type="button" class="btn btn-sm text-danger btn-del-post" data-id="{{ $post->id }}" title="Remove post"><i class="bx bx-trash"></i></button>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm {{ $post->isRestricted ? 'text-warning' : 'text-secondary' }} btn-restrict" data-type="post" data-id="{{ $post->id }}" data-on="{{ $post->isRestricted ? 1 : 0 }}" title="{{ $post->isRestricted ? 'Lift restriction' : 'Restrict this post' }}"><i class="bx {{ $post->isRestricted ? 'bx-lock-alt' : 'bx-lock-open-alt' }}"></i></button>
+                                <button type="button" class="btn btn-sm text-danger btn-del-post" data-id="{{ $post->id }}" title="Remove post"><i class="bx bx-trash"></i></button>
+                            </div>
                         </div>
+                        @if($post->isRestricted)<div class="badge bg-warning text-dark mb-1">Restricted in community</div>@endif
                         @if($post->title)<h5 class="text-dark mt-1 mb-1">{{ $post->title }}</h5>@endif
                         <p class="text-dark mb-2" style="white-space:pre-line;">{{ $post->body }}</p>
                         @if($post->imagePath)
@@ -51,7 +55,10 @@
                                             <span class="text-secondary">· {{ $reply->created_at?->diffForHumans() }}</span>
                                             <div class="text-dark" style="white-space:pre-line;">{{ $reply->body }}</div>
                                         </div>
-                                        <button type="button" class="btn btn-sm text-danger btn-del-reply" data-id="{{ $reply->id }}" title="Remove reply"><i class="bx bx-x"></i></button>
+                                        <span class="d-flex gap-1">
+                                            <button type="button" class="btn btn-sm {{ $reply->isRestricted ? 'text-warning' : 'text-secondary' }} btn-restrict" data-type="reply" data-id="{{ $reply->id }}" data-on="{{ $reply->isRestricted ? 1 : 0 }}" title="{{ $reply->isRestricted ? 'Lift restriction' : 'Restrict this reply' }}"><i class="bx {{ $reply->isRestricted ? 'bx-lock-alt' : 'bx-lock-open-alt' }}"></i></button>
+                                            <button type="button" class="btn btn-sm text-danger btn-del-reply" data-id="{{ $reply->id }}" title="Remove reply"><i class="bx bx-x"></i></button>
+                                        </span>
                                     </div>
                                 @endforeach
                             </div>
@@ -87,6 +94,18 @@
     document.querySelectorAll('.btn-del-reply').forEach((btn) => btn.addEventListener('click', () => {
         if (!confirm('Remove this reply?')) return;
         del('/anisenso-community/replies/' + btn.getAttribute('data-id'), '', () => document.querySelector('[data-reply="' + btn.getAttribute('data-id') + '"]')?.remove());
+    }));
+    // Restrict / un-restrict (soft moderation, shows a notice in AniSystem).
+    document.querySelectorAll('.btn-restrict').forEach((btn) => btn.addEventListener('click', async () => {
+        const on = btn.getAttribute('data-on') === '1';
+        const type = btn.getAttribute('data-type'), id = btn.getAttribute('data-id');
+        let reason = '';
+        if (!on) { reason = prompt('Restrict this content across the community?\nOptional reason shown to moderators:', '') ; if (reason === null) return; }
+        const body = new URLSearchParams({ restricted: on ? '0' : '1', reason });
+        const res = await fetch('/anisenso-community/restrict/' + type + '/' + id, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const data = await res.json();
+        if (data.success) { toastr.success(data.message); setTimeout(() => window.location.reload(), 700); }
+        else toastr.error(data.message || 'Could not update.');
     }));
 </script>
 @endsection

@@ -70,8 +70,12 @@
                         <div class="d-flex justify-content-between">
                             <div><strong class="text-dark">{{ optional($post->author)->full_name ?: 'Member' }}</strong>
                                 <span class="text-secondary small ms-1">{{ $post->created_at?->diffForHumans() }}</span></div>
-                            <button type="button" class="btn btn-sm text-danger btn-del-wall-post" data-id="{{ $post->id }}" title="Remove post"><i class="bx bx-trash"></i></button>
+                            <span class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm {{ $post->isRestricted ? 'text-warning' : 'text-secondary' }} btn-restrict" data-type="wall-post" data-id="{{ $post->id }}" data-on="{{ $post->isRestricted ? 1 : 0 }}" title="{{ $post->isRestricted ? 'Lift restriction' : 'Restrict this post' }}"><i class="bx {{ $post->isRestricted ? 'bx-lock-alt' : 'bx-lock-open-alt' }}"></i></button>
+                                <button type="button" class="btn btn-sm text-danger btn-del-wall-post" data-id="{{ $post->id }}" title="Remove post"><i class="bx bx-trash"></i></button>
+                            </span>
                         </div>
+                        @if($post->isRestricted)<span class="badge bg-warning text-dark mb-1">Restricted</span>@endif
                         @if($post->body)<p class="text-dark mb-2 mt-1" style="white-space:pre-line;">{{ $post->body }}</p>@endif
                         @if($post->imagePath)<img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($post->imagePath) }}" class="img-fluid rounded mb-2" style="max-height:260px;" alt="photo">@endif
                         @foreach($post->comments->sortBy('id') as $comment)
@@ -79,7 +83,10 @@
                                 <div class="small"><strong class="text-dark">{{ optional($comment->author)->full_name ?: 'Member' }}</strong>
                                     <span class="text-secondary">· {{ $comment->created_at?->diffForHumans() }}</span>
                                     <div class="text-dark" style="white-space:pre-line;">{{ $comment->body }}</div></div>
-                                <button type="button" class="btn btn-sm text-danger btn-del-wall-comment" data-id="{{ $comment->id }}" title="Remove comment"><i class="bx bx-x"></i></button>
+                                <span class="d-flex gap-1">
+                                    <button type="button" class="btn btn-sm {{ $comment->isRestricted ? 'text-warning' : 'text-secondary' }} btn-restrict" data-type="wall-comment" data-id="{{ $comment->id }}" data-on="{{ $comment->isRestricted ? 1 : 0 }}" title="{{ $comment->isRestricted ? 'Lift restriction' : 'Restrict this comment' }}"><i class="bx {{ $comment->isRestricted ? 'bx-lock-alt' : 'bx-lock-open-alt' }}"></i></button>
+                                    <button type="button" class="btn btn-sm text-danger btn-del-wall-comment" data-id="{{ $comment->id }}" title="Remove comment"><i class="bx bx-x"></i></button>
+                                </span>
                             </div>
                         @endforeach
                     </div>
@@ -105,5 +112,15 @@
     }
     document.querySelectorAll('.btn-del-wall-post').forEach((b) => b.addEventListener('click', () => del('/anisenso-community/wall-posts/' + b.getAttribute('data-id'), 'data-wall-post', b.getAttribute('data-id'))));
     document.querySelectorAll('.btn-del-wall-comment').forEach((b) => b.addEventListener('click', () => del('/anisenso-community/wall-comments/' + b.getAttribute('data-id'), 'data-wall-comment', b.getAttribute('data-id'))));
+    document.querySelectorAll('.btn-restrict').forEach((btn) => btn.addEventListener('click', async () => {
+        const on = btn.getAttribute('data-on') === '1';
+        let reason = '';
+        if (!on) { reason = prompt('Restrict this content across the community?\nOptional reason:', ''); if (reason === null) return; }
+        const body = new URLSearchParams({ restricted: on ? '0' : '1', reason });
+        const res = await fetch('/anisenso-community/restrict/' + btn.getAttribute('data-type') + '/' + btn.getAttribute('data-id'), { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const data = await res.json();
+        if (data.success) { toastr.success(data.message); setTimeout(() => window.location.reload(), 700); }
+        else toastr.error(data.message || 'Could not update.');
+    }));
 </script>
 @endsection

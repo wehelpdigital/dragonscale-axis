@@ -407,6 +407,23 @@ Route::get('/anisenso-community/members', [App\Http\Controllers\aniSensoAdmin\An
 Route::get('/anisenso-community/members/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'memberShow'])->whereNumber('id')->name('anisenso-community.members.show')->middleware('auth');
 Route::delete('/anisenso-community/wall-posts/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
 Route::delete('/anisenso-community/wall-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');
+Route::post('/anisenso-community/restrict/{type}/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'toggleRestrict'])->whereNumber('id')->where('type', 'wall-post|wall-comment|post|reply')->name('anisenso-community.restrict')->middleware('auth');
+Route::get('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'index'])->name('anisenso-blog.index')->middleware('auth');
+Route::get('/anisenso-blog/create', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'create'])->name('anisenso-blog.create')->middleware('auth');
+Route::post('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'store'])->name('anisenso-blog.store')->middleware('auth');
+Route::get('/anisenso-blog/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'edit'])->whereNumber('id')->name('anisenso-blog.edit')->middleware('auth');
+Route::put('/anisenso-blog/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'update'])->whereNumber('id')->name('anisenso-blog.update')->middleware('auth');
+Route::delete('/anisenso-blog/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'destroy'])->whereNumber('id')->name('anisenso-blog.destroy')->middleware('auth');
+Route::get('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'index'])->name('anisenso-tutorials.index')->middleware('auth');
+Route::get('/anisenso-tutorials/create', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'create'])->name('anisenso-tutorials.create')->middleware('auth');
+Route::post('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'store'])->name('anisenso-tutorials.store')->middleware('auth');
+Route::get('/anisenso-tutorials/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'edit'])->whereNumber('id')->name('anisenso-tutorials.edit')->middleware('auth');
+Route::put('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'update'])->whereNumber('id')->name('anisenso-tutorials.update')->middleware('auth');
+Route::delete('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'destroy'])->whereNumber('id')->name('anisenso-tutorials.destroy')->middleware('auth');
+Route::get('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'index'])->name('anisenso-legal.index')->middleware('auth');
+Route::post('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'store'])->name('anisenso-legal.store')->middleware('auth');
+Route::get('/anisenso-legal/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'edit'])->whereNumber('id')->name('anisenso-legal.edit')->middleware('auth');
+Route::put('/anisenso-legal/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'update'])->whereNumber('id')->name('anisenso-legal.update')->middleware('auth');
 Route::get('/anisenso-community/announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'announcements'])->name('anisenso-community.announcements')->middleware('auth');
 Route::post('/anisenso-community/announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'broadcast'])->name('anisenso-community.announcements.send')->middleware('auth');
 // AniSenso — AI answers for community questions
@@ -416,6 +433,13 @@ Route::post('/anisenso-community/ai-answers/post-all', [App\Http\Controllers\ani
 Route::put('/anisenso-community/ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'update'])->whereNumber('id')->name('anisenso-community.ai-answers.update')->middleware('auth');
 Route::post('/anisenso-community/ai-answers/{id}/post', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'post'])->whereNumber('id')->name('anisenso-community.ai-answers.post')->middleware('auth');
 Route::delete('/anisenso-community/ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.ai-answers.dismiss')->middleware('auth');
+
+// AniSenso — Support desk (answer client tickets; replies ping their bell)
+Route::get('/anisenso-support', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'index'])->name('anisenso-support.index')->middleware('auth');
+Route::get('/anisenso-support/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'show'])->whereNumber('id')->name('anisenso-support.show')->middleware('auth');
+Route::post('/anisenso-support/{id}/reply', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reply'])->whereNumber('id')->name('anisenso-support.reply')->middleware('auth');
+Route::post('/anisenso-support/{id}/close', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'close'])->whereNumber('id')->name('anisenso-support.close')->middleware('auth');
+Route::post('/anisenso-support/{id}/reopen', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reopen'])->whereNumber('id')->name('anisenso-support.reopen')->middleware('auth');
 
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);

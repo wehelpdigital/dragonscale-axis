@@ -260,6 +260,46 @@ class AniSensoCommunityController extends Controller
     }
 
     // ================================================================
+    // CONTENT RESTRICTION (soft moderation — hidden behind a notice)
+    // ================================================================
+
+    /**
+     * Restrict / un-restrict any community content across the whole community
+     * (wall post, wall comment, discussion post, discussion reply). Restricted
+     * content is replaced by an "admin restricted this" notice in AniSystem,
+     * rather than deleted. Toggles by default; pass ?restricted=0|1 to force.
+     */
+    public function toggleRestrict(Request $request, string $type, int $id)
+    {
+        $map = [
+            'wall-post'    => CommunityWallPost::class,
+            'wall-comment' => CommunityWallComment::class,
+            'post'         => CommunityGroupPost::class,
+            'reply'        => CommunityGroupReply::class,
+        ];
+        if (! isset($map[$type])) {
+            return response()->json(['success' => false, 'message' => 'Unknown content type.'], 422);
+        }
+
+        $model = $map[$type]::active()->where('id', $id)->firstOrFail();
+        $restrict = $request->has('restricted')
+            ? $request->boolean('restricted')
+            : ! (bool) $model->isRestricted;
+
+        // Direct assignment sidesteps mass-assignment guarding on the shared
+        // models, which don't list the moderation columns as fillable.
+        $model->isRestricted = $restrict ? 1 : 0;
+        $model->restrictedReason = $restrict ? (trim((string) $request->input('reason')) ?: null) : null;
+        $model->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $restrict ? 'Content restricted across the community.' : 'Restriction lifted.',
+            'data' => ['isRestricted' => $restrict],
+        ]);
+    }
+
+    // ================================================================
     // ANNOUNCEMENTS (broadcast into members' notification bells)
     // ================================================================
 
