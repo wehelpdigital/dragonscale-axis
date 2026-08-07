@@ -85,7 +85,9 @@ return [
     |
     */
 
-    'table' => 'sessions',
+    // Own table so this admin app's sessions are isolated from the AniSystem
+    // client app that shares the same database (prevents cross GC-eviction).
+    'table' => env('SESSION_TABLE', 'dsaxis_sessions'),
 
     /*
     |--------------------------------------------------------------------------
