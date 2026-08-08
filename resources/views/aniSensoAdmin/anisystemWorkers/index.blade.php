@@ -266,9 +266,15 @@ $(document).ready(function() {
             { data: 'effectiveStatus', orderable: false, searchable: false, render: function(d) { return statusBadge(d); } },
             {
                 data: 'bossSubscribed', orderable: false, searchable: false,
-                render: function(d) {
+                render: function(d, t, row) {
                     // The single most useful column for support: a worker locked
                     // out is almost always an owner whose subscription lapsed.
+                    // Super admins are bridged in and need no subscription, so
+                    // their workers are not locked out — say so rather than
+                    // showing a red flag that would send support down a dead end.
+                    if (row.bossIsSuperAdmin) {
+                        return '<span class="badge bg-info sub-status-badge" title="Super admin — no subscription needed, workers still get in">Super admin</span>';
+                    }
                     return d
                         ? '<span class="badge bg-success sub-status-badge">Active</span>'
                         : '<span class="badge bg-danger sub-status-badge" title="This worker cannot sign in until the owner renews">Not active</span>';

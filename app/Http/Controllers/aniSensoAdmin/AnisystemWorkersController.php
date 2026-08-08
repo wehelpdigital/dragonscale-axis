@@ -64,7 +64,12 @@ class AnisystemWorkersController extends Controller
                 DB::raw("TRIM(CONCAT(COALESCE(worker.firstName,''), ' ', COALESCE(worker.lastName,''))) as workerName"),
                 'worker.email as workerEmail',
                 'worker.status as workerAccountStatus',
-                'roster.workerName as rosterName'
+                'roster.workerName as rosterName',
+                // A mother-site super admin bridged into AniSystem holds no
+                // subscription but is never locked out, so their workers get in
+                // too — without this the column would read "not active" for
+                // workers who can in fact sign in perfectly well.
+                'boss.adminUserId as bossAdminUserId'
             )
             ->selectSub($bossActiveSub, 'bossSubActive')
             ->orderBy('as_worker_grants.id', 'desc');
@@ -118,8 +123,14 @@ class AnisystemWorkersController extends Controller
             ->addColumn('accessLabel', function ($grant) {
                 return $grant->access_label;
             })
+            ->addColumn('bossIsSuperAdmin', function ($grant) {
+                return ! empty($grant->bossAdminUserId);
+            })
             ->addColumn('bossSubscribed', function ($grant) {
-                return (int) ($grant->bossSubActive ?? 0) > 0;
+                // Mirrors EnsureSubscriptionActive in the AniSystem app: a super
+                // admin owner needs no subscription, so their workers are not
+                // locked out either.
+                return ! empty($grant->bossAdminUserId) || (int) ($grant->bossSubActive ?? 0) > 0;
             })
             ->addColumn('acceptedFormatted', function ($grant) {
                 return $grant->acceptedAt ? $grant->acceptedAt->format('M j, Y') : null;
