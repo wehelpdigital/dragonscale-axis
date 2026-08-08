@@ -15,18 +15,19 @@
     },
     "devDependencies": {
         "axios": "^0.21",
-        "laravel-vite-plugin": "^0.7.4",
         "lodash": "^4.17.19",
         "popper.js": "^1.12",
         "postcss": "^8.3.5",
         "resolve-url-loader": "^5.0.0",
         "rtlcss": "^3.0.0",
-        "sass": "^1.15.2",
-        "sass-loader": "^8.0.0",
-        "vite": "^4.1.4"
+        "sass-loader": "^8.0.0"
     },
+    "comment-dependencies": "vite, laravel-vite-plugin and sass are build-time tools but live in dependencies on purpose: deploy platforms (Railway/Railpack) install with --omit=dev, which would drop them and break `npm run build`.",
     "dependencies": {
         "bootstrap": "5.3.5",
+        "laravel-vite-plugin": "^0.7.4",
+        "sass": "^1.15.2",
+        "vite": "^4.1.4",
         "vite-plugin-static-copy": "^0.13.1"
     }
 }
