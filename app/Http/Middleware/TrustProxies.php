@@ -10,9 +10,17 @@ class TrustProxies extends Middleware
     /**
      * The trusted proxies for this application.
      *
+     * Railway (and any similar PaaS edge) terminates TLS and forwards the
+     * request to the container over plain HTTP, passing the original scheme in
+     * X-Forwarded-Proto. Those headers are only honoured when the proxy is
+     * trusted, so leaving this null makes Laravel build every asset()/url()
+     * with http:// on an https:// page and the browser blocks them as mixed
+     * content. The proxy IP is assigned dynamically, so trust all of them --
+     * the platform edge is the only thing that can reach the container.
+     *
      * @var array|string|null
      */
-    protected $proxies;
+    protected $proxies = '*';
 
     /**
      * The headers that should be used to detect proxies.
