@@ -110,6 +110,12 @@
                                 <span key="t-anisenso-clients">Clients</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-workers*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-workers.index') }}" class="waves-effect {{ request()->is('anisenso-workers*') ? 'active' : '' }}">
+                                <i class="bx bx-id-card"></i>
+                                <span key="t-anisenso-workers">Workers</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-ai-settings*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-ai-settings.index') }}" class="waves-effect {{ request()->is('anisenso-ai-settings*') ? 'active' : '' }}">
                                 <i class="bx bx-brain"></i>

@@ -377,6 +377,16 @@ Route::put('/anisenso-clients/{id}/cancel', [App\Http\Controllers\aniSensoAdmin\
 
 Route::post('/anisenso-clients/{id}/ai-credits', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'adjustCredits'])->name('anisenso-clients.ai-credits')->middleware('auth');
 
+// AniSystem Workers (logins a client granted to the people working their farm)
+Route::get('/anisenso-workers', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'index'])->name('anisenso-workers.index')->middleware('auth');
+Route::get('/anisenso-workers/data', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'data'])->name('anisenso-workers.data')->middleware('auth');
+Route::get('/anisenso-workers/bosses', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'bosses'])->name('anisenso-workers.bosses')->middleware('auth');
+Route::get('/anisenso-workers/{id}', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'show'])->whereNumber('id')->name('anisenso-workers.show')->middleware('auth');
+Route::put('/anisenso-workers/{id}', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'update'])->whereNumber('id')->name('anisenso-workers.update')->middleware('auth');
+Route::put('/anisenso-workers/{id}/revoke', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'revoke'])->whereNumber('id')->name('anisenso-workers.revoke')->middleware('auth');
+Route::put('/anisenso-workers/{id}/restore', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'restore'])->whereNumber('id')->name('anisenso-workers.restore')->middleware('auth');
+Route::delete('/anisenso-workers/{id}', [App\Http\Controllers\aniSensoAdmin\AnisystemWorkersController::class, 'destroy'])->whereNumber('id')->name('anisenso-workers.destroy')->middleware('auth');
+
 // AniSystem AI (provider, prompt, avatar, credit pricing and packs)
 Route::get('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'index'])->name('anisenso-ai-settings.index')->middleware('auth');
 Route::post('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'save'])->name('anisenso-ai-settings.save')->middleware('auth');
