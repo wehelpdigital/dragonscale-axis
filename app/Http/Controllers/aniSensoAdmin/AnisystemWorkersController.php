@@ -73,15 +73,6 @@ class AnisystemWorkersController extends Controller
                 'worker.adminUserId as workerAdminUserId'
             )
             ->selectSub($bossActiveSub, 'bossSubActive')
-            // The worker may also be a client (own schedules) or an admin —
-            // the roles badge shows the whole picture per person.
-            ->selectSub(
-                DB::table('as_cropping_schedules')
-                    ->selectRaw('COUNT(*)')
-                    ->whereColumn('as_cropping_schedules.anisystemUserId', 'worker.id')
-                    ->where('as_cropping_schedules.deleteStatus', 1),
-                'workerOwnedSchedules'
-            )
             ->orderBy('as_worker_grants.id', 'desc');
 
         // Filter: worker / boss name or email (custom param — DataTables reserves 'search')
@@ -137,13 +128,13 @@ class AnisystemWorkersController extends Controller
                 if (! $grant->workerUserId) {
                     return ['invited'];       // no account yet — invite pending
                 }
+                // A registered worker is a user (client) of the system too —
+                // same baseline the Clients page uses, so both pages agree.
                 $roles = [];
                 if (! empty($grant->workerAdminUserId)) {
                     $roles[] = 'admin';
                 }
-                if (((int) ($grant->workerOwnedSchedules ?? 0)) > 0) {
-                    $roles[] = 'client';
-                }
+                $roles[] = 'client';
                 $roles[] = 'worker';
                 return $roles;
             })
