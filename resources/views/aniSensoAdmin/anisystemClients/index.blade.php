@@ -59,6 +59,7 @@
                                 <tr>
                                     <th>Client</th>
                                     <th>Email</th>
+                                    <th>Roles</th>
                                     <th>Phone</th>
                                     <th>System</th>
                                     <th>Plan</th>
@@ -188,6 +189,17 @@ $(document).ready(function() {
         return '<span class="badge ' + cls + ' sub-status-badge">' + esc(label) + '</span>';
     }
 
+    // Who this account IS in AniSystem: admin (mother-site super admin),
+    // client (owns schedules / subscribes), worker (works someone's farm) —
+    // any combination shows all its badges.
+    function rolesBadges(roles) {
+        if (!roles || !roles.length) return '—';
+        const cls = { admin: 'bg-primary', client: 'bg-success', worker: 'bg-info', invited: 'bg-secondary' };
+        return roles.map(function (r) {
+            return '<span class="badge ' + (cls[r] || 'bg-secondary') + ' me-1 text-uppercase">' + esc(r) + '</span>';
+        }).join('');
+    }
+
     var table = $('#clientsTable').DataTable({
         processing: true,
         serverSide: true,
@@ -214,6 +226,7 @@ $(document).ready(function() {
                 }
             },
             { data: 'email', name: 'anisystem_users.email', render: function(d) { return esc(d); } },
+            { data: 'roles', orderable: false, searchable: false, render: function(d) { return rolesBadges(d); } },
             { data: 'phone', name: 'anisystem_users.phone', orderable: false, render: function(d) { return esc(d || '—'); } },
             { data: null, orderable: false, searchable: false, render: function() { return '<span class="badge system-badge">AniSystem</span>'; } },
             { data: 'subPlanName', name: 'sub.planName', orderable: false,

@@ -63,6 +63,24 @@ class AnisystemClientsController extends Controller
                     ->where('anisystem_ai_credit_ledger.deleteStatus', 1),
                 'aiCreditBalance'
             )
+            // Role signals: an active worker grant makes them a worker, an
+            // owned schedule (or any subscription) a client; adminUserId marks
+            // the super admins bridged from this mother site.
+            ->selectSub(
+                DB::table('as_worker_grants')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('as_worker_grants.workerUserId', 'anisystem_users.id')
+                    ->where('as_worker_grants.deleteStatus', 1)
+                    ->where('as_worker_grants.status', 'active'),
+                'workerGrantCount'
+            )
+            ->selectSub(
+                DB::table('as_cropping_schedules')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('as_cropping_schedules.anisystemUserId', 'anisystem_users.id')
+                    ->where('as_cropping_schedules.deleteStatus', 1),
+                'ownedScheduleCount'
+            )
             ->orderBy('anisystem_users.created_at', 'desc');
 
         // Filter: name / email search (custom param name — DataTables reserves 'search')
@@ -121,6 +139,20 @@ class AnisystemClientsController extends Controller
             })
             ->addColumn('accountStatus', function ($client) {
                 return $client->status; // active | disabled (anisystem_users.status)
+            })
+            ->addColumn('roles', function ($client) {
+                $roles = [];
+                if (! empty($client->adminUserId)) {
+                    $roles[] = 'admin';
+                }
+                if (((int) ($client->ownedScheduleCount ?? 0)) > 0 || $client->subId) {
+                    $roles[] = 'client';
+                }
+                if (((int) ($client->workerGrantCount ?? 0)) > 0) {
+                    $roles[] = 'worker';
+                }
+                // Registered but nothing yet — still a plain client account.
+                return $roles ?: ['client'];
             })
             ->addColumn('startsAtFormatted', function ($client) {
                 return $client->subStartsAt ? Carbon::parse($client->subStartsAt)->format('M j, Y') : null;

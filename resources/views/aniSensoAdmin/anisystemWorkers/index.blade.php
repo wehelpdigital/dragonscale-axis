@@ -72,6 +72,7 @@
                                 <tr>
                                     <th>Worker</th>
                                     <th>Email</th>
+                                    <th>Roles</th>
                                     <th>Farm Owner</th>
                                     <th>Schedule Access</th>
                                     <th>Community</th>
@@ -200,6 +201,16 @@ $(document).ready(function() {
         return '<span class="badge ' + cls + ' sub-status-badge">' + esc(label) + '</span>';
     }
 
+    // Who this person IS in AniSystem: admin (mother-site super admin),
+    // client (owns schedules), worker — any combination shows all its badges.
+    function rolesBadges(roles) {
+        if (!roles || !roles.length) return '—';
+        const cls = { admin: 'bg-primary', client: 'bg-success', worker: 'bg-info', invited: 'bg-secondary' };
+        return roles.map(function (r) {
+            return '<span class="badge ' + (cls[r] || 'bg-secondary') + ' me-1 text-uppercase">' + esc(r) + '</span>';
+        }).join('');
+    }
+
     function accessBadge(level, label) {
         const cls = ACCESS_BADGES[level] || 'bg-secondary';
         return '<span class="badge ' + cls + ' sub-status-badge">' + esc(label || level) + '</span>';
@@ -246,6 +257,7 @@ $(document).ready(function() {
                 }
             },
             { data: 'displayEmail', orderable: false, render: function(d) { return esc(d || '—'); } },
+            { data: 'workerRoles', orderable: false, searchable: false, render: function(d) { return rolesBadges(d); } },
             {
                 data: 'bossName', orderable: false,
                 render: function(d, t, row) {

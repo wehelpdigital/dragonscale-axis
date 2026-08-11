@@ -69,9 +69,19 @@ class AnisystemWorkersController extends Controller
                 // subscription but is never locked out, so their workers get in
                 // too — without this the column would read "not active" for
                 // workers who can in fact sign in perfectly well.
-                'boss.adminUserId as bossAdminUserId'
+                'boss.adminUserId as bossAdminUserId',
+                'worker.adminUserId as workerAdminUserId'
             )
             ->selectSub($bossActiveSub, 'bossSubActive')
+            // The worker may also be a client (own schedules) or an admin —
+            // the roles badge shows the whole picture per person.
+            ->selectSub(
+                DB::table('as_cropping_schedules')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('as_cropping_schedules.anisystemUserId', 'worker.id')
+                    ->where('as_cropping_schedules.deleteStatus', 1),
+                'workerOwnedSchedules'
+            )
             ->orderBy('as_worker_grants.id', 'desc');
 
         // Filter: worker / boss name or email (custom param — DataTables reserves 'search')
@@ -122,6 +132,20 @@ class AnisystemWorkersController extends Controller
             })
             ->addColumn('accessLabel', function ($grant) {
                 return $grant->access_label;
+            })
+            ->addColumn('workerRoles', function ($grant) {
+                if (! $grant->workerUserId) {
+                    return ['invited'];       // no account yet — invite pending
+                }
+                $roles = [];
+                if (! empty($grant->workerAdminUserId)) {
+                    $roles[] = 'admin';
+                }
+                if (((int) ($grant->workerOwnedSchedules ?? 0)) > 0) {
+                    $roles[] = 'client';
+                }
+                $roles[] = 'worker';
+                return $roles;
             })
             ->addColumn('bossIsSuperAdmin', function ($grant) {
                 return ! empty($grant->bossAdminUserId);
