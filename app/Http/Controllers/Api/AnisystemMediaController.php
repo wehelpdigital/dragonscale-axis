@@ -98,8 +98,10 @@ class AnisystemMediaController extends Controller
             return [file_get_contents($file->getRealPath()), $this->safeExt($ext)];
         }
 
+        // Video arrives this way too when the caller already has the bytes —
+        // a clip it compressed itself rather than a browser upload.
         $dataUrl = (string) $request->input('image', '');
-        if (! preg_match('~^data:image/(png|jpe?g|webp|gif);base64,~i', $dataUrl, $m)) {
+        if (! preg_match('~^data:(?:image|video)/(png|jpe?g|webp|gif|mp4|webm);base64,~i', $dataUrl, $m)) {
             return [null, ''];
         }
         $binary = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1), true);
