@@ -90,3 +90,11 @@ Route::prefix('forms')->group(function () {
 
 // Trigger Flow Cron API (Public - authenticated via secret key)
 Route::get('/trigger-cron', [App\Http\Controllers\Ecommerce\TriggerTasksController::class, 'cronEndpoint']);
+
+/*
+ * AniSystem's media store. That app's container loses its filesystem on every
+ * deploy, so its uploads live here instead. Authenticated by a shared secret —
+ * the caller is a server, and has no session here.
+ */
+Route::post('/anisystem/media', [App\Http\Controllers\Api\AnisystemMediaController::class, 'store']);
+Route::delete('/anisystem/media', [App\Http\Controllers\Api\AnisystemMediaController::class, 'destroy']);

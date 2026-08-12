@@ -34,4 +34,14 @@ return [
         'frontend_url' => env('RG_FRONTEND_URL', 'http://localhost:8001'),
     ],
 
+
+    /*
+     * The secret AniSystem presents when it stores a file here. Set the same
+     * value in that app's ANISYSTEM_MEDIA_TOKEN; empty means the endpoint is
+     * closed rather than open.
+     */
+    'anisystem_media' => [
+        'token' => env('ANISYSTEM_MEDIA_TOKEN', ''),
+    ],
+
 ];
