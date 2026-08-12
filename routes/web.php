@@ -430,6 +430,13 @@ Route::post('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoT
 Route::get('/anisenso-tutorials/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'edit'])->whereNumber('id')->name('anisenso-tutorials.edit')->middleware('auth');
 Route::put('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'update'])->whereNumber('id')->name('anisenso-tutorials.update')->middleware('auth');
 Route::delete('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'destroy'])->whereNumber('id')->name('anisenso-tutorials.destroy')->middleware('auth');
+// AniSystem's in-app "How to use" guides — one per module per device. The
+// Tutorials routes above are the YouTube library, which is a different thing.
+Route::get('/anisenso-help-guides', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'index'])->name('anisenso-help-guides.index')->middleware('auth');
+Route::get('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'edit'])->name('anisenso-help-guides.edit')->middleware('auth');
+Route::put('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'update'])->name('anisenso-help-guides.update')->middleware('auth');
+Route::post('/anisenso-help-guides/{module}/{device}/copy', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'copyFrom'])->name('anisenso-help-guides.copy')->middleware('auth');
+Route::delete('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'destroy'])->name('anisenso-help-guides.destroy')->middleware('auth');
 Route::get('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'index'])->name('anisenso-legal.index')->middleware('auth');
 Route::post('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'store'])->name('anisenso-legal.store')->middleware('auth');
 Route::get('/anisenso-legal/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'edit'])->whereNumber('id')->name('anisenso-legal.edit')->middleware('auth');

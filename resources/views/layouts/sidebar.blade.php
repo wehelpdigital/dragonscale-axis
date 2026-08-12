@@ -176,6 +176,12 @@
                                         <span key="t-anisenso-tutorials">Tutorials</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-help-guides*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-help-guides.index') }}" class="waves-effect {{ request()->is('anisenso-help-guides*') ? 'active' : '' }}">
+                                        <i class="bx bx-help-circle"></i>
+                                        <span key="t-anisenso-help-guides">How-to Guides</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('anisenso-legal*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-legal.index') }}" class="waves-effect {{ request()->is('anisenso-legal*') ? 'active' : '' }}">
                                         <i class="bx bx-file"></i>
