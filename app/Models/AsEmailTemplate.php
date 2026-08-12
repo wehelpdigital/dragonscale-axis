@@ -22,6 +22,7 @@ class AsEmailTemplate extends BaseModel
         'templateName',
         'subject',
         'bodyHtml',
+        'blocks',
         'availableTags',
         'isActive',
         'deleteStatus',
@@ -37,7 +38,9 @@ class AsEmailTemplate extends BaseModel
         'deleteStatus' => 'integer',
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s',
-    ];
+            // The editable form behind bodyHtml (see the email builder).
+        'blocks' => 'array',
+];
 
     /**
      * Scope to get only active rows (deleteStatus = 1).

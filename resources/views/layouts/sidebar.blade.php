@@ -176,6 +176,12 @@
                                         <span key="t-anisenso-tutorials">Tutorials</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-email-builder*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-email-builder.index') }}" class="waves-effect {{ request()->is('anisenso-email-builder*') ? 'active' : '' }}">
+                                        <i class="bx bx-envelope"></i>
+                                        <span key="t-anisenso-email-builder">Email Layouts</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('anisenso-help-guides*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-help-guides.index') }}" class="waves-effect {{ request()->is('anisenso-help-guides*') ? 'active' : '' }}">
                                         <i class="bx bx-help-circle"></i>

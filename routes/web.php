@@ -432,6 +432,10 @@ Route::put('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSe
 Route::delete('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'destroy'])->whereNumber('id')->name('anisenso-tutorials.destroy')->middleware('auth');
 // AniSystem's in-app "How to use" guides — one per module per device. The
 // Tutorials routes above are the YouTube library, which is a different thing.
+// Drag-and-drop editor for the same email templates Mail Settings edits by hand.
+Route::get('/anisenso-email-builder', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'index'])->name('anisenso-email-builder.index')->middleware('auth');
+Route::get('/anisenso-email-builder/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'edit'])->whereNumber('id')->name('anisenso-email-builder.edit')->middleware('auth');
+Route::put('/anisenso-email-builder/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'update'])->whereNumber('id')->name('anisenso-email-builder.update')->middleware('auth');
 Route::get('/anisenso-help-guides', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'index'])->name('anisenso-help-guides.index')->middleware('auth');
 Route::get('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'edit'])->name('anisenso-help-guides.edit')->middleware('auth');
 Route::put('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'update'])->name('anisenso-help-guides.update')->middleware('auth');
