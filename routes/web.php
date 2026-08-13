@@ -456,6 +456,8 @@ Route::post('/anisenso-community/ai-answers/{id}/post', [App\Http\Controllers\an
 Route::delete('/anisenso-community/ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.ai-answers.dismiss')->middleware('auth');
 
 // AniSenso — Support desk (answer client tickets; replies ping their bell)
+// What growers think of the AniSystem app: ratings and written reviews.
+Route::get('/anisenso-reviews', [App\Http\Controllers\aniSensoAdmin\AniSensoReviewController::class, 'index'])->name('anisenso-reviews.index')->middleware('auth');
 Route::get('/anisenso-support', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'index'])->name('anisenso-support.index')->middleware('auth');
 Route::get('/anisenso-support/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'show'])->whereNumber('id')->name('anisenso-support.show')->middleware('auth');
 Route::post('/anisenso-support/{id}/reply', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reply'])->whereNumber('id')->name('anisenso-support.reply')->middleware('auth');

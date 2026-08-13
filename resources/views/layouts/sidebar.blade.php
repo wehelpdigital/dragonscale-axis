@@ -202,6 +202,12 @@
                                 <span key="t-anisenso-support">Support</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-reviews*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-reviews.index') }}" class="waves-effect {{ request()->is('anisenso-reviews*') ? 'active' : '' }}">
+                                <i class="bx bx-star"></i>
+                                <span key="t-anisenso-reviews">App Reviews</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                             <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ai-technician*') ? 'mm-active' : '' }}">
                                 <i class="bx bx-bot"></i>
