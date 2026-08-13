@@ -30,6 +30,11 @@ class AsTutorialPage extends Model
         'notes' => 'Notes',
         'maps' => 'Maps',
         'draw' => 'Draw',
+        // Added after this list was first written: the builder can only edit a
+        // guide for a module it knows about, so a module missing here has a
+        // page in AniSystem that nobody can correct.
+        'growth' => 'Growth Stages',
+        'gallery' => 'Gallery',
         'weather' => 'Weather',
         'lots' => 'Lots',
         'workers' => 'Workers',
