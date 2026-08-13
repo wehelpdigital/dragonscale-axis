@@ -25,6 +25,14 @@ class StorageFallbackController extends Controller
         }
 
         // Uploads get random names, so a URL's content never changes — cache hard.
-        return response()->file($full, ['Cache-Control' => 'public, max-age=31536000, immutable']);
+        //
+        // And they are readable cross-origin on purpose: AniSystem loads a
+        // saved drawing into a canvas to edit it, and a canvas that drew an
+        // image without CORS permission cannot be exported afterwards. These
+        // are public files either way; the header only says so.
+        return response()->file($full, [
+            'Cache-Control' => 'public, max-age=31536000, immutable',
+            'Access-Control-Allow-Origin' => '*',
+        ]);
     }
 }
