@@ -77,7 +77,7 @@ class AnisystemMediaController extends Controller
 
         return response()->json(['success' => true, 'data' => [
             'path' => $path,
-            'url' => Storage::disk('public')->url($path),
+            'url' => $this->publicUrl($request, $path),
             'bytes' => strlen($binary),
         ]]);
     }
@@ -139,6 +139,28 @@ class AnisystemMediaController extends Controller
         $ext = $ext === 'jpeg' ? 'jpg' : $ext;
 
         return in_array($ext, ['png', 'jpg', 'webp', 'gif', 'mp4', 'webm'], true) ? $ext : 'png';
+    }
+
+    /**
+     * A URL a browser can actually open.
+     *
+     * Storage::url() builds from APP_URL, and on Railway that is the internal
+     * hostname — dragonscale-axis.railway.internal — which resolves only
+     * inside the private network. A picture whose URL nobody outside can
+     * fetch is not a picture that got saved. MEDIA_PUBLIC_URL wins when set;
+     * otherwise the host the caller actually reached, which is public by
+     * definition when the call came from outside; APP_URL is the last resort.
+     */
+    private function publicUrl(Request $request, string $path): string
+    {
+        $base = (string) env('MEDIA_PUBLIC_URL', '');
+
+        if ($base === '') {
+            $host = $request->getSchemeAndHttpHost();
+            $base = str_contains($host, '.railway.internal') ? (string) config('app.url') : $host;
+        }
+
+        return rtrim($base, '/') . '/storage/' . ltrim($path, '/');
     }
 
     private function authorised(Request $request): bool

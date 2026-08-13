@@ -18,16 +18,18 @@ Auth::routes(['verify' => true]);
 
 // Uploads live on a mounted volume, and the public/storage symlink cannot
 // follow a mount that only exists at boot. Files that are there are served by
-// the web server without touching PHP; the misses come here. Cookie-free on
-// purpose: these carry Cache-Control public/immutable, and a session cookie
-// has no business inside a publicly cacheable object.
+// the web server without touching PHP; the misses come here.
+//
+// The session middleware stays. Dropping it — which is what AniSystem does on
+// its own copy of this route, to keep a Set-Cookie out of a cacheable object —
+// makes this app answer 500 to every request on the route: something in its
+// stack reads the session on the way through, and "Session store not set on
+// request" is the result. A cookie on a picture is a smaller price than a
+// picture that never loads.
 Route::get('/storage/{path}', App\Http\Controllers\StorageFallbackController::class)
     ->where('path', '.+')
     ->withoutMiddleware([
-        Illuminate\Cookie\Middleware\EncryptCookies::class,
         Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-        Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-        Illuminate\Session\Middleware\StartSession::class,
     ]);
 
 // Fresh CSRF token endpoint for automatic 419 retry
