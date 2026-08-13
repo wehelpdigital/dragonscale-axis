@@ -40,7 +40,15 @@ class AnisystemMediaController extends Controller
     public function store(Request $request)
     {
         if (! $this->authorised($request)) {
-            return response()->json(['success' => false, 'message' => 'Not authorised.'], 401);
+            // Says whether a token is configured here at all, never what it
+            // is. Without this, a 401 is the same answer whether the caller
+            // sent the wrong token or this app was deployed without one —
+            // and those need very different fixes.
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authorised.',
+                'configured' => config('services.anisystem_media.token') !== '',
+            ], 401);
         }
 
         $folder = (string) $request->input('folder', 'misc');
@@ -78,7 +86,11 @@ class AnisystemMediaController extends Controller
     public function destroy(Request $request)
     {
         if (! $this->authorised($request)) {
-            return response()->json(['success' => false, 'message' => 'Not authorised.'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authorised.',
+                'configured' => config('services.anisystem_media.token') !== '',
+            ], 401);
         }
 
         $path = (string) $request->input('path');
