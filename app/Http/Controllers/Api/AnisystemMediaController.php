@@ -20,8 +20,20 @@ use Illuminate\Support\Str;
  */
 class AnisystemMediaController extends Controller
 {
-    /** Folders AniSystem is allowed to write into, so a caller cannot invent paths. */
-    private const FOLDERS = ['notes', 'maps', 'drawings', 'board', 'activities', 'misc'];
+    /**
+     * Folders AniSystem is allowed to write into, so a caller cannot invent
+     * paths. Named after what the file is for, and kept in step with the
+     * folders AniSystem actually passes — an unknown one lands in "misc"
+     * rather than being refused, because losing a photo over a folder name is
+     * a worse outcome than a slightly untidy shelf.
+     */
+    private const FOLDERS = [
+        'notes', 'maps', 'drawings', 'board', 'activities', 'misc',
+        // What the app sends today, folder by folder.
+        'schedule-notes', 'schedule-activities', 'schedule-attachments',
+        'schedule-doc-entries', 'schedule-post-harvest', 'schedule-protocols',
+        'ai-photos', 'community', 'avatars', 'post-harvest',
+    ];
 
     private const MAX_BYTES = 20_000_000;   // 20MB — far above any camera photo we accept
 

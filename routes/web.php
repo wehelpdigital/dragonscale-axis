@@ -16,6 +16,20 @@ use Illuminate\Support\Facades\Route;
 
 Auth::routes(['verify' => true]);
 
+// Uploads live on a mounted volume, and the public/storage symlink cannot
+// follow a mount that only exists at boot. Files that are there are served by
+// the web server without touching PHP; the misses come here. Cookie-free on
+// purpose: these carry Cache-Control public/immutable, and a session cookie
+// has no business inside a publicly cacheable object.
+Route::get('/storage/{path}', App\Http\Controllers\StorageFallbackController::class)
+    ->where('path', '.+')
+    ->withoutMiddleware([
+        Illuminate\Cookie\Middleware\EncryptCookies::class,
+        Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+        Illuminate\Session\Middleware\StartSession::class,
+    ]);
+
 // Fresh CSRF token endpoint for automatic 419 retry
 Route::get('/csrf-token', function () {
     return response()->json(['token' => csrf_token()]);

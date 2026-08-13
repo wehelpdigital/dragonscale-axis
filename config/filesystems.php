@@ -35,9 +35,23 @@ return [
             'root' => storage_path('app'),
         ],
 
+        /*
+         * Uploads outlive the container.
+         *
+         * This app now keeps AniSystem's media as well as its own, and a
+         * container's filesystem is thrown away on every deploy — so the
+         * photos both apps point at have to live on a mounted volume.
+         * Railway sets RAILWAY_VOLUME_MOUNT_PATH itself when one is attached
+         * (/axis-volume here), so nothing else needs configuring;
+         * APP_STORAGE_ROOT covers any other host, and with neither set this
+         * behaves exactly as it always did.
+         */
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            'root' => env('APP_STORAGE_ROOT')
+                ?: (env('RAILWAY_VOLUME_MOUNT_PATH')
+                    ? rtrim((string) env('RAILWAY_VOLUME_MOUNT_PATH'), '/').'/public'
+                    : storage_path('app/public')),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
         ],
