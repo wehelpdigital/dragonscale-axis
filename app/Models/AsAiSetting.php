@@ -24,8 +24,10 @@ class AsAiSetting extends Model
     public const DEFAULT_MODELS = [
         'claude' => 'claude-sonnet-5',
         'openai' => 'gpt-4o',
-        // Google retired gemini-2.0-flash (their 404 names this successor).
-        'gemini' => 'gemini-3.6-flash',
+        // Google's alias for the newest stable Pro: the smartest model the
+        // key holds, and it survives model retirements (gemini-2.0-flash's
+        // fate) without anyone editing settings again.
+        'gemini' => 'gemini-pro-latest',
     ];
 
     protected $fillable = [
