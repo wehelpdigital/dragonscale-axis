@@ -424,6 +424,12 @@ Route::get('/anisenso-community/plans', [App\Http\Controllers\aniSensoAdmin\AniS
 Route::get('/anisenso-community/plans/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'planShow'])->whereNumber('id')->name('anisenso-community.plans.show')->middleware('auth');
 Route::post('/anisenso-community/plans/{id}/unpublish', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'unpublishPlan'])->whereNumber('id')->name('anisenso-community.plans.unpublish')->middleware('auth');
 Route::delete('/anisenso-community/comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-community.comments.delete')->middleware('auth');
+// What members have reported in the community. The app takes reports and
+// changes nothing; the deciding happens here.
+Route::get('/anisenso-community/reports', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'index'])->name('anisenso-community.reports')->middleware('auth');
+Route::post('/anisenso-community/reports/{id}/review', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'review'])->whereNumber('id')->name('anisenso-community.reports.review')->middleware('auth');
+Route::post('/anisenso-community/reports/{id}/dismiss', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.reports.dismiss')->middleware('auth');
+Route::post('/anisenso-community/reports/{id}/remove', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'remove'])->whereNumber('id')->name('anisenso-community.reports.remove')->middleware('auth');
 Route::get('/anisenso-community/groups', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'groups'])->name('anisenso-community.groups')->middleware('auth');
 Route::get('/anisenso-community/groups/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'groupShow'])->whereNumber('id')->name('anisenso-community.groups.show')->middleware('auth');
 Route::delete('/anisenso-community/groups/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteGroup'])->whereNumber('id')->name('anisenso-community.groups.delete')->middleware('auth');

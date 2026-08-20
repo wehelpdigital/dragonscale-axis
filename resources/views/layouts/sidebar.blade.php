@@ -152,6 +152,12 @@
                                         <span key="t-anisenso-community-ai-answers">AI Answers</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-community/reports*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.reports') }}" class="waves-effect {{ request()->is('anisenso-community/reports*') ? 'active' : '' }}">
+                                        <i class="bx bx-flag"></i>
+                                        <span key="t-anisenso-community-reports">Reports</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('anisenso-community/members*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-community.members') }}" class="waves-effect {{ request()->is('anisenso-community/members*') ? 'active' : '' }}">
                                         <i class="bx bx-user"></i>
