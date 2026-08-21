@@ -40,18 +40,24 @@ class ScraperController extends Controller
     /**
      * Cell size used when a settings row carries no usable default.
      *
-     * 10 km is the middle of a measured trade-off. Google caps a Nearby Search
-     * at 60 results per call, not per square kilometre, so a smaller cell buys
-     * nothing on a sparse keyword and simply multiplies the calls: Cebu tiles
-     * into 624 cells at 5 km against 178 at 10 km, for the same businesses.
-     * Precision is not the cost - every starting radius from 5 to 20 km bottoms
-     * out at the same 0.625 km once maxSubdivisionDepth and minGridRadiusKm have
-     * had their say, because the floor is halvings, not kilometres.
+     * Starting wide is close to a free bet, because the split is adaptive. A
+     * 30 km cell that comes back under Google's 60-result ceiling is one call
+     * and the province is done; a cell that fills up splits into four and the
+     * 60 places it already returned are kept, not thrown away. So the coarse
+     * start only ever costs something where there is genuine density, and that
+     * is exactly where the extra calls are worth paying for.
      *
-     * 5 km also puts Palawan at 3,007 cells, past GeoGridService::MAX_GRID_CELLS,
-     * so the far end of the province is never queued at all.
+     * For a niche keyword the saving is the whole bill: "resort" across La Union
+     * is 4 cells at 30 km against 24 at 10 km, and neither one saturates.
+     *
+     * The catch is that the subdivision floor is measured in halvings from the
+     * starting radius, not in kilometres - so a wider start needs a lower
+     * minGridRadiusKm to reach the same fineness. At 0.25 km min and depth 7 a
+     * 30 km sweep bottoms out at 0.469 km, finer than the 0.625 km a 10 km
+     * sweep managed, so dense city blocks are refined further than before
+     * rather than less.
      */
-    const DEFAULT_RADIUS_KM = 10.0;
+    const DEFAULT_RADIUS_KM = 30.0;
 
     /**
      * Display the scraper screen.
@@ -121,9 +127,9 @@ class ScraperController extends Controller
             $businessType = trim((string) $request->input('businessType'));
             $regionLabel = trim((string) $request->input('regionLabel'));
             // The admin no longer picks a cell size. Every sweep starts at the
-            // configured default (5 km) and covers the entire province; cells that
-            // come back saturated subdivide themselves down to minGridRadiusKm, so
-            // the grid adapts to density instead of asking someone to guess it.
+            // configured default and covers the entire province; cells that come
+            // back saturated subdivide themselves down to minGridRadiusKm, so the
+            // grid adapts to density instead of asking someone to guess it.
             $radiusKm = (float) $settings->defaultGridRadiusKm;
 
             if ($radiusKm <= 0) {
