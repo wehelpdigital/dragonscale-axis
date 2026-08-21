@@ -173,7 +173,7 @@ class OutreachSetting extends BaseModel
             'sendDays' => '1,2,3,4,5',
             'minDelayMinutes' => 3,
             'maxDelayMinutes' => 17,
-            'defaultGridRadiusKm' => 20.00,
+            'defaultGridRadiusKm' => 10.00,
             'minGridRadiusKm' => 0.50,
             'maxSubdivisionDepth' => 6,
             'warmupEnabled' => true,

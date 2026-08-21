@@ -63,7 +63,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('maxDelayMinutes')->default(17);
 
             // --- Grid search geometry
-            $table->decimal('defaultGridRadiusKm', 6, 2)->default(20.00);
+            $table->decimal('defaultGridRadiusKm', 6, 2)->default(10.00);
             $table->decimal('minGridRadiusKm', 6, 2)->default(0.50);
             $table->unsignedTinyInteger('maxSubdivisionDepth')->default(6);
 

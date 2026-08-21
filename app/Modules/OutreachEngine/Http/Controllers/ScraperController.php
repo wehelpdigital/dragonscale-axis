@@ -40,15 +40,18 @@ class ScraperController extends Controller
     /**
      * Cell size used when a settings row carries no usable default.
      *
-     * 20 km rather than 5: the cap Google enforces is 60 results per search, not
-     * per square kilometre, so a sparse keyword ("resort" across Pangasinan)
-     * wastes 245 near-empty searches on a 5 km grid where 27 would do. Dense
-     * keywords saturate either way and the adaptive split walks them back down,
-     * keeping every lead found on the way. A 5 km grid also put Palawan at 3,007
-     * cells - past the 2,000-cell build cap, so part of the province was simply
-     * never queued.
+     * 10 km is the middle of a measured trade-off. Google caps a Nearby Search
+     * at 60 results per call, not per square kilometre, so a smaller cell buys
+     * nothing on a sparse keyword and simply multiplies the calls: Cebu tiles
+     * into 624 cells at 5 km against 178 at 10 km, for the same businesses.
+     * Precision is not the cost - every starting radius from 5 to 20 km bottoms
+     * out at the same 0.625 km once maxSubdivisionDepth and minGridRadiusKm have
+     * had their say, because the floor is halvings, not kilometres.
+     *
+     * 5 km also puts Palawan at 3,007 cells, past GeoGridService::MAX_GRID_CELLS,
+     * so the far end of the province is never queued at all.
      */
-    const DEFAULT_RADIUS_KM = 20.0;
+    const DEFAULT_RADIUS_KM = 10.0;
 
     /**
      * Display the scraper screen.
