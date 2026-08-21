@@ -48,6 +48,7 @@ class LeadsController extends Controller
         'ID',
         'Business Name',
         'Category',
+        'Google Type',
         'Email',
         'Email Source',
         'Phone',
@@ -82,6 +83,7 @@ class LeadsController extends Controller
         return view('outreach::leads', [
             'outreachStatuses' => OutreachLead::getOutreachStatusLabels(),
             'enrichmentStatuses' => OutreachLead::getEnrichmentStatusLabels(),
+            'categories' => $this->usedCategories($userId),
             'cities' => $this->distinctValues($userId, 'city'),
             'provinces' => $this->distinctValues($userId, 'province'),
             'batches' => $this->batchOptions($userId),
@@ -104,11 +106,11 @@ class LeadsController extends Controller
             return DataTables::of($query)
                 ->editColumn('businessName', function ($lead) {
                     $name = e((string) $lead->businessName);
-                    $category = trim((string) $lead->category);
+                    $city = trim((string) $lead->city);
 
                     $html = '<strong class="text-dark">' . $name . '</strong>';
-                    if ($category !== '') {
-                        $html .= '<br><small class="text-secondary">' . e($category) . '</small>';
+                    if ($city !== '') {
+                        $html .= '<br><small class="text-secondary">' . e($city) . '</small>';
                     }
 
                     return $html;
@@ -152,6 +154,21 @@ class LeadsController extends Controller
                     $label = e(mb_strimwidth($bare, 0, 34, '...'));
 
                     return '<a class="text-primary" href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $label . '</a>';
+                })
+                ->addColumn('displayCategory', function ($lead) {
+                    $label = $lead->display_category;
+
+                    if ($label === '') {
+                        return '<span class="text-secondary">&mdash;</span>';
+                    }
+
+                    // The model's own answer reads as a real category; a value
+                    // salvaged from Google's raw type is dimmer, so the two are
+                    // never mistaken for each other at a glance.
+                    $strong = trim((string) $lead->aiCategory) !== '';
+
+                    return '<span class="' . ($strong ? 'text-dark' : 'text-secondary fst-italic') . '">'
+                        . e($label) . '</span>';
                 })
                 ->editColumn('rating', function ($lead) {
                     $label = $lead->rating_label;
@@ -223,6 +240,7 @@ class LeadsController extends Controller
                 ->orderColumn('rating', 'rating $1, userRatingsTotal $1')
                 ->rawColumns([
                     'businessName',
+                    'displayCategory',
                     'location',
                     'email',
                     'phone',
@@ -749,6 +767,7 @@ class LeadsController extends Controller
                 $inner->where('businessName', 'like', $like)
                     ->orWhere('email', 'like', $like)
                     ->orWhere('category', 'like', $like)
+                    ->orWhere('aiCategory', 'like', $like)
                     ->orWhere('city', 'like', $like)
                     ->orWhere('province', 'like', $like)
                     ->orWhere('address', 'like', $like)
@@ -767,6 +786,19 @@ class LeadsController extends Controller
             $status = (string) $request->input('enrichmentStatus');
             if (array_key_exists($status, OutreachLead::getEnrichmentStatusLabels())) {
                 $query->where('enrichmentStatus', $status);
+            }
+        }
+
+        // The category filter matches the model's answer only. Google's raw type
+        // lives in `category` and is not something anyone would filter by on purpose.
+        if ($request->filled('aiCategory')) {
+            $query->where('aiCategory', (string) $request->input('aiCategory'));
+        }
+
+        if ($request->filled('categoryStatus')) {
+            $status = (string) $request->input('categoryStatus');
+            if (in_array($status, OutreachLead::CATEGORY_STATUSES, true)) {
+                $query->where('categoryStatus', $status);
             }
         }
 
@@ -868,6 +900,7 @@ class LeadsController extends Controller
         return [
             (int) $lead->id,
             (string) $lead->businessName,
+            $lead->display_category,
             (string) $lead->category,
             (string) $lead->email,
             (string) $lead->emailSource,
@@ -947,5 +980,26 @@ class LeadsController extends Controller
         $value = trim((string) $request->input($key, ''));
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Categories that actually appear in this account's leads.
+     *
+     * The full taxonomy would offer two dozen options where most return nothing;
+     * this lists only what is really there, so every choice finds rows.
+     *
+     * @return array<int, string>
+     */
+    private function usedCategories(int $userId): array
+    {
+        return OutreachLead::query()
+            ->active()
+            ->forUser($userId)
+            ->whereNotNull('aiCategory')
+            ->where('aiCategory', '!=', '')
+            ->distinct()
+            ->orderBy('aiCategory')
+            ->pluck('aiCategory')
+            ->all();
     }
 }

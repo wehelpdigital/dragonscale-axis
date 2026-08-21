@@ -30,6 +30,10 @@ class OutreachLead extends BaseModel
         'placeId',
         'businessName',
         'category',
+        'aiCategory',
+        'categoryStatus',
+        'categoryAttempts',
+        'categorizedAt',
         'address',
         'city',
         'province',
@@ -72,6 +76,8 @@ class OutreachLead extends BaseModel
         'userRatingsTotal' => 'integer',
         'enrichmentAttempts' => 'integer',
         'enrichedAt' => 'datetime:Y-m-d H:i:s',
+        'categoryAttempts' => 'integer',
+        'categorizedAt' => 'datetime:Y-m-d H:i:s',
         'lastContactedAt' => 'datetime:Y-m-d H:i:s',
         'repliedAt' => 'datetime:Y-m-d H:i:s',
         'contactAttempts' => 'integer',
@@ -89,6 +95,26 @@ class OutreachLead extends BaseModel
     const OUTREACH_FAILED = 'failed';
 
     // Email-discovery state constants.
+    // Categorisation queue states. Mirrors the enrichment ladder deliberately:
+    // 'skipped' means "no AI configured yet, retry once there is", while
+    // 'failed' means the model was asked and could not answer.
+    const CATEGORY_PENDING = 'pending';
+    const CATEGORY_PROCESSING = 'processing';
+    const CATEGORY_CATEGORIZED = 'categorized';
+    const CATEGORY_FAILED = 'failed';
+    const CATEGORY_SKIPPED = 'skipped';
+
+    const MAX_CATEGORY_ATTEMPTS = 3;
+
+    /** Every valid categoryStatus, for validating a filter value off the wire. */
+    const CATEGORY_STATUSES = [
+        self::CATEGORY_PENDING,
+        self::CATEGORY_PROCESSING,
+        self::CATEGORY_CATEGORIZED,
+        self::CATEGORY_FAILED,
+        self::CATEGORY_SKIPPED,
+    ];
+
     const ENRICHMENT_PENDING = 'pending';
     const ENRICHMENT_PROCESSING = 'processing';
     const ENRICHMENT_ENRICHED = 'enriched';
@@ -321,5 +347,43 @@ class OutreachLead extends BaseModel
     public function isClosed(): bool
     {
         return in_array($this->outreachStatus, self::CLOSED_OUTREACH_STATUSES, true);
+    }
+
+    /**
+     * What to show in the category column: the model's answer when it has one,
+     * otherwise Google's raw type so the cell is never simply empty.
+     */
+    public function getDisplayCategoryAttribute(): string
+    {
+        $ai = trim((string) $this->aiCategory);
+
+        if ($ai !== '') {
+            return $ai;
+        }
+
+        $raw = trim((string) $this->category);
+
+        // Google types arrive snake_cased ("meal_takeaway"); make them readable.
+        return $raw === '' ? '' : ucwords(str_replace('_', ' ', $raw));
+    }
+
+    /**
+     * Badge for the categorisation state, following the contrast rules in
+     * CLAUDE.md section 12.2.
+     */
+    public function getCategoryStatusBadgeAttribute(): string
+    {
+        switch ($this->categoryStatus) {
+            case self::CATEGORY_CATEGORIZED:
+                return '<span class="badge bg-success">Categorised</span>';
+            case self::CATEGORY_PROCESSING:
+                return '<span class="badge bg-info text-white">Working</span>';
+            case self::CATEGORY_FAILED:
+                return '<span class="badge bg-danger">Failed</span>';
+            case self::CATEGORY_SKIPPED:
+                return '<span class="badge bg-light text-dark">Skipped</span>';
+            default:
+                return '<span class="badge bg-warning text-dark">Pending</span>';
+        }
     }
 }

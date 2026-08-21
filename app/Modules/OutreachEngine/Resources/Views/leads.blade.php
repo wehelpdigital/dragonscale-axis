@@ -132,6 +132,15 @@
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-6">
+                        <label for="filterCategory" class="form-label text-dark">Category</label>
+                        <select class="form-select" id="filterCategory">
+                            <option value="">All categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category }}">{{ $category }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-6">
                         <label for="filterCity" class="form-label text-dark">City</label>
                         <select class="form-select" id="filterCity">
                             <option value="">All cities</option>
@@ -196,6 +205,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Business</th>
+                                <th>Category</th>
                                 <th>Location</th>
                                 <th>Contact</th>
                                 <th class="text-center">Enrichment</th>
@@ -424,6 +434,7 @@ $(document).ready(function() {
             search_term: $('#filterSearch').val(),
             outreachStatus: $('#filterOutreachStatus').val(),
             enrichmentStatus: $('#filterEnrichmentStatus').val(),
+            aiCategory: $('#filterCategory').val(),
             city: $('#filterCity').val(),
             province: $('#filterProvince').val(),
             hasEmail: $('#filterHasEmail').val(),
@@ -491,6 +502,7 @@ $(document).ready(function() {
         },
         columns: [
             { data: 'businessName', name: 'businessName' },
+            { data: 'displayCategory', name: 'aiCategory' },
             { data: 'location', name: 'location' },
             { data: 'email', name: 'email', render: contactCell, className: 'contact-cell' },
             { data: 'enrichmentStatus', name: 'enrichmentStatus', className: 'text-center' },
@@ -533,14 +545,14 @@ $(document).ready(function() {
         }, 400);
     });
 
-    $('#filterOutreachStatus, #filterEnrichmentStatus, #filterCity, #filterProvince, #filterHasEmail, #filterBatch, #filterDateFrom, #filterDateTo')
+    $('#filterOutreachStatus, #filterEnrichmentStatus, #filterCategory, #filterCity, #filterProvince, #filterHasEmail, #filterBatch, #filterDateFrom, #filterDateTo')
         .on('change', function() {
             table.ajax.reload();
         });
 
     $('#resetFiltersBtn').on('click', function() {
         $('#filterSearch').val('');
-        $('#filterOutreachStatus, #filterEnrichmentStatus, #filterCity, #filterProvince, #filterHasEmail, #filterBatch').val('');
+        $('#filterOutreachStatus, #filterEnrichmentStatus, #filterCategory, #filterCity, #filterProvince, #filterHasEmail, #filterBatch').val('');
         $('#filterDateFrom, #filterDateTo').val('');
         table.ajax.reload();
     });

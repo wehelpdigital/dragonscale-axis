@@ -38,6 +38,11 @@ class ScraperController extends Controller
     const MAX_RADIUS_KM = 50.0;
 
     /**
+     * Cell size used when a settings row carries no usable default.
+     */
+    const DEFAULT_RADIUS_KM = 5.0;
+
+    /**
      * Display the scraper screen.
      *
      * @return \Illuminate\View\View
@@ -70,14 +75,9 @@ class ScraperController extends Controller
             $validator = Validator::make($request->all(), [
                 'businessType' => 'required|string|max:190',
                 'regionLabel' => 'required|string|max:190',
-                'radiusKm' => 'required|numeric|min:0.5|max:' . self::MAX_RADIUS_KM,
             ], [
                 'businessType.required' => 'Tell us what kind of business to look for.',
                 'regionLabel.required' => 'Choose a region to search.',
-                'radiusKm.required' => 'Set a search radius.',
-                'radiusKm.numeric' => 'The search radius must be a number.',
-                'radiusKm.min' => 'The smallest usable search radius is 0.5 km.',
-                'radiusKm.max' => 'The largest usable search radius is ' . self::MAX_RADIUS_KM . ' km.',
             ]);
 
             if ($validator->fails()) {
@@ -109,7 +109,17 @@ class ScraperController extends Controller
 
             $businessType = trim((string) $request->input('businessType'));
             $regionLabel = trim((string) $request->input('regionLabel'));
-            $radiusKm = (float) $request->input('radiusKm');
+            // The admin no longer picks a cell size. Every sweep starts at the
+            // configured default (5 km) and covers the entire province; cells that
+            // come back saturated subdivide themselves down to minGridRadiusKm, so
+            // the grid adapts to density instead of asking someone to guess it.
+            $radiusKm = (float) $settings->defaultGridRadiusKm;
+
+            if ($radiusKm <= 0) {
+                $radiusKm = self::DEFAULT_RADIUS_KM;
+            }
+
+            $radiusKm = min(self::MAX_RADIUS_KM, max((float) $settings->minGridRadiusKm, $radiusKm));
 
             try {
                 $batchId = (new GridScrapeService($settings))

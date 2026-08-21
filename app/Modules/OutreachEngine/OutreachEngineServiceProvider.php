@@ -26,6 +26,7 @@ class OutreachEngineServiceProvider extends ServiceProvider
     protected $moduleCommands = [
         \App\Modules\OutreachEngine\Console\Commands\ScrapeGridsCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\EnrichLeadsCommand::class,
+        \App\Modules\OutreachEngine\Console\Commands\CategorizeLeadsCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\ProcessQueueCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\FetchRepliesCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\OutreachStatusCommand::class,

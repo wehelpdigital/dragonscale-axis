@@ -133,24 +133,8 @@
                     <small class="text-secondary">Only regions with a stored bounding box can be tiled.</small>
                 </div>
 
-                <div class="mb-3">
-                    <label for="radiusKm" class="form-label text-dark">
-                        Grid Radius (km) <span class="text-danger">*</span>
-                    </label>
-                    <div class="input-group">
-                        <input type="number" class="form-control" id="radiusKm" name="radiusKm"
-                               value="{{ $defaultRadiusKm }}"
-                               min="{{ $minRadiusKm }}" max="{{ $maxRadiusKm }}" step="0.5">
-                        <span class="input-group-text text-dark">km</span>
-                    </div>
-                    <small class="text-secondary">
-                        Between {{ $minRadiusKm }} and {{ $maxRadiusKm }} km. Smaller circles mean more cells,
-                        more API calls and more complete coverage.
-                    </small>
-                </div>
-
                 <div class="alert alert-light border mb-3" id="gridEstimate">
-                    <span class="text-secondary">Pick a region to see how many grid cells it tiles into.</span>
+                    <span class="text-secondary">Pick a region to see how many {{ $defaultRadiusKm }} km cells it tiles into.</span>
                 </div>
 
                 <div class="d-grid">
@@ -436,7 +420,6 @@ $(document).ready(function () {
     // so the API bill is visible before the search is committed to.
     function refreshEstimate() {
         var region = $('#regionLabel').val();
-        var radius = $('#radiusKm').val();
 
         if (!region) {
             $('#gridEstimate').html('<span class="text-secondary">Pick a region to see how many grid cells it tiles into.</span>');
@@ -453,7 +436,7 @@ $(document).ready(function () {
             url: '{{ route("outreach.scraper.regions") }}',
             type: 'GET',
             dataType: 'json',
-            data: { regionLabel: region, radiusKm: radius },
+            data: { regionLabel: region },
             success: function (response) {
                 if (!response || !response.success || !response.data || !response.data.match) {
                     $('#gridEstimate').html('<span class="text-secondary">Could not measure that region.</span>');
@@ -475,8 +458,9 @@ $(document).ready(function () {
                 $('#gridEstimate').html(
                     '<div class="text-dark fw-medium mb-1">' + escapeHtml(canonical) + '</div>' +
                     '<div class="text-secondary">About <strong class="text-dark">' + formatInt(match.estimatedCells) +
-                    '</strong> grid cells at ' + escapeHtml(match.radiusKm) + ' km. ' +
-                    'Each cell is one Places search, and saturated cells split into four more.</div>'
+                    '</strong> grid cells of ' + escapeHtml(match.radiusKm) + ' km, covering the whole province. ' +
+                    'Each cell is one Places search; a cell that comes back full splits into four smaller ones ' +
+                    'until nothing is left hiding behind the 60-result cap.</div>'
                 );
             },
             error: function (xhr, status) {
@@ -492,7 +476,6 @@ $(document).ready(function () {
     }
 
     $('#regionLabel').on('change', refreshEstimate);
-    $('#radiusKm').on('change', refreshEstimate);
 
     // ==================== PROGRESS RENDERING ====================
 
@@ -690,7 +673,6 @@ $(document).ready(function () {
         var $btn = $(this);
         var businessType = $.trim($('#businessType').val());
         var regionLabel = $('#regionLabel').val();
-        var radiusKm = $('#radiusKm').val();
 
         if (!businessType) {
             toastr.warning('Tell us what kind of business to look for.', 'Missing business type');
@@ -717,8 +699,7 @@ $(document).ready(function () {
             data: {
                 _token: '{{ csrf_token() }}',
                 businessType: businessType,
-                regionLabel: regionLabel,
-                radiusKm: radiusKm
+                regionLabel: regionLabel
             },
             success: function (response) {
                 if (!response || !response.success || !response.data) {
