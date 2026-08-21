@@ -44,6 +44,12 @@ class OutreachLead extends BaseModel
         'facebookUrl',
         'email',
         'emailSource',
+        'verificationStatus',
+        'verificationResult',
+        'isEmailValid',
+        'verificationAttempts',
+        'verifiedAt',
+        'verificationError',
         'rating',
         'userRatingsTotal',
         'enrichmentStatus',
@@ -77,6 +83,9 @@ class OutreachLead extends BaseModel
         'enrichmentAttempts' => 'integer',
         'enrichedAt' => 'datetime:Y-m-d H:i:s',
         'categoryAttempts' => 'integer',
+        'verificationAttempts' => 'integer',
+        'isEmailValid' => 'boolean',
+        'verifiedAt' => 'datetime:Y-m-d H:i:s',
         'categorizedAt' => 'datetime:Y-m-d H:i:s',
         'lastContactedAt' => 'datetime:Y-m-d H:i:s',
         'repliedAt' => 'datetime:Y-m-d H:i:s',
@@ -105,6 +114,24 @@ class OutreachLead extends BaseModel
     const CATEGORY_SKIPPED = 'skipped';
 
     const MAX_CATEGORY_ATTEMPTS = 3;
+
+    // Verification queue states. 'verified' only means the verifier answered -
+    // whether the answer was good is isEmailValid, which is a separate question.
+    const VERIFY_PENDING = 'pending';
+    const VERIFY_PROCESSING = 'processing';
+    const VERIFY_VERIFIED = 'verified';
+    const VERIFY_FAILED = 'failed';
+    const VERIFY_SKIPPED = 'skipped';
+
+    const VERIFY_STATUSES = [
+        self::VERIFY_PENDING,
+        self::VERIFY_PROCESSING,
+        self::VERIFY_VERIFIED,
+        self::VERIFY_FAILED,
+        self::VERIFY_SKIPPED,
+    ];
+
+    const MAX_VERIFICATION_ATTEMPTS = 3;
 
     /** Every valid categoryStatus, for validating a filter value off the wire. */
     const CATEGORY_STATUSES = [
@@ -384,6 +411,65 @@ class OutreachLead extends BaseModel
                 return '<span class="badge bg-light text-dark">Skipped</span>';
             default:
                 return '<span class="badge bg-warning text-dark">Pending</span>';
+        }
+    }
+
+    /**
+     * Scope: leads whose address still needs putting to the verifier.
+     *
+     * An address must exist first - there is nothing to verify otherwise - and a
+     * lead that has burned its attempts is left alone so a verifier outage
+     * cannot pin the queue open forever.
+     */
+    public function scopeNeedsVerification($query)
+    {
+        return $query->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->whereIn('verificationStatus', [self::VERIFY_PENDING, self::VERIFY_PROCESSING])
+            ->where('verificationAttempts', '<', self::MAX_VERIFICATION_ATTEMPTS);
+    }
+
+    /**
+     * Scope: addresses the verifier confirmed as deliverable.
+     */
+    public function scopeVerifiedValid($query)
+    {
+        return $query->where('isEmailValid', true);
+    }
+
+    /**
+     * Badge for the verification outcome.
+     *
+     * Reads the RESULT rather than the status, because "verified" on its own
+     * tells the admin nothing - the useful fact is what the verifier said.
+     */
+    public function getVerificationBadgeAttribute(): string
+    {
+        if ($this->verificationStatus === self::VERIFY_FAILED) {
+            return '<span class="badge bg-danger">Check failed</span>';
+        }
+
+        if ($this->verificationStatus === self::VERIFY_SKIPPED) {
+            return '<span class="badge bg-light text-dark">Skipped</span>';
+        }
+
+        if ($this->verificationStatus !== self::VERIFY_VERIFIED) {
+            return '<span class="badge bg-warning text-dark">Unverified</span>';
+        }
+
+        switch ((string) $this->verificationResult) {
+            case 'valid':
+                return '<span class="badge bg-success">Valid</span>';
+            case 'catch_all':
+                return '<span class="badge bg-info text-white">Catch-all</span>';
+            case 'role_account':
+                return '<span class="badge bg-info text-white">Role address</span>';
+            case 'disposable':
+                return '<span class="badge bg-danger">Disposable</span>';
+            case 'invalid':
+                return '<span class="badge bg-danger">Invalid</span>';
+            default:
+                return '<span class="badge bg-secondary">' . e(ucfirst((string) $this->verificationResult ?: 'Unknown')) . '</span>';
         }
     }
 }

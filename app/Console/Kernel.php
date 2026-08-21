@@ -35,6 +35,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('outreach:scrape-grids --limit=3')->everyTwoMinutes()->withoutOverlapping();
         $schedule->command('outreach:enrich-leads --limit=5')->everyThreeMinutes()->withoutOverlapping();
         $schedule->command('outreach:categorize-leads --limit=100')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('outreach:verify-emails --limit=50')->everyFiveMinutes()->withoutOverlapping();
     }
 
     /**

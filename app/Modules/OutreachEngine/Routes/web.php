@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\OutreachEngine\Http\Controllers\BatchesController;
 use App\Modules\OutreachEngine\Http\Controllers\DashboardController;
 use App\Modules\OutreachEngine\Http\Controllers\InboxController;
 use App\Modules\OutreachEngine\Http\Controllers\LeadsController;
@@ -52,6 +53,13 @@ Route::post('/outreach-leads-delete', [LeadsController::class, 'destroy'])->name
 Route::post('/outreach-leads-enrich', [LeadsController::class, 'enrichNow'])->name('outreach.leads.enrich')->middleware('auth');
 Route::post('/outreach-leads-enrich-batch', [LeadsController::class, 'enrichBatch'])->name('outreach.leads.enrichBatch')->middleware('auth');
 
+// Batch Search - every sweep this account has run
+Route::get('/outreach-batches', [BatchesController::class, 'index'])->name('outreach.batches')->middleware('auth');
+Route::get('/outreach-batches-data', [BatchesController::class, 'data'])->name('outreach.batches.data')->middleware('auth');
+Route::get('/outreach-batches-show', [BatchesController::class, 'show'])->name('outreach.batches.show')->middleware('auth');
+Route::post('/outreach-batches-rename', [BatchesController::class, 'rename'])->name('outreach.batches.rename')->middleware('auth');
+Route::post('/outreach-batches-delete', [BatchesController::class, 'destroy'])->name('outreach.batches.destroy')->middleware('auth');
+
 // Settings
 Route::get('/outreach-settings', [SettingsController::class, 'index'])->name('outreach.settings')->middleware('auth');
 Route::post('/outreach-settings-save', [SettingsController::class, 'save'])->name('outreach.settings.save')->middleware('auth');
@@ -60,6 +68,7 @@ Route::post('/outreach-settings-test-imap', [SettingsController::class, 'testIma
 Route::post('/outreach-settings-test-dns', [SettingsController::class, 'testDns'])->name('outreach.settings.testDns')->middleware('auth');
 Route::post('/outreach-settings-test-places', [SettingsController::class, 'testPlaces'])->name('outreach.settings.testPlaces')->middleware('auth');
 Route::post('/outreach-settings-test-llm', [SettingsController::class, 'testLlm'])->name('outreach.settings.testLlm')->middleware('auth');
+Route::post('/outreach-settings-test-verifier', [SettingsController::class, 'testVerifier'])->name('outreach.settings.testVerifier')->middleware('auth');
 
 // Email templates
 Route::get('/outreach-templates', [TemplatesController::class, 'index'])->name('outreach.templates')->middleware('auth');

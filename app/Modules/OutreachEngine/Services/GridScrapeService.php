@@ -2,6 +2,7 @@
 
 namespace App\Modules\OutreachEngine\Services;
 
+use App\Modules\OutreachEngine\Models\OutreachBatch;
 use App\Modules\OutreachEngine\Models\OutreachLead;
 use App\Modules\OutreachEngine\Models\OutreachSearchGrid;
 use App\Modules\OutreachEngine\Models\OutreachSetting;
@@ -328,6 +329,23 @@ class GridScrapeService
         foreach (array_chunk($rows, self::INSERT_CHUNK) as $chunk) {
             OutreachSearchGrid::insert($chunk);
         }
+
+        // The batch row is what the Batch Search screen lists and what the admin
+        // renames. Created here rather than lazily, so a sweep is visible the
+        // instant it is queued instead of only once its first cell is worked.
+        OutreachBatch::create([
+            'usersId' => $userId,
+            'batchId' => $batchId,
+            'name' => null,
+            'businessType' => mb_substr($businessType, 0, 190),
+            'regionLabel' => mb_substr($regionLabel, 0, 190),
+            'radiusKm' => round($radiusKm, 3),
+            'status' => OutreachBatch::STATUS_SCRAPING,
+            'totalCells' => count($rows),
+            'pendingCells' => count($rows),
+            'startedAt' => $timestamp,
+            'delete_status' => 'active',
+        ]);
 
         Log::info('[OutreachEngine] Queued ' . count($rows) . ' grid cells for "' . $regionLabel . '" (batch ' . $batchId . ')');
 

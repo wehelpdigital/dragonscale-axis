@@ -202,6 +202,12 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
+                        <button class="nav-link {{ $activeTab === 'verifier' ? 'active' : '' }}" id="verifier-tab" data-tab-key="verifier"
+                                data-bs-toggle="tab" data-bs-target="#tab-verifier" type="button" role="tab">
+                            <i class="bx bx-badge-check me-1"></i> Verifier
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
                         <button class="nav-link {{ $activeTab === 'limits' ? 'active' : '' }}" id="limits-tab" data-tab-key="limits"
                                 data-bs-toggle="tab" data-bs-target="#tab-limits" type="button" role="tab">
                             <i class="bx bx-shield me-1"></i> Limits &amp; Safety
@@ -531,6 +537,71 @@
                     </div>
 
                     <!-- ==================== LIMITS & SAFETY ==================== -->
+                    <!-- ==================== EMAIL VERIFIER ==================== -->
+                    <div class="tab-pane {{ $activeTab === 'verifier' ? 'active' : '' }}" id="tab-verifier" role="tabpanel">
+                        <div class="alert alert-light border">
+                            <i class="bx bx-info-circle me-1 text-dark"></i>
+                            <span class="text-dark">Every address found by the email hunt is checked here before
+                            anything is sent to it. Only addresses the verifier confirms as deliverable are marked
+                            good &mdash; catch-all, role (info@, sales@) and unknown results are kept but held back,
+                            because a bounce costs sender reputation that is far harder to win back than a
+                            verification credit.</span>
+                        </div>
+
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="verificationEnabled"
+                                   name="verificationEnabled" value="1"
+                                   {{ $settings->verificationEnabled ? 'checked' : '' }}>
+                            <label class="form-check-label text-dark" for="verificationEnabled">
+                                Verify addresses before sending
+                            </label>
+                            <div><small class="text-secondary">Turn this off and addresses skip straight to the send
+                            queue unchecked.</small></div>
+                        </div>
+
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="requireVerifiedEmail"
+                                   name="requireVerifiedEmail" value="1"
+                                   {{ $settings->requireVerifiedEmail ? 'checked' : '' }}>
+                            <label class="form-check-label text-dark" for="requireVerifiedEmail">
+                                Only send to verified-good addresses
+                            </label>
+                            <div><small class="text-secondary">Recommended. With this off, the queue will mail an
+                            address the verifier rejected.</small></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reoonApiKey" class="form-label text-dark">Reoon API Key</label>
+                            <input type="password" class="form-control" id="reoonApiKey" name="reoonApiKey"
+                                   autocomplete="new-password"
+                                   placeholder="{{ $maskedKeys['reoonApiKey'] ?? 'Not configured' }}">
+                            <small class="text-secondary">Leave blank to keep the saved value.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="verifierMode" class="form-label text-dark">Check Depth</label>
+                            <select class="form-select" id="verifierMode" name="verifierMode">
+                                <option value="power" {{ $settings->verifierMode === 'power' ? 'selected' : '' }}>
+                                    Power &mdash; opens an SMTP conversation with the mail server (recommended)
+                                </option>
+                                <option value="quick" {{ $settings->verifierMode === 'quick' ? 'selected' : '' }}>
+                                    Quick &mdash; syntax, domain and MX only
+                                </option>
+                            </select>
+                            <small class="text-secondary">Quick is cheaper and faster, but it cannot tell a live
+                            mailbox from a well-formed guess &mdash; which is the whole reason to verify before a
+                            cold send.</small>
+                        </div>
+
+                        <button type="button" class="btn btn-primary btn-sm test-btn"
+                                data-test-url="{{ route('outreach.settings.testVerifier') }}"
+                                data-payload="verifier"
+                                data-result="#verifierResult">
+                            <i class="bx bx-badge-check me-1"></i> Test verifier key
+                        </button>
+                        <div id="verifierResult"></div>
+                    </div>
+
                     <div class="tab-pane {{ $activeTab === 'limits' ? 'active' : '' }}" id="tab-limits" role="tabpanel">
                         <div class="row">
                             <div class="col-lg-7">
@@ -971,6 +1042,13 @@ $(document).ready(function () {
 
         if ($btn.data('payload') === 'places') {
             payload.keyword = $.trim($('#placesKeyword').val() || '');
+        }
+
+        // Send whatever is typed but not yet saved, so a key can be checked
+        // before it is committed. Blank falls back to the stored value.
+        if ($btn.data('payload') === 'verifier') {
+            payload.reoonApiKey = $('#reoonApiKey').val() || '';
+            payload.verifierMode = $('#verifierMode').val() || 'power';
         }
 
         busy($btn, 'Testing...');

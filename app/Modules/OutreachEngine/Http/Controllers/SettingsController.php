@@ -5,6 +5,7 @@ namespace App\Modules\OutreachEngine\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\OutreachEngine\Models\OutreachSetting;
 use App\Modules\OutreachEngine\Services\DnsAuthService;
+use App\Modules\OutreachEngine\Services\EmailVerifierService;
 use App\Modules\OutreachEngine\Services\GooglePlacesService;
 use App\Modules\OutreachEngine\Services\ImapClientService;
 use App\Modules\OutreachEngine\Services\LlmService;
@@ -110,6 +111,10 @@ class SettingsController extends Controller
                 'googlePlacesApiKey' => 'nullable|string|max:400',
                 'googleSearchApiKey' => 'nullable|string|max:400',
                 'googleSearchEngineId' => 'nullable|string|max:255',
+                'reoonApiKey' => 'nullable|string|max:400',
+                'verifierMode' => 'nullable|in:quick,power',
+                'verificationEnabled' => 'nullable|boolean',
+                'requireVerifiedEmail' => 'nullable|boolean',
                 'llmProvider' => 'required|in:claude,openai,gemini',
                 'llmApiKey' => 'nullable|string|max:400',
                 'llmModel' => 'nullable|string|max:120',
@@ -192,6 +197,11 @@ class SettingsController extends Controller
             $settings->delete_status = 'active';
 
             $settings->googleSearchEngineId = $this->nullableString($request->input('googleSearchEngineId'));
+            $settings->verifierMode = in_array($request->input('verifierMode'), ['quick', 'power'], true)
+                ? $request->input('verifierMode')
+                : 'power';
+            $settings->verificationEnabled = $request->boolean('verificationEnabled');
+            $settings->requireVerifiedEmail = $request->boolean('requireVerifiedEmail');
             $settings->llmProvider = $request->input('llmProvider');
             $settings->llmModel = $this->nullableString($request->input('llmModel'));
 
@@ -695,5 +705,55 @@ class SettingsController extends Controller
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Check the Reoon key without spending it on a real lead.
+     *
+     * Answers 200 with success=false on failure, like the other test endpoints,
+     * so the explanation lands in the jQuery success handler where the form can
+     * actually show it.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function testVerifier(Request $request)
+    {
+        try {
+            $settings = $this->resolver->forUser((int) Auth::id());
+
+            // Let the form be tested before it is saved - otherwise the only way
+            // to check a key is to commit it first.
+            $submitted = trim((string) $request->input('reoonApiKey', ''));
+
+            if ($submitted !== '') {
+                $settings->reoonApiKey = $submitted;
+            }
+
+            if ($request->filled('verifierMode')) {
+                $settings->verifierMode = in_array($request->input('verifierMode'), ['quick', 'power'], true)
+                    ? $request->input('verifierMode')
+                    : 'power';
+            }
+
+            // verificationEnabled gates the CRON, not this check - an admin
+            // testing a key before switching the feature on is the normal order.
+            $settings->verificationEnabled = true;
+
+            $result = (new EmailVerifierService($settings))->testConnection();
+
+            return response()->json([
+                'success' => (bool) $result['success'],
+                'message' => (string) $result['message'],
+                'data' => ['mode' => $settings->verifierMode],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[OutreachEngine] Verifier test failed: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not reach the verifier.',
+            ]);
+        }
     }
 }

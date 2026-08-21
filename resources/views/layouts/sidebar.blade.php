@@ -644,6 +644,12 @@
                                 <span key="t-outreach-leads">Leads</span>
                             </a>
                         </li>
+                        <li class="{{ request()->routeIs('outreach.batches') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.batches') }}" class="waves-effect {{ request()->routeIs('outreach.batches') ? 'active' : '' }}">
+                                <i class="bx bx-layer"></i>
+                                <span key="t-outreach-batches">Batch Search</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->routeIs('outreach.templates') ? 'mm-active' : '' }}">
                             <a href="{{ route('outreach.templates') }}" class="waves-effect {{ request()->routeIs('outreach.templates') ? 'active' : '' }}">
                                 <i class="bx bx-envelope"></i>

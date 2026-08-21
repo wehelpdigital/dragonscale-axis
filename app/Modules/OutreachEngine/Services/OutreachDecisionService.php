@@ -143,6 +143,23 @@ class OutreachDecisionService
             return ['eligible' => false, 'reason' => 'Lead email is not a valid address'];
         }
 
+        // Syntax is not deliverability. When the account pays for verification and
+        // asks for it to be respected, an address the verifier has not confirmed
+        // must not be mailed - a bounce flips the lead to 'bounced' and spends
+        // sender reputation that costs far more to rebuild than a check does.
+        if ($this->requiresVerifiedEmail()) {
+            if (!$lead->isEmailValid) {
+                $verdict = trim((string) $lead->verificationResult);
+
+                return [
+                    'eligible' => false,
+                    'reason' => $lead->verificationStatus === OutreachLead::VERIFY_VERIFIED
+                        ? 'Verifier rejected this address' . ($verdict !== '' ? ' (' . $verdict . ')' : '')
+                        : 'Address has not been verified yet',
+                ];
+            }
+        }
+
         switch ($lead->outreachStatus) {
             case OutreachLead::OUTREACH_REPLIED:
                 return ['eligible' => false, 'reason' => 'Lead already replied'];
@@ -310,5 +327,18 @@ class OutreachDecisionService
         }
 
         return $fallback;
+    }
+
+    /**
+     * Should the send queue insist on a verified address?
+     *
+     * Both switches have to be on. requireVerifiedEmail alone would block every
+     * send on an account that never turned verification on in the first place,
+     * which would look like the queue silently doing nothing.
+     */
+    protected function requiresVerifiedEmail(): bool
+    {
+        return (bool) ($this->settings->verificationEnabled ?? true)
+            && (bool) ($this->settings->requireVerifiedEmail ?? true);
     }
 }

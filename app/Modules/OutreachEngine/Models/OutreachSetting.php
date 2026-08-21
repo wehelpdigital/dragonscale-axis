@@ -23,6 +23,10 @@ class OutreachSetting extends BaseModel
         'googlePlacesApiKey',
         'googleSearchApiKey',
         'googleSearchEngineId',
+        'reoonApiKey',
+        'verifierMode',
+        'verificationEnabled',
+        'requireVerifiedEmail',
         'llmProvider',
         'llmApiKey',
         'llmModel',
@@ -86,6 +90,8 @@ class OutreachSetting extends BaseModel
         'warmupStartedOn' => 'date',
         'aiRephraseEnabled' => 'boolean',
         'outreachEnabled' => 'boolean',
+        'verificationEnabled' => 'boolean',
+        'requireVerifiedEmail' => 'boolean',
         'lastTestedAt' => 'datetime:Y-m-d H:i:s',
         'created_at' => 'datetime:Y-m-d H:i:s',
         'updated_at' => 'datetime:Y-m-d H:i:s',
@@ -102,6 +108,7 @@ class OutreachSetting extends BaseModel
         'llmApiKey',
         'smtpPassword',
         'imapPassword',
+        'reoonApiKey',
     ];
 
     /** Attributes carrying an encrypt/decrypt pair - the only ones maskedKey() will touch. */
@@ -111,6 +118,7 @@ class OutreachSetting extends BaseModel
         'llmApiKey',
         'smtpPassword',
         'imapPassword',
+        'reoonApiKey',
     ];
 
     /** Hard ceiling on daily sends. Deliverability guard rail - no setting may exceed it. */
@@ -230,6 +238,30 @@ class OutreachSetting extends BaseModel
     public function setGooglePlacesApiKeyAttribute($value)
     {
         $this->attributes['googlePlacesApiKey'] = !empty($value) ? Crypt::encryptString($value) : null;
+    }
+
+    /**
+     * Encrypt the Reoon Email Verifier key before saving.
+     */
+    public function setReoonApiKeyAttribute($value)
+    {
+        $this->attributes['reoonApiKey'] = !empty($value) ? Crypt::encryptString($value) : null;
+    }
+
+    /**
+     * Decrypt the Reoon Email Verifier key when retrieving.
+     */
+    public function getReoonApiKeyAttribute($value)
+    {
+        return $this->decryptOrNull($value);
+    }
+
+    /**
+     * Is there a verifier key saved?
+     */
+    public function hasVerifierKey(): bool
+    {
+        return trim((string) $this->reoonApiKey) !== '';
     }
 
     /**

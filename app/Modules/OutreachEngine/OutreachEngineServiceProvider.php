@@ -27,6 +27,7 @@ class OutreachEngineServiceProvider extends ServiceProvider
         \App\Modules\OutreachEngine\Console\Commands\ScrapeGridsCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\EnrichLeadsCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\CategorizeLeadsCommand::class,
+        \App\Modules\OutreachEngine\Console\Commands\VerifyEmailsCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\ProcessQueueCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\FetchRepliesCommand::class,
         \App\Modules\OutreachEngine\Console\Commands\OutreachStatusCommand::class,
