@@ -174,6 +174,17 @@ return [
         App\Providers\AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
+
+        /*
+         * Module Service Providers...
+         *
+         * OutreachEngine MUST stay ABOVE RouteServiceProvider. routes/web.php
+         * ends with a Route::get('{any}') catch-all that RouteServiceProvider
+         * loads; whichever provider registers first wins the URL, so moving
+         * this line down makes every /outreach URL 404 into the catch-all.
+         */
+        App\Modules\OutreachEngine\OutreachEngineServiceProvider::class,
+
         App\Providers\RouteServiceProvider::class,
 
     ],

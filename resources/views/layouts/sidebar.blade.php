@@ -619,6 +619,55 @@
                 <!-- Divider -->
                 <li class="menu-title">─</li>
 
+                <!-- Lead Finder Navigation -->
+                <li class="{{ request()->is('outreach*') ? 'mm-active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('outreach*') ? 'mm-active' : '' }}">
+                        <i class="bx bx-target-lock"></i>
+                        <span key="t-lead-finder">Lead Finder</span>
+                    </a>
+                    <ul class="sub-menu {{ request()->is('outreach*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('outreach*') ? 'true' : 'false' }}">
+                        <li class="{{ request()->routeIs('outreach.dashboard') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.dashboard') }}" class="waves-effect {{ request()->routeIs('outreach.dashboard') ? 'active' : '' }}">
+                                <i class="bx bx-bar-chart-alt-2"></i>
+                                <span key="t-outreach-dashboard">Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('outreach.scraper') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.scraper') }}" class="waves-effect {{ request()->routeIs('outreach.scraper') ? 'active' : '' }}">
+                                <i class="bx bx-map-alt"></i>
+                                <span key="t-outreach-scraper">Find Leads</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('outreach.leads') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.leads') }}" class="waves-effect {{ request()->routeIs('outreach.leads') ? 'active' : '' }}">
+                                <i class="bx bx-user-plus"></i>
+                                <span key="t-outreach-leads">Leads</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('outreach.templates') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.templates') }}" class="waves-effect {{ request()->routeIs('outreach.templates') ? 'active' : '' }}">
+                                <i class="bx bx-envelope"></i>
+                                <span key="t-outreach-templates">Templates</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('outreach.inbox') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.inbox') }}" class="waves-effect {{ request()->routeIs('outreach.inbox') ? 'active' : '' }}">
+                                <i class="bx bx-inbox"></i>
+                                <span key="t-outreach-inbox">Inbox</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('outreach.settings') ? 'mm-active' : '' }}">
+                            <a href="{{ route('outreach.settings') }}" class="waves-effect {{ request()->routeIs('outreach.settings') ? 'active' : '' }}">
+                                <i class="bx bx-cog"></i>
+                                <span key="t-outreach-settings">Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
                 <!-- Reports Navigation -->
                 <li class="{{ request()->is('ecom-reports*') ? 'mm-active' : '' }}">
                     <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ecom-reports*') ? 'mm-active' : '' }}">
