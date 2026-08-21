@@ -21,7 +21,16 @@ use Illuminate\Support\Facades\Log;
  *   role_account  info@ / sales@ - real, but routinely unread and quick to
  *                 attract a spam complaint
  *   disposable    a throwaway domain
+ *   disabled      the mailbox exists but is switched off
+ *   inbox_full    real, but currently refusing mail
+ *   spamtrap      never send - this is what burns a sending domain
  *   unknown       the server would not say
+ *
+ * Quick mode and power mode do not share a vocabulary. Quick answers valid /
+ * invalid / disposable / spamtrap; power answers safe / invalid / disabled /
+ * disposable / inbox_full / catch_all / role_account / spamtrap / unknown. The
+ * success token differs - "valid" in quick, "safe" in power - which is why
+ * GOOD_RESULTS holds both.
  *
  * They are kept rather than blanked so the same address is never paid for twice,
  * and so the rule can be widened later without re-verifying the whole table.
@@ -33,12 +42,21 @@ use Illuminate\Support\Facades\Log;
  */
 class EmailVerifierService
 {
-    const ENDPOINT = 'https://emailverifier.reoon.com/api/v1/verify-email/';
+    const ENDPOINT = 'https://emailverifier.reoon.com/api/v1/verify';
 
     const TIMEOUT_SECONDS = 30;
 
-    /** Reoon verdicts that mean "safe to send". Deliberately just the one. */
-    const GOOD_RESULTS = ['valid'];
+    /**
+     * Verdicts that mean "send to this".
+     *
+     * Two tokens because Reoon uses a different vocabulary per mode, and the two
+     * sets do not overlap: quick mode's success is "valid", power mode's is
+     * "safe". Listing only one silently rejects every result from the other mode.
+     *
+     * Everything else is held back, which for power mode means catch_all,
+     * role_account, disabled, inbox_full, spamtrap and unknown.
+     */
+    const GOOD_RESULTS = ['valid', 'safe'];
 
     /** Give up on an address after this many failed attempts. */
     const MAX_ATTEMPTS = 3;
@@ -247,12 +265,31 @@ class EmailVerifierService
         $status = strtolower(trim((string) ($body['status'] ?? '')));
 
         if ($status !== '') {
-            // Reoon has used both spellings across modes.
-            return $status === 'catch-all' ? 'catch_all' : $status;
+            // Documented values are already snake_cased; the replace only guards
+            // against a hyphenated "catch-all" slipping through.
+            return str_replace('-', '_', $status);
+        }
+
+        // No status field. Rebuild from the flags rather than discarding a paid
+        // call - is_safe_to_send is power mode's own summary and is checked first.
+        if (array_key_exists('is_safe_to_send', $body)) {
+            return $body['is_safe_to_send'] ? 'safe' : 'invalid';
+        }
+
+        if (!empty($body['is_spamtrap'])) {
+            return 'spamtrap';
         }
 
         if (!empty($body['is_disposable'])) {
             return 'disposable';
+        }
+
+        if (!empty($body['is_disabled'])) {
+            return 'disabled';
+        }
+
+        if (!empty($body['has_inbox_full'])) {
+            return 'inbox_full';
         }
 
         if (!empty($body['is_catch_all'])) {
@@ -264,11 +301,11 @@ class EmailVerifierService
         }
 
         if (array_key_exists('is_deliverable', $body)) {
-            return $body['is_deliverable'] ? 'valid' : 'invalid';
+            return $body['is_deliverable'] ? 'safe' : 'invalid';
         }
 
-        if (array_key_exists('is_safe_to_send', $body)) {
-            return $body['is_safe_to_send'] ? 'valid' : 'invalid';
+        if (array_key_exists('is_valid_syntax', $body) && !$body['is_valid_syntax']) {
+            return 'invalid';
         }
 
         return 'unknown';

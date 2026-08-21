@@ -457,19 +457,31 @@ class OutreachLead extends BaseModel
             return '<span class="badge bg-warning text-dark">Unverified</span>';
         }
 
+        // Two vocabularies: quick mode says "valid", power mode says "safe".
+        // Both mean the same thing to us, so both get the green badge.
         switch ((string) $this->verificationResult) {
             case 'valid':
-                return '<span class="badge bg-success">Valid</span>';
+            case 'safe':
+                return '<span class="badge bg-success">Good</span>';
             case 'catch_all':
                 return '<span class="badge bg-info text-white">Catch-all</span>';
             case 'role_account':
                 return '<span class="badge bg-info text-white">Role address</span>';
+            case 'inbox_full':
+                return '<span class="badge bg-warning text-dark">Inbox full</span>';
+            case 'unknown':
+                return '<span class="badge bg-warning text-dark">Unknown</span>';
             case 'disposable':
                 return '<span class="badge bg-danger">Disposable</span>';
+            case 'disabled':
+                return '<span class="badge bg-danger">Disabled</span>';
+            case 'spamtrap':
+                // The one verdict that is actively dangerous rather than merely useless.
+                return '<span class="badge bg-danger">Spam trap</span>';
             case 'invalid':
                 return '<span class="badge bg-danger">Invalid</span>';
             default:
-                return '<span class="badge bg-secondary">' . e(ucfirst((string) $this->verificationResult ?: 'Unknown')) . '</span>';
+                return '<span class="badge bg-secondary">' . e(ucfirst(str_replace('_', ' ', (string) $this->verificationResult ?: 'Unknown'))) . '</span>';
         }
     }
 }
