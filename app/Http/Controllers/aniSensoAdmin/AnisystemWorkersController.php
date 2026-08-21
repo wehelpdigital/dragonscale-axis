@@ -240,6 +240,8 @@ class AnisystemWorkersController extends Controller
                         'invitePending' => $grant->status === AnisystemWorkerGrant::STATUS_PENDING,
                         'acceptedAt' => $grant->acceptedAt ? $grant->acceptedAt->format('M j, Y g:i A') : null,
                         'invitedAt' => $grant->created_at ? $grant->created_at->format('M j, Y g:i A') : null,
+                        // What they may open, module by module.
+                        'modules' => $grant->moduleRights(),
                     ],
                     'worker' => $worker ? [
                         'id' => $worker->id,
@@ -266,7 +268,8 @@ class AnisystemWorkersController extends Controller
     }
 
     /**
-     * Change what a worker may do: schedule access level and community access.
+     * Change what a worker may do: the schedule level, community access, and
+     * each module they may open.
      *
      * @param  int  $id
      * @param  \Illuminate\Http\Request  $request
@@ -281,10 +284,17 @@ class AnisystemWorkersController extends Controller
                 return response()->json(['success' => false, 'message' => 'Worker not found'], 404);
             }
 
-            $validator = Validator::make($request->all(), [
+            $rules = [
                 'scheduleAccess' => 'required|in:' . implode(',', AnisystemWorkerGrant::ACCESS_LEVELS),
                 'communityAccess' => 'required|boolean',
-            ], [
+            ];
+            foreach (AnisystemWorkerGrant::MODULES as $spec) {
+                $rules[$spec['column']] = $spec['shape'] === 'open'
+                    ? 'nullable|boolean'
+                    : 'nullable|in:' . implode(',', AnisystemWorkerGrant::ACCESS_LEVELS);
+            }
+
+            $validator = Validator::make($request->all(), $rules, [
                 'scheduleAccess.in' => 'Pick one of: no access, view only, or can edit.',
             ]);
 
@@ -294,6 +304,20 @@ class AnisystemWorkersController extends Controller
 
             $grant->scheduleAccess = $request->input('scheduleAccess');
             $grant->communityAccess = $request->boolean('communityAccess');
+
+            // Only what the form actually sent: a caller that knows nothing
+            // about modules must not silently reset them to their defaults.
+            foreach (AnisystemWorkerGrant::MODULES as $spec) {
+                if (! $request->has($spec['column'])) {
+                    continue;
+                }
+                $grant->{$spec['column']} = $spec['shape'] === 'open'
+                    ? $request->boolean($spec['column'])
+                    : $request->input($spec['column']);
+            }
+            // The older column is the notes permission under an older name;
+            // it is written from notesAccess so the two cannot disagree.
+            $grant->canAddNotes = $grant->notesAccess === 'edit';
             $grant->save();
 
             return response()->json([
@@ -304,6 +328,7 @@ class AnisystemWorkersController extends Controller
                     'scheduleAccess' => $grant->scheduleAccess,
                     'accessLabel' => $grant->access_label,
                     'communityAccess' => (bool) $grant->communityAccess,
+                    'modules' => $grant->moduleRights(),
                 ],
             ]);
         } catch (\Exception $e) {

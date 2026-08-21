@@ -21,6 +21,23 @@ class AnisystemWorkerGrant extends BaseModel
     /** Schedule access levels, in ascending order of power. */
     public const ACCESS_LEVELS = ['none', 'view', 'edit'];
 
+    /**
+     * What a grant answers per module, and the shape of each answer.
+     *
+     * 'level' modules take the same none/view/edit the schedule does; 'open'
+     * modules are had or not had. Mirrors WorkerGrant::MODULES in AniSystem —
+     * the two apps read one table, so the list has to be the same list.
+     */
+    public const MODULES = [
+        'notes' => ['column' => 'notesAccess', 'shape' => 'level', 'label' => 'Notes'],
+        'reports' => ['column' => 'reportsAccess', 'shape' => 'level', 'label' => 'Reports'],
+        'maps' => ['column' => 'mapsAccess', 'shape' => 'open', 'label' => 'Maps'],
+        'draw' => ['column' => 'drawAccess', 'shape' => 'open', 'label' => 'Draw'],
+        'ai' => ['column' => 'aiAccess', 'shape' => 'open', 'label' => 'AI Technician'],
+        'camera' => ['column' => 'cameraAccess', 'shape' => 'open', 'label' => 'Camera'],
+        'video' => ['column' => 'videoAccess', 'shape' => 'open', 'label' => 'Video record'],
+    ];
+
     protected $fillable = [
         'bossUserId',
         'workerUserId',
@@ -29,6 +46,14 @@ class AnisystemWorkerGrant extends BaseModel
         'inviteToken',
         'scheduleAccess',
         'communityAccess',
+        'canAddNotes',
+        'notesAccess',
+        'reportsAccess',
+        'mapsAccess',
+        'drawAccess',
+        'aiAccess',
+        'cameraAccess',
+        'videoAccess',
         'status',
         'acceptedAt',
         'deleteStatus',
@@ -39,6 +64,12 @@ class AnisystemWorkerGrant extends BaseModel
         'workerUserId' => 'integer',
         'scheduleWorkerId' => 'integer',
         'communityAccess' => 'boolean',
+        'canAddNotes' => 'boolean',
+        'mapsAccess' => 'boolean',
+        'drawAccess' => 'boolean',
+        'aiAccess' => 'boolean',
+        'cameraAccess' => 'boolean',
+        'videoAccess' => 'boolean',
         'acceptedAt' => 'datetime',
         'deleteStatus' => 'integer',
     ];
@@ -46,6 +77,40 @@ class AnisystemWorkerGrant extends BaseModel
     protected $hidden = [
         'inviteToken',
     ];
+
+    /**
+     * What this grant says about one module, in AniSystem's own words:
+     * 'none', 'view' or 'edit'. An open/shut module answers in the same words
+     * so a caller never has to know which shape it is.
+     */
+    public function moduleAccess(string $key): string
+    {
+        $spec = self::MODULES[$key] ?? null;
+        if (! $spec) {
+            return 'none';
+        }
+
+        if ($spec['shape'] === 'open') {
+            return $this->{$spec['column']} ? 'edit' : 'none';
+        }
+
+        $level = (string) ($this->{$spec['column']} ?? 'none');
+
+        return in_array($level, self::ACCESS_LEVELS, true) ? $level : 'none';
+    }
+
+    /** Every module's answer, keyed by column name — what the screens draw. */
+    public function moduleRights(): array
+    {
+        $out = [];
+        foreach (self::MODULES as $spec) {
+            $out[$spec['column']] = $spec['shape'] === 'open'
+                ? (bool) $this->{$spec['column']}
+                : (string) ($this->{$spec['column']} ?? 'none');
+        }
+
+        return $out;
+    }
 
     /** Scope to get only active rows (deleteStatus = 1). */
     public function scopeActive($query)

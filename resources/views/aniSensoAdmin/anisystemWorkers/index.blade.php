@@ -133,11 +133,55 @@
                         </select>
                         <div class="form-text">Takes effect on the worker's next request; they do not need to sign in again.</div>
                     </div>
-                    <div class="form-check form-switch mb-1">
+                    <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="accessCommunity">
                         <label class="form-check-label" for="accessCommunity">Allow community access</label>
                         <div class="form-text">Lets them use the Plaza community feed, groups and messaging.</div>
                     </div>
+
+                    {{-- What they may open, module by module — the same seven
+                         answers the farm owner sets in AniSystem's Workers
+                         module, over the same columns. --}}
+                    <h6 class="text-dark mb-2 pt-2 border-top">What they can open</h6>
+                    <div class="mb-2">
+                        <label class="form-label mb-1" for="accessNotes">Notes</label>
+                        <select class="form-select form-select-sm" id="accessNotes">
+                            <option value="edit">Can edit &amp; create</option>
+                            <option value="view">View only</option>
+                            <option value="none">No access</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label mb-1" for="accessReports">Reports</label>
+                        <select class="form-select form-select-sm" id="accessReports">
+                            <option value="edit">Can edit &amp; create</option>
+                            <option value="view">View only</option>
+                            <option value="none">No access</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="accessMaps">
+                            <label class="form-check-label" for="accessMaps">Maps</label>
+                        </div></div>
+                        <div class="col-6"><div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="accessDraw">
+                            <label class="form-check-label" for="accessDraw">Draw</label>
+                        </div></div>
+                        <div class="col-6"><div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="accessAi">
+                            <label class="form-check-label" for="accessAi">AI Technician</label>
+                        </div></div>
+                        <div class="col-6"><div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="accessCamera">
+                            <label class="form-check-label" for="accessCamera">Camera</label>
+                        </div></div>
+                        <div class="col-6"><div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="accessVideo">
+                            <label class="form-check-label" for="accessVideo">Video record</label>
+                        </div></div>
+                    </div>
+                    <div class="form-text">A worker with no schedule access has none of these — the modules belong to the farm they cannot see.</div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
@@ -388,6 +432,24 @@ $(document).ready(function() {
         html += '<div class="col-md-4 mb-2"><div class="worker-detail-label">Accepted</div><div class="text-dark">' + esc(g.acceptedAt || '—') + '</div></div>';
         html += '</div>';
 
+        // What they may open, module by module.
+        if (g.modules) {
+            const NAMES = { notesAccess: 'Notes', reportsAccess: 'Reports', mapsAccess: 'Maps',
+                drawAccess: 'Draw', aiAccess: 'AI Technician', cameraAccess: 'Camera', videoAccess: 'Video record' };
+            html += '<h6 class="text-dark mb-2"><i class="bx bx-grid-alt me-1"></i>Modules</h6><div class="row mb-3">';
+            $.each(NAMES, function(key, label) {
+                const v = g.modules[key];
+                let badge;
+                if (v === true) badge = '<span class="badge bg-success">Allowed</span>';
+                else if (v === false) badge = '<span class="badge bg-light text-secondary">Off</span>';
+                else if (v === 'edit') badge = '<span class="badge bg-success">Edit &amp; create</span>';
+                else if (v === 'view') badge = '<span class="badge bg-info">View only</span>';
+                else badge = '<span class="badge bg-light text-secondary">No access</span>';
+                html += '<div class="col-md-4 mb-2"><div class="worker-detail-label">' + label + '</div>' + badge + '</div>';
+            });
+            html += '</div>';
+        }
+
         html += '<h6 class="text-dark mb-2"><i class="bx bx-user-circle me-1"></i>Farm Owner</h6>';
         if (!b) {
             html += '<p class="text-secondary mb-3">Owner account no longer exists.</p>';
@@ -415,13 +477,33 @@ $(document).ready(function() {
     }
 
     // ---- Edit access ----
+    // The module rights, by their column names — one list so the form, the
+    // fetch and the save cannot drift into knowing different modules.
+    const MODULE_PICKS = { notesAccess: '#accessNotes', reportsAccess: '#accessReports' };
+    const MODULE_SWITCHES = { mapsAccess: '#accessMaps', drawAccess: '#accessDraw',
+        aiAccess: '#accessAi', cameraAccess: '#accessCamera', videoAccess: '#accessVideo' };
+
     $('#workersTable').on('click', '.edit-access-btn', function() {
         const $b = $(this);
-        $('#accessGrantId').val($b.data('id'));
+        const id = $b.data('id');
+        $('#accessGrantId').val(id);
         $('#accessWorkerName').text($b.data('name'));
         $('#accessBossName').text($b.data('boss'));
         $('#accessLevel').val($b.data('access'));
         $('#accessCommunity').prop('checked', String($b.data('community')) === '1');
+
+        // The modules come from the grant itself: the table carries two of
+        // these fields, and a stale attribute is a permission shown wrong.
+        $.each(MODULE_PICKS, function(k, sel) { $(sel).val('view').prop('disabled', true); });
+        $.each(MODULE_SWITCHES, function(k, sel) { $(sel).prop('checked', false).prop('disabled', true); });
+        $.get('{{ url('/anisenso-workers') }}/' + id, function(res) {
+            const m = (res.data && res.data.grant && res.data.grant.modules) || {};
+            $.each(MODULE_PICKS, function(k, sel) { $(sel).val(m[k] || 'none').prop('disabled', false); });
+            $.each(MODULE_SWITCHES, function(k, sel) { $(sel).prop('checked', !!m[k]).prop('disabled', false); });
+        }).fail(function() {
+            toastr.error('Could not read this worker\'s module rights — leaving them untouched.');
+        });
+
         $('#accessModal').modal('show');
     });
 
@@ -432,10 +514,22 @@ $(document).ready(function() {
         $.ajax({
             url: '{{ url('/anisenso-workers') }}/' + id,
             type: 'PUT',
-            data: {
-                scheduleAccess: $('#accessLevel').val(),
-                communityAccess: $('#accessCommunity').is(':checked') ? 1 : 0
-            },
+            data: (function() {
+                const body = {
+                    scheduleAccess: $('#accessLevel').val(),
+                    communityAccess: $('#accessCommunity').is(':checked') ? 1 : 0
+                };
+                // Only send what was actually read back: a failed fetch leaves
+                // the switches disabled, and sending those would write the
+                // defaults over rights nobody meant to change.
+                $.each(MODULE_PICKS, function(k, sel) {
+                    if (!$(sel).prop('disabled')) body[k] = $(sel).val();
+                });
+                $.each(MODULE_SWITCHES, function(k, sel) {
+                    if (!$(sel).prop('disabled')) body[k] = $(sel).is(':checked') ? 1 : 0;
+                });
+                return body;
+            })(),
             success: function(res) {
                 if (res.success) {
                     toastr.success(res.message, 'Success');
