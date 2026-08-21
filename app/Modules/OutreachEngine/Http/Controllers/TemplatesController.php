@@ -127,14 +127,13 @@ class TemplatesController extends Controller
      * Update a template.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
         try {
             $userId = (int) Auth::id();
-            $template = $this->findOwned((int) $id, $userId);
+            $template = $this->findOwned((int) $request->input('id'), $userId);
 
             if (!$template) {
                 return response()->json([
@@ -185,14 +184,14 @@ class TemplatesController extends Controller
      * The email log keeps its own copy of every subject and body it sent, so removing a
      * template never rewrites history in the inbox.
      *
-     * @param  int  $id
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
         try {
             $userId = (int) Auth::id();
-            $template = $this->findOwned((int) $id, $userId);
+            $template = $this->findOwned((int) $request->input('id'), $userId);
 
             if (!$template) {
                 return response()->json([
@@ -221,14 +220,14 @@ class TemplatesController extends Controller
     /**
      * Flip a template in or out of the send rotation.
      *
-     * @param  int  $id
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function toggle($id)
+    public function toggle(Request $request)
     {
         try {
             $userId = (int) Auth::id();
-            $template = $this->findOwned((int) $id, $userId);
+            $template = $this->findOwned((int) $request->input('id'), $userId);
 
             if (!$template) {
                 return response()->json([

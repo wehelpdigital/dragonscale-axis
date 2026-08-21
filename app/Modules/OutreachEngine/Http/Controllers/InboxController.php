@@ -244,14 +244,14 @@ class InboxController extends Controller
      * Read-only on purpose. Opening a thread does not mark it read - that is what the
      * markRead endpoint is for, and a GET should not change state.
      *
-     * @param  int  $leadId
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function thread($leadId)
+    public function thread(Request $request)
     {
         try {
             $userId = (int) Auth::id();
-            $lead = $this->findOwnedLead((int) $leadId, $userId);
+            $lead = $this->findOwnedLead((int) $request->input('leadId'), $userId);
 
             if (!$lead) {
                 return response()->json([
@@ -594,14 +594,14 @@ class InboxController extends Controller
     /**
      * Mark one lead's inbound messages as read.
      *
-     * @param  int  $leadId
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function markRead($leadId)
+    public function markRead(Request $request)
     {
         try {
             $userId = (int) Auth::id();
-            $lead = $this->findOwnedLead((int) $leadId, $userId);
+            $lead = $this->findOwnedLead((int) $request->input('leadId'), $userId);
 
             if (!$lead) {
                 return response()->json([

@@ -290,7 +290,10 @@ $(document).ready(function() {
     };
 
     var CSRF_TOKEN = '{{ csrf_token() }}';
-    var TEMPLATES_BASE_URL = '{{ url('/outreach/templates') }}';
+    var TEMPLATE_STORE_URL = '{{ route('outreach.templates.store') }}';
+    var TEMPLATE_UPDATE_URL = '{{ route('outreach.templates.update') }}';
+    var TEMPLATE_DELETE_URL = '{{ route('outreach.templates.destroy') }}';
+    var TEMPLATE_TOGGLE_URL = '{{ route('outreach.templates.toggle') }}';
     var PREVIEW_LEAD_ID = {{ $previewLead ? (int) $previewLead->id : 'null' }};
 
     var templates = @json($templatePayload);
@@ -582,11 +585,14 @@ $(document).ready(function() {
             sendOrder: $('#templateSendOrder').val()
         };
 
+        // The id rides in the body now that the update route has no path segment.
+        if (id) payload.id = id;
+
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
 
         $.ajax({
-            url: id ? TEMPLATES_BASE_URL + '/' + id : TEMPLATES_BASE_URL,
-            type: id ? 'PUT' : 'POST',
+            url: id ? TEMPLATE_UPDATE_URL : TEMPLATE_STORE_URL,
+            type: 'POST',
             data: payload,
             success: function(response) {
                 if (!response.success) {
@@ -619,9 +625,9 @@ $(document).ready(function() {
         $input.prop('disabled', true);
 
         $.ajax({
-            url: TEMPLATES_BASE_URL + '/' + id + '/toggle',
+            url: TEMPLATE_TOGGLE_URL,
             type: 'POST',
-            data: { _token: CSRF_TOKEN },
+            data: { _token: CSRF_TOKEN, id: id },
             success: function(response) {
                 if (!response.success) {
                     // Put the switch back where the server says it is.
@@ -787,9 +793,9 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
         $.ajax({
-            url: TEMPLATES_BASE_URL + '/' + templateToDelete.id,
-            type: 'DELETE',
-            data: { _token: CSRF_TOKEN },
+            url: TEMPLATE_DELETE_URL,
+            type: 'POST',
+            data: { _token: CSRF_TOKEN, id: templateToDelete.id },
             success: function(response) {
                 if (!response.success) {
                     toastr.error(response.message || 'The template could not be deleted.', 'Error!', { timeOut: 5000 });

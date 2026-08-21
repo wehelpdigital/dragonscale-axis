@@ -303,8 +303,8 @@ $(document).ready(function () {
 
     var CSRF_TOKEN = '{{ csrf_token() }}';
     var THREADS_URL = '{{ route('outreach.inbox.threads') }}';
-    var THREAD_BASE = '{{ url('/outreach/inbox/thread') }}';
-    var READ_BASE = '{{ url('/outreach/inbox/read') }}';
+    var THREAD_URL = '{{ route('outreach.inbox.thread') }}';
+    var READ_URL = '{{ route('outreach.inbox.read') }}';
     var REPLY_URL = '{{ route('outreach.inbox.reply') }}';
     var FETCH_URL = '{{ route('outreach.inbox.fetch') }}';
     var POLL_MS = 60000;
@@ -590,7 +590,7 @@ $(document).ready(function () {
         }
 
         $.ajax({
-            url: THREAD_BASE + '/' + encodeURIComponent(leadId),
+            url: THREAD_URL + '?leadId=' + encodeURIComponent(leadId),
             type: 'GET',
             success: function (response) {
                 if (!response.success) {
@@ -652,9 +652,9 @@ $(document).ready(function () {
 
     function markRead(leadId) {
         $.ajax({
-            url: READ_BASE + '/' + encodeURIComponent(leadId),
+            url: READ_URL,
             type: 'POST',
-            data: { _token: CSRF_TOKEN },
+            data: { _token: CSRF_TOKEN, leadId: leadId },
             success: function (response) {
                 if (!response.success) return;
 

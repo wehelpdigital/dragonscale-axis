@@ -408,7 +408,10 @@ $(document).ready(function() {
     };
 
     var CSRF_TOKEN = '{{ csrf_token() }}';
-    var LEADS_BASE_URL = '{{ url('/outreach/leads') }}';
+    var LEAD_SHOW_URL = '{{ route('outreach.leads.show') }}';
+    var LEAD_UPDATE_URL = '{{ route('outreach.leads.update') }}';
+    var LEAD_DELETE_URL = '{{ route('outreach.leads.destroy') }}';
+    var LEAD_ENRICH_URL = '{{ route('outreach.leads.enrich') }}';
 
     /** Escape anything that came back from the server before it goes into HTML we build here. */
     function escapeHtml(value) {
@@ -664,7 +667,7 @@ $(document).ready(function() {
         );
 
         $.ajax({
-            url: LEADS_BASE_URL + '/' + leadId,
+            url: LEAD_SHOW_URL + '?id=' + encodeURIComponent(leadId),
             type: 'GET',
             success: function(response) {
                 if (response.success && response.data) {
@@ -806,7 +809,7 @@ $(document).ready(function() {
         $('#leadEditModal').modal('show');
 
         $.ajax({
-            url: LEADS_BASE_URL + '/' + leadId,
+            url: LEAD_SHOW_URL + '?id=' + encodeURIComponent(leadId),
             type: 'GET',
             success: function(response) {
                 if (!response.success || !response.data) {
@@ -861,10 +864,11 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
 
         $.ajax({
-            url: LEADS_BASE_URL + '/' + leadId,
-            type: 'PUT',
+            url: LEAD_UPDATE_URL,
+            type: 'POST',
             data: {
                 _token: CSRF_TOKEN,
+                id: leadId,
                 businessName: $('#editBusinessName').val(),
                 email: $('#editEmail').val(),
                 phone: $('#editPhone').val(),
@@ -910,9 +914,9 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
 
         $.ajax({
-            url: LEADS_BASE_URL + '/' + leadId + '/enrich',
+            url: LEAD_ENRICH_URL,
             type: 'POST',
-            data: { _token: CSRF_TOKEN },
+            data: { _token: CSRF_TOKEN, id: leadId },
             success: function(response) {
                 if (!response.success) {
                     toastr.error(response.message || 'Enrichment failed.', 'Error!', { timeOut: 5000 });
@@ -965,9 +969,9 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
         $.ajax({
-            url: LEADS_BASE_URL + '/' + leadToDelete.id,
-            type: 'DELETE',
-            data: { _token: CSRF_TOKEN },
+            url: LEAD_DELETE_URL,
+            type: 'POST',
+            data: { _token: CSRF_TOKEN, id: leadToDelete.id },
             success: function(response) {
                 if (!response.success) {
                     toastr.error(response.message || 'The lead could not be deleted.', 'Error!', { timeOut: 5000 });

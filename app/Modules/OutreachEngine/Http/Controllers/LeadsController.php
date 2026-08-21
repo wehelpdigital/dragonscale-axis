@@ -297,13 +297,17 @@ class LeadsController extends Controller
     /**
      * One lead with its recent send history.
      *
-     * @param  int  $id
+     * The id arrives as a query parameter rather than a path segment: every URI
+     * in this app is a single hyphenated segment.
+     *
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function show($id)
+    public function show(Request $request)
     {
         try {
             $userId = (int) Auth::id();
+            $id = (int) $request->input('id');
             $lead = $this->findOwnedLead($userId, $id);
 
             if (!$lead) {
@@ -356,13 +360,13 @@ class LeadsController extends Controller
      * Update one lead.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
         try {
             $userId = (int) Auth::id();
+            $id = (int) $request->input('id');
             $lead = $this->findOwnedLead($userId, $id);
 
             if (!$lead) {
@@ -456,13 +460,14 @@ class LeadsController extends Controller
     /**
      * Soft-delete one lead.
      *
-     * @param  int  $id
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id)
+    public function destroy(Request $request)
     {
         try {
             $userId = (int) Auth::id();
+            $id = (int) $request->input('id');
             $lead = $this->findOwnedLead($userId, $id);
 
             if (!$lead) {
@@ -493,13 +498,14 @@ class LeadsController extends Controller
     /**
      * Run email discovery for one lead, right now.
      *
-     * @param  int  $id
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function enrichNow($id)
+    public function enrichNow(Request $request)
     {
         try {
             $userId = (int) Auth::id();
+            $id = (int) $request->input('id');
             $lead = $this->findOwnedLead($userId, $id);
 
             if (!$lead) {
