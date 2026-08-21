@@ -39,8 +39,16 @@ class ScraperController extends Controller
 
     /**
      * Cell size used when a settings row carries no usable default.
+     *
+     * 20 km rather than 5: the cap Google enforces is 60 results per search, not
+     * per square kilometre, so a sparse keyword ("resort" across Pangasinan)
+     * wastes 245 near-empty searches on a 5 km grid where 27 would do. Dense
+     * keywords saturate either way and the adaptive split walks them back down,
+     * keeping every lead found on the way. A 5 km grid also put Palawan at 3,007
+     * cells - past the 2,000-cell build cap, so part of the province was simply
+     * never queued.
      */
-    const DEFAULT_RADIUS_KM = 5.0;
+    const DEFAULT_RADIUS_KM = 20.0;
 
     /**
      * Display the scraper screen.
@@ -424,14 +432,21 @@ class ScraperController extends Controller
                 $radiusKm = (float) $request->input('radiusKm', $settings->defaultGridRadiusKm);
                 $radiusKm = max((float) $settings->minGridRadiusKm, min(self::MAX_RADIUS_KM, $radiusKm));
 
+                $estimatedCells = $bounds !== null ? $geo->estimateCellCount($bounds, $radiusKm) : 0;
+
                 $data['match'] = [
                     'input' => $input,
+                    // buildGrid() stops at MAX_GRID_CELLS. Past that the far end of
+                    // the region is never queued, so the panel has to say so before
+                    // anyone starts a sweep believing it covers the whole province.
+                    'cellCap' => \App\Modules\OutreachEngine\Services\GeoGridService::MAX_GRID_CELLS,
+                    'overCap' => $estimatedCells > \App\Modules\OutreachEngine\Services\GeoGridService::MAX_GRID_CELLS,
                     // Null means "we hold no bounding box for this" - the UI should say
                     // so instead of letting the admin queue a sweep that will be refused.
                     'canonical' => $canonical,
                     'known' => $bounds !== null,
                     'radiusKm' => round($radiusKm, 3),
-                    'estimatedCells' => $bounds !== null ? $geo->estimateCellCount($bounds, $radiusKm) : 0,
+                    'estimatedCells' => $estimatedCells,
                 ];
             }
 

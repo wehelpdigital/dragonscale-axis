@@ -63,9 +63,9 @@ return new class extends Migration
             $table->unsignedSmallInteger('maxDelayMinutes')->default(17);
 
             // --- Grid search geometry
-            $table->decimal('defaultGridRadiusKm', 6, 2)->default(5.00);
+            $table->decimal('defaultGridRadiusKm', 6, 2)->default(20.00);
             $table->decimal('minGridRadiusKm', 6, 2)->default(0.50);
-            $table->unsignedTinyInteger('maxSubdivisionDepth')->default(4);
+            $table->unsignedTinyInteger('maxSubdivisionDepth')->default(6);
 
             // --- Domain warm-up: ramps the real cap up day by day from a cold start
             $table->boolean('warmupEnabled')->default(true);

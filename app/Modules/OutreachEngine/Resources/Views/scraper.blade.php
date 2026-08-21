@@ -455,13 +455,21 @@ $(document).ready(function () {
 
                 var canonical = match.canonical ? match.canonical : match.input;
 
-                $('#gridEstimate').html(
-                    '<div class="text-dark fw-medium mb-1">' + escapeHtml(canonical) + '</div>' +
+                var html = '<div class="text-dark fw-medium mb-1">' + escapeHtml(canonical) + '</div>' +
                     '<div class="text-secondary">About <strong class="text-dark">' + formatInt(match.estimatedCells) +
                     '</strong> grid cells of ' + escapeHtml(match.radiusKm) + ' km, covering the whole province. ' +
                     'Each cell is one Places search; a cell that comes back full splits into four smaller ones ' +
-                    'until nothing is left hiding behind the 60-result cap.</div>'
-                );
+                    'until nothing is left hiding behind the 60-result cap.</div>';
+
+                // Past the cap the grid is cut short, which would otherwise look
+                // like a completed sweep that just found fewer businesses.
+                if (match.overCap) {
+                    html += '<div class="mt-2 text-danger"><i class="bx bx-error-circle me-1"></i>' +
+                        'That is more than the ' + formatInt(match.cellCap) + '-cell limit, so the far end of ' +
+                        'this region would not be queued. Raise the grid radius under Settings before starting.</div>';
+                }
+
+                $('#gridEstimate').html(html);
             },
             error: function (xhr, status) {
                 if (status === 'abort') {
