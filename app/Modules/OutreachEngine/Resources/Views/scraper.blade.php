@@ -133,8 +133,22 @@
                     <small class="text-secondary">Only regions with a stored bounding box can be tiled.</small>
                 </div>
 
+                <div class="mb-3">
+                    <label for="radiusKm" class="form-label text-dark">Grid Size</label>
+                    <select class="form-select" id="radiusKm" name="radiusKm">
+                        @foreach($radiusOptions as $option)
+                            <option value="{{ $option }}"
+                                @if((float) $option === (float) $defaultRadiusKm) selected @endif>
+                                {{ rtrim(rtrim(number_format($option, 1), '0'), '.') }} km
+                                @if((float) $option === (float) $defaultRadiusKm) (default) @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-secondary" id="radiusHint"></small>
+                </div>
+
                 <div class="alert alert-light border mb-3" id="gridEstimate">
-                    <span class="text-secondary">Pick a region to see how many {{ $defaultRadiusKm }} km cells it tiles into.</span>
+                    <span class="text-secondary">Pick a region to see how many cells it tiles into.</span>
                 </div>
 
                 <div class="d-grid">
@@ -420,6 +434,7 @@ $(document).ready(function () {
     // so the API bill is visible before the search is committed to.
     function refreshEstimate() {
         var region = $('#regionLabel').val();
+        var radius = $('#radiusKm').val();
 
         if (!region) {
             $('#gridEstimate').html('<span class="text-secondary">Pick a region to see how many grid cells it tiles into.</span>');
@@ -436,7 +451,7 @@ $(document).ready(function () {
             url: '{{ route("outreach.scraper.regions") }}',
             type: 'GET',
             dataType: 'json',
-            data: { regionLabel: region },
+            data: { regionLabel: region, radiusKm: radius },
             success: function (response) {
                 if (!response || !response.success || !response.data || !response.data.match) {
                     $('#gridEstimate').html('<span class="text-secondary">Could not measure that region.</span>');
@@ -483,7 +498,21 @@ $(document).ready(function () {
         });
     }
 
+    // Plain-language guidance per option, straight from the controller so the
+    // two cannot disagree about what a given size means.
+    var RADIUS_HINTS = @json($radiusHints);
+
+    function refreshRadiusHint() {
+        var key = String(parseFloat($('#radiusKm').val()));
+        $('#radiusHint').text(RADIUS_HINTS[key] || '');
+    }
+
     $('#regionLabel').on('change', refreshEstimate);
+    $('#radiusKm').on('change', function () {
+        refreshRadiusHint();
+        refreshEstimate();
+    });
+    refreshRadiusHint();
 
     // ==================== PROGRESS RENDERING ====================
 
@@ -681,6 +710,7 @@ $(document).ready(function () {
         var $btn = $(this);
         var businessType = $.trim($('#businessType').val());
         var regionLabel = $('#regionLabel').val();
+        var radiusKm = $('#radiusKm').val();
 
         if (!businessType) {
             toastr.warning('Tell us what kind of business to look for.', 'Missing business type');
@@ -707,7 +737,8 @@ $(document).ready(function () {
             data: {
                 _token: '{{ csrf_token() }}',
                 businessType: businessType,
-                regionLabel: regionLabel
+                regionLabel: regionLabel,
+                radiusKm: radiusKm
             },
             success: function (response) {
                 if (!response || !response.success || !response.data) {

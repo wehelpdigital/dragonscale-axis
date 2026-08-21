@@ -34,8 +34,34 @@ class ScraperController extends Controller
      */
     const INLINE_BUDGET_SECONDS = 45;
 
-    /** Upper bound the start form accepts, matching the contract's validation rule. */
+    /** Upper bound the start form accepts. Google Places refuses a radius over 50 km. */
     const MAX_RADIUS_KM = 50.0;
+
+    /**
+     * The cell sizes the start form offers, smallest first.
+     *
+     * A fixed list rather than a free number box: the useful range is decided by
+     * Google's 60-result ceiling and its 50 km radius limit, not by taste, and a
+     * typed 7.3 km would only produce an odd grid nobody can reason about later.
+     * Validation checks against this same list, so the form and the rule cannot
+     * drift apart.
+     *
+     * @var array<int, float>
+     */
+    const RADIUS_OPTIONS = [5.0, 10.0, 20.0, 30.0, 50.0];
+
+    /**
+     * One line of plain guidance per option, shown under the dropdown.
+     *
+     * @var array<string, string>
+     */
+    const RADIUS_HINTS = [
+        '5' => 'Finest grid. Many more calls for the same businesses - only worth it for a dense keyword in a city.',
+        '10' => 'Balanced. Roughly three times the calls of a 30 km sweep.',
+        '20' => 'Fewer calls. A good middle for mixed keywords.',
+        '30' => 'Recommended. Best for niche keywords (resort, dental clinic) that never fill a cell.',
+        '50' => 'Widest Google allows. Cheapest per sweep; every populated cell will split.',
+    ];
 
     /**
      * Cell size used when a settings row carries no usable default.
@@ -77,6 +103,8 @@ class ScraperController extends Controller
             'defaultRadiusKm' => (float) $settings->defaultGridRadiusKm,
             'minRadiusKm' => (float) $settings->minGridRadiusKm,
             'maxRadiusKm' => self::MAX_RADIUS_KM,
+            'radiusOptions' => self::RADIUS_OPTIONS,
+            'radiusHints' => self::RADIUS_HINTS,
         ]);
     }
 
@@ -92,9 +120,11 @@ class ScraperController extends Controller
             $validator = Validator::make($request->all(), [
                 'businessType' => 'required|string|max:190',
                 'regionLabel' => 'required|string|max:190',
+                'radiusKm' => 'nullable|numeric|in:' . implode(',', self::RADIUS_OPTIONS),
             ], [
                 'businessType.required' => 'Tell us what kind of business to look for.',
                 'regionLabel.required' => 'Choose a region to search.',
+                'radiusKm.in' => 'Choose one of the offered grid sizes.',
             ]);
 
             if ($validator->fails()) {
@@ -126,17 +156,16 @@ class ScraperController extends Controller
 
             $businessType = trim((string) $request->input('businessType'));
             $regionLabel = trim((string) $request->input('regionLabel'));
-            // The admin no longer picks a cell size. Every sweep starts at the
-            // configured default and covers the entire province; cells that come
-            // back saturated subdivide themselves down to minGridRadiusKm, so the
-            // grid adapts to density instead of asking someone to guess it.
-            $radiusKm = (float) $settings->defaultGridRadiusKm;
+            // Whatever size is chosen, the sweep still covers the entire province
+            // and saturated cells still subdivide down to minGridRadiusKm - the
+            // choice sets where the grid STARTS, not how fine it can get.
+            $radiusKm = $request->filled('radiusKm')
+                ? (float) $request->input('radiusKm')
+                : (float) $settings->defaultGridRadiusKm;
 
-            if ($radiusKm <= 0) {
+            if (!in_array($radiusKm, self::RADIUS_OPTIONS, true)) {
                 $radiusKm = self::DEFAULT_RADIUS_KM;
             }
-
-            $radiusKm = min(self::MAX_RADIUS_KM, max((float) $settings->minGridRadiusKm, $radiusKm));
 
             try {
                 $batchId = (new GridScrapeService($settings))
