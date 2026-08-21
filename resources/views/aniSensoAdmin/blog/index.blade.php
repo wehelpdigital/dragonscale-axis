@@ -39,7 +39,14 @@
                                         @if($post->isPublished)<span class="badge bg-success">Published</span>
                                         @else<span class="badge bg-secondary">Draft</span>@endif
                                     </td>
-                                    <td>{{ $post->comments_count }}</td>
+                                    <td>
+                                        @if($post->comments_count)
+                                            <a href="{{ route('anisenso-blog.comments', $post->id) }}" class="badge bg-info text-decoration-none"
+                                               title="Read and moderate the comments">{{ $post->comments_count }}</a>
+                                        @else
+                                            <span class="text-secondary">0</span>
+                                        @endif
+                                    </td>
                                     <td class="text-secondary">{{ $post->publishedAt ? $post->publishedAt->format('M j, Y') : '—' }}</td>
                                     <td class="text-end">
                                         <a href="{{ route('anisenso-blog.edit', $post->id) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>

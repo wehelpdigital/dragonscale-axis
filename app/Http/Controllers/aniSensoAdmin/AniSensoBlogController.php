@@ -4,6 +4,7 @@ namespace App\Http\Controllers\aniSensoAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnisystemUser;
+use App\Models\AsCommunityBlogComment;
 use App\Models\AsCommunityBlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +71,35 @@ class AniSensoBlogController extends Controller
         }
 
         return redirect()->route('anisenso-blog.index')->with('success', 'Article updated.');
+    }
+
+    /**
+     * The conversation under one article.
+     *
+     * Read here rather than on the edit form: editing an article and
+     * moderating what people said about it are two jobs, and the form is long
+     * enough already.
+     */
+    public function comments($id)
+    {
+        $post = AsCommunityBlogPost::active()->where('id', $id)->firstOrFail();
+
+        $comments = AsCommunityBlogComment::active()
+            ->where('blogPostId', $post->id)
+            ->with('author')
+            ->orderByDesc('id')
+            ->paginate(30);
+
+        return view('aniSensoAdmin.blog.comments', compact('post', 'comments'));
+    }
+
+    /** Take a comment down. Reversible in the row, gone from the app. */
+    public function deleteComment($id)
+    {
+        $comment = AsCommunityBlogComment::active()->where('id', $id)->firstOrFail();
+        $comment->update(['deleteStatus' => 0]);
+
+        return response()->json(['success' => true, 'message' => 'Comment removed.']);
     }
 
     public function destroy($id)

@@ -446,6 +446,10 @@ Route::post('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogCo
 Route::get('/anisenso-blog/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'edit'])->whereNumber('id')->name('anisenso-blog.edit')->middleware('auth');
 Route::put('/anisenso-blog/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'update'])->whereNumber('id')->name('anisenso-blog.update')->middleware('auth');
 Route::delete('/anisenso-blog/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'destroy'])->whereNumber('id')->name('anisenso-blog.destroy')->middleware('auth');
+// The conversation under an article — the one community surface that could be
+// written to from here and not moderated from here.
+Route::get('/anisenso-blog/{id}/comments', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'comments'])->whereNumber('id')->name('anisenso-blog.comments')->middleware('auth');
+Route::delete('/anisenso-blog-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-blog.comments.delete')->middleware('auth');
 Route::get('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'index'])->name('anisenso-tutorials.index')->middleware('auth');
 Route::get('/anisenso-tutorials/create', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'create'])->name('anisenso-tutorials.create')->middleware('auth');
 Route::post('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'store'])->name('anisenso-tutorials.store')->middleware('auth');
