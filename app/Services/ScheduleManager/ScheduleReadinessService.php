@@ -1,0 +1,183 @@
+<?php
+
+namespace App\Services\ScheduleManager;
+
+use App\Models\AsCroppingSchedule;
+
+/**
+ * Works out what is still missing from a cropping schedule so the client can
+ * be nudged about it — no day 0 anchored, no lots, no workers, activities with
+ * no lot, and so on.
+ *
+ * Each check returns:
+ *   key      stable identifier (used by the UI to key rows)
+ *   label    short statement of what is missing
+ *   detail   why it matters / what to do
+ *   module   which module fixes it (matches the SPA module keys)
+ *   severity 'blocking' — the plan does not really work without it
+ *            'advice'   — worth doing, but the plan still functions
+ */
+class ScheduleReadinessService
+{
+    /**
+     * @return array{count:int, blocking:int, items:array<int, array<string, string>>}
+     */
+    public function check(AsCroppingSchedule $schedule): array
+    {
+        $items = [];
+
+        $lots = $schedule->lots;
+        $activities = $schedule->activities;
+        $dayType = $schedule->dayType ?: 'DAS';
+
+        // ---- What is planted ------------------------------------------
+        // The crop lives on the lot now: one farm can have corn on the upper
+        // block and rice in the paddy, and it is the lot's crop that decides
+        // which growth stages a day is read against.
+        $cropless = $lots->filter(fn ($l) => blank($l->crop));
+        if ($lots->isNotEmpty() && $cropless->isNotEmpty()) {
+            $items[] = [
+                'key' => 'lot-crop',
+                'label' => $cropless->count() === $lots->count()
+                    ? 'No crop set on any lot'
+                    : $cropless->count() . ' ' . ($cropless->count() === 1 ? 'lot has' : 'lots have') . ' no crop set',
+                'detail' => 'Set what each lot is growing and the board can say what stage it is in, and what it needs, on any day.',
+                'module' => 'lots',
+                'severity' => 'advice',
+            ];
+        }
+
+        // ---- Lots -----------------------------------------------------
+        if ($lots->isEmpty()) {
+            $items[] = [
+                'key' => 'no-lots',
+                'label' => 'No lots added',
+                'detail' => 'Activities are planned per lot. Add at least one field or plot to plan against.',
+                'module' => 'lots',
+                'severity' => 'blocking',
+            ];
+        } else {
+            // A lot is anchored either by its own dayZeroDate or by the
+            // earliest activity flagged as day zero that covers it.
+            $anchored = [];
+            foreach ($lots as $lot) {
+                if ($lot->dayZeroDate) {
+                    $anchored[$lot->id] = true;
+                }
+            }
+            foreach ($activities as $activity) {
+                if (! $activity->isDayZero || ! $activity->targetDate) {
+                    continue;
+                }
+                foreach ($activity->lots as $lot) {
+                    $anchored[$lot->id] = true;
+                }
+            }
+
+            $missing = $lots->reject(fn ($lot) => isset($anchored[$lot->id]));
+            if ($missing->count() === $lots->count()) {
+                $items[] = [
+                    'key' => 'no-day-zero',
+                    'label' => "No {$dayType} 0 anchored",
+                    // Lands where the fix is made. The message names the
+                    // activity first, so sending the tap to Lots left people
+                    // looking for a tick box that is not there.
+                    'detail' => "Nothing is counting days yet. Add the sowing activity and tick \"this is day zero\" on it — or set a day-0 date on the lot in Lots — and every card gets its {$dayType} number.",
+                    'module' => 'activities',
+                    'severity' => 'blocking',
+                ];
+            } elseif ($missing->isNotEmpty()) {
+                $names = $missing->pluck('lotName')->filter()->take(3)->implode(', ');
+                $items[] = [
+                    'key' => 'partial-day-zero',
+                    'label' => $missing->count() === 1
+                        ? "1 lot has no {$dayType} 0"
+                        : "{$missing->count()} lots have no {$dayType} 0",
+                    'detail' => trim($names) !== ''
+                        ? "{$names} will not show day numbers until a day 0 is set — tick \"this is day zero\" on an activity that covers them, or give the lot a day-0 date."
+                        : "Some lots will not show day numbers until a day 0 is set — tick \"this is day zero\" on an activity that covers them, or give the lot a day-0 date.",
+                    'module' => 'activities',
+                    'severity' => 'advice',
+                ];
+            }
+        }
+
+        // ---- Activities -----------------------------------------------
+        if ($activities->isEmpty()) {
+            $items[] = [
+                'key' => 'no-activities',
+                'label' => 'No activities yet',
+                'detail' => 'This is where the season actually gets planned. Add the first activity to get going.',
+                'module' => 'activities',
+                'severity' => 'blocking',
+            ];
+        } else {
+            $noDate = $activities->filter(fn ($a) => blank($a->targetDate));
+            if ($noDate->isNotEmpty()) {
+                $items[] = [
+                    'key' => 'activities-no-date',
+                    'label' => $noDate->count() === 1
+                        ? '1 activity has no date'
+                        : "{$noDate->count()} activities have no date",
+                    'detail' => 'They sit under "No date" and will not appear anywhere in the timeline.',
+                    'module' => 'activities',
+                    'severity' => 'blocking',
+                ];
+            }
+
+            // A worker checklist is about who turned up, not which field, so
+            // having no lot is its normal state rather than something missing.
+            $noLot = $activities
+                // Neither a payroll day nor a list of errands belongs to a
+                // patch of ground, so neither is missing anything.
+                ->reject(fn ($a) => in_array($a->activityType, ['worker_payroll', 'reminder_checklist'], true))
+                ->filter(fn ($a) => $a->lots->isEmpty());
+            if ($noLot->isNotEmpty()) {
+                $items[] = [
+                    'key' => 'activities-no-lot',
+                    'label' => $noLot->count() === 1
+                        ? '1 activity has no lot'
+                        : "{$noLot->count()} activities have no lot",
+                    'detail' => "Without a lot an activity cannot show a {$dayType} number or be costed per field.",
+                    'module' => 'activities',
+                    'severity' => 'advice',
+                ];
+            }
+        }
+
+        // ---- Resources -------------------------------------------------
+        foreach ([
+            ['workers', 'No workers added', 'Labour cost and the workload summary stay empty until workers exist.', 'workers'],
+        ] as [$relation, $label, $detail, $module]) {
+            if ($schedule->{$relation}->isEmpty()) {
+                $items[] = [
+                    'key' => "no-{$relation}",
+                    'label' => $label,
+                    'detail' => $detail,
+                    'module' => $module,
+                    'severity' => 'advice',
+                ];
+            }
+        }
+
+        // ---- Drafts left behind ----------------------------------------
+        $drafts = $schedule->drafts;
+        if ($drafts->isNotEmpty()) {
+            $items[] = [
+                'key' => 'unpublished-drafts',
+                'label' => $drafts->count() === 1
+                    ? '1 activity still in drafts'
+                    : "{$drafts->count()} activities still in drafts",
+                'detail' => 'Drafts are hidden from the timeline. Restore them when they are ready.',
+                'module' => 'activities',
+                'severity' => 'advice',
+            ];
+        }
+
+        return [
+            'count' => count($items),
+            'blocking' => count(array_filter($items, fn ($i) => $i['severity'] === 'blocking')),
+            'items' => $items,
+        ];
+    }
+}

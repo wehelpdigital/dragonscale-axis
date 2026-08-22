@@ -73,6 +73,79 @@
     }
     @media (prefers-reduced-motion: reduce) { #activitiesList .rest-day-marker { transition: none; } }
 
+    /* ---- Tools menu (mirrors the client app's Tools hamburger) ----
+       The board grew more controls than a single row can hold, so the ones
+       that are read rather than pressed live behind one button, in the same
+       order the client app lists them. The buttons keep their ids: the
+       handlers bind by id and never knew where they were drawn. */
+    .sm-tools-menu { min-width: 274px; padding: .3rem 0; }
+    .sm-tools-menu .dropdown-item {
+        display: flex; align-items: center; gap: .55rem;
+        font-size: 13px; padding: .42rem .9rem;
+    }
+    .sm-tools-menu .dropdown-item .bx { font-size: 16px; color: #6b7a90; }
+    .sm-tools-menu .dropdown-item.active,
+    .sm-tools-menu .dropdown-item.active .bx { background: #eef2ff; color: #2c3e8c; }
+    .sm-tools-menu .tools-state { margin-left: auto; font-size: 10.5px; font-weight: 600; color: #98a4b6; }
+    .sm-tools-menu .dropdown-item.active .tools-state { color: #2c3e8c; }
+    .sm-tools-menu .dropdown-header {
+        font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+        color: #8a94a6; padding: .5rem .9rem .25rem;
+    }
+
+    /* ---- Notice / Growth / Weather panels ----
+       Read-only readings of data that already exists. Styled here rather than
+       in the theme because nothing else in this admin looks like them. */
+    .notice-row { display:flex; gap:.7rem; padding:.7rem .2rem; border-bottom:1px solid #eef0f4; }
+    .notice-row:last-child { border-bottom:0; }
+    .notice-dot { width:9px; height:9px; border-radius:50%; margin-top:.42rem; flex:0 0 auto; background:#f4a82a; }
+    .notice-row.is-blocking .notice-dot { background:#f46a6a; }
+    .notice-label { font-weight:600; color:#343a40; font-size:13.5px; }
+    .notice-detail { font-size:12.5px; color:#74788d; margin-top:.15rem; }
+    .notice-where { font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:#98a4b6; margin-top:.25rem; }
+
+    .gs-lot { border:1px solid #e6e8ec; border-radius:10px; padding:.85rem 1rem; margin-bottom:.7rem; }
+    .gs-head { display:flex; align-items:center; gap:.6rem; }
+    .gs-emoji { font-size:22px; line-height:1; }
+    .gs-lotname { font-weight:600; color:#343a40; }
+    .gs-day { display:block; font-size:12px; color:#74788d; }
+    .gs-now { font-weight:600; color:#2c3e8c; margin-top:.55rem; }
+    .gs-what { font-size:13px; color:#495057; margin-top:.15rem; }
+    .gs-needs { font-size:13px; color:#495057; margin-top:.45rem; background:#f6f8fb; border-radius:8px; padding:.5rem .65rem; }
+    .gs-needs b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#8a94a6; margin-bottom:.15rem; }
+    .gs-bar { height:6px; border-radius:99px; background:#eef1f6; margin-top:.6rem; overflow:hidden; }
+    .gs-bar span { display:block; height:100%; background:#34c38f; border-radius:99px;
+                   transition:width .28s cubic-bezier(.22,1,.36,1); }
+    .gs-next { font-size:12px; color:#74788d; margin-top:.4rem; }
+    .gs-steps { margin-top:.65rem; border-top:1px dashed #e6e8ec; padding-top:.55rem; }
+    .gs-step { display:flex; align-items:center; gap:.5rem; font-size:12.5px; color:#98a4b6; padding:.12rem 0; }
+    .gs-step .gs-sdot { width:7px; height:7px; border-radius:50%; background:#dfe3e9; flex:0 0 auto; }
+    .gs-step.is-past { color:#74788d; }
+    .gs-step.is-past .gs-sdot { background:#c3cbd6; }
+    .gs-step.is-now { color:#2c3e8c; font-weight:600; }
+    .gs-step.is-now .gs-sdot { background:#556ee6; box-shadow:0 0 0 3px rgba(85,110,230,.18); }
+    .gs-when { margin-left:auto; font-size:11px; color:#98a4b6; }
+
+    .wx-place { border:1px solid #e6e8ec; border-radius:10px; padding:.85rem 1rem; margin-bottom:.7rem; }
+    .wx-days { display:flex; gap:.5rem; overflow-x:auto; padding-top:.6rem; }
+    .wx-day { flex:0 0 auto; min-width:86px; text-align:center; border-radius:10px; padding:.55rem .4rem; background:#f6f8fb; }
+    .wx-day.is-today { background:#eef2ff; }
+    .wx-dow { font-size:11px; font-weight:600; color:#74788d; text-transform:uppercase; letter-spacing:.03em; }
+    .wx-emoji { font-size:22px; line-height:1.4; }
+    .wx-temp { font-size:12.5px; color:#343a40; font-weight:600; }
+    .wx-pop { font-size:11px; color:#556ee6; }
+    .wx-text { font-size:10.5px; color:#98a4b6; }
+
+    .share-social { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .share-social .btn { flex:1 1 130px; }
+
+    /* ---- Putting finished work away (mirrors the client app) ----
+       Two separate questions: hide the cards that are ticked, and hide whole
+       days where nothing is left to do. Both are per-schedule localStorage,
+       like every other view switch on this tab. */
+    #activitiesList.hide-done-activities .activity-card.is-done { display: none; }
+    #activitiesList.hide-done-days .date-group.is-all-done { display: none; }
+
     /* ---- Done checkmark (mirrors the client app's big checkbox) ----
        Same isDone column the farmer app writes, so both stay in step. */
     .done-check {
@@ -182,30 +255,113 @@
         <h5 class="text-dark mb-1">Activities @if($activeVersion)<small class="text-secondary" style="font-size:13px;font-weight:500;">— {{ $activeVersion->versionName }}</small>@endif</h5>
         <small class="text-secondary">Manually-designed farm tasks. Each activity has a specific calendar date and the lots it applies to.</small>
     </div>
-    <div class="d-flex gap-2 flex-wrap">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
         <button type="button" class="btn btn-outline-warning btn-sm" id="activityUndoBtn" title="Undo last action (Ctrl+Z) — up to 10 steps" disabled>
             <i class="bx bx-undo me-1"></i> <span id="activityUndoLabel">Undo</span> <span class="badge bg-light text-dark ms-1" id="activityUndoCount" style="display:none;font-weight:500;"></span>
         </button>
         <button type="button" class="btn btn-outline-warning btn-sm" id="activityRedoBtn" title="Redo (Ctrl+Shift+Z)" disabled>
             <i class="bx bx-redo me-1"></i> <span id="activityRedoLabel">Redo</span> <span class="badge bg-light text-dark ms-1" id="activityRedoCount" style="display:none;font-weight:500;"></span>
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="collapseAllDaysBtn" title="Collapse all days">
-            <i class="bx bx-chevrons-up"></i>
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="expandAllDaysBtn" title="Expand all days">
-            <i class="bx bx-chevrons-down"></i>
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="todayTomorrowBtn" title="Jump to today &amp; tomorrow">
-            <i class="bx bx-calendar-event me-1"></i> Today &amp; Tomorrow
-        </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleEmptyDaysBtn" title="Hide or show the &quot;No activities scheduled&quot; days">
-            <i class="bx bx-moon me-1"></i> <span id="toggleEmptyDaysLabel">Hide empty days</span>
-        </button>
+
+        {{-- Tools — the same hamburger the client app carries, holding the
+             same things in the same order. The buttons kept their ids when
+             they moved in here: every handler binds by id, and none of them
+             ever knew where the button was drawn. --}}
         @php $draftsCount = $schedule->drafts->count(); @endphp
-        <button type="button" class="btn btn-outline-info btn-sm" id="openDraftsModalBtn" title="View activities you've moved to drafts">
-            <i class="bx bx-archive me-1"></i> Drafts
-            <span class="badge bg-info text-white ms-1" id="draftsBadge" @if($draftsCount === 0) style="display:none;" @endif>{{ $draftsCount }}</span>
-        </button>
+        <div class="dropdown">
+            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" id="activityToolsBtn"
+                    data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                    title="Everything else this board can do">
+                <i class="bx bx-menu me-1"></i> Tools
+                <span class="badge bg-danger ms-1" id="activityToolsAlert" style="display:none;font-weight:600;">0</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end sm-tools-menu">
+                <li><h6 class="dropdown-header">What the board shows</h6></li>
+                <li><button class="dropdown-item" type="button" id="toggleDoneActivitiesBtn"
+                            title="Put the ticked activities away — the client's own board is untouched">
+                    <i class="bx bx-check-circle"></i> <span id="toggleDoneActivitiesLabel">Hide completed activities</span>
+                    <span class="tools-state" id="toggleDoneActivitiesState">off</span>
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="toggleDoneDaysBtn"
+                            title="Hide whole days where every activity is already done">
+                    <i class="bx bx-calendar-check"></i> <span id="toggleDoneDaysLabel">Hide finished days</span>
+                    <span class="tools-state" id="toggleDoneDaysState">off</span>
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="toggleEmptyDaysBtn"
+                            title="Hide or show the &quot;No activities scheduled&quot; days">
+                    <i class="bx bx-moon"></i> <span id="toggleEmptyDaysLabel">Hide empty days</span>
+                    <span class="tools-state" id="toggleEmptyDaysState">off</span>
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="toggleHiddenActivitiesBtn" style="display:none;"
+                            title="Activities the farmer has hidden from their own board">
+                    <i class="bx bx-hide"></i> <span class="cv-hidden-toggle-label">Show hidden</span>
+                    <span class="tools-state">(<span id="hiddenActivityCount">0</span>)</span>
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="activityFocusSearchBtn">
+                    <i class="bx bx-search"></i> Search &amp; filters
+                    <span class="tools-state" id="activityFilterState" style="display:none;">on</span>
+                </button></li>
+
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Move around</h6></li>
+                <li><button class="dropdown-item" type="button" id="todayTomorrowBtn">
+                    <i class="bx bx-calendar-event"></i> Today &amp; tomorrow
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="collapseAllDaysBtn">
+                    <i class="bx bx-chevrons-up"></i> Collapse all days
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="expandAllDaysBtn">
+                    <i class="bx bx-chevrons-down"></i> Expand all days
+                </button></li>
+
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Read the season</h6></li>
+                <li><button class="dropdown-item" type="button" id="scheduleNoticeBtn"
+                            title="What is still missing from this plan">
+                    <i class="bx bx-bell"></i> Notice
+                    <span class="tools-state" id="scheduleNoticeState"></span>
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="growthStageBtn"
+                            title="What each lot's crop is doing today">
+                    <i class="bx bx-leaf"></i> Growth stage
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="scheduleWeatherBtn"
+                            title="The forecast for each lot's own location">
+                    <i class="bx bx-cloud"></i> Weather
+                </button></li>
+                <li><button class="dropdown-item" type="button" id="openDraftsModalBtn"
+                            title="Activities moved to drafts">
+                    <i class="bx bx-archive"></i> Drafts
+                    <span class="tools-state"><span class="badge bg-info text-white" id="draftsBadge" @if($draftsCount === 0) style="display:none;" @endif>{{ $draftsCount }}</span></span>
+                </button></li>
+
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header">Hand it on</h6></li>
+                <li><button class="dropdown-item" type="button" id="quickShareBtn"
+                            title="The client's own share link for this plan">
+                    <i class="bx bx-share-alt"></i> Share this plan
+                </button></li>
+                <li><button class="dropdown-item js-tools-forward" type="button" data-forward="#openExportScheduleBtn">
+                    <i class="bx bx-file-blank"></i> Export schedule
+                </button></li>
+                <li><button class="dropdown-item js-tools-forward" type="button" data-forward="#openWorkerPresentationBtn">
+                    <i class="bx bx-book-open"></i> Worker presentation
+                </button></li>
+                <li><button class="dropdown-item js-tools-forward" type="button" data-forward="#openCardViewerBtn">
+                    <i class="bx bx-slideshow"></i> Card viewer
+                </button></li>
+                <li><button class="dropdown-item js-tools-forward" type="button" data-forward="#openLaborSummaryBtn">
+                    <i class="bx bx-money"></i> Labor expenses
+                </button></li>
+                <li><a class="dropdown-item" href="{{ route('anisenso-schedule-manager.calendar', ['scheduleId' => $schedule->id]) }}">
+                    <i class="bx bx-calendar"></i> Calendar
+                </a></li>
+                <li><a class="dropdown-item" href="{{ route('anisenso-schedule-manager.reports', ['scheduleId' => $schedule->id]) }}">
+                    <i class="bx bx-bar-chart-alt-2"></i> Reports
+                </a></li>
+            </ul>
+        </div>
+
         <button type="button" class="btn btn-primary btn-sm" id="addActivityBtn">
             <i class="bx bx-plus me-1"></i> Add Activity
         </button>
@@ -229,16 +385,8 @@
     <small class="text-secondary" id="activitySearchHint" style="display:none;">
         Showing <strong id="activitySearchCount">0</strong> matching activities.
     </small>
-    {{-- Show/hide toggle for activities the user has marked as hidden
-         via the per-card switch. Defaults to hidden (matches user
-         expectation: hidden = gone from the tab). Button is rendered
-         hidden and surfaced by JS only when there's at least one
-         hidden activity to reveal. --}}
-    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="toggleHiddenActivitiesBtn" style="display:none;" title="Toggle visibility of hidden activities">
-        <i class="bx bx-hide me-1"></i>
-        <span class="cv-hidden-toggle-label">Show Hidden</span>
-        (<span id="hiddenActivityCount">0</span>)
-    </button>
+    {{-- The show-hidden pill now lives in the Tools menu, beside the other
+         questions about what the board is showing. --}}
 </div>
 
 {{-- Activity type filter — toggle chips. Tap one (or more) to narrow the
@@ -1824,6 +1972,126 @@
                 <button type="button" class="btn btn-primary" id="saveRenameVersionBtn">
                     <i class="bx bx-save me-1"></i> Save Changes
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{-- ============================ NOTICE ============================
+     The client's own readiness bell, read from this side. Same checks, same
+     wording, so a farmer asking "what is it complaining about?" and the admin
+     answering are looking at one list. --}}
+<div class="modal fade" id="scheduleNoticeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0"><i class="bx bx-bell me-1"></i> Notice</h5>
+                    <small class="text-secondary">What is still missing from this plan</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="scheduleNoticeBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" id="scheduleNoticeReload"><i class="bx bx-refresh"></i> Check again</button>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================ GROWTH STAGE ============================
+     A season counts days; a grower reads what those days mean for the plant.
+     The tables are the same ones the client app carries — one catalogue,
+     shared through the codebase, not copied per screen. --}}
+<div class="modal fade" id="growthStageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0"><i class="bx bx-leaf me-1"></i> Growth stage</h5>
+                    <small class="text-secondary" id="growthStageWhen">every lot</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                    <label class="form-label mb-0 text-secondary" for="growthStageDate" style="font-size:12.5px;">Read the farm on</label>
+                    <input type="date" class="form-control form-control-sm" id="growthStageDate" style="max-width:190px;">
+                    <button type="button" class="btn btn-light btn-sm" id="growthStageToday">Today</button>
+                </div>
+                <div id="growthStageBody"></div>
+                <small class="text-secondary d-block mt-3">
+                    Common field guidance, not a prescription — the same note the farmer sees.
+                    Stages are read from each lot's crop and its own day-0, so a lot with no crop
+                    or no anchor is named rather than guessed at.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================ WEATHER ============================
+     Per lot, because a farm is not a point: two fields an hour apart get
+     different rain. Identical addresses are resolved once. --}}
+<div class="modal fade" id="scheduleWeatherModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0"><i class="bx bx-cloud me-1"></i> Weather</h5>
+                    <small class="text-secondary">Six days over each lot's own location</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="scheduleWeatherBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light btn-sm" id="scheduleWeatherReload"><i class="bx bx-refresh"></i> Refresh</button>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================ SHARE ============================
+     The client's own public link — the same address their Quick Share sheet
+     hands out. A plan that has never been shared has no link yet; minting one
+     is a deliberate press, not something opening this panel does. --}}
+<div class="modal fade" id="quickShareModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0"><i class="bx bx-share-alt me-1"></i> Share this plan</h5>
+                    <small class="text-secondary">Anyone with the link can read it — no login</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="quickShareHas" style="display:none;">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="quickShareLink" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="quickShareCopy" title="Copy the link">
+                            <i class="bx bx-copy"></i>
+                        </button>
+                    </div>
+                    <div class="share-social">
+                        <a class="btn btn-outline-primary btn-sm" id="quickShareFb" target="_blank" rel="noopener"><i class="bx bxl-facebook me-1"></i> Facebook</a>
+                        <a class="btn btn-outline-success btn-sm" id="quickShareWa" target="_blank" rel="noopener"><i class="bx bxl-whatsapp me-1"></i> WhatsApp</a>
+                        <a class="btn btn-outline-secondary btn-sm" id="quickShareEmail"><i class="bx bx-envelope me-1"></i> Email</a>
+                    </div>
+                </div>
+                <div id="quickShareNone" style="display:none;">
+                    <p class="text-secondary mb-3">
+                        This plan has never been shared, so it has no link yet. Creating one makes it
+                        readable by anyone who is given the address.
+                    </p>
+                    <button type="button" class="btn btn-primary btn-sm" id="quickShareCreate">
+                        <i class="bx bx-link me-1"></i> Create a share link
+                    </button>
+                </div>
+                <div id="quickShareLoading" class="text-center py-3"><i class="bx bx-loader-alt bx-spin fs-4 text-secondary"></i></div>
             </div>
         </div>
     </div>

@@ -14,7 +14,7 @@
             <tr>
                 <th>Lot Name</th>
                 <th>Size</th>
-                <th>Variety</th>
+                <th>Crop &amp; place</th>
                 <th>Notes</th>
                 <th class="text-end" style="width: 160px;">Actions</th>
             </tr>
@@ -40,12 +40,24 @@
                     </td>
                     <td class="text-dark"><span data-field="lotSize">{{ rtrim(rtrim($lot->lotSize, '0'), '.') }}</span> <small class="text-secondary" data-field="lotSizeUnit">{{ $lot->lotSizeUnit }}</small></td>
                     <td>
+                        @php $cropInfo = \App\Support\CropStages::CROPS[$lot->crop] ?? null; @endphp
+                        @if($cropInfo)
+                            <span class="badge bg-primary-subtle text-primary" data-field="crop" style="font-weight:500;font-size:11px;">
+                                {{ $cropInfo['icon'] }} {{ $cropInfo['label'] }}
+                            </span>
+                        @endif
                         @if(!empty($lot->variety))
                             <span class="badge bg-success-subtle text-success" data-field="variety" style="font-weight:500;font-size:11px;">
                                 <i class="bx bx-leaf me-1"></i>{{ $lot->variety }}
                             </span>
-                        @else
+                        @endif
+                        @if(!$cropInfo && empty($lot->variety))
                             <small class="text-secondary" data-field="variety">—</small>
+                        @endif
+                        @if($lot->full_address)
+                            <small class="text-secondary d-block mt-1" data-field="location" style="font-size:11px;">
+                                <i class="bx bx-map-pin"></i> {{ $lot->full_address }}
+                            </small>
                         @endif
                     </td>
                     <td><small class="text-secondary" data-field="notes">{{ $lot->notes }}</small></td>
@@ -56,6 +68,12 @@
                                 data-size="{{ $lot->lotSize }}"
                                 data-unit="{{ $lot->lotSizeUnit }}"
                                 data-variety="{{ $lot->variety }}"
+                                data-crop="{{ $lot->crop }}"
+                                data-day-type="{{ $lot->dayType ?: 'DAT' }}"
+                                data-loc-barangay="{{ $lot->locBarangay }}"
+                                data-loc-zone="{{ $lot->locZone }}"
+                                data-loc-town="{{ $lot->locTown }}"
+                                data-loc-province="{{ $lot->locProvince }}"
                                 data-day-zero-date="{{ $lot->dayZeroDate ? \Illuminate\Support\Carbon::parse($lot->dayZeroDate)->format('Y-m-d') : '' }}"
                                 data-transplant-date="{{ $lot->transplantDate ? \Illuminate\Support\Carbon::parse($lot->transplantDate)->format('Y-m-d') : '' }}"
                                 data-notes="{{ $lot->notes }}"><i class="bx bx-edit-alt"></i></button>
@@ -96,6 +114,63 @@
                             <option value="acre">Acre</option>
                         </select>
                     </div>
+                </div>
+                {{-- What is planted here. The growth stages are read against
+                     this and nothing else, which is why an empty crop makes a
+                     lot say "no crop set" rather than guessing rice. --}}
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-leaf me-1 text-success"></i>
+                        Crop
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <select class="form-select" id="lotCrop">
+                        <option value="">— not set —</option>
+                        @foreach(\App\Support\CropStages::CROPS as $cropKey => $cropInfo)
+                            <option value="{{ $cropKey }}">{{ $cropInfo['icon'] }} {{ $cropInfo['label'] }}</option>
+                        @endforeach
+                    </select>
+                    <small class="text-secondary">
+                        Decides which stage table the lot's day number is read against — the
+                        same catalogue the farmer's Growth Stages module uses.
+                    </small>
+                </div>
+                {{-- How this lot counts its days. The lot answers, not the crop:
+                     the same rice is a different calendar depending on how the
+                     field was established. --}}
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-calculator me-1 text-info"></i>
+                        How its days are counted
+                    </label>
+                    <select class="form-select" id="lotDayType">
+                        <option value="DAT">DAS then DAT — sown, then transplanted</option>
+                        <option value="DAS">DAS only — direct seeded, never transplanted</option>
+                        <option value="DAP">DAP — planted (corn, vegetables, trees)</option>
+                    </select>
+                    <small class="text-secondary">
+                        A sown-then-transplanted lot starts a fresh DAT count on its transplant
+                        date. A direct-seeded lot keeps one count all season.
+                    </small>
+                </div>
+                {{-- Where the field actually is. Town and province are what the
+                     forecast is looked up by; barangay and zone are for reading. --}}
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-map-pin me-1 text-danger"></i>
+                        Where it is
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <div class="row g-2">
+                        <div class="col-md-6"><input type="text" class="form-control" id="lotLocBarangay" maxlength="255" placeholder="Barangay"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" id="lotLocZone" maxlength="255" placeholder="Zone / purok"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" id="lotLocTown" maxlength="255" placeholder="Town / city"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" id="lotLocProvince" maxlength="255" placeholder="Province"></div>
+                    </div>
+                    <small class="text-secondary">
+                        Town and province are what the weather is looked up by — without them
+                        this lot has no forecast.
+                    </small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-dark">

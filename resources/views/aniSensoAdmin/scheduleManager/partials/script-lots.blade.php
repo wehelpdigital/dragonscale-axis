@@ -1,4 +1,8 @@
 // ---------- LOTS ----------
+
+// The crop catalogue, from the same const the growth stages read — so a
+// crop added there appears here without a second list being edited.
+const CROP_CATALOGUE = @json(collect(\App\Support\CropStages::CROPS)->map(fn ($c) => ['label' => $c['label'], 'icon' => $c['icon']]));
 function trimZero(n) {
     const v = String(n ?? '0');
     return v.indexOf('.') >= 0 ? v.replace(/0+$/, '').replace(/\.$/, '') : v;
@@ -30,11 +34,32 @@ function renderLotRow(lot) {
         </span>`;
     }
     const variety = (lot.variety || '').trim();
-    const varietyCell = variety
-        ? `<span class="badge bg-success-subtle text-success" data-field="variety" style="font-weight:500;font-size:11px;">
+    // Crop, variety and place — the same three the server-rendered row shows,
+    // because a row that changes shape after a save reads as a bug.
+    const cropInfo = CROP_CATALOGUE[(lot.crop || '').trim()] || null;
+    const address = [
+        lot.locBarangay ? 'Brgy. ' + String(lot.locBarangay).trim() : '',
+        lot.locZone ? 'Zone ' + String(lot.locZone).trim() : '',
+        (lot.locTown || '').trim(),
+        (lot.locProvince || '').trim(),
+    ].filter(Boolean).join(', ');
+    let varietyCell = '';
+    if (cropInfo) {
+        varietyCell += `<span class="badge bg-primary-subtle text-primary" data-field="crop" style="font-weight:500;font-size:11px;">
+               ${cropInfo.icon} ${escapeHtml(cropInfo.label)}
+           </span> `;
+    }
+    if (variety) {
+        varietyCell += `<span class="badge bg-success-subtle text-success" data-field="variety" style="font-weight:500;font-size:11px;">
                <i class="bx bx-leaf me-1"></i>${escapeHtml(variety)}
-           </span>`
-        : `<small class="text-secondary" data-field="variety">—</small>`;
+           </span>`;
+    }
+    if (!cropInfo && !variety) varietyCell = `<small class="text-secondary" data-field="variety">—</small>`;
+    if (address) {
+        varietyCell += `<small class="text-secondary d-block mt-1" data-field="location" style="font-size:11px;">
+               <i class="bx bx-map-pin"></i> ${escapeHtml(address)}
+           </small>`;
+    }
     return `<tr data-id="${lot.id}">
         <td class="text-dark">
             <strong data-field="lotName">${escapeHtml(lot.lotName)}</strong>
@@ -51,6 +76,12 @@ function renderLotRow(lot) {
                     data-size="${lot.lotSize}"
                     data-unit="${escapeHtml(lot.lotSizeUnit)}"
                     data-variety="${escapeHtml(variety)}"
+                    data-crop="${escapeHtml(lot.crop || '')}"
+                    data-day-type="${escapeHtml(lot.dayType || 'DAT')}"
+                    data-loc-barangay="${escapeHtml(lot.locBarangay || '')}"
+                    data-loc-zone="${escapeHtml(lot.locZone || '')}"
+                    data-loc-town="${escapeHtml(lot.locTown || '')}"
+                    data-loc-province="${escapeHtml(lot.locProvince || '')}"
                     data-day-zero-date="${escapeHtml(d0)}"
                     data-transplant-date="${escapeHtml(tp)}"
                     data-notes="${escapeHtml(lot.notes || '')}"><i class="bx bx-edit-alt"></i></button>
@@ -66,6 +97,12 @@ $('#addLotBtn').on('click', function () {
     $('#lotSize').val('');
     $('#lotSizeUnit').val('hectare');
     $('#lotVariety').val('');
+    $('#lotCrop').val('');
+    $('#lotDayType').val('DAT');
+    $('#lotLocBarangay').val('');
+    $('#lotLocZone').val('');
+    $('#lotLocTown').val('');
+    $('#lotLocProvince').val('');
     $('#lotDayZeroDate').val('');
     $('#lotTransplantDate').val('');
     $('#lotNotes').val('');
@@ -78,6 +115,12 @@ $(document).on('click', '.edit-lot-btn', function () {
     $('#lotSize').val($(this).data('size'));
     $('#lotSizeUnit').val($(this).data('unit'));
     $('#lotVariety').val($(this).data('variety') || '');
+    $('#lotCrop').val($(this).data('crop') || '');
+    $('#lotDayType').val($(this).data('day-type') || 'DAT');
+    $('#lotLocBarangay').val($(this).data('loc-barangay') || '');
+    $('#lotLocZone').val($(this).data('loc-zone') || '');
+    $('#lotLocTown').val($(this).data('loc-town') || '');
+    $('#lotLocProvince').val($(this).data('loc-province') || '');
     $('#lotDayZeroDate').val(($(this).data('day-zero-date') || '').toString().slice(0, 10));
     $('#lotTransplantDate').val(($(this).data('transplant-date') || '').toString().slice(0, 10));
     $('#lotNotes').val($(this).data('notes'));
@@ -102,6 +145,12 @@ $('#saveLotBtn').on('click', function () {
         lotSize: $('#lotSize').val(),
         lotSizeUnit: $('#lotSizeUnit').val(),
         variety: ($('#lotVariety').val() || '').trim(),
+        crop: $('#lotCrop').val() || '',
+        dayType: $('#lotDayType').val() || 'DAT',
+        locBarangay: ($('#lotLocBarangay').val() || '').trim(),
+        locZone: ($('#lotLocZone').val() || '').trim(),
+        locTown: ($('#lotLocTown').val() || '').trim(),
+        locProvince: ($('#lotLocProvince').val() || '').trim(),
         dayZeroDate: dayZero || null,
         transplantDate: transplant || null,
         notes: $('#lotNotes').val()

@@ -1035,6 +1035,14 @@ const URLS = {
     irrigationsDelete: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-delete${Q}&id=${id}`,
     irrigationsDuplicate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-duplicate${Q}&id=${id}`,
     irrigationsReorder:   () => `${ROOT}/anisenso-schedule-manager-irrigations-reorder${Q}`,
+
+    // Readings rather than writes: what is missing, what the crop is doing,
+    // what the sky is about to do over each lot.
+    scheduleNotice:   () => `${ROOT}/anisenso-schedule-manager-notice${Q}`,
+    scheduleGrowth:   (date) => `${ROOT}/anisenso-schedule-manager-growth${Q}` + (date ? `&date=${date}` : ''),
+    scheduleWeather:  () => `${ROOT}/anisenso-schedule-manager-weather${Q}`,
+    scheduleShare:       () => `${ROOT}/anisenso-schedule-manager-share${Q}`,
+    scheduleShareCreate: () => `${ROOT}/anisenso-schedule-manager-share-create${Q}`,
 };
 
 function escapeHtml(s) {

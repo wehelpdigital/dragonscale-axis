@@ -1613,6 +1613,7 @@ function reorderAndRenumberActivities() {
     // this function also runs during initial handler wiring).
     if (window.applyDateCollapseState) window.applyDateCollapseState();
     if (window.applyHideEmptyDays) window.applyHideEmptyDays();
+    if (window.applyDoneVisibility) window.applyDoneVisibility();
 }
 
 // Build the marker DOM. Mirrors the server-rendered output in activities.blade.php.
@@ -2536,7 +2537,7 @@ function refreshHiddenActivityCount() {
     $hiddenCountEl.text(n);
     // Only surface the toggle button when there's something to surface.
     if (n > 0) {
-        $hiddenToggleBtn.show();
+        $hiddenToggleBtn.css('display', 'flex');
     } else {
         $hiddenToggleBtn.hide();
         // If user happens to be in "show hidden" mode but nothing is
@@ -2550,8 +2551,8 @@ function refreshHiddenActivityCount() {
 
 function applyHiddenActivitiesVisibility(show) {
     document.body.classList.toggle('show-hidden-activities', show);
-    $hiddenToggleLbl.text(show ? 'Hide Hidden' : 'Show Hidden');
-    $hiddenToggleBtn.toggleClass('btn-secondary', show).toggleClass('btn-outline-secondary', !show);
+    $hiddenToggleLbl.text(show ? 'Hide hidden' : 'Show hidden');
+    $hiddenToggleBtn.toggleClass('active', show);
     $hiddenToggleBtn.attr('aria-pressed', show ? 'true' : 'false');
 }
 
@@ -2645,10 +2646,9 @@ const HIDE_EMPTY_DAYS_KEY = 'hideEmptyDays:{{ $schedule->id }}';
 window.applyHideEmptyDays = function () {
     const on = localStorage.getItem(HIDE_EMPTY_DAYS_KEY) === '1';
     $('#activitiesList').toggleClass('hide-empty-days', on);
-    $('#toggleEmptyDaysBtn')
-        .toggleClass('btn-secondary', on)
-        .toggleClass('btn-outline-secondary', !on);
+    $('#toggleEmptyDaysBtn').toggleClass('active', on).attr('aria-pressed', on ? 'true' : 'false');
     $('#toggleEmptyDaysLabel').text(on ? 'Show empty days' : 'Hide empty days');
+    $('#toggleEmptyDaysState').text(on ? 'on' : 'off');
 };
 $('#toggleEmptyDaysBtn').on('click', function () {
     const next = localStorage.getItem(HIDE_EMPTY_DAYS_KEY) !== '1';
@@ -2656,6 +2656,321 @@ $('#toggleEmptyDaysBtn').on('click', function () {
     window.applyHideEmptyDays();
 });
 window.applyHideEmptyDays();
+
+// ---------- Putting finished work away (mirrors the client app) ----------
+// Two different questions, and the client app asks them separately: hide the
+// cards that are ticked, and hide whole days where nothing is left to do. A
+// day counts as finished only if it HAS activities and every one of them is
+// done — otherwise an empty day would read as a finished one.
+//
+// Both are per-schedule localStorage and touch nothing on the server: what
+// the admin chooses to look at is not a change to the farmer's plan.
+const HIDE_DONE_KEY      = 'hideDoneActivities:{{ $schedule->id }}';
+const HIDE_DONE_DAYS_KEY = 'hideDoneDays:{{ $schedule->id }}';
+
+window.applyDoneVisibility = function () {
+    const hideDone     = localStorage.getItem(HIDE_DONE_KEY) === '1';
+    const hideDoneDays = localStorage.getItem(HIDE_DONE_DAYS_KEY) === '1';
+
+    // Re-read the board every time: a tick, a drag or a rebuild can turn the
+    // last unfinished card of a day into a finished one.
+    $('#activitiesList .date-group').each(function () {
+        const $g = $(this);
+        const $cards = $g.find('.activity-card');
+        const done = $cards.filter('[data-is-done="1"]').length;
+        $g.toggleClass('is-all-done', $cards.length > 0 && done === $cards.length);
+    });
+
+    $('#activitiesList')
+        .toggleClass('hide-done-activities', hideDone)
+        .toggleClass('hide-done-days', hideDoneDays);
+
+    $('#toggleDoneActivitiesBtn').toggleClass('active', hideDone).attr('aria-pressed', hideDone ? 'true' : 'false');
+    $('#toggleDoneActivitiesLabel').text(hideDone ? 'Show completed activities' : 'Hide completed activities');
+    $('#toggleDoneActivitiesState').text(hideDone ? 'on' : 'off');
+
+    $('#toggleDoneDaysBtn').toggleClass('active', hideDoneDays).attr('aria-pressed', hideDoneDays ? 'true' : 'false');
+    $('#toggleDoneDaysLabel').text(hideDoneDays ? 'Show finished days' : 'Hide finished days');
+    $('#toggleDoneDaysState').text(hideDoneDays ? 'on' : 'off');
+};
+
+function _flipDoneKey(key) {
+    const next = localStorage.getItem(key) !== '1';
+    try { localStorage.setItem(key, next ? '1' : '0'); } catch (e) { /* private mode */ }
+    window.applyDoneVisibility();
+}
+$('#toggleDoneActivitiesBtn').on('click', () => _flipDoneKey(HIDE_DONE_KEY));
+$('#toggleDoneDaysBtn').on('click', () => _flipDoneKey(HIDE_DONE_DAYS_KEY));
+window.applyDoneVisibility();
+
+// ---------- Tools menu plumbing ----------
+// Rows that stand in for buttons drawn above the tab card (they act on the
+// whole schedule, not just this tab). Forwarding beats moving them: the
+// handlers, and the modals they open, stay where they were.
+$(document).on('click', '.js-tools-forward', function () {
+    const target = $(this).data('forward');
+    $('#activityToolsBtn').dropdown('hide');
+    $(target).trigger('click');
+});
+
+// The search box is a row of its own on the tab; the menu takes you to it.
+$('#activityFocusSearchBtn').on('click', function () {
+    $('#activityToolsBtn').dropdown('hide');
+    const el = document.getElementById('activitySearchInput');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.focus(), 260);
+});
+
+// Says "on" whenever something is narrowing the board, so a filter left set
+// is not mistaken for an empty season.
+window.paintActivityFilterState = function () {
+    const on = !!($('#activitySearchInput').val() || '').trim()
+        || $('#activityTypeFilterRow .activity-type-chip.active').length > 0
+        || $('#activityLotFilterRow .activity-lot-chip.active').length > 0;
+    $('#activityFilterState').toggle(on);
+};
+$(document).on('input', '#activitySearchInput', () => window.paintActivityFilterState());
+$(document).on('click', '.activity-type-chip, #activityLotFilterRow .lot-chip, #activityTypeFilterClearBtn, #activityLotFilterAllBtn, #activityLotFilterClearBtn, #activitySearchClear',
+    () => setTimeout(() => window.paintActivityFilterState(), 30));
+window.paintActivityFilterState();
+
+// ---------- Notice: what is still missing from this plan ----------
+// The same checks the farmer's own bell runs, so the two are never telling
+// different stories about one season. Asked again after every open, because
+// an edit made two tabs ago has usually fixed something.
+function paintNoticeBadge(data) {
+    const n = parseInt(data && data.count, 10) || 0;
+    const blocking = parseInt(data && data.blocking, 10) || 0;
+    const $badge = $('#activityToolsAlert');
+
+    if (n > 0) {
+        $badge.text(n)
+            .toggleClass('bg-danger', blocking > 0)
+            .toggleClass('bg-warning text-dark', blocking === 0)
+            .show();
+    } else {
+        $badge.hide();
+    }
+    $('#scheduleNoticeState').text(n === 0 ? 'all set' : (blocking > 0 ? n + ' to fix' : n + ' to look at'));
+}
+
+function loadNotice(intoModal) {
+    if (intoModal) {
+        $('#scheduleNoticeBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i></div>');
+    }
+    return $.get(URLS.scheduleNotice(), function (res) {
+        if (!res || !res.success) return;
+        const data = res.data || { count: 0, blocking: 0, items: [] };
+        paintNoticeBadge(data);
+        if (!intoModal) return;
+
+        if (!data.items.length) {
+            $('#scheduleNoticeBody').html(
+                '<div class="text-center py-4">' +
+                '<i class="bx bx-check-circle fs-1 text-success"></i>' +
+                '<p class="text-dark mb-1 mt-2">Nothing missing.</p>' +
+                '<small class="text-secondary">Lots, day 0, activities and workers are all in place.</small>' +
+                '</div>');
+            return;
+        }
+        const WHERE = { lots: 'Lots tab', workers: 'Workers tab', activities: 'Activities tab' };
+        $('#scheduleNoticeBody').html(data.items.map(function (it) {
+            return '<div class="notice-row' + (it.severity === 'blocking' ? ' is-blocking' : '') + '">' +
+                   '<span class="notice-dot"></span><div>' +
+                   '<div class="notice-label">' + escapeHtml(it.label) + '</div>' +
+                   '<div class="notice-detail">' + escapeHtml(it.detail) + '</div>' +
+                   '<div class="notice-where">' + escapeHtml(WHERE[it.module] || it.module) +
+                   (it.severity === 'blocking' ? ' \u00b7 blocking' : '') + '</div>' +
+                   '</div></div>';
+        }).join(''));
+    }).fail(function () {
+        if (intoModal) $('#scheduleNoticeBody').html('<p class="text-secondary mb-0">Could not read the plan just now.</p>');
+    });
+}
+
+$('#scheduleNoticeBtn').on('click', function () {
+    $('#activityToolsBtn').dropdown('hide');
+    $('#scheduleNoticeModal').modal('show');
+    loadNotice(true);
+});
+$('#scheduleNoticeReload').on('click', () => loadNotice(true));
+loadNotice(false);   // the badge, before anyone opens anything
+
+// ---------- Growth stage: what the plant is doing, not just how old it is ----------
+function loadGrowth(dateStr) {
+    $('#growthStageBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i></div>');
+    $.get(URLS.scheduleGrowth(dateStr || ''), function (res) {
+        if (!res || !res.success) { $('#growthStageBody').html('<p class="text-secondary mb-0">Could not read the lots.</p>'); return; }
+        const d = res.data;
+        $('#growthStageWhen').text(d.prettyDate + ' \u00b7 every lot');
+        $('#growthStageDate').val(d.date);
+
+        let html = '';
+        html += d.rows.map(function (r) {
+            const st = r.stage;
+            const steps = (st.steps || []).map(function (step, i) {
+                const cls = i === st.index ? ' is-now' : (i < st.index ? ' is-past' : '');
+                return '<div class="gs-step' + cls + '"><span class="gs-sdot"></span>' +
+                       '<span>' + escapeHtml(step.label) + '</span>' +
+                       '<span class="gs-when">' + escapeHtml(r.counter) + ' ' + step.from + '+</span></div>';
+            }).join('');
+            return '<div class="gs-lot">' +
+                '<div class="gs-head">' +
+                    '<span class="gs-emoji">' + (st.icon || '\ud83c\udf31') + '</span>' +
+                    '<span><span class="gs-lotname">' + escapeHtml(r.lotName) + '</span>' +
+                    '<span class="gs-day">' + escapeHtml(st.cropLabel) +
+                        (r.variety ? ' \u00b7 ' + escapeHtml(r.variety) : '') +
+                        ' \u00b7 ' + escapeHtml(r.counter) + ' ' + r.day + '</span></span>' +
+                '</div>' +
+                '<div class="gs-now">' + escapeHtml(st.label) + '</div>' +
+                '<div class="gs-what">' + escapeHtml(st.what) + '</div>' +
+                '<div class="gs-needs"><b>What it needs now</b>' + escapeHtml(st.needs) + '</div>' +
+                (st.progress !== null && st.progress !== undefined
+                    ? '<div class="gs-bar"><span style="width:' + Math.round(st.progress * 100) + '%"></span></div>' : '') +
+                '<div class="gs-next">' + (st.next
+                    ? 'Day ' + (st.dayInStage + 1) + ' of this stage \u00b7 ' + escapeHtml(st.next.label) +
+                      ' in about ' + st.next.inDays + ' day' + (st.next.inDays === 1 ? '' : 's')
+                    : 'The last stage \u2014 harvest window.') + '</div>' +
+                '<div class="gs-steps">' + steps + '</div>' +
+            '</div>';
+        }).join('');
+
+        // Lots that cannot be read are named, not dropped: "nothing here" is
+        // confusing when you know the farm has three fields.
+        if (d.quiet.length) {
+            html += '<div class="mt-2">' + d.quiet.map(function (q) {
+                return '<div class="notice-row"><span class="notice-dot"></span><div>' +
+                       '<div class="notice-label">' + escapeHtml(q.lotName) + '</div>' +
+                       '<div class="notice-detail">' + escapeHtml(q.why) + '</div>' +
+                       '</div></div>';
+            }).join('') + '</div>';
+        }
+        if (!html) html = '<p class="text-secondary mb-0">No lots on this schedule yet.</p>';
+        $('#growthStageBody').html(html);
+    }).fail(() => $('#growthStageBody').html('<p class="text-secondary mb-0">Could not read the lots.</p>'));
+}
+
+$('#growthStageBtn').on('click', function () {
+    $('#activityToolsBtn').dropdown('hide');
+    $('#growthStageModal').modal('show');
+    loadGrowth($('#growthStageDate').val() || '');
+});
+$('#growthStageDate').on('change', function () { loadGrowth($(this).val()); });
+$('#growthStageToday').on('click', function () { $('#growthStageDate').val(''); loadGrowth(''); });
+
+// ---------- Weather: per lot, because a farm is not a point ----------
+function loadWeather() {
+    $('#scheduleWeatherBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i><div class="text-secondary mt-2" style="font-size:12.5px;">Asking the forecast\u2026</div></div>');
+    $.get(URLS.scheduleWeather(), function (res) {
+        if (!res || !res.success) { $('#scheduleWeatherBody').html('<p class="text-secondary mb-0">Could not reach the forecast.</p>'); return; }
+        const d = res.data;
+        let html = '';
+
+        html += (d.locations || []).map(function (loc) {
+            const lots = (loc.lots || []).map(l => escapeHtml(l.lotName)).join(', ');
+            if (!loc.ok) {
+                return '<div class="wx-place"><div class="gs-lotname">' + escapeHtml(loc.label) + '</div>' +
+                       '<div class="gs-day">' + lots + '</div>' +
+                       '<div class="notice-detail mt-2">That address could not be placed on the map, so there is no forecast for it.</div></div>';
+            }
+            const days = (loc.days || []).map(function (day) {
+                return '<div class="wx-day' + (day.isToday ? ' is-today' : '') + '">' +
+                    '<div class="wx-dow">' + escapeHtml(day.dow) + '</div>' +
+                    '<div class="wx-emoji">' + (day.emoji || '') + '</div>' +
+                    '<div class="wx-temp">' + (day.max !== null ? day.max + '\u00b0' : '\u2014') +
+                        (day.min !== null ? ' / ' + day.min + '\u00b0' : '') + '</div>' +
+                    (day.pop !== null ? '<div class="wx-pop">' + day.pop + '% rain</div>' : '') +
+                    '<div class="wx-text">' + escapeHtml(day.text || '') + '</div>' +
+                '</div>';
+            }).join('');
+            return '<div class="wx-place">' +
+                '<div class="gs-lotname">' + escapeHtml(loc.place) + '</div>' +
+                '<div class="gs-day">' + lots + '</div>' +
+                '<div class="wx-days">' + days + '</div>' +
+            '</div>';
+        }).join('');
+
+        if ((d.unplaced || []).length) {
+            html += '<div class="notice-row"><span class="notice-dot"></span><div>' +
+                    '<div class="notice-label">' + d.unplaced.map(l => escapeHtml(l.lotName)).join(', ') + '</div>' +
+                    '<div class="notice-detail">No town and province on ' +
+                    (d.unplaced.length === 1 ? 'this lot' : 'these lots') +
+                    ' \u2014 set the location in the Lots tab and the forecast follows.</div></div></div>';
+        }
+        if (d.dropped) {
+            html += '<small class="text-secondary d-block mt-2">' + d.dropped + ' more location(s) were not looked up in this request.</small>';
+        }
+        if (!html) html = '<p class="text-secondary mb-0">No lots on this schedule yet.</p>';
+        $('#scheduleWeatherBody').html(html);
+    }).fail(() => $('#scheduleWeatherBody').html('<p class="text-secondary mb-0">Could not reach the forecast.</p>'));
+}
+
+$('#scheduleWeatherBtn').on('click', function () {
+    $('#activityToolsBtn').dropdown('hide');
+    $('#scheduleWeatherModal').modal('show');
+    loadWeather();
+});
+$('#scheduleWeatherReload').on('click', loadWeather);
+
+// ---------- Share: the client's own public link ----------
+function paintShare(data) {
+    $('#quickShareLoading').hide();
+    if (data && data.url) {
+        const enc = encodeURIComponent(data.url);
+        const text = encodeURIComponent(data.title || 'Cropping plan');
+        $('#quickShareLink').val(data.url);
+        $('#quickShareFb').attr('href', 'https://www.facebook.com/sharer/sharer.php?u=' + enc);
+        $('#quickShareWa').attr('href', 'https://wa.me/?text=' + text + '%20' + enc);
+        $('#quickShareEmail').attr('href', 'mailto:?subject=' + text + '&body=' + enc);
+        $('#quickShareHas').show();
+        $('#quickShareNone').hide();
+    } else {
+        $('#quickShareHas').hide();
+        $('#quickShareNone').show();
+    }
+}
+
+$('#quickShareBtn').on('click', function () {
+    $('#activityToolsBtn').dropdown('hide');
+    $('#quickShareHas, #quickShareNone').hide();
+    $('#quickShareLoading').show();
+    $('#quickShareModal').modal('show');
+    $.get(URLS.scheduleShare(), function (res) {
+        paintShare(res && res.success ? res.data : null);
+    }).fail(function () {
+        $('#quickShareLoading').hide();
+        toastr.error('Could not read the share link.');
+    });
+});
+
+$('#quickShareCreate').on('click', function () {
+    const $b = $(this).prop('disabled', true);
+    $.post(URLS.scheduleShareCreate(), { _token: CSRF }, function (res) {
+        $b.prop('disabled', false);
+        if (!res || !res.success) { toastr.error((res && res.message) || 'Could not create the link.'); return; }
+        toastr.success(res.message);
+        paintShare(res.data);
+    }).fail(function () {
+        $b.prop('disabled', false);
+        toastr.error('Could not create the link.');
+    });
+});
+
+$('#quickShareCopy').on('click', function () {
+    const el = document.getElementById('quickShareLink');
+    el.select();
+    el.setSelectionRange(0, 99999);
+    // navigator.clipboard is not there over plain http on a LAN address;
+    // execCommand still is.
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(el.value).then(() => toastr.success('Link copied.'),
+                                                     () => toastr.error('Could not copy.'));
+    } else {
+        try { document.execCommand('copy'); toastr.success('Link copied.'); }
+        catch (e) { toastr.error('Could not copy \u2014 select it and copy by hand.'); }
+    }
+});
 
 // ---------- Done checkmark (mirrors the client app's big checkbox) ----------
 // Flips the same isDone column the farmer app writes. Done cards dim, strike
@@ -2675,6 +2990,7 @@ $(document).on('click', '.done-check', function () {
         $btn.toggleClass('is-checked', done);
         $btn.attr('aria-pressed', done ? 'true' : 'false');
         $btn.attr('title', done ? 'Mark as not done' : 'Mark this activity as done');
+        if (window.applyDoneVisibility) window.applyDoneVisibility();
     };
     paint(wantDone);
     $btn.data('busy', 1);

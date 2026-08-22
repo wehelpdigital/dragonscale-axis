@@ -334,6 +334,14 @@ Route::post('/anisenso-schedule-manager-activities-image-upload', [App\Http\Cont
 Route::post('/anisenso-schedule-manager-activities-toggle-hidden', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'toggleHidden'])->name('anisenso-schedule-manager.activities.toggle-hidden')->middleware('auth');
 Route::post('/anisenso-schedule-manager-activities-toggle-done', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ActivityController::class, 'toggleDone'])->name('anisenso-schedule-manager.activities.toggle-done')->middleware('auth');
 // Progress markers — "where I left off" bookmarks in the activities timeline
+// --- Reading the season: what is missing, what the crop is doing, what the sky will do
+Route::get('/anisenso-schedule-manager-notice',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'notice'])->name('anisenso-schedule-manager.notice')->middleware('auth');
+Route::get('/anisenso-schedule-manager-growth',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'growth'])->name('anisenso-schedule-manager.growth')->middleware('auth');
+Route::get('/anisenso-schedule-manager-weather', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'weather'])->name('anisenso-schedule-manager.weather')->middleware('auth');
+
+Route::get('/anisenso-schedule-manager-share',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'share'])->name('anisenso-schedule-manager.share')->middleware('auth');
+Route::post('/anisenso-schedule-manager-share-create', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'shareCreate'])->name('anisenso-schedule-manager.share.create')->middleware('auth');
+
 Route::post('/anisenso-schedule-manager-markers-save',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'save'])->name('anisenso-schedule-manager.markers.save')->middleware('auth');
 Route::post('/anisenso-schedule-manager-markers-move',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'move'])->name('anisenso-schedule-manager.markers.move')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-markers-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MarkerController::class, 'destroy'])->name('anisenso-schedule-manager.markers.destroy')->middleware('auth');
