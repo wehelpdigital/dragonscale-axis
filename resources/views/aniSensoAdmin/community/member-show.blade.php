@@ -40,7 +40,7 @@
             <div class="card"><div class="card-body">
                 <h6 class="text-dark">Shared plans</h6>
                 @forelse($plans as $plan)
-                    <a href="{{ route('anisenso-community.plans.show', $plan->id) }}" class="d-block small border-bottom py-1 text-dark">{{ $plan->title }}</a>
+                    <a href="{{ route('anisenso-community.plans', ['id' => $plan->id]) }}" class="d-block small border-bottom py-1 text-dark">{{ $plan->title }}</a>
                 @empty <p class="text-secondary small mb-0">None.</p>@endforelse
             </div></div>
 
@@ -48,7 +48,7 @@
             <div class="card"><div class="card-body">
                 <h6 class="text-dark">Groups</h6>
                 @forelse($groupList as $g)
-                    <a href="{{ route('anisenso-community.groups.show', $g->id) }}" class="badge bg-light text-dark mb-1 d-inline-block">{{ $g->name }}</a>
+                    <a href="{{ route('anisenso-community.groups', ['id' => $g->id]) }}" class="badge bg-light text-dark mb-1 d-inline-block">{{ $g->name }}</a>
                 @empty <p class="text-secondary small mb-0">None.</p>@endforelse
             </div></div>
 
@@ -56,7 +56,7 @@
             <div class="card"><div class="card-body">
                 <h6 class="text-dark">Connections</h6>
                 @forelse($connections as $conn)
-                    <a href="{{ route('anisenso-community.members.show', $conn->id) }}" class="d-block small border-bottom py-1 text-dark">{{ $conn->full_name }}@if($conn->location)<span class="text-secondary"> · {{ $conn->location }}</span>@endif</a>
+                    <a href="{{ route('anisenso-community.members', ['id' => $conn->id]) }}" class="d-block small border-bottom py-1 text-dark">{{ $conn->full_name }}@if($conn->location)<span class="text-secondary"> · {{ $conn->location }}</span>@endif</a>
                 @empty <p class="text-secondary small mb-0">None.</p>@endforelse
             </div></div>
         </div>
@@ -110,14 +110,14 @@
         if (data.success) { toastr.success(data.message); document.querySelector('[' + sel + '="' + id + '"]')?.remove(); }
         else toastr.error(data.message || 'Could not remove.');
     }
-    document.querySelectorAll('.btn-del-wall-post').forEach((b) => b.addEventListener('click', () => del('/anisenso-community-wall-posts/' + b.getAttribute('data-id'), 'data-wall-post', b.getAttribute('data-id'))));
-    document.querySelectorAll('.btn-del-wall-comment').forEach((b) => b.addEventListener('click', () => del('/anisenso-community-wall-comments/' + b.getAttribute('data-id'), 'data-wall-comment', b.getAttribute('data-id'))));
+    document.querySelectorAll('.btn-del-wall-post').forEach((b) => b.addEventListener('click', () => del('/anisenso-community-wall-posts?id=' + b.getAttribute('data-id'), 'data-wall-post', b.getAttribute('data-id'))));
+    document.querySelectorAll('.btn-del-wall-comment').forEach((b) => b.addEventListener('click', () => del('/anisenso-community-wall-comments?id=' + b.getAttribute('data-id'), 'data-wall-comment', b.getAttribute('data-id'))));
     document.querySelectorAll('.btn-restrict').forEach((btn) => btn.addEventListener('click', async () => {
         const on = btn.getAttribute('data-on') === '1';
         let reason = '';
         if (!on) { reason = prompt('Restrict this content across the community?\nOptional reason:', ''); if (reason === null) return; }
         const body = new URLSearchParams({ restricted: on ? '0' : '1', reason });
-        const res = await fetch('/anisenso-community-restrict/' + btn.getAttribute('data-type') + '/' + btn.getAttribute('data-id'), { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const res = await fetch('/anisenso-community-restrict?type=' + btn.getAttribute('data-type') + '&id=' + btn.getAttribute('data-id'), { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
         const data = await res.json();
         if (data.success) { toastr.success(data.message); setTimeout(() => window.location.reload(), 700); }
         else toastr.error(data.message || 'Could not update.');

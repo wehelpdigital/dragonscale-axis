@@ -135,18 +135,19 @@ Route::get('/anisenso-courses-create', [App\Http\Controllers\aniSensoAdmin\AniSe
 Route::get('/anisenso-courses-add', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'create'])->name('anisenso-courses-add')->middleware('auth');
 Route::get('/anisenso-courses-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'editPage'])->name('anisenso-courses-edit')->middleware('auth');
 Route::post('/anisenso-courses', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'store'])->name('anisenso-courses.store')->middleware('auth');
-Route::get('/anisenso-courses/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'edit'])->name('anisenso-courses.edit')->middleware('auth');
-Route::put('/anisenso-courses/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'update'])->name('anisenso-courses.update')->middleware('auth');
-Route::delete('/anisenso-courses/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroy'])->name('anisenso-courses.destroy')->middleware('auth');
-Route::put('/anisenso-courses/{id}/status', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'toggleStatus'])->name('anisenso-courses.status')->middleware('auth');
+// The page lives at /anisenso-courses-edit; this is the record behind it.
+Route::get('/anisenso-courses-one', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'edit'])->name('anisenso-courses.edit')->middleware('auth');
+Route::put('/anisenso-courses', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'update'])->name('anisenso-courses.update')->middleware('auth');
+Route::delete('/anisenso-courses', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroy'])->name('anisenso-courses.destroy')->middleware('auth');
+Route::put('/anisenso-courses-status', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'toggleStatus'])->name('anisenso-courses.status')->middleware('auth');
 
 // Ani-Senso Course Contents routes
 Route::get('/anisenso-courses-contents', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'contents'])->name('anisenso-courses.contents')->middleware('auth');
 Route::get('/anisenso-courses-contents-add-chapter', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'addChapter'])->name('anisenso-courses.chapters.add')->middleware('auth');
 Route::get('/anisenso-courses-contents-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'editChapter'])->name('anisenso-courses.chapters.edit')->middleware('auth');
 Route::post('/anisenso-courses-chapters', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'storeChapter'])->name('anisenso-courses.chapters.store')->middleware('auth');
-Route::put('/anisenso-courses-chapters/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateChapter'])->name('anisenso-courses.chapters.update')->middleware('auth');
-Route::delete('/anisenso-courses-chapters/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroyChapter'])->name('anisenso-courses.chapters.destroy')->middleware('auth');
+Route::put('/anisenso-courses-chapters', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateChapter'])->name('anisenso-courses.chapters.update')->middleware('auth');
+Route::delete('/anisenso-courses-chapters', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroyChapter'])->name('anisenso-courses.chapters.destroy')->middleware('auth');
 Route::put('/anisenso-courses-chapters-order', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateChapterOrder'])->name('anisenso-courses.chapters.order')->middleware('auth');
 
 // Ani-Senso Course Topics routes
@@ -162,50 +163,50 @@ Route::get('/anisenso-courses-tags', [App\Http\Controllers\aniSensoAdmin\AniSens
 Route::get('/anisenso-courses-tags-add', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'create'])->name('anisenso-courses-tags.create')->middleware('auth');
 Route::post('/anisenso-courses-tags', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'store'])->name('anisenso-courses-tags.store')->middleware('auth');
 Route::get('/anisenso-courses-tags-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'edit'])->name('anisenso-courses-tags.edit')->middleware('auth');
-Route::put('/anisenso-courses-tags/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'update'])->name('anisenso-courses-tags.update')->middleware('auth');
-Route::delete('/anisenso-courses-tags/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'destroy'])->name('anisenso-courses-tags.destroy')->middleware('auth');
+Route::put('/anisenso-courses-tags', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'update'])->name('anisenso-courses-tags.update')->middleware('auth');
+Route::delete('/anisenso-courses-tags', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseTagsController::class, 'destroy'])->name('anisenso-courses-tags.destroy')->middleware('auth');
 Route::put('/anisenso-courses-topics-resources-order', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateResourceOrder'])->name('anisenso-courses-topics-resources.order')->middleware('auth');
 Route::post('/anisenso-courses-topics', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'storeTopic'])->name('anisenso-courses-topics.store')->middleware('auth');
-Route::put('/anisenso-courses-topics/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateTopic'])->name('anisenso-courses-topics.update')->middleware('auth');
-Route::delete('/anisenso-courses-topics/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroyTopic'])->name('anisenso-courses-topics.destroy')->middleware('auth');
+Route::put('/anisenso-courses-topics', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateTopic'])->name('anisenso-courses-topics.update')->middleware('auth');
+Route::delete('/anisenso-courses-topics', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'destroyTopic'])->name('anisenso-courses-topics.destroy')->middleware('auth');
 Route::put('/anisenso-topics-order', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'updateTopicOrder'])->name('anisenso-topics.order')->middleware('auth');
 
 // Ani-Senso Course Students routes
-Route::get('/anisenso-courses/{courseId}/students', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'getStudents'])->name('anisenso-courses.students')->middleware('auth');
-Route::get('/anisenso-courses/{courseId}/students/search', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'searchAvailableStudents'])->name('anisenso-courses.students.search')->middleware('auth');
+Route::get('/anisenso-courses-students', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'getStudents'])->name('anisenso-courses.students')->middleware('auth');
+Route::get('/anisenso-courses-students-search', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'searchAvailableStudents'])->name('anisenso-courses.students.search')->middleware('auth');
 Route::post('/anisenso-courses-students-enroll', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'enrollStudent'])->name('anisenso-courses.students.enroll')->middleware('auth');
-Route::get('/anisenso-courses-enrollments/{enrollmentId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'getEnrollment'])->name('anisenso-courses.enrollments.get')->middleware('auth');
-Route::put('/anisenso-courses-enrollments/{enrollmentId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'updateEnrollment'])->name('anisenso-courses.enrollments.update')->middleware('auth');
-Route::delete('/anisenso-courses-enrollments/{enrollmentId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'removeStudent'])->name('anisenso-courses.enrollments.delete')->middleware('auth');
-Route::post('/anisenso-courses-enrollments/{enrollmentId}/reset-progress', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'resetProgress'])->name('anisenso-courses.enrollments.reset-progress')->middleware('auth');
-Route::post('/anisenso-courses-students/{accessClientId}/send-password-reset', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'sendPasswordResetEmail'])->name('anisenso-courses.students.send-password-reset')->middleware('auth');
+Route::get('/anisenso-courses-enrollments', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'getEnrollment'])->name('anisenso-courses.enrollments.get')->middleware('auth');
+Route::put('/anisenso-courses-enrollments', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'updateEnrollment'])->name('anisenso-courses.enrollments.update')->middleware('auth');
+Route::delete('/anisenso-courses-enrollments', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'removeStudent'])->name('anisenso-courses.enrollments.delete')->middleware('auth');
+Route::post('/anisenso-courses-enrollments-reset-progress', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'resetProgress'])->name('anisenso-courses.enrollments.reset-progress')->middleware('auth');
+Route::post('/anisenso-courses-students-send-password-reset', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseStudentsController::class, 'sendPasswordResetEmail'])->name('anisenso-courses.students.send-password-reset')->middleware('auth');
 
 // Ani-Senso Course Audit routes
-Route::get('/anisenso-courses/{courseId}/audit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseAuditController::class, 'getAuditLogs'])->name('anisenso-courses.audit')->middleware('auth');
-Route::get('/anisenso-courses/{courseId}/audit/users', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseAuditController::class, 'getUsers'])->name('anisenso-courses.audit.users')->middleware('auth');
+Route::get('/anisenso-courses-audit', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseAuditController::class, 'getAuditLogs'])->name('anisenso-courses.audit')->middleware('auth');
+Route::get('/anisenso-courses-audit-users', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseAuditController::class, 'getUsers'])->name('anisenso-courses.audit.users')->middleware('auth');
 
 // Ani-Senso Course Reviews routes
-Route::get('/anisenso-courses/{courseId}/reviews', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'getReviews'])->name('anisenso-courses.reviews')->middleware('auth');
-Route::delete('/anisenso-courses-reviews/{reviewId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'deleteReview'])->name('anisenso-courses.reviews.delete')->middleware('auth');
-Route::put('/anisenso-courses-reviews/{reviewId}/approval', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'toggleApproval'])->name('anisenso-courses.reviews.approval')->middleware('auth');
-Route::put('/anisenso-courses-reviews/{reviewId}/featured', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'toggleFeatured'])->name('anisenso-courses.reviews.featured')->middleware('auth');
-Route::post('/anisenso-courses-reviews/{reviewId}/reply', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'addReply'])->name('anisenso-courses.reviews.reply')->middleware('auth');
-Route::delete('/anisenso-courses-review-replies/{replyId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'deleteReply'])->name('anisenso-courses.reviews.reply.delete')->middleware('auth');
+Route::get('/anisenso-courses-reviews', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'getReviews'])->name('anisenso-courses.reviews')->middleware('auth');
+Route::delete('/anisenso-courses-reviews', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'deleteReview'])->name('anisenso-courses.reviews.delete')->middleware('auth');
+Route::put('/anisenso-courses-reviews-approval', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'toggleApproval'])->name('anisenso-courses.reviews.approval')->middleware('auth');
+Route::put('/anisenso-courses-reviews-featured', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'toggleFeatured'])->name('anisenso-courses.reviews.featured')->middleware('auth');
+Route::post('/anisenso-courses-reviews-reply', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'addReply'])->name('anisenso-courses.reviews.reply')->middleware('auth');
+Route::delete('/anisenso-courses-review-replies', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseReviewsController::class, 'deleteReply'])->name('anisenso-courses.reviews.reply.delete')->middleware('auth');
 
 // Ani-Senso Course Settings routes
-Route::get('/anisenso-courses/{courseId}/settings', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseSettingsController::class, 'getSettings'])->name('anisenso-courses.settings')->middleware('auth');
-Route::put('/anisenso-courses/{courseId}/settings/course-flow', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseSettingsController::class, 'updateCourseFlow'])->name('anisenso-courses.settings.course-flow')->middleware('auth');
+Route::get('/anisenso-courses-settings', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseSettingsController::class, 'getSettings'])->name('anisenso-courses.settings')->middleware('auth');
+Route::put('/anisenso-courses-settings-course-flow', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseSettingsController::class, 'updateCourseFlow'])->name('anisenso-courses.settings.course-flow')->middleware('auth');
 
 // Ani-Senso Course Certificate routes
 Route::get('/anisenso-courses-certificate-designer', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'designer'])->name('anisenso-courses.certificate.designer')->middleware('auth');
-Route::get('/anisenso-courses/{courseId}/certificate', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'getTemplate'])->name('anisenso-courses.certificate.get')->middleware('auth');
-Route::put('/anisenso-courses/{courseId}/certificate', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'saveTemplate'])->name('anisenso-courses.certificate.save')->middleware('auth');
-Route::post('/anisenso-courses/{courseId}/certificate/background', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'uploadBackground'])->name('anisenso-courses.certificate.background')->middleware('auth');
-Route::delete('/anisenso-courses/{courseId}/certificate/background', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'removeBackground'])->name('anisenso-courses.certificate.background.remove')->middleware('auth');
-Route::post('/anisenso-courses/{courseId}/certificate/assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'uploadAsset'])->name('anisenso-courses.certificate.assets.upload')->middleware('auth');
-Route::get('/anisenso-courses/{courseId}/certificate/assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'getAssets'])->name('anisenso-courses.certificate.assets')->middleware('auth');
-Route::delete('/anisenso-courses-certificate-assets/{assetId}', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'deleteAsset'])->name('anisenso-courses.certificate.assets.delete')->middleware('auth');
-Route::put('/anisenso-courses/{courseId}/certificate/toggle-status', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'toggleStatus'])->name('anisenso-courses.certificate.toggle-status')->middleware('auth');
+Route::get('/anisenso-courses-certificate', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'getTemplate'])->name('anisenso-courses.certificate.get')->middleware('auth');
+Route::put('/anisenso-courses-certificate', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'saveTemplate'])->name('anisenso-courses.certificate.save')->middleware('auth');
+Route::post('/anisenso-courses-certificate-background', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'uploadBackground'])->name('anisenso-courses.certificate.background')->middleware('auth');
+Route::delete('/anisenso-courses-certificate-background', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'removeBackground'])->name('anisenso-courses.certificate.background.remove')->middleware('auth');
+Route::post('/anisenso-courses-certificate-assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'uploadAsset'])->name('anisenso-courses.certificate.assets.upload')->middleware('auth');
+Route::get('/anisenso-courses-certificate-assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'getAssets'])->name('anisenso-courses.certificate.assets')->middleware('auth');
+Route::delete('/anisenso-courses-certificate-assets', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'deleteAsset'])->name('anisenso-courses.certificate.assets.delete')->middleware('auth');
+Route::put('/anisenso-courses-certificate-toggle-status', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseCertificatesController::class, 'toggleStatus'])->name('anisenso-courses.certificate.toggle-status')->middleware('auth');
 
 // Image upload route for TinyMCE
 Route::post('/upload-image', [App\Http\Controllers\aniSensoAdmin\AniSensoCourseController::class, 'uploadImage'])->name('upload-image')->middleware('auth');
@@ -215,24 +216,24 @@ Route::get('/anisenso-website-pages', [App\Http\Controllers\aniSensoAdmin\AniSen
 Route::get('/anisenso-website-pages-add', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'create'])->name('anisenso-website-pages.create')->middleware('auth');
 Route::post('/anisenso-website-pages', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'store'])->name('anisenso-website-pages.store')->middleware('auth');
 Route::get('/anisenso-website-pages-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'edit'])->name('anisenso-website-pages.edit')->middleware('auth');
-Route::put('/anisenso-website-pages/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'update'])->name('anisenso-website-pages.update')->middleware('auth');
-Route::delete('/anisenso-website-pages/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'destroy'])->name('anisenso-website-pages.destroy')->middleware('auth');
-Route::post('/anisenso-website-pages/{id}/toggle-status', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'toggleStatus'])->name('anisenso-website-pages.toggle-status')->middleware('auth');
+Route::put('/anisenso-website-pages', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'update'])->name('anisenso-website-pages.update')->middleware('auth');
+Route::delete('/anisenso-website-pages', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'destroy'])->name('anisenso-website-pages.destroy')->middleware('auth');
+Route::post('/anisenso-website-pages-toggle-status', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'toggleStatus'])->name('anisenso-website-pages.toggle-status')->middleware('auth');
 Route::post('/anisenso-website-pages-update-order', [App\Http\Controllers\aniSensoAdmin\AniSensoWebsitePagesController::class, 'updateOrder'])->name('anisenso-website-pages.update-order')->middleware('auth');
 
 // Ani-Senso Homepage Settings
 Route::get('/anisenso-homepage-settings', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'index'])->name('anisenso-homepage-settings')->middleware('auth');
-Route::get('/anisenso-homepage-settings-section/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'getSectionData'])->name('anisenso-homepage-settings.section.data')->middleware('auth');
-Route::put('/anisenso-homepage-settings-section/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateSection'])->name('anisenso-homepage-settings.section.update')->middleware('auth');
-Route::post('/anisenso-homepage-settings-section/{sectionKey}/image', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadSectionImage'])->name('anisenso-homepage-settings.section.image')->middleware('auth');
-Route::post('/anisenso-homepage-settings-section/{sectionKey}/items', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'storeItem'])->name('anisenso-homepage-settings.items.store')->middleware('auth');
-Route::put('/anisenso-homepage-settings-items/{itemId}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateItem'])->name('anisenso-homepage-settings.items.update')->middleware('auth');
-Route::post('/anisenso-homepage-settings-items/{itemId}/image', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadItemImage'])->name('anisenso-homepage-settings.items.image')->middleware('auth');
-Route::put('/anisenso-homepage-settings-items/{itemId}/extra', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateItemExtra'])->name('anisenso-homepage-settings.items.extra')->middleware('auth');
+Route::get('/anisenso-homepage-settings-section', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'getSectionData'])->name('anisenso-homepage-settings.section.data')->middleware('auth');
+Route::put('/anisenso-homepage-settings-section', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateSection'])->name('anisenso-homepage-settings.section.update')->middleware('auth');
+Route::post('/anisenso-homepage-settings-section-image', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadSectionImage'])->name('anisenso-homepage-settings.section.image')->middleware('auth');
+Route::post('/anisenso-homepage-settings-section-items', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'storeItem'])->name('anisenso-homepage-settings.items.store')->middleware('auth');
+Route::put('/anisenso-homepage-settings-items', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateItem'])->name('anisenso-homepage-settings.items.update')->middleware('auth');
+Route::post('/anisenso-homepage-settings-items-image', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadItemImage'])->name('anisenso-homepage-settings.items.image')->middleware('auth');
+Route::put('/anisenso-homepage-settings-items-extra', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'updateItemExtra'])->name('anisenso-homepage-settings.items.extra')->middleware('auth');
 Route::post('/anisenso-homepage-settings-items-reorder', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'reorderItems'])->name('anisenso-homepage-settings.items.reorder')->middleware('auth');
-Route::delete('/anisenso-homepage-settings-items/{itemId}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'deleteItem'])->name('anisenso-homepage-settings.items.delete')->middleware('auth');
+Route::delete('/anisenso-homepage-settings-items', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'deleteItem'])->name('anisenso-homepage-settings.items.delete')->middleware('auth');
 Route::post('/anisenso-homepage-settings-sections-reorder', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'reorderSections'])->name('anisenso-homepage-settings.sections.reorder')->middleware('auth');
-Route::post('/anisenso-homepage-settings-toggle/{sectionKey}', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'toggleSection'])->name('anisenso-homepage-settings.toggle')->middleware('auth');
+Route::post('/anisenso-homepage-settings-toggle', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'toggleSection'])->name('anisenso-homepage-settings.toggle')->middleware('auth');
 Route::post('/anisenso-homepage-settings-upload-slide', [App\Http\Controllers\aniSensoAdmin\AniSensoHomepageSettingsController::class, 'uploadSlide'])->name('anisenso-homepage-settings.upload-slide')->middleware('auth');
 
 // Ani-Senso Blog routes
@@ -240,29 +241,29 @@ Route::get('/anisenso-blogs', [App\Http\Controllers\aniSensoAdmin\BlogsControlle
 Route::get('/anisenso-blogs-add', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'create'])->name('anisenso-blogs.create')->middleware('auth');
 Route::post('/anisenso-blogs', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'store'])->name('anisenso-blogs.store')->middleware('auth');
 Route::get('/anisenso-blogs-edit', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'edit'])->name('anisenso-blogs.edit')->middleware('auth');
-Route::put('/anisenso-blogs/{id}', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'update'])->name('anisenso-blogs.update')->middleware('auth');
-Route::delete('/anisenso-blogs/{id}', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'destroy'])->name('anisenso-blogs.destroy')->middleware('auth');
-Route::post('/anisenso-blogs/{id}/toggle-featured', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'toggleFeatured'])->name('anisenso-blogs.toggle-featured')->middleware('auth');
-Route::patch('/anisenso-blogs/{id}/status', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'updateStatus'])->name('anisenso-blogs.update-status')->middleware('auth');
-Route::delete('/anisenso-blogs/{id}/image', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'removeImage'])->name('anisenso-blogs.remove-image')->middleware('auth');
+Route::put('/anisenso-blogs', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'update'])->name('anisenso-blogs.update')->middleware('auth');
+Route::delete('/anisenso-blogs', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'destroy'])->name('anisenso-blogs.destroy')->middleware('auth');
+Route::post('/anisenso-blogs-toggle-featured', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'toggleFeatured'])->name('anisenso-blogs.toggle-featured')->middleware('auth');
+Route::patch('/anisenso-blogs-status', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'updateStatus'])->name('anisenso-blogs.update-status')->middleware('auth');
+Route::delete('/anisenso-blogs-image', [App\Http\Controllers\aniSensoAdmin\BlogsController::class, 'removeImage'])->name('anisenso-blogs.remove-image')->middleware('auth');
 
 // Ani-Senso Chat Support
 Route::get('/anisenso-website-chat-support', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'index'])->name('anisenso-website-chat-support')->middleware('auth');
 Route::get('/anisenso-website-chat-support-conversations', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'getConversations'])->name('anisenso-website-chat-support.conversations')->middleware('auth');
-Route::get('/anisenso-website-chat-support-messages/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'getMessages'])->name('anisenso-website-chat-support.messages')->middleware('auth');
-Route::post('/anisenso-website-chat-support-send/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'sendMessage'])->name('anisenso-website-chat-support.send')->middleware('auth');
-Route::post('/anisenso-website-chat-support-close/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'closeConversation'])->name('anisenso-website-chat-support.close')->middleware('auth');
-Route::post('/anisenso-website-chat-support-reopen/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'reopenConversation'])->name('anisenso-website-chat-support.reopen')->middleware('auth');
-Route::delete('/anisenso-website-chat-support/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'destroy'])->name('anisenso-website-chat-support.destroy')->middleware('auth');
+Route::get('/anisenso-website-chat-support-messages', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'getMessages'])->name('anisenso-website-chat-support.messages')->middleware('auth');
+Route::post('/anisenso-website-chat-support-send', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'sendMessage'])->name('anisenso-website-chat-support.send')->middleware('auth');
+Route::post('/anisenso-website-chat-support-close', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'closeConversation'])->name('anisenso-website-chat-support.close')->middleware('auth');
+Route::post('/anisenso-website-chat-support-reopen', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'reopenConversation'])->name('anisenso-website-chat-support.reopen')->middleware('auth');
+Route::delete('/anisenso-website-chat-support', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'destroy'])->name('anisenso-website-chat-support.destroy')->middleware('auth');
 
 // Testimonials
 Route::get('/anisenso-website-testimonials', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'index'])->name('anisenso-website-testimonials')->middleware('auth');
 Route::get('/anisenso-website-testimonials-list-for-picker', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'listForPicker'])->name('anisenso-website-testimonials.picker')->middleware('auth');
 Route::post('/anisenso-website-testimonials-add-to-homepage', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'addToHomepage'])->name('anisenso-website-testimonials.add-to-homepage')->middleware('auth');
 Route::post('/anisenso-website-testimonials', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'store'])->name('anisenso-website-testimonials.store')->middleware('auth');
-Route::put('/anisenso-website-testimonials/{id}', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'update'])->name('anisenso-website-testimonials.update')->middleware('auth');
-Route::delete('/anisenso-website-testimonials/{id}', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'destroy'])->name('anisenso-website-testimonials.destroy')->middleware('auth');
-Route::post('/anisenso-website-testimonials/{id}/toggle', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'toggleActive'])->name('anisenso-website-testimonials.toggle')->middleware('auth');
+Route::put('/anisenso-website-testimonials', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'update'])->name('anisenso-website-testimonials.update')->middleware('auth');
+Route::delete('/anisenso-website-testimonials', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'destroy'])->name('anisenso-website-testimonials.destroy')->middleware('auth');
+Route::post('/anisenso-website-testimonials-toggle', [App\Http\Controllers\aniSensoAdmin\TestimonialsController::class, 'toggleActive'])->name('anisenso-website-testimonials.toggle')->middleware('auth');
 Route::post('/anisenso-website-chat-support-settings', [App\Http\Controllers\aniSensoAdmin\AniSensoChatSupportController::class, 'saveSettings'])->name('anisenso-website-chat-support.settings')->middleware('auth');
 
 /*
@@ -386,12 +387,11 @@ Route::get('/anisenso-schedule-manager-reports-data',  [App\Http\Controllers\ani
 // AniSystem Clients (paying subscribers of the AniSystem SaaS)
 Route::get('/anisenso-clients', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'index'])->name('anisenso-clients.index')->middleware('auth');
 Route::get('/anisenso-clients-data', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'data'])->name('anisenso-clients.data')->middleware('auth');
-Route::get('/anisenso-clients/{id}', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'show'])->name('anisenso-clients.show')->middleware('auth');
-Route::put('/anisenso-clients/{id}/suspend', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'suspend'])->name('anisenso-clients.suspend')->middleware('auth');
-Route::put('/anisenso-clients/{id}/unsuspend', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'unsuspend'])->name('anisenso-clients.unsuspend')->middleware('auth');
-Route::put('/anisenso-clients/{id}/cancel', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'cancel'])->name('anisenso-clients.cancel')->middleware('auth');
+Route::put('/anisenso-clients-suspend', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'suspend'])->name('anisenso-clients.suspend')->middleware('auth');
+Route::put('/anisenso-clients-unsuspend', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'unsuspend'])->name('anisenso-clients.unsuspend')->middleware('auth');
+Route::put('/anisenso-clients-cancel', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'cancel'])->name('anisenso-clients.cancel')->middleware('auth');
 
-Route::post('/anisenso-clients/{id}/ai-credits', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'adjustCredits'])->name('anisenso-clients.ai-credits')->middleware('auth');
+Route::post('/anisenso-clients-ai-credits', [App\Http\Controllers\aniSensoAdmin\AnisystemClientsController::class, 'adjustCredits'])->name('anisenso-clients.ai-credits')->middleware('auth');
 
 // AniSystem Workers (logins a client granted to the people working their farm)
 
@@ -403,7 +403,7 @@ Route::post('/anisenso-ai-settings-packs', [App\Http\Controllers\aniSensoAdmin\A
 // What the technician has actually been answering: every client thread, the
 // personal ones and the Collab Room's team sessions, read-only.
 Route::get('/anisenso-ai-conversations-data', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'data'])->name('anisenso-ai-conversations.data')->middleware('auth');
-Route::get('/anisenso-ai-conversations/{id}', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'show'])->whereNumber('id')->name('anisenso-ai-conversations.show')->middleware('auth');
+Route::get('/anisenso-ai-conversations', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'show'])->whereNumber('id')->name('anisenso-ai-conversations.show')->middleware('auth');
 
 // Ani-Senso Mail Settings (SMTP groups + email templates)
 Route::get('/anisenso-mail-settings', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'index'])->name('anisenso-mail-settings.index')->middleware('auth');
@@ -411,80 +411,74 @@ Route::post('/anisenso-mail-settings-smtp', [App\Http\Controllers\aniSensoAdmin\
 Route::post('/anisenso-mail-settings-smtp-test', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'testSmtp'])->name('anisenso-mail-settings.smtp.test')->middleware('auth');
 Route::post('/anisenso-mail-settings-smtp-toggle', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'toggleSmtp'])->name('anisenso-mail-settings.smtp.toggle')->middleware('auth');
 Route::get('/anisenso-mail-settings-templates', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'templates'])->name('anisenso-mail-settings.templates')->middleware('auth');
-Route::put('/anisenso-mail-settings-templates/{id}', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'updateTemplate'])->name('anisenso-mail-settings.templates.update')->middleware('auth');
-Route::post('/anisenso-mail-settings-templates/{id}/toggle', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'toggleTemplate'])->name('anisenso-mail-settings.templates.toggle')->middleware('auth');
-Route::post('/anisenso-mail-settings-templates/{id}/test', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'testTemplate'])->name('anisenso-mail-settings.templates.test')->middleware('auth');
+Route::put('/anisenso-mail-settings-templates', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'updateTemplate'])->name('anisenso-mail-settings.templates.update')->middleware('auth');
+Route::post('/anisenso-mail-settings-templates-toggle', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'toggleTemplate'])->name('anisenso-mail-settings.templates.toggle')->middleware('auth');
+Route::post('/anisenso-mail-settings-templates-test', [App\Http\Controllers\aniSensoAdmin\MailSettingsController::class, 'testTemplate'])->name('anisenso-mail-settings.templates.test')->middleware('auth');
 
 // AniSenso — Community moderation
 Route::get('/anisenso-community-plans', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'plans'])->name('anisenso-community.plans')->middleware('auth');
-Route::get('/anisenso-community-plans/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'planShow'])->whereNumber('id')->name('anisenso-community.plans.show')->middleware('auth');
-Route::post('/anisenso-community-plans/{id}/unpublish', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'unpublishPlan'])->whereNumber('id')->name('anisenso-community.plans.unpublish')->middleware('auth');
-Route::delete('/anisenso-community-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-community.comments.delete')->middleware('auth');
+Route::post('/anisenso-community-plans-unpublish', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'unpublishPlan'])->whereNumber('id')->name('anisenso-community.plans.unpublish')->middleware('auth');
+Route::delete('/anisenso-community-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-community.comments.delete')->middleware('auth');
 // What members have reported in the community. The app takes reports and
 // changes nothing; the deciding happens here.
 Route::get('/anisenso-community-reports', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'index'])->name('anisenso-community.reports')->middleware('auth');
-Route::post('/anisenso-community-reports/{id}/review', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'review'])->whereNumber('id')->name('anisenso-community.reports.review')->middleware('auth');
-Route::post('/anisenso-community-reports/{id}/dismiss', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.reports.dismiss')->middleware('auth');
-Route::post('/anisenso-community-reports/{id}/remove', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'remove'])->whereNumber('id')->name('anisenso-community.reports.remove')->middleware('auth');
+Route::post('/anisenso-community-reports-review', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'review'])->whereNumber('id')->name('anisenso-community.reports.review')->middleware('auth');
+Route::post('/anisenso-community-reports-dismiss', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.reports.dismiss')->middleware('auth');
+Route::post('/anisenso-community-reports-remove', [App\Http\Controllers\aniSensoAdmin\AniSensoReportsController::class, 'remove'])->whereNumber('id')->name('anisenso-community.reports.remove')->middleware('auth');
 Route::get('/anisenso-community-groups', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'groups'])->name('anisenso-community.groups')->middleware('auth');
-Route::get('/anisenso-community-groups/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'groupShow'])->whereNumber('id')->name('anisenso-community.groups.show')->middleware('auth');
-Route::delete('/anisenso-community-groups/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteGroup'])->whereNumber('id')->name('anisenso-community.groups.delete')->middleware('auth');
-Route::delete('/anisenso-community-posts/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deletePost'])->whereNumber('id')->name('anisenso-community.posts.delete')->middleware('auth');
-Route::delete('/anisenso-community-replies/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteReply'])->whereNumber('id')->name('anisenso-community.replies.delete')->middleware('auth');
+Route::delete('/anisenso-community-groups', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteGroup'])->whereNumber('id')->name('anisenso-community.groups.delete')->middleware('auth');
+Route::delete('/anisenso-community-posts', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deletePost'])->whereNumber('id')->name('anisenso-community.posts.delete')->middleware('auth');
+Route::delete('/anisenso-community-replies', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteReply'])->whereNumber('id')->name('anisenso-community.replies.delete')->middleware('auth');
 Route::get('/anisenso-community-members', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'members'])->name('anisenso-community.members')->middleware('auth');
-Route::get('/anisenso-community-members/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'memberShow'])->whereNumber('id')->name('anisenso-community.members.show')->middleware('auth');
-Route::delete('/anisenso-community-wall-posts/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
-Route::delete('/anisenso-community-wall-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');
-Route::post('/anisenso-community-restrict/{type}/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'toggleRestrict'])->whereNumber('id')->where('type', 'wall-post|wall-comment|post|reply')->name('anisenso-community.restrict')->middleware('auth');
+Route::delete('/anisenso-community-wall-posts', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
+Route::delete('/anisenso-community-wall-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');
+Route::post('/anisenso-community-restrict', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'toggleRestrict'])->whereNumber('id')->where('type', 'wall-post|wall-comment|post|reply')->name('anisenso-community.restrict')->middleware('auth');
 Route::get('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'index'])->name('anisenso-blog.index')->middleware('auth');
 Route::get('/anisenso-blog-create', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'create'])->name('anisenso-blog.create')->middleware('auth');
 Route::post('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'store'])->name('anisenso-blog.store')->middleware('auth');
-Route::get('/anisenso-blog/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'edit'])->whereNumber('id')->name('anisenso-blog.edit')->middleware('auth');
-Route::put('/anisenso-blog/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'update'])->whereNumber('id')->name('anisenso-blog.update')->middleware('auth');
-Route::delete('/anisenso-blog/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'destroy'])->whereNumber('id')->name('anisenso-blog.destroy')->middleware('auth');
+Route::get('/anisenso-blog-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'edit'])->whereNumber('id')->name('anisenso-blog.edit')->middleware('auth');
+Route::put('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'update'])->whereNumber('id')->name('anisenso-blog.update')->middleware('auth');
+Route::delete('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'destroy'])->whereNumber('id')->name('anisenso-blog.destroy')->middleware('auth');
 // The conversation under an article — the one community surface that could be
 // written to from here and not moderated from here.
-Route::get('/anisenso-blog/{id}/comments', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'comments'])->whereNumber('id')->name('anisenso-blog.comments')->middleware('auth');
-Route::delete('/anisenso-blog-comments/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-blog.comments.delete')->middleware('auth');
+Route::get('/anisenso-blog-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'comments'])->whereNumber('id')->name('anisenso-blog.comments')->middleware('auth');
+Route::delete('/anisenso-blog-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'deleteComment'])->whereNumber('id')->name('anisenso-blog.comments.delete')->middleware('auth');
 Route::get('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'index'])->name('anisenso-tutorials.index')->middleware('auth');
 Route::get('/anisenso-tutorials-create', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'create'])->name('anisenso-tutorials.create')->middleware('auth');
 Route::post('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'store'])->name('anisenso-tutorials.store')->middleware('auth');
-Route::get('/anisenso-tutorials/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'edit'])->whereNumber('id')->name('anisenso-tutorials.edit')->middleware('auth');
-Route::put('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'update'])->whereNumber('id')->name('anisenso-tutorials.update')->middleware('auth');
-Route::delete('/anisenso-tutorials/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'destroy'])->whereNumber('id')->name('anisenso-tutorials.destroy')->middleware('auth');
+Route::get('/anisenso-tutorials-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'edit'])->whereNumber('id')->name('anisenso-tutorials.edit')->middleware('auth');
+Route::put('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'update'])->whereNumber('id')->name('anisenso-tutorials.update')->middleware('auth');
+Route::delete('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSensoTutorialController::class, 'destroy'])->whereNumber('id')->name('anisenso-tutorials.destroy')->middleware('auth');
 // AniSystem's in-app "How to use" guides — one per module per device. The
 // Tutorials routes above are the YouTube library, which is a different thing.
 // Drag-and-drop editor for the same email templates Mail Settings edits by hand.
 Route::get('/anisenso-email-builder', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'index'])->name('anisenso-email-builder.index')->middleware('auth');
-Route::get('/anisenso-email-builder/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'edit'])->whereNumber('id')->name('anisenso-email-builder.edit')->middleware('auth');
-Route::put('/anisenso-email-builder/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'update'])->whereNumber('id')->name('anisenso-email-builder.update')->middleware('auth');
+Route::put('/anisenso-email-builder', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'update'])->whereNumber('id')->name('anisenso-email-builder.update')->middleware('auth');
 Route::get('/anisenso-help-guides', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'index'])->name('anisenso-help-guides.index')->middleware('auth');
-Route::get('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'edit'])->name('anisenso-help-guides.edit')->middleware('auth');
-Route::put('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'update'])->name('anisenso-help-guides.update')->middleware('auth');
-Route::post('/anisenso-help-guides/{module}/{device}/copy', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'copyFrom'])->name('anisenso-help-guides.copy')->middleware('auth');
-Route::delete('/anisenso-help-guides/{module}/{device}', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'destroy'])->name('anisenso-help-guides.destroy')->middleware('auth');
+Route::put('/anisenso-help-guides', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'update'])->name('anisenso-help-guides.update')->middleware('auth');
+Route::post('/anisenso-help-guides-copy', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'copyFrom'])->name('anisenso-help-guides.copy')->middleware('auth');
+Route::delete('/anisenso-help-guides', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'destroy'])->name('anisenso-help-guides.destroy')->middleware('auth');
 Route::get('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'index'])->name('anisenso-legal.index')->middleware('auth');
 Route::post('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'store'])->name('anisenso-legal.store')->middleware('auth');
-Route::get('/anisenso-legal/{id}/edit', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'edit'])->whereNumber('id')->name('anisenso-legal.edit')->middleware('auth');
-Route::put('/anisenso-legal/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'update'])->whereNumber('id')->name('anisenso-legal.update')->middleware('auth');
+Route::get('/anisenso-legal-edit', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'edit'])->whereNumber('id')->name('anisenso-legal.edit')->middleware('auth');
+Route::put('/anisenso-legal', [App\Http\Controllers\aniSensoAdmin\AniSensoLegalController::class, 'update'])->whereNumber('id')->name('anisenso-legal.update')->middleware('auth');
 Route::get('/anisenso-community-announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'announcements'])->name('anisenso-community.announcements')->middleware('auth');
 Route::post('/anisenso-community-announcements', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'broadcast'])->name('anisenso-community.announcements.send')->middleware('auth');
 // AniSenso — AI answers for community questions
 Route::get('/anisenso-community-ai-answers', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'index'])->name('anisenso-community.ai-answers')->middleware('auth');
 Route::post('/anisenso-community-ai-answers-generate', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'generate'])->name('anisenso-community.ai-answers.generate')->middleware('auth');
 Route::post('/anisenso-community-ai-answers-post-all', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'postAll'])->name('anisenso-community.ai-answers.post-all')->middleware('auth');
-Route::put('/anisenso-community-ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'update'])->whereNumber('id')->name('anisenso-community.ai-answers.update')->middleware('auth');
-Route::post('/anisenso-community-ai-answers/{id}/post', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'post'])->whereNumber('id')->name('anisenso-community.ai-answers.post')->middleware('auth');
-Route::delete('/anisenso-community-ai-answers/{id}', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.ai-answers.dismiss')->middleware('auth');
+Route::put('/anisenso-community-ai-answers', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'update'])->whereNumber('id')->name('anisenso-community.ai-answers.update')->middleware('auth');
+Route::post('/anisenso-community-ai-answers-post', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'post'])->whereNumber('id')->name('anisenso-community.ai-answers.post')->middleware('auth');
+Route::delete('/anisenso-community-ai-answers', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'dismiss'])->whereNumber('id')->name('anisenso-community.ai-answers.dismiss')->middleware('auth');
 
 // AniSenso — Support desk (answer client tickets; replies ping their bell)
 // What growers think of the AniSystem app: ratings and written reviews.
 Route::get('/anisenso-reviews', [App\Http\Controllers\aniSensoAdmin\AniSensoReviewController::class, 'index'])->name('anisenso-reviews.index')->middleware('auth');
 Route::get('/anisenso-support', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'index'])->name('anisenso-support.index')->middleware('auth');
-Route::get('/anisenso-support/{id}', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'show'])->whereNumber('id')->name('anisenso-support.show')->middleware('auth');
-Route::post('/anisenso-support/{id}/reply', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reply'])->whereNumber('id')->name('anisenso-support.reply')->middleware('auth');
-Route::post('/anisenso-support/{id}/close', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'close'])->whereNumber('id')->name('anisenso-support.close')->middleware('auth');
-Route::post('/anisenso-support/{id}/reopen', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reopen'])->whereNumber('id')->name('anisenso-support.reopen')->middleware('auth');
+Route::post('/anisenso-support-reply', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reply'])->whereNumber('id')->name('anisenso-support.reply')->middleware('auth');
+Route::post('/anisenso-support-close', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'close'])->whereNumber('id')->name('anisenso-support.close')->middleware('auth');
+Route::post('/anisenso-support-reopen', [App\Http\Controllers\aniSensoAdmin\AniSensoSupportController::class, 'reopen'])->whereNumber('id')->name('anisenso-support.reopen')->middleware('auth');
 
 //Language Translation
 Route::get('index/{locale}', [App\Http\Controllers\HomeController::class, 'lang']);

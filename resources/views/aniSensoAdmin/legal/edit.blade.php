@@ -9,7 +9,7 @@
         @slot('title') Edit @endslot
     @endcomponent
 
-    <form method="POST" action="{{ route('anisenso-legal.update', $page->id) }}">
+    <form method="POST" action="{{ route('anisenso-legal.update', ['id' => $page->id]) }}">
         @csrf
         @method('PUT')
         <div class="row">

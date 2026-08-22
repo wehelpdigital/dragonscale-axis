@@ -20,8 +20,12 @@ use Illuminate\Support\Facades\Auth;
  */
 class AniSensoHelpGuideController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        // ?module=&device= opens one guide; without them, the list.
+        if ($request->filled('module') && $request->filled('device')) {
+            return $this->edit($request, (string) $request->query('module'), (string) $request->query('device'));
+        }
         $rows = AsTutorialPage::active()->get()->keyBy(fn ($p) => $p->moduleKey . '|' . $p->device);
 
         return view('aniSensoAdmin.help-guides.index', compact('rows'));

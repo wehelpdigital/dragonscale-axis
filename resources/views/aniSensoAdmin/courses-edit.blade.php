@@ -89,7 +89,7 @@
                 </a>
             </div>
             <div class="card-body">
-                <form action="{{ route('anisenso-courses.update', $course->id) }}" method="POST" enctype="multipart/form-data" id="courseForm">
+                <form action="{{ route('anisenso-courses.update', ['id' => $course->id]) }}" method="POST" enctype="multipart/form-data" id="courseForm">
                     @csrf
                     @method('PUT')
 

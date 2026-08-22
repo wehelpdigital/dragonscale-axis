@@ -40,7 +40,7 @@
                                     $count = $page ? count($page->blocks ?? []) : 0;
                                 @endphp
                                 <td class="text-center">
-                                    <a href="{{ route('anisenso-help-guides.edit', ['module' => $key, 'device' => $d]) }}"
+                                    <a href="{{ route('anisenso-help-guides.index', ['module' => $key, 'device' => $d]) }}"
                                        class="btn btn-sm {{ $page ? 'btn-soft-success' : 'btn-soft-secondary' }}">
                                         {{ $page ? $count . ' block' . ($count === 1 ? '' : 's') : 'Write it' }}
                                     </a>

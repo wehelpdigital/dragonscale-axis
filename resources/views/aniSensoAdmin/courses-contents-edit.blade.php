@@ -101,7 +101,7 @@
                 </a>
             </div>
             <div class="card-body">
-                <form action="{{ route('anisenso-courses.chapters.update', $chapter->id) }}" method="POST" enctype="multipart/form-data" id="chapterForm">
+                <form action="{{ route('anisenso-courses.chapters.update', ['id' => $chapter->id]) }}" method="POST" enctype="multipart/form-data" id="chapterForm">
                     @csrf
                     @method('PUT')
 

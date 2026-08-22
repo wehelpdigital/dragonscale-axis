@@ -36,7 +36,7 @@
 
     @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 
-    <form method="POST" action="{{ route('anisenso-email-builder.update', $template->id) }}" id="ebForm">
+    <form method="POST" action="{{ route('anisenso-email-builder.update', ['id' => $template->id]) }}" id="ebForm">
         @csrf
         @method('PUT')
         <input type="hidden" name="blocks" id="ebBlocks">

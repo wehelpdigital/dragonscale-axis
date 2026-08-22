@@ -767,7 +767,7 @@ function bindEvents() {
             formData.append('_token', csrfToken);
 
             $.ajax({
-                url: `/anisenso-courses/${courseId}/certificate/assets`,
+                url: `/anisenso-courses-certificate-assets?assetId=${courseId}`,
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -915,7 +915,7 @@ function bindEvents() {
             formData.append('_token', csrfToken);
 
             $.ajax({
-                url: `/anisenso-courses/${courseId}/certificate/background`,
+                url: `/anisenso-courses-certificate-background?courseId=${courseId}`,
                 type: 'POST',
                 data: formData,
                 processData: false,
@@ -941,7 +941,7 @@ function bindEvents() {
     // Remove Background
     $('#removeBackgroundBtn').on('click', function() {
         $.ajax({
-            url: `/anisenso-courses/${courseId}/certificate/background`,
+            url: `/anisenso-courses-certificate-background?courseId=${courseId}`,
             type: 'DELETE',
             data: { _token: csrfToken },
             success: function(response) {
@@ -991,7 +991,7 @@ function bindEvents() {
     // Toggle Status
     $('#toggleStatusBtn').on('click', function() {
         $.ajax({
-            url: `/anisenso-courses/${courseId}/certificate/toggle-status`,
+            url: `/anisenso-courses-certificate-toggle-status?courseId=${courseId}`,
             type: 'PUT',
             data: { _token: csrfToken },
             success: function(response) {
@@ -1113,7 +1113,7 @@ function saveTemplate() {
         const jsonString = JSON.stringify(templateData);
 
         $.ajax({
-            url: `/anisenso-courses/${courseId}/certificate`,
+            url: `/anisenso-courses-certificate?courseId=${courseId}`,
             type: 'PUT',
             timeout: 30000, // 30 second timeout
             data: {

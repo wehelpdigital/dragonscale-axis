@@ -280,7 +280,7 @@
             var name = $btn.data('name');
 
             $.ajax({
-                url: '/anisenso-homepage-settings-items/' + itemId,
+                url: '/anisenso-homepage-settings-items?itemId=' + itemId,
                 type: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
                 success: function() {

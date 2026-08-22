@@ -236,7 +236,7 @@
 @slot('title') Edit: {{ $page->pageName }} @endslot
 @endcomponent
 
-<form id="pageForm" method="POST" action="{{ route('anisenso-website-pages.update', $page->id) }}">
+<form id="pageForm" method="POST" action="{{ route('anisenso-website-pages.update', ['id' => $page->id]) }}">
     @csrf
     @method('PUT')
 
@@ -745,7 +745,7 @@ $(document).ready(function() {
         const $label = $(this).next('label');
 
         $.ajax({
-            url: `/anisenso-homepage-settings-toggle/${sectionKey}`,
+            url: `/anisenso-homepage-settings-toggle?sectionKey=${sectionKey}`,
             type: 'POST',
             data: { _token: csrfToken },
             success: function(response) {
@@ -781,7 +781,7 @@ $(document).ready(function() {
         settings[settingKey] = value;
 
         $.ajax({
-            url: `/anisenso-homepage-settings-section/${sectionKey}`,
+            url: `/anisenso-homepage-settings-section?sectionKey=${sectionKey}`,
             type: 'PUT',
             data: { _token: csrfToken, settings: settings },
             success: function(response) {
@@ -847,7 +847,7 @@ $(document).ready(function() {
         formData.append('settingKey', settingKey);
 
         $.ajax({
-            url: `/anisenso-homepage-settings-section/${sectionKey}/image`,
+            url: `/anisenso-homepage-settings-section-image?sectionKey=${sectionKey}`,
             type: 'POST',
             data: formData,
             processData: false,
@@ -1001,7 +1001,7 @@ $('#saveNewItem').on('click', function() {
     }
 
     $.ajax({
-        url: `/anisenso-homepage-settings-section/${sectionKey}/items`,
+        url: `/anisenso-homepage-settings-section-items?sectionKey=${sectionKey}`,
         type: 'POST',
         data: formData,
         processData: false,
@@ -1032,7 +1032,7 @@ $('#saveEditItem').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
 
     $.ajax({
-        url: `/anisenso-homepage-settings-items/${itemId}`,
+        url: `/anisenso-homepage-settings-items?itemId=${itemId}`,
         type: 'PUT',
         data: {
             _token: csrfToken,
@@ -1073,7 +1073,7 @@ $('#confirmDeleteItem').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Deleting...');
 
     $.ajax({
-        url: `/anisenso-homepage-settings-items/${window.itemToDelete}`,
+        url: `/anisenso-homepage-settings-items?itemId=${window.itemToDelete}`,
         type: 'DELETE',
         data: { _token: csrfToken },
         success: function(response) {
@@ -1141,7 +1141,7 @@ $(document).on('change', '.edit-item-file-input', function(e) {
     formData.append('field', field);
 
     $.ajax({
-        url: `/anisenso-homepage-settings-items/${itemId}/image`,
+        url: `/anisenso-homepage-settings-items-image?itemId=${itemId}`,
         type: 'POST',
         data: formData,
         processData: false,

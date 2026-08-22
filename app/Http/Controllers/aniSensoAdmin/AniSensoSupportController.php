@@ -21,6 +21,10 @@ class AniSensoSupportController extends Controller
     /** All tickets, open ones first, with owner + message counts. */
     public function index(Request $request)
     {
+        // ?id= asks for one ticket; without it this is the list.
+        if ($request->filled('id')) {
+            return $this->show((int) $request->query('id'));
+        }
         $search = trim((string) $request->query('q'));
         $status = $request->query('status');
 

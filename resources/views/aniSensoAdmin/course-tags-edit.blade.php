@@ -56,7 +56,7 @@
                 </a>
             </div>
             <div class="card-body">
-                <form action="{{ route('anisenso-courses-tags.update', $tag->id) }}" method="POST" id="editAccessTagForm">
+                <form action="{{ route('anisenso-courses-tags.update', ['id' => $tag->id]) }}" method="POST" id="editAccessTagForm">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="courseId" value="{{ $course->id }}">

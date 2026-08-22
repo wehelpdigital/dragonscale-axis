@@ -41,7 +41,7 @@
                                     </td>
                                     <td>
                                         @if($post->comments_count)
-                                            <a href="{{ route('anisenso-blog.comments', $post->id) }}" class="badge bg-info text-decoration-none"
+                                            <a href="{{ route('anisenso-blog.comments', ['id' => $post->id]) }}" class="badge bg-info text-decoration-none"
                                                title="Read and moderate the comments">{{ $post->comments_count }}</a>
                                         @else
                                             <span class="text-secondary">0</span>
@@ -49,7 +49,7 @@
                                     </td>
                                     <td class="text-secondary">{{ $post->publishedAt ? $post->publishedAt->format('M j, Y') : '—' }}</td>
                                     <td class="text-end">
-                                        <a href="{{ route('anisenso-blog.edit', $post->id) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>
+                                        <a href="{{ route('anisenso-blog.edit', ['id' => $post->id]) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>
                                         <button type="button" class="btn btn-sm btn-soft-danger btn-del" data-id="{{ $post->id }}"><i class="bx bx-trash"></i></button>
                                     </td>
                                 </tr>
@@ -72,7 +72,7 @@
     const CSRF = "{{ csrf_token() }}";
     document.querySelectorAll('.btn-del').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Remove this article?')) return;
-        const res = await fetch('/anisenso-blog/' + b.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
+        const res = await fetch('/anisenso-blog?id=' + b.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
         const data = await res.json();
         if (data.success) { toastr.success(data.message); document.querySelector('[data-row="' + b.getAttribute('data-id') + '"]')?.remove(); }
         else toastr.error(data.message || 'Could not remove.');

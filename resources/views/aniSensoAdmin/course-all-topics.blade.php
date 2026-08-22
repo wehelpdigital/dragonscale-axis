@@ -190,7 +190,7 @@ function deleteTopic(topicId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `{{ route('anisenso-courses-topics.destroy', '') }}/${topicId}`,
+                url: `{{ route('anisenso-courses-topics.destroy', ['id' => '']) }}/${topicId}`,
                 method: 'DELETE',
                 data: {
                     _token: '{{ csrf_token() }}'

@@ -50,7 +50,7 @@
                                 @forelse($plans as $plan)
                                     <tr data-plan-row="{{ $plan->id }}">
                                         <td>
-                                            <a href="{{ route('anisenso-community.plans.show', $plan->id) }}" class="fw-semibold text-dark">{{ $plan->title }}</a>
+                                            <a href="{{ route('anisenso-community.plans', ['id' => $plan->id]) }}" class="fw-semibold text-dark">{{ $plan->title }}</a>
                                             @if($plan->cropType)<div class="text-secondary small">{{ $plan->cropType }}@if($plan->cropVariety) · {{ $plan->cropVariety }}@endif</div>@endif
                                         </td>
                                         <td>{{ optional($plan->anisystemUser)->full_name ?: '—' }}
@@ -66,7 +66,7 @@
                                         <td class="text-center">{{ (int) $plan->commentCount }}</td>
                                         <td>{{ $plan->publishedAt ? \Illuminate\Support\Carbon::parse($plan->publishedAt)->format('M j, Y') : '—' }}</td>
                                         <td class="text-end">
-                                            <a href="{{ route('anisenso-community.plans.show', $plan->id) }}" class="btn btn-sm btn-soft-primary">View</a>
+                                            <a href="{{ route('anisenso-community.plans', ['id' => $plan->id]) }}" class="btn btn-sm btn-soft-primary">View</a>
                                             <button type="button" class="btn btn-sm btn-soft-danger btn-unpublish" data-id="{{ $plan->id }}" data-title="{{ $plan->title }}">Unpublish</button>
                                         </td>
                                     </tr>
@@ -93,7 +93,7 @@
             if (!confirm('Remove "' + btn.getAttribute('data-title') + '" from the Community?')) return;
             btn.disabled = true;
             try {
-                const res = await fetch('/anisenso-community-plans/' + btn.getAttribute('data-id') + '/unpublish', {
+                const res = await fetch('/anisenso-community-plans?id=' + btn.getAttribute('data-id') + '/unpublish', {
                     method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' },
                 });
                 const data = await res.json();

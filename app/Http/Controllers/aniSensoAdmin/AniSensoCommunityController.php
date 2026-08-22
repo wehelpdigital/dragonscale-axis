@@ -33,6 +33,10 @@ class AniSensoCommunityController extends Controller
     /** Published plans with owner, crop, rating + comment counts. */
     public function plans(Request $request)
     {
+        // ?id= asks for one of them; without it, the list.
+        if ($request->filled('id')) {
+            return $this->planShow((int) $request->query('id'));
+        }
         $search = trim((string) $request->query('q'));
 
         $ratings = DB::table('as_community_ratings')->where('deleteStatus', 1)
@@ -112,6 +116,10 @@ class AniSensoCommunityController extends Controller
 
     public function groups(Request $request)
     {
+        // ?id= asks for one of them; without it, the list.
+        if ($request->filled('id')) {
+            return $this->groupShow((int) $request->query('id'));
+        }
         $search = trim((string) $request->query('q'));
 
         $groups = CommunityGroup::active()
@@ -182,6 +190,10 @@ class AniSensoCommunityController extends Controller
 
     public function members(Request $request)
     {
+        // ?id= asks for one of them; without it, the list.
+        if ($request->filled('id')) {
+            return $this->memberShow((int) $request->query('id'));
+        }
         $search = trim((string) $request->query('q'));
 
         $members = AnisystemUser::query()

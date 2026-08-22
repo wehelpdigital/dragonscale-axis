@@ -40,6 +40,9 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\Localization::class,
             \App\Http\Middleware\SingleSession::class, // Single session per user enforcement
             \App\Http\Middleware\TouchScheduleSync::class, // Schedule Manager live-sync version bump
+            // Admin URLs carry their ids after the question mark; this puts
+            // them where controller arguments are resolved from.
+            \App\Http\Middleware\QueryRouteParams::class,
         ],
 
         'api' => [

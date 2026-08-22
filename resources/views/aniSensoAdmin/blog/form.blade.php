@@ -10,7 +10,7 @@
     @endcomponent
 
     <form method="POST"
-          action="{{ $mode === 'edit' ? route('anisenso-blog.update', $post->id) : route('anisenso-blog.store') }}"
+          action="{{ $mode === 'edit' ? route('anisenso-blog.update', ['id' => $post->id]) : route('anisenso-blog.store') }}"
           enctype="multipart/form-data">
         @csrf
         @if($mode === 'edit') @method('PUT') @endif

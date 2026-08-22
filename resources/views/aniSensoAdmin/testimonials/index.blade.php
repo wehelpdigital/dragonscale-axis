@@ -240,7 +240,7 @@ $(document).ready(function() {
         formData.append('isActive', $('#formIsActive').is(':checked') ? '1' : '0');
 
         var url = editId
-            ? '/anisenso-website-testimonials/' + editId
+            ? '/anisenso-website-testimonials?id=' + editId
             : '/anisenso-website-testimonials';
 
         if (editId) formData.append('_method', 'PUT');
@@ -291,7 +291,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
         $.ajax({
-            url: '/anisenso-website-testimonials/' + deleteId,
+            url: '/anisenso-website-testimonials?id=' + deleteId,
             type: 'DELETE',
             headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             success: function(response) {

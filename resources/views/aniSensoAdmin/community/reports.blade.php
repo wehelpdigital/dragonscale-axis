@@ -110,7 +110,7 @@
                                             @if ($report->targetUserId)
                                                 <div class="small mt-1">
                                                     <span class="text-secondary">Posted by</span><br>
-                                                    <a href="{{ route('anisenso-community.members.show', $report->targetUserId) }}" class="fw-semibold text-dark">
+                                                    <a href="{{ route('anisenso-community.members', ['id' => $report->targetUserId]) }}" class="fw-semibold text-dark">
                                                         {{ optional($report->reportedUser)->full_name ?: 'Member #' . $report->targetUserId }}
                                                     </a>
                                                 </div>
@@ -157,9 +157,9 @@ document.addEventListener('click', function (e) {
     if (act === 'remove' && !confirm('Remove this content from the community? Every open report about it closes too.')) return;
 
     var urls = {
-        review: '{{ url('anisenso-community/reports') }}/' + id + '/review',
-        dismiss: '{{ url('anisenso-community/reports') }}/' + id + '/dismiss',
-        remove: '{{ url('anisenso-community/reports') }}/' + id + '/remove'
+        review: '{{ url('anisenso-community-reports-review') }}?id=' + id,
+        dismiss: '{{ url('anisenso-community-reports-dismiss') }}?id=' + id,
+        remove: '{{ url('anisenso-community-reports-remove') }}?id=' + id
     };
 
     btn.disabled = true;

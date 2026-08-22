@@ -40,7 +40,7 @@
                         <td>@if($t->isPublished)<span class="badge bg-success">Published</span>@else<span class="badge bg-secondary">Hidden</span>@endif</td>
                         <td>{{ $t->sortOrder }}</td>
                         <td class="text-end">
-                            <a href="{{ route('anisenso-tutorials.edit', $t->id) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>
+                            <a href="{{ route('anisenso-tutorials.edit', ['id' => $t->id]) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>
                             <button type="button" class="btn btn-sm btn-soft-danger btn-del" data-id="{{ $t->id }}"><i class="bx bx-trash"></i></button>
                         </td>
                     </tr>
@@ -60,7 +60,7 @@
     const CSRF = "{{ csrf_token() }}";
     document.querySelectorAll('.btn-del').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Remove this tutorial?')) return;
-        const res = await fetch('/anisenso-tutorials/' + b.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
+        const res = await fetch('/anisenso-tutorials?id=' + b.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
         const data = await res.json();
         if (data.success) { toastr.success(data.message); document.querySelector('[data-row="' + b.getAttribute('data-id') + '"]')?.remove(); }
         else toastr.error(data.message || 'Could not remove.');

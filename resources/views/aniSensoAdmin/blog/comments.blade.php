@@ -26,7 +26,7 @@
                             </p>
                         </div>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('anisenso-blog.edit', $post->id) }}" class="btn btn-soft-primary"><i class="bx bx-edit"></i> Edit article</a>
+                            <a href="{{ route('anisenso-blog.edit', ['id' => $post->id]) }}" class="btn btn-soft-primary"><i class="bx bx-edit"></i> Edit article</a>
                             <a href="{{ route('anisenso-blog.index') }}" class="btn btn-light"><i class="bx bx-arrow-back"></i> All articles</a>
                         </div>
                     </div>
@@ -67,7 +67,7 @@
     document.querySelectorAll('.btn-del-comment').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Remove this comment? The member will no longer see it on the article.')) return;
         const id = b.getAttribute('data-id');
-        const res = await fetch('/anisenso-blog-comments/' + id, {
+        const res = await fetch('/anisenso-blog-comments?id=' + id, {
             method: 'DELETE',
             headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' },
         });

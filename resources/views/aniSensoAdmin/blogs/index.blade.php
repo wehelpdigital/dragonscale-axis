@@ -295,7 +295,7 @@ $(document).ready(function() {
         const blogId = $star.data('blog-id');
 
         $.ajax({
-            url: '/anisenso-blogs/' + blogId + '/toggle-featured',
+            url: '/anisenso-blogs-toggle-featured?id=' + blogId,
             type: 'POST',
             data: { _token: '{{ csrf_token() }}' },
             success: function(response) {
@@ -333,7 +333,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Deleting...');
 
         $.ajax({
-            url: '/anisenso-blogs/' + blogToDelete.id,
+            url: '/anisenso-blogs?id=' + blogToDelete.id,
             type: 'DELETE',
             data: { _token: '{{ csrf_token() }}' },
             success: function(response) {

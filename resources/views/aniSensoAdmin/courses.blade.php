@@ -1600,7 +1600,7 @@ $(document).ready(function() {
         showLoading();
 
         $.ajax({
-            url: '/anisenso-courses/' + courseToDelete.id,
+            url: '/anisenso-courses?id=' + courseToDelete.id,
             type: 'DELETE',
             data: {
                 _token: '{{ csrf_token() }}'
@@ -1714,7 +1714,7 @@ $(document).ready(function() {
         $confirmBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Processing...');
 
         $.ajax({
-            url: '/anisenso-courses/' + courseId + '/status',
+            url: '/anisenso-courses-status?id=' + courseId,
             type: 'PUT',
             data: {
                 _token: '{{ csrf_token() }}'
@@ -2809,7 +2809,7 @@ function loadStudents() {
     `);
 
     $.ajax({
-        url: `/anisenso-courses/${courseId}/students`,
+        url: `/anisenso-courses-students?courseId=${courseId}`,
         type: 'GET',
         data: {
             search: search,
@@ -2928,7 +2928,7 @@ $(document).on('click', '.edit-student-btn', function() {
     const enrollmentId = $(this).data('id');
 
     $.ajax({
-        url: `/anisenso-courses-enrollments/${enrollmentId}`,
+        url: `/anisenso-courses-enrollments?enrollmentId=${enrollmentId}`,
         type: 'GET',
         success: function(response) {
             if (response.success) {
@@ -2981,7 +2981,7 @@ $('#saveStudentBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
 
     $.ajax({
-        url: `/anisenso-courses-enrollments/${enrollmentId}`,
+        url: `/anisenso-courses-enrollments?enrollmentId=${enrollmentId}`,
         type: 'PUT',
         data: {
             _token: '{{ csrf_token() }}',
@@ -3020,7 +3020,7 @@ $('#sendPasswordEmailBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Sending...');
 
     $.ajax({
-        url: `/anisenso-courses-students/${accessClientId}/send-password-reset`,
+        url: `/anisenso-courses-students-send-password-reset?accessClientId=${accessClientId}`,
         type: 'POST',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3057,7 +3057,7 @@ $('#confirmRemoveStudentBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Removing...');
 
     $.ajax({
-        url: `/anisenso-courses-enrollments/${enrollmentId}`,
+        url: `/anisenso-courses-enrollments?enrollmentId=${enrollmentId}`,
         type: 'DELETE',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3091,7 +3091,7 @@ $('#confirmResetProgressBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Resetting...');
 
     $.ajax({
-        url: `/anisenso-courses-enrollments/${enrollmentId}/reset-progress`,
+        url: `/anisenso-courses-enrollments-reset-progress?enrollmentId=${enrollmentId}`,
         type: 'POST',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3160,7 +3160,7 @@ function loadAvailableLogins(page = 1, search = '') {
     `);
 
     $.ajax({
-        url: `/anisenso-courses/${currentStudentsCourseId}/students/search`,
+        url: `/anisenso-courses-students-search?courseId=${currentStudentsCourseId}`,
         type: 'GET',
         data: { search: search, page: page, per_page: 10 },
         success: function(response) {
@@ -3361,7 +3361,7 @@ function loadAuditLogs(page = 1) {
     `);
 
     $.ajax({
-        url: `/anisenso-courses/${courseId}/audit`,
+        url: `/anisenso-courses-audit?courseId=${courseId}`,
         type: 'GET',
         data: {
             dateFrom: $('#auditDateFrom').val(),
@@ -3507,7 +3507,7 @@ $(document).on('click', '.audit-page-link', function(e) {
 // Load users for filter
 function loadAuditUsers(courseId) {
     $.ajax({
-        url: `/anisenso-courses/${courseId}/audit/users`,
+        url: `/anisenso-courses-audit-users?courseId=${courseId}`,
         type: 'GET',
         success: function(response) {
             if (response.success) {
@@ -3575,7 +3575,7 @@ function loadReviews(page = 1) {
     `);
 
     $.ajax({
-        url: `/anisenso-courses/${courseId}/reviews`,
+        url: `/anisenso-courses-reviews?reviewId=${courseId}`,
         type: 'GET',
         data: { page, rating, approved, perPage: 10 },
         success: function(response) {
@@ -3831,7 +3831,7 @@ $(document).on('click', '.toggle-approval-btn', function() {
     $btn.prop('disabled', true);
 
     $.ajax({
-        url: `/anisenso-courses-reviews/${reviewId}/approval`,
+        url: `/anisenso-courses-reviews-approval?reviewId=${reviewId}`,
         type: 'PUT',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3859,7 +3859,7 @@ $(document).on('click', '.toggle-featured-btn', function() {
     $btn.prop('disabled', true);
 
     $.ajax({
-        url: `/anisenso-courses-reviews/${reviewId}/featured`,
+        url: `/anisenso-courses-reviews-featured?reviewId=${reviewId}`,
         type: 'PUT',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3914,7 +3914,7 @@ $('#submitReviewReply').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Sending...');
 
     $.ajax({
-        url: `/anisenso-courses-reviews/${reviewId}/reply`,
+        url: `/anisenso-courses-reviews-reply?reviewId=${reviewId}`,
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}',
@@ -3964,7 +3964,7 @@ $('#confirmDeleteReview').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
     $.ajax({
-        url: `/anisenso-courses-reviews/${reviewToDelete.id}`,
+        url: `/anisenso-courses-reviews?reviewId=${reviewToDelete.id}`,
         type: 'DELETE',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -4008,7 +4008,7 @@ $('#confirmDeleteReviewReply').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
     $.ajax({
-        url: `/anisenso-courses-review-replies/${replyToDelete.id}`,
+        url: `/anisenso-courses-review-replies?replyId=${replyToDelete.id}`,
         type: 'DELETE',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -4056,7 +4056,7 @@ function loadCourseSettings() {
     const courseId = $('#settingsCourseId').val();
 
     $.ajax({
-        url: `/anisenso-courses/${courseId}/settings`,
+        url: `/anisenso-courses-settings?courseId=${courseId}`,
         type: 'GET',
         success: function(response) {
             if (response.success) {
@@ -4131,7 +4131,7 @@ $('#saveCourseFlowSettings').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving...');
 
     $.ajax({
-        url: `/anisenso-courses/${courseId}/settings/course-flow`,
+        url: `/anisenso-courses-settings-course-flow?courseId=${courseId}`,
         type: 'PUT',
         data: {
             _token: '{{ csrf_token() }}',

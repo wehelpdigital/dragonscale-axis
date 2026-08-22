@@ -265,7 +265,7 @@ function initHeroFeaturesScripts() {
     // Save feature field via AJAX
     function saveFeatureField(itemId, field, value) {
         $.ajax({
-            url: '/anisenso-homepage-settings-items/' + itemId,
+            url: '/anisenso-homepage-settings-items?itemId=' + itemId,
             type: 'PUT',
             data: {
                 _token: $('meta[name="csrf-token"]').attr('content'),
@@ -287,7 +287,7 @@ function initHeroFeaturesScripts() {
         const sectionId = {{ $section->id }};
 
         $.ajax({
-            url: '/anisenso-homepage-settings-section/hero_features/items',
+            url: '/anisenso-homepage-settings-section-items?sectionKey=hero_features',
             type: 'POST',
             data: {
                 _token: $('meta[name="csrf-token"]').attr('content'),
@@ -383,7 +383,7 @@ function initHeroFeaturesScripts() {
         if (!confirm(`Delete "${itemTitle}"?`)) return;
 
         $.ajax({
-            url: '/anisenso-homepage-settings-items/' + itemId,
+            url: '/anisenso-homepage-settings-items?itemId=' + itemId,
             type: 'DELETE',
             data: { _token: $('meta[name="csrf-token"]').attr('content') },
             success: function(response) {

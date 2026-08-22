@@ -35,7 +35,7 @@
                                 @endif
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('anisenso-email-builder.edit', $t->id) }}" class="btn btn-sm btn-soft-primary">
+                                <a href="{{ route('anisenso-email-builder.index', ['id' => $t->id]) }}" class="btn btn-sm btn-soft-primary">
                                     <i class="bx bx-edit"></i> Open builder
                                 </a>
                             </td>

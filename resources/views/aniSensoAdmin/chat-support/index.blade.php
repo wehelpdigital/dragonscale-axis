@@ -680,7 +680,7 @@ $(document).ready(function() {
 
     function fetchMessages(conversationId) {
         $.ajax({
-            url: '/anisenso-website-chat-support-messages/' + conversationId,
+            url: '/anisenso-website-chat-support-messages?id=' + conversationId,
             type: 'GET',
             success: function(response) {
                 if (response.success) {
@@ -817,7 +817,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true);
 
         $.ajax({
-            url: '/anisenso-website-chat-support-send/' + currentConversationId,
+            url: '/anisenso-website-chat-support-send?id=' + currentConversationId,
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
@@ -870,7 +870,7 @@ $(document).ready(function() {
     });
 
     function executeStatusToggle(action) {
-        var url = '/anisenso-website-chat-support/' + action + '/' + currentConversationId;
+        var url = '/anisenso-website-chat-support?id=' + action + '&id=' + currentConversationId;
 
         $.ajax({
             url: url,
@@ -930,7 +930,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
         $.ajax({
-            url: '/anisenso-website-chat-support/' + currentConversationId,
+            url: '/anisenso-website-chat-support?id=' + currentConversationId,
             type: 'DELETE',
             data: { _token: '{{ csrf_token() }}' },
             success: function(response) {

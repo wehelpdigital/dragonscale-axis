@@ -128,38 +128,38 @@
                                 <span key="t-anisenso-community">Community</span>
                             </a>
                             <ul class="sub-menu {{ request()->is('anisenso-community*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('anisenso-community*') ? 'true' : 'false' }}">
-                                <li class="{{ request()->is('anisenso-community/plans*') ? 'mm-active' : '' }}">
-                                    <a href="{{ route('anisenso-community.plans') }}" class="waves-effect {{ request()->is('anisenso-community/plans*') ? 'active' : '' }}">
+                                <li class="{{ request()->is('anisenso-community-plans*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.plans') }}" class="waves-effect {{ request()->is('anisenso-community-plans*') ? 'active' : '' }}">
                                         <i class="bx bx-spreadsheet"></i>
                                         <span key="t-anisenso-community-plans">Shared Plans</span>
                                     </a>
                                 </li>
-                                <li class="{{ request()->is('anisenso-community/groups*') ? 'mm-active' : '' }}">
-                                    <a href="{{ route('anisenso-community.groups') }}" class="waves-effect {{ request()->is('anisenso-community/groups*') ? 'active' : '' }}">
+                                <li class="{{ request()->is('anisenso-community-groups*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.groups') }}" class="waves-effect {{ request()->is('anisenso-community-groups*') ? 'active' : '' }}">
                                         <i class="bx bx-group"></i>
                                         <span key="t-anisenso-community-groups">Groups</span>
                                     </a>
                                 </li>
-                                <li class="{{ request()->is('anisenso-community/ai-answers*') ? 'mm-active' : '' }}">
-                                    <a href="{{ route('anisenso-community.ai-answers') }}" class="waves-effect {{ request()->is('anisenso-community/ai-answers*') ? 'active' : '' }}">
+                                <li class="{{ request()->is('anisenso-community-ai-answers*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.ai-answers') }}" class="waves-effect {{ request()->is('anisenso-community-ai-answers*') ? 'active' : '' }}">
                                         <i class="bx bx-bot"></i>
                                         <span key="t-anisenso-community-ai-answers">AI Answers</span>
                                     </a>
                                 </li>
-                                <li class="{{ request()->is('anisenso-community/reports*') ? 'mm-active' : '' }}">
-                                    <a href="{{ route('anisenso-community.reports') }}" class="waves-effect {{ request()->is('anisenso-community/reports*') ? 'active' : '' }}">
+                                <li class="{{ request()->is('anisenso-community-reports*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.reports') }}" class="waves-effect {{ request()->is('anisenso-community-reports*') ? 'active' : '' }}">
                                         <i class="bx bx-flag"></i>
                                         <span key="t-anisenso-community-reports">Reports</span>
                                     </a>
                                 </li>
-                                <li class="{{ request()->is('anisenso-community/members*') ? 'mm-active' : '' }}">
-                                    <a href="{{ route('anisenso-community.members') }}" class="waves-effect {{ request()->is('anisenso-community/members*') ? 'active' : '' }}">
+                                <li class="{{ request()->is('anisenso-community-members*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.members') }}" class="waves-effect {{ request()->is('anisenso-community-members*') ? 'active' : '' }}">
                                         <i class="bx bx-user"></i>
                                         <span key="t-anisenso-community-members">Members</span>
                                     </a>
                                 </li>
-                                <li class="{{ request()->is('anisenso-community/announcements*') ? 'mm-active' : '' }}">
-                                    <a href="{{ route('anisenso-community.announcements') }}" class="waves-effect {{ request()->is('anisenso-community/announcements*') ? 'active' : '' }}">
+                                <li class="{{ request()->is('anisenso-community-announcements*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.announcements') }}" class="waves-effect {{ request()->is('anisenso-community-announcements*') ? 'active' : '' }}">
                                         <i class="bx bx-broadcast"></i>
                                         <span key="t-anisenso-community-announce">Announcements</span>
                                     </a>

@@ -46,7 +46,7 @@
                                 @forelse($groups as $group)
                                     <tr data-group-row="{{ $group->id }}">
                                         <td>
-                                            <a href="{{ route('anisenso-community.groups.show', $group->id) }}" class="fw-semibold text-dark">{{ $group->name }}</a>
+                                            <a href="{{ route('anisenso-community.groups', ['id' => $group->id]) }}" class="fw-semibold text-dark">{{ $group->name }}</a>
                                             @if($group->description)<div class="text-secondary small">{{ \Illuminate\Support\Str::limit($group->description, 80) }}</div>@endif
                                         </td>
                                         <td>{{ optional($group->creator)->full_name ?: '—' }}</td>
@@ -54,7 +54,7 @@
                                         <td class="text-center">{{ $group->post_count }}</td>
                                         <td>{{ $group->created_at?->format('M j, Y') }}</td>
                                         <td class="text-end">
-                                            <a href="{{ route('anisenso-community.groups.show', $group->id) }}" class="btn btn-sm btn-soft-primary">View</a>
+                                            <a href="{{ route('anisenso-community.groups', ['id' => $group->id]) }}" class="btn btn-sm btn-soft-primary">View</a>
                                             <button type="button" class="btn btn-sm btn-soft-danger btn-del-group" data-id="{{ $group->id }}" data-name="{{ $group->name }}">Delete</button>
                                         </td>
                                     </tr>
@@ -81,7 +81,7 @@
             if (!confirm('Delete "' + btn.getAttribute('data-name') + '" and all its posts?')) return;
             btn.disabled = true;
             try {
-                const res = await fetch('/anisenso-community-groups/' + btn.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
+                const res = await fetch('/anisenso-community-groups?id=' + btn.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
                 const data = await res.json();
                 if (data.success) { toastr.success(data.message); document.querySelector('[data-group-row="' + btn.getAttribute('data-id') + '"]')?.remove(); }
                 else { toastr.error(data.message); btn.disabled = false; }

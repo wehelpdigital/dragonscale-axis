@@ -198,7 +198,7 @@ function confirmDelete() {
 
     // Make AJAX request to delete the tag
     $.ajax({
-        url: `/anisenso-courses-tags/${tagId}`,
+        url: `/anisenso-courses-tags?id=${tagId}`,
         type: 'DELETE',
         data: {
             _token: $('meta[name="csrf-token"]').attr('content')

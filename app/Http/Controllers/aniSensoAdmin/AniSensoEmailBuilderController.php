@@ -18,8 +18,12 @@ use Illuminate\Http\Request;
  */
 class AniSensoEmailBuilderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        // ?id= opens one layout for editing; without it, the list.
+        if ($request->filled('id')) {
+            return $this->edit((int) $request->query('id'));
+        }
         $templates = AsEmailTemplate::active()
             ->where('groupKey', 'AniSystem')
             ->orderBy('templateName')

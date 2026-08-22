@@ -70,7 +70,7 @@
                 </a>
             </div>
             <div class="card-body">
-                <form action="{{ route('anisenso-courses-topics.update', $topic->id) }}" method="POST" id="topicForm">
+                <form action="{{ route('anisenso-courses-topics.update', ['id' => $topic->id]) }}" method="POST" id="topicForm">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="courseId" value="{{ $course->id }}">

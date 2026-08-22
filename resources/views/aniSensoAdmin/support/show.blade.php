@@ -57,7 +57,7 @@
                     </div>
 
                     @if($ticket->status !== 'closed')
-                        <form method="POST" action="{{ route('anisenso-support.reply', $ticket->id) }}" class="mt-4 border-top pt-3">
+                        <form method="POST" action="{{ route('anisenso-support.reply', ['id' => $ticket->id]) }}" class="mt-4 border-top pt-3">
                             @csrf
                             <label class="form-label text-dark">Reply to the client</label>
                             <textarea name="body" rows="4" maxlength="8000" class="form-control @error('body') is-invalid @enderror" placeholder="Type your answer…" required>{{ old('body') }}</textarea>
@@ -84,7 +84,7 @@
                         @if($ticket->user->city || $ticket->user->province)
                             <div class="text-secondary small mt-1"><i class="bx bx-map"></i> {{ trim(($ticket->user->city ?? '') . ', ' . ($ticket->user->province ?? ''), ', ') }}</div>
                         @endif
-                        <a href="{{ route('anisenso-community.members.show', $ticket->user->id) }}" class="btn btn-sm btn-outline-secondary mt-3">View member</a>
+                        <a href="{{ route('anisenso-community.members', ['id' => $ticket->user->id]) }}" class="btn btn-sm btn-outline-secondary mt-3">View member</a>
                     @else
                         <p class="text-secondary mb-0">Unknown client (#{{ $ticket->userId }})</p>
                     @endif
@@ -92,12 +92,12 @@
                     <hr>
                     <h6 class="text-dark">Actions</h6>
                     @if($ticket->status !== 'closed')
-                        <form method="POST" action="{{ route('anisenso-support.close', $ticket->id) }}" onsubmit="return confirm('Close this ticket?');">
+                        <form method="POST" action="{{ route('anisenso-support.close', ['id' => $ticket->id]) }}" onsubmit="return confirm('Close this ticket?');">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-danger w-100"><i class="bx bx-x-circle"></i> Close ticket</button>
                         </form>
                     @else
-                        <form method="POST" action="{{ route('anisenso-support.reopen', $ticket->id) }}">
+                        <form method="POST" action="{{ route('anisenso-support.reopen', ['id' => $ticket->id]) }}">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-success w-100"><i class="bx bx-refresh"></i> Reopen ticket</button>
                         </form>

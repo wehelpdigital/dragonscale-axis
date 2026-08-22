@@ -314,7 +314,7 @@ function updatePageOrder() {
 
 function toggleStatus(pageId) {
     $.ajax({
-        url: '/anisenso-website-pages/' + pageId + '/toggle-status',
+        url: '/anisenso-website-pages-toggle-status?id=' + pageId,
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}'
@@ -362,7 +362,7 @@ $('#confirmDeleteBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
     $.ajax({
-        url: '/anisenso-website-pages/' + pageToDelete,
+        url: '/anisenso-website-pages?id=' + pageToDelete,
         type: 'DELETE',
         data: {
             _token: '{{ csrf_token() }}'

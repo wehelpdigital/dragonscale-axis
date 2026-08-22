@@ -19,8 +19,13 @@ class AnisystemClientsController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request)
     {
+        // One address, two answers: the page, or one client as JSON when
+        // the request names one. The admin's ids ride in the query string.
+        if ($request->filled('id')) {
+            return $this->show((int) $request->query('id'));
+        }
         return view('aniSensoAdmin.anisystemClients.index');
     }
 

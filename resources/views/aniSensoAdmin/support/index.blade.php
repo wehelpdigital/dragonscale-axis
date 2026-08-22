@@ -60,7 +60,7 @@
                                 @forelse($tickets as $ticket)
                                     <tr>
                                         <td>
-                                            <a href="{{ route('anisenso-support.show', $ticket->id) }}" class="fw-semibold text-dark">{{ $ticket->subject }}</a>
+                                            <a href="{{ route('anisenso-support.index', ['id' => $ticket->id]) }}" class="fw-semibold text-dark">{{ $ticket->subject }}</a>
                                             <div class="text-secondary small">#{{ $ticket->id }} · opened {{ optional($ticket->created_at)->diffForHumans() }}</div>
                                         </td>
                                         <td>
@@ -76,7 +76,7 @@
                                         <td class="text-secondary small">{{ optional($ticket->lastReplyAt ?? $ticket->updated_at)->diffForHumans() }}</td>
                                         <td class="text-center"><span class="badge {{ $badge[$ticket->status] ?? 'bg-secondary' }}">{{ ucfirst($ticket->status) }}</span></td>
                                         <td class="text-end">
-                                            <a href="{{ route('anisenso-support.show', $ticket->id) }}" class="btn btn-sm btn-outline-primary">Open</a>
+                                            <a href="{{ route('anisenso-support.index', ['id' => $ticket->id]) }}" class="btn btn-sm btn-outline-primary">Open</a>
                                         </td>
                                     </tr>
                                 @empty

@@ -48,7 +48,7 @@
                                             <div class="d-flex align-items-center gap-2">
                                                 <span class="avatar-chip">{{ $member->initials ?: '?' }}</span>
                                                 <div>
-                                                    <a href="{{ route('anisenso-community.members.show', $member->id) }}" class="fw-semibold text-dark">{{ $member->full_name }}</a>
+                                                    <a href="{{ route('anisenso-community.members', ['id' => $member->id]) }}" class="fw-semibold text-dark">{{ $member->full_name }}</a>
                                                     <div class="text-secondary small">{{ $member->email }}</div>
                                                 </div>
                                             </div>
@@ -57,7 +57,7 @@
                                         <td class="text-center">{{ (int) $member->sharedPlanCount }}</td>
                                         <td class="text-center">{{ (int) $member->connectionCount }}</td>
                                         <td>{{ $member->created_at?->format('M j, Y') }}</td>
-                                        <td class="text-end"><a href="{{ route('anisenso-community.members.show', $member->id) }}" class="btn btn-sm btn-soft-primary">View</a></td>
+                                        <td class="text-end"><a href="{{ route('anisenso-community.members', ['id' => $member->id]) }}" class="btn btn-sm btn-soft-primary">View</a></td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="6" class="text-center text-secondary py-4">{{ $search ? 'No members match your search.' : 'No members yet.' }}</td></tr>

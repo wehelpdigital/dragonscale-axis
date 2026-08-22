@@ -34,7 +34,7 @@
                         <td>@if($page->isPublished)<span class="badge bg-success">Published</span>@else<span class="badge bg-secondary">Draft</span>@endif</td>
                         <td class="text-secondary">{{ $page->updated_at?->format('M j, Y') }}</td>
                         <td class="text-end">
-                            <a href="{{ route('anisenso-legal.edit', $page->id) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i> Edit</a>
+                            <a href="{{ route('anisenso-legal.edit', ['id' => $page->id]) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i> Edit</a>
                         </td>
                     </tr>
                 @endforeach

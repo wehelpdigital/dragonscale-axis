@@ -259,7 +259,7 @@ function deleteTopic(topicId) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `/anisenso-courses-topics/${topicId}`,
+                url: `/anisenso-courses-topics?id=${topicId}`,
                 method: 'DELETE',
                 data: {
                     _token: '{{ csrf_token() }}'

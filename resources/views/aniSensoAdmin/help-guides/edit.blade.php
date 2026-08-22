@@ -77,7 +77,7 @@
                     </p>
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         @foreach (\App\Models\AsTutorialPage::DEVICES as $d)
-                            <a href="{{ route('anisenso-help-guides.edit', ['module' => $module, 'device' => $d]) }}"
+                            <a href="{{ route('anisenso-help-guides.index', ['module' => $module, 'device' => $d]) }}"
                                class="btn btn-sm {{ $d === $device ? 'btn-success' : 'btn-soft-secondary' }}">
                                 {{ \App\Models\AsTutorialPage::DEVICE_LABELS[$d] }}
                             </a>
