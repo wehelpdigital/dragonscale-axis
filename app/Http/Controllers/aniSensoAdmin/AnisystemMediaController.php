@@ -228,6 +228,210 @@ class AnisystemMediaController extends Controller
     }
 
     // =====================================================================
+    // Notes
+    // =====================================================================
+
+    public function notes()
+    {
+        return view('aniSensoAdmin.media.notes');
+    }
+
+    /**
+     * Every note on every shelf.
+     *
+     * Same assembly as the drawings, and for the same reason: three tables
+     * with the same job and no key between them. A note's pictures come along
+     * so the row can say how much is attached without a second trip.
+     */
+    public function notesData(Request $request)
+    {
+        try {
+            $search = mb_strtolower(trim((string) $request->query('searchFilter')));
+            $shelf = (string) $request->query('shelf', '');
+            $withMedia = $request->query('media') === 'yes';
+            $rows = [];
+
+            foreach (self::NOTE_SHELVES as $key => $spec) {
+                if ($shelf !== '' && $shelf !== $key) {
+                    continue;
+                }
+                $notes = DB::table($spec['table'] . ' as n')
+                    ->leftJoin('as_cropping_schedules as s', 's.id', '=', 'n.' . $spec['schedule'])
+                    ->leftJoin('anisystem_users as u', 'u.id', '=', 's.anisystemUserId')
+                    ->where('n.deleteStatus', 1)
+                    ->orderByDesc('n.id')
+                    ->limit(500)
+                    ->selectRaw(sprintf(
+                        "n.id, n.media, n.updated_at, n.created_at, %s as noteTitle, n.%s as noteBody,
+                         s.title as scheduleTitle,
+                         TRIM(CONCAT(COALESCE(u.firstName,''), ' ', COALESCE(u.lastName,''))) as clientName,
+                         u.email as clientEmail",
+                        $spec['title'] ? 'n.' . $spec['title'] : "''",
+                        $spec['body']
+                    ))
+                    ->get();
+
+                foreach ($notes as $note) {
+                    $media = $this->mediaOf($note->media);
+                    if ($withMedia && ! $media) {
+                        continue;
+                    }
+                    $rows[] = [
+                        'shelf' => $key,
+                        'id' => (int) $note->id,
+                        'title' => trim((string) $note->noteTitle) ?: 'Untitled note',
+                        'words' => mb_substr(trim(strip_tags((string) $note->noteBody)), 0, 160),
+                        'attachments' => count($media),
+                        'clientName' => trim((string) $note->clientName) ?: null,
+                        'clientEmail' => $note->clientEmail,
+                        'scheduleTitle' => $note->scheduleTitle,
+                        'when' => $this->when($note->updated_at),
+                        'sortKey' => $note->updated_at ? strtotime($note->updated_at) : 0,
+                    ];
+                }
+            }
+
+            if ($search !== '') {
+                $rows = array_values(array_filter($rows, fn ($r) => str_contains(mb_strtolower(implode(' ', [
+                    $r['title'], $r['words'], $r['clientName'], $r['clientEmail'], $r['scheduleTitle'],
+                ])), $search)));
+            }
+
+            usort($rows, fn ($a, $b) => $b['sortKey'] <=> $a['sortKey']);
+            $start = max(0, (int) $request->query('start', 0));
+            $length = (int) $request->query('length', 25);
+
+            return response()->json([
+                'draw' => (int) $request->query('draw', 1),
+                'recordsTotal' => count($rows),
+                'recordsFiltered' => count($rows),
+                'data' => $length < 0 ? $rows : array_slice($rows, $start, $length),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AniSystem notes list failed: ' . $e->getMessage());
+
+            return response()->json(['error' => 'Could not load the notes.'], 500);
+        }
+    }
+
+    /** One note, with its words and everything attached to it. */
+    public function noteShow(Request $request)
+    {
+        $spec = self::NOTE_SHELVES[(string) $request->query('shelf')] ?? null;
+        if (! $spec) {
+            return response()->json(['success' => false, 'message' => 'Unknown note shelf.'], 422);
+        }
+
+        $note = DB::table($spec['table'] . ' as n')
+            ->leftJoin('as_cropping_schedules as s', 's.id', '=', 'n.' . $spec['schedule'])
+            ->leftJoin('anisystem_users as u', 'u.id', '=', 's.anisystemUserId')
+            ->where('n.id', (int) $request->query('id'))->where('n.deleteStatus', 1)
+            ->selectRaw(sprintf(
+                "n.id, n.media, n.updated_at, %s as noteTitle, n.%s as noteBody, s.title as scheduleTitle,
+                 TRIM(CONCAT(COALESCE(u.firstName,''), ' ', COALESCE(u.lastName,''))) as clientName, u.email as clientEmail",
+                $spec['title'] ? 'n.' . $spec['title'] : "''",
+                $spec['body']
+            ))
+            ->first();
+
+        if (! $note) {
+            return response()->json(['success' => false, 'message' => 'That note is gone.'], 404);
+        }
+
+        return response()->json(['success' => true, 'data' => [
+            'title' => trim((string) $note->noteTitle) ?: 'Untitled note',
+            'body' => trim(strip_tags((string) $note->noteBody)),
+            'clientName' => trim((string) $note->clientName) ?: null,
+            'clientEmail' => $note->clientEmail,
+            'scheduleTitle' => $note->scheduleTitle,
+            'when' => $this->when($note->updated_at),
+            'media' => collect($this->mediaOf($note->media))->map(fn ($m) => [
+                'type' => (string) ($m['type'] ?? 'image'),
+                'url' => AnisystemMedia::url((string) ($m['path'] ?? '')),
+                'name' => AnisystemMedia::basename((string) ($m['path'] ?? '')),
+            ])->values(),
+        ]]);
+    }
+
+    public function noteDestroy(Request $request)
+    {
+        $spec = self::NOTE_SHELVES[(string) $request->query('shelf')] ?? null;
+        if (! $spec) {
+            return response()->json(['success' => false, 'message' => 'Unknown note shelf.'], 422);
+        }
+
+        return $this->softRemove($spec['table'], (int) $request->query('id'), 'Note removed.');
+    }
+
+    // =====================================================================
+    // Reels and stories
+    // =====================================================================
+
+    public function reels()
+    {
+        return view('aniSensoAdmin.media.reels');
+    }
+
+    public function reelsData(Request $request)
+    {
+        try {
+            $query = DB::table('as_community_wall_posts as p')
+                ->leftJoin('anisystem_users as u', 'u.id', '=', 'p.authorUserId')
+                ->where('p.deleteStatus', 1)
+                ->where('p.isReel', 1)
+                ->selectRaw("
+                    p.id, p.body, p.videoPath, p.videoPoster, p.imagePath, p.durationSec, p.audioTitle,
+                    p.isRestricted, p.created_at,
+                    TRIM(CONCAT(COALESCE(u.firstName,''), ' ', COALESCE(u.lastName,''))) as clientName,
+                    u.email as clientEmail,
+                    (SELECT COUNT(*) FROM as_community_wall_comments c WHERE c.wallPostId = p.id AND c.deleteStatus = 1) as comments,
+                    (SELECT COUNT(*) FROM as_community_reactions r WHERE r.targetType = 'wallpost' AND r.targetId = p.id) as reactions
+                ");
+
+            $this->applyCommonFilters($query, $request, 'p.created_at', [
+                'p.body', 'u.firstName', 'u.lastName', 'u.email', 'p.audioTitle',
+            ]);
+
+            if ($request->query('restricted') === 'yes') {
+                $query->where('p.isRestricted', 1);
+            }
+
+            return DataTables::query($query)
+                ->addColumn('videoUrl', fn ($row) => AnisystemMedia::url($row->videoPath))
+                ->addColumn('posterUrl', fn ($row) => AnisystemMedia::url($row->videoPoster ?: $row->imagePath))
+                ->editColumn('created_at', fn ($row) => $this->when($row->created_at))
+                ->orderColumn('created_at', 'p.created_at $1')
+                ->make(true);
+        } catch (\Exception $e) {
+            Log::error('AniSystem reels list failed: ' . $e->getMessage());
+
+            return response()->json(['error' => 'Could not load the reels.'], 500);
+        }
+    }
+
+    /** Take a reel down, and its comments with it. */
+    public function reelDestroy(Request $request)
+    {
+        try {
+            $id = (int) $request->query('id');
+            $post = DB::table('as_community_wall_posts')->where('id', $id)->where('deleteStatus', 1)->first();
+            if (! $post) {
+                return response()->json(['success' => false, 'message' => 'Already gone.'], 404);
+            }
+            DB::transaction(function () use ($id) {
+                DB::table('as_community_wall_comments')->where('wallPostId', $id)->update(['deleteStatus' => 0]);
+                DB::table('as_community_wall_posts')->where('id', $id)->update(['deleteStatus' => 0]);
+            });
+
+            return response()->json(['success' => true, 'message' => 'Reel removed.']);
+        } catch (\Exception $e) {
+            Log::error('AniSystem reel removal failed: ' . $e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Could not remove that reel.'], 500);
+        }
+    }
+
+    // =====================================================================
     // Maps
     // =====================================================================
 

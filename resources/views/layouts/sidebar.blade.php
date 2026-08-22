@@ -214,6 +214,18 @@
                                         <span key="t-anisenso-media-drawings">Drawings</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-media-notes*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-media-notes') }}" class="waves-effect {{ request()->is('anisenso-media-notes*') ? 'active' : '' }}">
+                                        <i class="bx bx-note"></i>
+                                        <span key="t-anisenso-media-notes">Notes</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-media-reels*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-media-reels') }}" class="waves-effect {{ request()->is('anisenso-media-reels*') ? 'active' : '' }}">
+                                        <i class="bx bx-movie-play"></i>
+                                        <span key="t-anisenso-media-reels">Reels &amp; Stories</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('anisenso-media-maps*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-media-maps') }}" class="waves-effect {{ request()->is('anisenso-media-maps*') ? 'active' : '' }}">
                                         <i class="bx bx-map-alt"></i>

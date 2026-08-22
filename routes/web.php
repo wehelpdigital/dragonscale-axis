@@ -926,6 +926,15 @@ Route::get('/anisenso-media-maps-data', [App\Http\Controllers\aniSensoAdmin\Anis
 Route::get('/anisenso-media-maps-one', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'mapShow'])->name('anisenso-media-maps.show')->middleware('auth');
 Route::delete('/anisenso-media-maps-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'mapDestroy'])->name('anisenso-media-maps.delete')->middleware('auth');
 
+Route::get('/anisenso-media-notes', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'notes'])->name('anisenso-media-notes')->middleware('auth');
+Route::get('/anisenso-media-notes-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'notesData'])->name('anisenso-media-notes.data')->middleware('auth');
+Route::get('/anisenso-media-notes-one', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'noteShow'])->name('anisenso-media-notes.show')->middleware('auth');
+Route::delete('/anisenso-media-notes-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'noteDestroy'])->name('anisenso-media-notes.delete')->middleware('auth');
+
+Route::get('/anisenso-media-reels', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'reels'])->name('anisenso-media-reels')->middleware('auth');
+Route::get('/anisenso-media-reels-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'reelsData'])->name('anisenso-media-reels.data')->middleware('auth');
+Route::delete('/anisenso-media-reels-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'reelDestroy'])->name('anisenso-media-reels.delete')->middleware('auth');
+
 Route::get('/anisenso-media-rooms', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'rooms'])->name('anisenso-media-rooms')->middleware('auth');
 Route::get('/anisenso-media-rooms-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomsData'])->name('anisenso-media-rooms.data')->middleware('auth');
 Route::get('/anisenso-media-rooms-one', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomShow'])->name('anisenso-media-rooms.show')->middleware('auth');
