@@ -909,6 +909,29 @@ Route::post('/api-docs/regenerate-key', [App\Http\Controllers\Api\ApiDocumentati
 
 // Recommendation Settings - API Provider routes (wildcard - MUST be after specific routes)
 
+// ==================== ANI-SENSO MEDIA ====================
+// What the members drew, photographed and mapped, and what their teams did in
+// the Collab Room. Read and remove; the apps themselves are where things are
+// made.
+Route::get('/anisenso-media-gallery', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'gallery'])->name('anisenso-media-gallery')->middleware('auth');
+Route::get('/anisenso-media-gallery-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'galleryData'])->name('anisenso-media-gallery.data')->middleware('auth');
+Route::delete('/anisenso-media-gallery-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'galleryDestroy'])->name('anisenso-media-gallery.delete')->middleware('auth');
+
+Route::get('/anisenso-media-drawings', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'drawings'])->name('anisenso-media-drawings')->middleware('auth');
+Route::get('/anisenso-media-drawings-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'drawingsData'])->name('anisenso-media-drawings.data')->middleware('auth');
+Route::delete('/anisenso-media-drawings-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'drawingDestroy'])->name('anisenso-media-drawings.delete')->middleware('auth');
+
+Route::get('/anisenso-media-maps', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'maps'])->name('anisenso-media-maps')->middleware('auth');
+Route::get('/anisenso-media-maps-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'mapsData'])->name('anisenso-media-maps.data')->middleware('auth');
+Route::get('/anisenso-media-maps-one', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'mapShow'])->name('anisenso-media-maps.show')->middleware('auth');
+Route::delete('/anisenso-media-maps-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'mapDestroy'])->name('anisenso-media-maps.delete')->middleware('auth');
+
+Route::get('/anisenso-media-rooms', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'rooms'])->name('anisenso-media-rooms')->middleware('auth');
+Route::get('/anisenso-media-rooms-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomsData'])->name('anisenso-media-rooms.data')->middleware('auth');
+Route::get('/anisenso-media-rooms-one', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomShow'])->name('anisenso-media-rooms.show')->middleware('auth');
+Route::delete('/anisenso-media-rooms-message-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomMessageDestroy'])->name('anisenso-media-rooms.message.delete')->middleware('auth');
+Route::delete('/anisenso-media-rooms-recording-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomRecordingDestroy'])->name('anisenso-media-rooms.recording.delete')->middleware('auth');
+
 // ==================== KNOWLEDGEBASE MODULE ====================
 
 // Crop Breeds

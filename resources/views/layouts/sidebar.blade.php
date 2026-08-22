@@ -196,6 +196,38 @@
                                 </li>
                             </ul>
                         </li>
+                        <li class="{{ request()->is('anisenso-media-*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('anisenso-media-*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-images"></i>
+                                <span key="t-anisenso-media">Member Media</span>
+                            </a>
+                            <ul class="sub-menu {{ request()->is('anisenso-media-*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('anisenso-media-*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('anisenso-media-gallery*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-media-gallery') }}" class="waves-effect {{ request()->is('anisenso-media-gallery*') ? 'active' : '' }}">
+                                        <i class="bx bx-photo-album"></i>
+                                        <span key="t-anisenso-media-gallery">Gallery</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-media-drawings*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-media-drawings') }}" class="waves-effect {{ request()->is('anisenso-media-drawings*') ? 'active' : '' }}">
+                                        <i class="bx bx-pencil"></i>
+                                        <span key="t-anisenso-media-drawings">Drawings</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-media-maps*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-media-maps') }}" class="waves-effect {{ request()->is('anisenso-media-maps*') ? 'active' : '' }}">
+                                        <i class="bx bx-map-alt"></i>
+                                        <span key="t-anisenso-media-maps">Maps</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('anisenso-media-rooms*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-media-rooms') }}" class="waves-effect {{ request()->is('anisenso-media-rooms*') ? 'active' : '' }}">
+                                        <i class="bx bx-group"></i>
+                                        <span key="t-anisenso-media-rooms">Collab Rooms</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                         <li class="{{ request()->is('anisenso-support*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-support.index') }}" class="waves-effect {{ request()->is('anisenso-support*') ? 'active' : '' }}">
                                 <i class="bx bx-help-circle"></i>
