@@ -21,9 +21,21 @@ class AsScheduleActivity extends BaseModel
         'service'        => 'Service',
         'fertilizer'     => 'Fertilizer (Granular)',
         'foliar_spray'   => 'Foliar Spray',
+        // The four sprays the farmer app has always offered. They were
+        // missing here, so a card the farmer typed as a herbicide read as a
+        // raw slug in the admin and could not be created from this side.
+        'herbicide'      => 'Herbicide',
+        'pesticide'      => 'Pesticide / Insecticide',
+        'copper_fungicide' => 'Copper-based Fungicide / Bactericide',
+        'fungicide'      => 'Fungicide',
         'microbial'      => 'Microbial / Bio',
         'harvest'        => 'Harvest',
         'monitoring'     => 'Monitoring',
+        // Paid work priced per worker rather than by the length of the task,
+        // and the day's errands that are nobody's task at all. Both are the
+        // farmer's to fill in; the admin can at least name them correctly.
+        'worker_payroll' => 'Worker Checklist',
+        'reminder_checklist' => 'Reminder Checklist',
         'other'          => 'Other',
     ];
 

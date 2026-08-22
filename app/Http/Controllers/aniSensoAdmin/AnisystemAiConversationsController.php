@@ -41,6 +41,7 @@ class AnisystemAiConversationsController extends Controller
                     TRIM(CONCAT(COALESCE(u.firstName,''), ' ', COALESCE(u.lastName,''))) as clientName,
                     u.email as clientEmail,
                     s.title as scheduleTitle,
+                    c.croppingScheduleId as scheduleId,
                     (SELECT COUNT(*) FROM anisystem_ai_messages m
                        WHERE m.conversationId = c.id AND m.deleteStatus = 1) as messageCount,
                     (SELECT COALESCE(SUM(m.creditsCharged),0) FROM anisystem_ai_messages m
@@ -62,6 +63,7 @@ class AnisystemAiConversationsController extends Controller
                     TRIM(CONCAT(COALESCE(u.firstName,''), ' ', COALESCE(u.lastName,''))) as clientName,
                     u.email as clientEmail,
                     s.title as scheduleTitle,
+                    t.scheduleId as scheduleId,
                     (SELECT COUNT(*) FROM as_schedule_ai_messages m
                        WHERE m.sessionId = t.id AND m.deleteStatus = 1) as messageCount,
                     (SELECT COALESCE(SUM(m.creditsCharged),0) FROM as_schedule_ai_messages m
@@ -107,6 +109,10 @@ class AnisystemAiConversationsController extends Controller
             }
             if ($request->query('empty') === 'hide') {
                 $query->where('x.messageCount', '>', 0);
+            }
+            // One season's threads — what the schedule's own setup page asks for.
+            if ($request->filled('scheduleId')) {
+                $query->where('x.scheduleId', (int) $request->query('scheduleId'));
             }
 
             return DataTables::query($query)

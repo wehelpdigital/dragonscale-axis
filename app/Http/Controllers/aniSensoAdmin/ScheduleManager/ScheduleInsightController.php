@@ -166,6 +166,94 @@ class ScheduleInsightController extends BaseScheduleController
     }
 
     /**
+     * What came off the field: yields, moisture, who bought it and for how
+     * much. The farmer app writes these; until now nothing here could read
+     * them, which made the season's last chapter invisible to the office.
+     */
+    public function harvest(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+
+        $rows = \Illuminate\Support\Facades\DB::table('as_schedule_post_harvests as h')
+            ->leftJoin('as_schedule_lots as l', 'l.id', '=', 'h.lotId')
+            ->where('h.croppingScheduleId', $schedule->id)
+            ->where('h.deleteStatus', 1)
+            ->orderByDesc('h.observationDate')
+            ->orderBy('h.sortOrder')
+            ->select('h.*', 'l.lotName')
+            ->get();
+
+        $out = [];
+        $totalValue = 0.0;
+        foreach ($rows as $r) {
+            $value = ($r->yieldAmount && $r->pricePerUnit)
+                ? (float) $r->yieldAmount * (float) $r->pricePerUnit
+                : null;
+            if ($value) {
+                $totalValue += $value;
+            }
+            $out[] = [
+                'id' => (int) $r->id,
+                'title' => $r->title ?: 'Untitled record',
+                'category' => $r->category,
+                'lotName' => $r->lotName,
+                'when' => $r->observationDate ? Carbon::parse($r->observationDate)->format('M j, Y') : null,
+                'yieldAmount' => $r->yieldAmount !== null ? (float) $r->yieldAmount : null,
+                'yieldUnit' => $r->yieldUnit,
+                'moisturePercent' => $r->moisturePercent !== null ? (float) $r->moisturePercent : null,
+                'pricePerUnit' => $r->pricePerUnit !== null ? (float) $r->pricePerUnit : null,
+                'buyer' => $r->buyer,
+                'notes' => $r->notes,
+                'value' => $value,
+                'photos' => array_values(array_filter(array_map(
+                    fn ($path) => \App\Support\AnisystemMedia::url($path),
+                    $this->harvestPhotos($r)
+                ))),
+            ];
+        }
+
+        return $this->jsonOk('Post-harvest', [
+            'data' => ['rows' => $out, 'totalValue' => $totalValue],
+        ]);
+    }
+
+    /** Remove one record the app's own way: hidden, never destroyed. */
+    public function harvestDestroy(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $id = $this->queryId($request);
+
+        $ok = \Illuminate\Support\Facades\DB::table('as_schedule_post_harvests')
+            ->where('croppingScheduleId', $schedule->id)
+            ->where('id', $id)
+            ->where('deleteStatus', 1)
+            ->update(['deleteStatus' => 0, 'updated_at' => now()]);
+
+        return $ok
+            ? $this->jsonOk('Record removed.')
+            : $this->jsonFail('Already gone.', 404);
+    }
+
+    /** One image column or a list of them — the app has written both. */
+    private function harvestPhotos($row): array
+    {
+        $paths = [];
+        if (filled($row->imagePath ?? null)) {
+            $paths[] = $row->imagePath;
+        }
+        $many = json_decode((string) ($row->imagePaths ?? ''), true);
+        if (is_array($many)) {
+            foreach ($many as $m) {
+                $paths[] = is_array($m) ? ($m['path'] ?? null) : $m;
+            }
+        }
+
+        // The single column is usually repeated inside the list, and the same
+        // picture twice reads as two harvests of it.
+        return array_values(array_unique(array_filter($paths)));
+    }
+
+    /**
      * The public link the farmer's own Quick Share hands out. Reading it
      * never creates one: a plan with no token has never been shared, and
      * opening a panel is not a decision to publish.

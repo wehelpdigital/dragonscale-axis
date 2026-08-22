@@ -849,6 +849,10 @@
                 </a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-activities"><i class="bx bx-task me-1"></i> Activities <span class="badge bg-light text-dark ms-1" id="badge-activities">{{ $schedule->activities->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-irrigations"><i class="bx bx-water me-1"></i> Irrigation <span class="badge bg-light text-dark ms-1" id="badge-irrigations">{{ $schedule->irrigations->count() }}</span></a></li>
+                {{-- What the season produced away from the plan: the client's
+                     notes, photos, drawings, maps, harvest records and AI
+                     threads. Read live from their app, never copied. --}}
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-records"><i class="bx bx-folder-open me-1"></i> Field records</a></li>
             </ul>
 
             <div class="tab-content">
@@ -890,6 +894,11 @@
                 {{-- ACTIVITIES --}}
                 <div class="tab-pane fade" id="tab-activities">
                     @include('aniSensoAdmin.scheduleManager.partials.activities', ['schedule' => $schedule])
+                </div>
+
+                {{-- FIELD RECORDS --}}
+                <div class="tab-pane fade" id="tab-records">
+                    @include('aniSensoAdmin.scheduleManager.partials.records', ['schedule' => $schedule])
                 </div>
 
                 {{-- IRRIGATIONS --}}
@@ -1309,6 +1318,7 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
+@include('aniSensoAdmin.scheduleManager.partials.script-records')
 @include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>
 

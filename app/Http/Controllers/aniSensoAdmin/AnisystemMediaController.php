@@ -64,6 +64,7 @@ class AnisystemMediaController extends Controller
             $this->applyCommonFilters($query, $request, 'g.created_at', [
                 'g.caption', 'u.firstName', 'u.lastName', 'u.email', 's.title', 'a.title',
             ]);
+            $this->onlySchedule($query, $request, 'g.croppingScheduleId');
 
             if ($request->query('kind') === 'team') {
                 $query->where('g.isTeam', 1);
@@ -124,6 +125,8 @@ class AnisystemMediaController extends Controller
                     ->where('n.deleteStatus', 1)
                     ->whereNotNull('n.media')
                     ->where('n.media', '!=', '')
+                    ->when($request->filled('scheduleId'),
+                        fn ($q) => $q->where('n.' . $spec['schedule'], (int) $request->query('scheduleId')))
                     ->orderByDesc('n.id')
                     ->limit(400)
                     ->selectRaw(sprintf(
@@ -259,6 +262,8 @@ class AnisystemMediaController extends Controller
                     ->leftJoin('as_cropping_schedules as s', 's.id', '=', 'n.' . $spec['schedule'])
                     ->leftJoin('anisystem_users as u', 'u.id', '=', 's.anisystemUserId')
                     ->where('n.deleteStatus', 1)
+                    ->when($request->filled('scheduleId'),
+                        fn ($q) => $q->where('n.' . $spec['schedule'], (int) $request->query('scheduleId')))
                     ->orderByDesc('n.id')
                     ->limit(500)
                     ->selectRaw(sprintf(
@@ -456,6 +461,7 @@ class AnisystemMediaController extends Controller
             $this->applyCommonFilters($query, $request, 'm.updated_at', [
                 'm.title', 'u.firstName', 'u.lastName', 'u.email', 's.title',
             ]);
+            $this->onlySchedule($query, $request, 'm.scheduleId');
 
             if ($request->filled('source')) {
                 $query->where('m.source', $request->query('source'));
@@ -665,6 +671,19 @@ class AnisystemMediaController extends Controller
         }
         if ($request->filled('to')) {
             $query->where($dateColumn, '<=', Carbon::parse($request->to, 'Asia/Manila')->endOfDay());
+        }
+    }
+
+    /**
+     * Narrow a list to one season when asked.
+     *
+     * The schedule's own setup page shows these same lists scoped to itself;
+     * without this it would need its own copy of every query here.
+     */
+    private function onlySchedule($query, Request $request, string $column): void
+    {
+        if ($request->filled('scheduleId')) {
+            $query->where($column, (int) $request->query('scheduleId'));
         }
     }
 

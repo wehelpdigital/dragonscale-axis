@@ -339,6 +339,8 @@ Route::get('/anisenso-schedule-manager-notice',  [App\Http\Controllers\aniSensoA
 Route::get('/anisenso-schedule-manager-growth',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'growth'])->name('anisenso-schedule-manager.growth')->middleware('auth');
 Route::get('/anisenso-schedule-manager-weather', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'weather'])->name('anisenso-schedule-manager.weather')->middleware('auth');
 
+Route::get('/anisenso-schedule-manager-harvest', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'harvest'])->name('anisenso-schedule-manager.harvest')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-harvest-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'harvestDestroy'])->name('anisenso-schedule-manager.harvest.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-share',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'share'])->name('anisenso-schedule-manager.share')->middleware('auth');
 Route::post('/anisenso-schedule-manager-share-create', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'shareCreate'])->name('anisenso-schedule-manager.share.create')->middleware('auth');
 
