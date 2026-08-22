@@ -121,7 +121,7 @@
     const CSRF = "{{ csrf_token() }}";
     document.getElementById('unpublishBtn')?.addEventListener('click', async (e) => {
         if (!confirm('Remove this plan from the Community?')) return;
-        const res = await fetch('/anisenso-community/plans/' + e.currentTarget.getAttribute('data-id') + '/unpublish', { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
+        const res = await fetch('/anisenso-community-plans/' + e.currentTarget.getAttribute('data-id') + '/unpublish', { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
         const data = await res.json();
         if (data.success) { toastr.success(data.message); setTimeout(() => window.location = '{{ route('anisenso-community.plans') }}', 800); }
         else toastr.error(data.message || 'Could not unpublish.');
@@ -129,7 +129,7 @@
     document.querySelectorAll('.btn-del-comment').forEach((btn) => {
         btn.addEventListener('click', async () => {
             if (!confirm('Remove this comment?')) return;
-            const res = await fetch('/anisenso-community/comments/' + btn.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
+            const res = await fetch('/anisenso-community-comments/' + btn.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
             const data = await res.json();
             if (data.success) { toastr.success(data.message); document.querySelector('[data-comment="' + btn.getAttribute('data-id') + '"]')?.remove(); }
             else toastr.error(data.message || 'Could not remove.');

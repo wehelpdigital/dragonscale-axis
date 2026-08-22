@@ -680,7 +680,7 @@ $(document).ready(function() {
 
     function fetchMessages(conversationId) {
         $.ajax({
-            url: '/anisenso-website-chat-support/messages/' + conversationId,
+            url: '/anisenso-website-chat-support-messages/' + conversationId,
             type: 'GET',
             success: function(response) {
                 if (response.success) {
@@ -817,7 +817,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true);
 
         $.ajax({
-            url: '/anisenso-website-chat-support/send/' + currentConversationId,
+            url: '/anisenso-website-chat-support-send/' + currentConversationId,
             type: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',

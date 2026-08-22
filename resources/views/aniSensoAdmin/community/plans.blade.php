@@ -93,7 +93,7 @@
             if (!confirm('Remove "' + btn.getAttribute('data-title') + '" from the Community?')) return;
             btn.disabled = true;
             try {
-                const res = await fetch('/anisenso-community/plans/' + btn.getAttribute('data-id') + '/unpublish', {
+                const res = await fetch('/anisenso-community-plans/' + btn.getAttribute('data-id') + '/unpublish', {
                     method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' },
                 });
                 const data = await res.json();

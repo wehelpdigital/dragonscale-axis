@@ -4,6 +4,8 @@
 
 @section('css')
 <link href="{{ URL::asset('build/libs/toastr/build/toastr.min.css') }}" rel="stylesheet" type="text/css" />
+<link href="{{ URL::asset('build/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
+<link href="{{ URL::asset('build/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
 <style>
     #systemPrompt { font-family: monospace; font-size: 12px; }
     .ai-avatar-preview {
@@ -15,6 +17,16 @@
     .stat-tile .label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #74788d; }
     .stat-tile .value { font-size: 20px; font-weight: 700; color: #2a3042; }
     .pack-row input { min-width: 0; }
+    /* The thread reader: the client on the left, the technician on the right,
+       the same way the app itself draws it. */
+    .conv-turn { display: flex; gap: 10px; margin-bottom: 14px; }
+    .conv-turn.is-ai { flex-direction: row-reverse; }
+    .conv-bubble { max-width: 78%; padding: 10px 12px; border-radius: 12px; font-size: 13px;
+        line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .conv-turn.is-user .conv-bubble { background: #f1f3f7; color: #2a3042; }
+    .conv-turn.is-ai .conv-bubble { background: #e8f3e0; color: #23301a; }
+    .conv-meta { font-size: 11px; color: #74788d; margin-top: 4px; }
+    .conv-empty { padding: 28px 0; text-align: center; color: #74788d; }
 </style>
 @endsection
 
@@ -33,6 +45,94 @@
         </div>
     @endif
 
+    {{-- Two halves of one module: what the technician answered, and how it is
+         set up to answer. --}}
+    <ul class="nav nav-tabs nav-tabs-custom mb-3" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#aiConversationsTab" role="tab">
+                <i class="bx bx-conversation me-1"></i> Conversations
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#aiSettingsTab" role="tab">
+                <i class="bx bx-cog me-1"></i> Settings
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+    {{-- ============================================ Conversations ========= --}}
+    <div class="tab-pane active" id="aiConversationsTab" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h4 class="card-title mb-1">Client conversations</h4>
+                        <p class="card-title-desc mb-0">
+                            Every thread with the technician — the personal chats and the Collab Room's
+                            team sessions. Read-only.
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-light btn-sm" id="convReload"><i class="bx bx-refresh"></i> Refresh</button>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1" for="convSearch">Search</label>
+                        <input type="text" class="form-control" id="convSearch" placeholder="Title, client, email or season…">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1" for="convKind">Kind</label>
+                        <select class="form-select" id="convKind">
+                            <option value="">All</option>
+                            <option value="personal">Personal</option>
+                            <option value="team">Team (Collab Room)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1" for="convLinked">Season</label>
+                        <select class="form-select" id="convLinked">
+                            <option value="">Any</option>
+                            <option value="yes">Attached to one</option>
+                            <option value="no">Not attached</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1" for="convFrom">From</label>
+                        <input type="date" class="form-control" id="convFrom">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1" for="convTo">To</label>
+                        <input type="date" class="form-control" id="convTo">
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="convHideEmpty" checked>
+                    <label class="form-check-label" for="convHideEmpty">Hide threads with no messages</label>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover" id="convTable" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Conversation</th>
+                                <th>Kind</th>
+                                <th>Season</th>
+                                <th class="text-end">Messages</th>
+                                <th class="text-end">Credits</th>
+                                <th>Last activity</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ================================================= Settings ========= --}}
+    <div class="tab-pane" id="aiSettingsTab" role="tabpanel">
     <div class="row">
         {{-- ------------------------------------------------ Settings --}}
         <div class="col-xl-8">
@@ -211,12 +311,132 @@
             </div>
         </div>
     </div>
+    </div>{{-- /#aiSettingsTab --}}
+    </div>{{-- /.tab-content --}}
+
+    {{-- One thread, turn by turn. --}}
+    <div class="modal fade" id="convModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-0" id="convModalTitle">Conversation</h5>
+                        <small class="text-secondary" id="convModalSub"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="convModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('script')
 <script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net-responsive/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ URL::asset('build/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js') }}"></script>
 <script>
 $(function () {
+    /* ---------------------------------------------- Conversations tab ---- */
+    const escConv = (v) => $('<div>').text(v == null ? '' : v).html();
+
+    const convTable = $('#convTable').DataTable({
+        processing: true,
+        serverSide: true,
+        responsive: true,
+        // The filter row above IS the search; DataTables' own box sends a
+        // parameter this endpoint does not read, so it would be a field that
+        // looks like it works and does nothing.
+        searching: false,
+        order: [[6, 'desc']],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        ajax: {
+            url: "{{ route('anisenso-ai-conversations.data') }}",
+            type: 'GET',
+            data: function (d) {
+                d.searchFilter = $('#convSearch').val();
+                d.kind = $('#convKind').val();
+                d.linked = $('#convLinked').val();
+                d.from = $('#convFrom').val();
+                d.to = $('#convTo').val();
+                d.empty = $('#convHideEmpty').is(':checked') ? 'hide' : '';
+            },
+            error: function () { toastr.error('Could not load conversations.', 'Error'); }
+        },
+        columns: [
+            { data: 'clientName', name: 'clientName', render: function (d, t, row) {
+                return '<div class="fw-semibold text-dark">' + escConv(d || '—') + '</div>' +
+                       '<small class="text-secondary">' + escConv(row.clientEmail || '') + '</small>';
+            } },
+            { data: 'title', name: 'title', render: function (d) {
+                return '<span class="text-dark">' + escConv(d || 'Untitled') + '</span>';
+            } },
+            { data: 'kind', name: 'kind', orderable: false, render: function (d) {
+                return d === 'team'
+                    ? '<span class="badge bg-info">Team</span>'
+                    : '<span class="badge bg-light text-secondary">Personal</span>';
+            } },
+            { data: 'scheduleTitle', name: 'scheduleTitle', orderable: false, render: function (d) {
+                return d ? escConv(d) : '<span class="text-secondary">—</span>';
+            } },
+            { data: 'messageCount', name: 'messageCount', className: 'text-end',
+              render: function (d) { return Number(d || 0).toLocaleString(); } },
+            { data: 'credits', name: 'credits', className: 'text-end', render: function (d) {
+                const n = Number(d || 0);
+                return n ? n.toFixed(2) : '<span class="text-secondary">—</span>';
+            } },
+            { data: 'lastAt', name: 'lastAt', render: function (d) { return escConv(d); } },
+            { data: null, orderable: false, searchable: false, className: 'text-end', render: function (d, t, row) {
+                return '<button type="button" class="btn btn-sm btn-outline-primary conv-open" ' +
+                       'data-id="' + row.id + '" data-kind="' + escConv(row.kind) + '">Read</button>';
+            } }
+        ]
+    });
+
+    // Typing is a sentence, not a search per letter.
+    let convTyping = null;
+    $('#convSearch').on('keyup', function () {
+        clearTimeout(convTyping);
+        convTyping = setTimeout(() => convTable.ajax.reload(), 350);
+    });
+    $('#convKind, #convLinked, #convFrom, #convTo, #convHideEmpty').on('change', () => convTable.ajax.reload());
+    $('#convReload').on('click', () => convTable.ajax.reload(null, false));
+
+    // ---- One thread, turn by turn -------------------------------------
+    $('#convTable').on('click', '.conv-open', function () {
+        const id = $(this).data('id');
+        const kind = $(this).data('kind');
+        $('#convModalTitle').text('Conversation');
+        $('#convModalSub').text('');
+        $('#convModalBody').html('<div class="conv-empty"><i class="bx bx-loader-alt bx-spin fs-3"></i></div>');
+        $('#convModal').modal('show');
+
+        $.get('{{ url('/anisenso-ai-conversations') }}/' + id, { kind: kind }, function (res) {
+            if (!res.success) { $('#convModalBody').html('<div class="conv-empty">' + escConv(res.message || 'Not found.') + '</div>'); return; }
+            const head = res.data.head, turns = res.data.turns || [];
+            $('#convModalTitle').text(head.title || 'Untitled');
+            $('#convModalSub').text([head.clientName || head.clientEmail, head.scheduleTitle, head.startedAt]
+                .filter(Boolean).join(' · '));
+            if (!turns.length) { $('#convModalBody').html('<div class="conv-empty">Nothing was said in this thread.</div>'); return; }
+            $('#convModalBody').html(turns.map(function (t) {
+                const ai = t.role === 'assistant';
+                const meta = [t.who, t.at, t.hasPhoto ? '📷 photo' : null,
+                              t.credits ? t.credits.toFixed(2) + ' credits' : null].filter(Boolean).join(' · ');
+                return '<div class="conv-turn ' + (ai ? 'is-ai' : 'is-user') + '">' +
+                       '<div><div class="conv-bubble">' + escConv(t.content) + '</div>' +
+                       (meta ? '<div class="conv-meta">' + escConv(meta) + '</div>' : '') + '</div></div>';
+            }).join(''));
+        }).fail(function () {
+            $('#convModalBody').html('<div class="conv-empty">Could not read that conversation.</div>');
+        });
+    });
+
     const DEFAULT_MODELS = @json(App\Models\AsAiSetting::DEFAULT_MODELS);
 
     function num(id) { return parseFloat($('#' + id).val()) || 0; }

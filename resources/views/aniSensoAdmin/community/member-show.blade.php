@@ -110,14 +110,14 @@
         if (data.success) { toastr.success(data.message); document.querySelector('[' + sel + '="' + id + '"]')?.remove(); }
         else toastr.error(data.message || 'Could not remove.');
     }
-    document.querySelectorAll('.btn-del-wall-post').forEach((b) => b.addEventListener('click', () => del('/anisenso-community/wall-posts/' + b.getAttribute('data-id'), 'data-wall-post', b.getAttribute('data-id'))));
-    document.querySelectorAll('.btn-del-wall-comment').forEach((b) => b.addEventListener('click', () => del('/anisenso-community/wall-comments/' + b.getAttribute('data-id'), 'data-wall-comment', b.getAttribute('data-id'))));
+    document.querySelectorAll('.btn-del-wall-post').forEach((b) => b.addEventListener('click', () => del('/anisenso-community-wall-posts/' + b.getAttribute('data-id'), 'data-wall-post', b.getAttribute('data-id'))));
+    document.querySelectorAll('.btn-del-wall-comment').forEach((b) => b.addEventListener('click', () => del('/anisenso-community-wall-comments/' + b.getAttribute('data-id'), 'data-wall-comment', b.getAttribute('data-id'))));
     document.querySelectorAll('.btn-restrict').forEach((btn) => btn.addEventListener('click', async () => {
         const on = btn.getAttribute('data-on') === '1';
         let reason = '';
         if (!on) { reason = prompt('Restrict this content across the community?\nOptional reason:', ''); if (reason === null) return; }
         const body = new URLSearchParams({ restricted: on ? '0' : '1', reason });
-        const res = await fetch('/anisenso-community/restrict/' + btn.getAttribute('data-type') + '/' + btn.getAttribute('data-id'), { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const res = await fetch('/anisenso-community-restrict/' + btn.getAttribute('data-type') + '/' + btn.getAttribute('data-id'), { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
         const data = await res.json();
         if (data.success) { toastr.success(data.message); setTimeout(() => window.location.reload(), 700); }
         else toastr.error(data.message || 'Could not update.');

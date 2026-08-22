@@ -406,7 +406,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
 
         $.ajax({
-            url: '{{ url('/anisenso-mail-settings/templates') }}/' + id,
+            url: '{{ url('/anisenso-mail-settings-templates') }}/' + id,
             type: 'PUT',
             data: {
                 templateName: $('#templateName').val(),
@@ -435,7 +435,7 @@ $(document).ready(function() {
     $('#templatesTable').on('change', '.template-toggle', function() {
         const id = $(this).data('id');
         const $toggle = $(this);
-        $.post('{{ url('/anisenso-mail-settings/templates') }}/' + id + '/toggle')
+        $.post('{{ url('/anisenso-mail-settings-templates') }}/' + id + '/toggle')
             .done(function(res) {
                 if (res.success) {
                     toastr.success(res.message);
@@ -466,7 +466,7 @@ $(document).ready(function() {
         const $btn = $(this);
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Sending...');
 
-        $.post('{{ url('/anisenso-mail-settings/templates') }}/' + id + '/test', {
+        $.post('{{ url('/anisenso-mail-settings-templates') }}/' + id + '/test', {
             testEmail: $('#testTemplateEmail').val()
         }).done(function(res) {
             if (res.success) {

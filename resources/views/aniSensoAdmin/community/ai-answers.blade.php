@@ -159,7 +159,7 @@
             const id = btn.getAttribute('data-id');
             btn.disabled = true;
             try {
-                const data = await api('/anisenso-community/ai-answers/' + id, 'PUT', { answerBody: answerOf(id) });
+                const data = await api('/anisenso-community-ai-answers/' + id, 'PUT', { answerBody: answerOf(id) });
                 data.success ? toastr.success(data.message) : toastr.error(data.message);
             } catch (_) { toastr.error('Network error — try again.'); }
             btn.disabled = false;
@@ -176,7 +176,7 @@
         if (!card) return;
         card.classList.add('is-posting');
         try {
-            const data = await api('/anisenso-community/ai-answers/' + id + '/post', 'POST', { answerBody: answerOf(id) });
+            const data = await api('/anisenso-community-ai-answers/' + id + '/post', 'POST', { answerBody: answerOf(id) });
             if (data.success) { toastr.success(data.message); card.remove(); afterRemoval(); }
             else { toastr.error(data.message); card.classList.remove('is-posting'); }
         } catch (_) { toastr.error('Network error — try again.'); card.classList.remove('is-posting'); }
@@ -201,7 +201,7 @@
             if (!confirm('Discard this answer without posting?')) return;
             const id = btn.getAttribute('data-id');
             try {
-                const data = await api('/anisenso-community/ai-answers/' + id, 'DELETE');
+                const data = await api('/anisenso-community-ai-answers/' + id, 'DELETE');
                 if (data.success) { toastr.success(data.message); cardFor(id)?.remove(); afterRemoval(); }
                 else { toastr.error(data.message); }
             } catch (_) { toastr.error('Network error — try again.'); }

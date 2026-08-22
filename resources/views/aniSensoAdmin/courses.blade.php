@@ -2928,7 +2928,7 @@ $(document).on('click', '.edit-student-btn', function() {
     const enrollmentId = $(this).data('id');
 
     $.ajax({
-        url: `/anisenso-courses/enrollments/${enrollmentId}`,
+        url: `/anisenso-courses-enrollments/${enrollmentId}`,
         type: 'GET',
         success: function(response) {
             if (response.success) {
@@ -2981,7 +2981,7 @@ $('#saveStudentBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');
 
     $.ajax({
-        url: `/anisenso-courses/enrollments/${enrollmentId}`,
+        url: `/anisenso-courses-enrollments/${enrollmentId}`,
         type: 'PUT',
         data: {
             _token: '{{ csrf_token() }}',
@@ -3020,7 +3020,7 @@ $('#sendPasswordEmailBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Sending...');
 
     $.ajax({
-        url: `/anisenso-courses/students/${accessClientId}/send-password-reset`,
+        url: `/anisenso-courses-students/${accessClientId}/send-password-reset`,
         type: 'POST',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3057,7 +3057,7 @@ $('#confirmRemoveStudentBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Removing...');
 
     $.ajax({
-        url: `/anisenso-courses/enrollments/${enrollmentId}`,
+        url: `/anisenso-courses-enrollments/${enrollmentId}`,
         type: 'DELETE',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3091,7 +3091,7 @@ $('#confirmResetProgressBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Resetting...');
 
     $.ajax({
-        url: `/anisenso-courses/enrollments/${enrollmentId}/reset-progress`,
+        url: `/anisenso-courses-enrollments/${enrollmentId}/reset-progress`,
         type: 'POST',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3305,7 +3305,7 @@ $('#confirmEnrollBtn').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Enrolling...');
 
     $.ajax({
-        url: '/anisenso-courses/students/enroll',
+        url: '/anisenso-courses-students-enroll',
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}',
@@ -3831,7 +3831,7 @@ $(document).on('click', '.toggle-approval-btn', function() {
     $btn.prop('disabled', true);
 
     $.ajax({
-        url: `/anisenso-courses/reviews/${reviewId}/approval`,
+        url: `/anisenso-courses-reviews/${reviewId}/approval`,
         type: 'PUT',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3859,7 +3859,7 @@ $(document).on('click', '.toggle-featured-btn', function() {
     $btn.prop('disabled', true);
 
     $.ajax({
-        url: `/anisenso-courses/reviews/${reviewId}/featured`,
+        url: `/anisenso-courses-reviews/${reviewId}/featured`,
         type: 'PUT',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -3914,7 +3914,7 @@ $('#submitReviewReply').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Sending...');
 
     $.ajax({
-        url: `/anisenso-courses/reviews/${reviewId}/reply`,
+        url: `/anisenso-courses-reviews/${reviewId}/reply`,
         type: 'POST',
         data: {
             _token: '{{ csrf_token() }}',
@@ -3964,7 +3964,7 @@ $('#confirmDeleteReview').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
     $.ajax({
-        url: `/anisenso-courses/reviews/${reviewToDelete.id}`,
+        url: `/anisenso-courses-reviews/${reviewToDelete.id}`,
         type: 'DELETE',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {
@@ -4008,7 +4008,7 @@ $('#confirmDeleteReviewReply').on('click', function() {
     $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Deleting...');
 
     $.ajax({
-        url: `/anisenso-courses/review-replies/${replyToDelete.id}`,
+        url: `/anisenso-courses-review-replies/${replyToDelete.id}`,
         type: 'DELETE',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {

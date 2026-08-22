@@ -81,7 +81,7 @@
             if (!confirm('Delete "' + btn.getAttribute('data-name') + '" and all its posts?')) return;
             btn.disabled = true;
             try {
-                const res = await fetch('/anisenso-community/groups/' + btn.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
+                const res = await fetch('/anisenso-community-groups/' + btn.getAttribute('data-id'), { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json' } });
                 const data = await res.json();
                 if (data.success) { toastr.success(data.message); document.querySelector('[data-group-row="' + btn.getAttribute('data-id') + '"]')?.remove(); }
                 else { toastr.error(data.message); btn.disabled = false; }

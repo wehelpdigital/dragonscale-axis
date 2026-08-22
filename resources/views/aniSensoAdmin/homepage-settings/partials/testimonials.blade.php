@@ -183,7 +183,7 @@
             });
 
             $.ajax({
-                url: '/anisenso-website-testimonials/list-for-picker',
+                url: '/anisenso-website-testimonials-list-for-picker',
                 type: 'GET',
                 success: function(response) {
                     if (response.success && response.testimonials.length > 0) {
@@ -241,7 +241,7 @@
             $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
 
             $.ajax({
-                url: '/anisenso-website-testimonials/add-to-homepage',
+                url: '/anisenso-website-testimonials-add-to-homepage',
                 type: 'POST',
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
                 data: { testimonial_id: tid },
@@ -280,7 +280,7 @@
             var name = $btn.data('name');
 
             $.ajax({
-                url: '/anisenso-homepage-settings/items/' + itemId,
+                url: '/anisenso-homepage-settings-items/' + itemId,
                 type: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
                 success: function() {

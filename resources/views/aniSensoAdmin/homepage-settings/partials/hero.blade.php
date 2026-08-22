@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 500);
         }
 
-        xhr.open('POST', '/anisenso-homepage-settings/upload-slide');
+        xhr.open('POST', '/anisenso-homepage-settings-upload-slide');
         xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
         xhr.setRequestHeader('Accept', 'application/json');
         xhr.send(formData);
@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update slide title
     function updateSlideTitle(itemId, title) {
-        fetch('/anisenso-homepage-settings/items/' + itemId, {
+        fetch('/anisenso-homepage-settings-items/' + itemId, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             body: JSON.stringify({ title: title })
@@ -302,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function deleteSlide(itemId) {
         if (!confirm('Delete this slide?')) return;
 
-        fetch('/anisenso-homepage-settings/items/' + itemId, {
+        fetch('/anisenso-homepage-settings-items/' + itemId, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
         })
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const itemId = this.dataset.itemId;
             const altText = this.value;
 
-            fetch('/anisenso-homepage-settings/items/' + itemId + '/extra', {
+            fetch('/anisenso-homepage-settings-items/' + itemId + '/extra', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

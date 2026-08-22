@@ -85,15 +85,15 @@
     }
     document.getElementById('delGroupBtn')?.addEventListener('click', (e) => {
         if (!confirm('Delete this group and all its posts?')) return;
-        del('/anisenso-community/groups/' + e.currentTarget.getAttribute('data-id'), '', () => setTimeout(() => window.location = '{{ route('anisenso-community.groups') }}', 800));
+        del('/anisenso-community-groups/' + e.currentTarget.getAttribute('data-id'), '', () => setTimeout(() => window.location = '{{ route('anisenso-community.groups') }}', 800));
     });
     document.querySelectorAll('.btn-del-post').forEach((btn) => btn.addEventListener('click', () => {
         if (!confirm('Remove this post and its replies?')) return;
-        del('/anisenso-community/posts/' + btn.getAttribute('data-id'), '', () => document.querySelector('[data-post="' + btn.getAttribute('data-id') + '"]')?.remove());
+        del('/anisenso-community-posts/' + btn.getAttribute('data-id'), '', () => document.querySelector('[data-post="' + btn.getAttribute('data-id') + '"]')?.remove());
     }));
     document.querySelectorAll('.btn-del-reply').forEach((btn) => btn.addEventListener('click', () => {
         if (!confirm('Remove this reply?')) return;
-        del('/anisenso-community/replies/' + btn.getAttribute('data-id'), '', () => document.querySelector('[data-reply="' + btn.getAttribute('data-id') + '"]')?.remove());
+        del('/anisenso-community-replies/' + btn.getAttribute('data-id'), '', () => document.querySelector('[data-reply="' + btn.getAttribute('data-id') + '"]')?.remove());
     }));
     // Restrict / un-restrict (soft moderation, shows a notice in AniSystem).
     document.querySelectorAll('.btn-restrict').forEach((btn) => btn.addEventListener('click', async () => {
@@ -102,7 +102,7 @@
         let reason = '';
         if (!on) { reason = prompt('Restrict this content across the community?\nOptional reason shown to moderators:', '') ; if (reason === null) return; }
         const body = new URLSearchParams({ restricted: on ? '0' : '1', reason });
-        const res = await fetch('/anisenso-community/restrict/' + type + '/' + id, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const res = await fetch('/anisenso-community-restrict/' + type + '/' + id, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
         const data = await res.json();
         if (data.success) { toastr.success(data.message); setTimeout(() => window.location.reload(), 700); }
         else toastr.error(data.message || 'Could not update.');
