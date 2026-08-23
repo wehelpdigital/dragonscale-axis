@@ -243,10 +243,11 @@
                 <div class="card-body">
                     <h5 class="card-title mb-3">Avatar</h5>
                     <div class="d-flex align-items-center gap-3">
+                        {{-- Whose /storage this is depends on which disk the
+                             file landed on, and only AnisystemMedia knows. --}}
                         <img id="avatarPreview" class="ai-avatar-preview"
-                             src="{{ $settings->avatarPath
-                                ? rtrim(config('anisystem.url'), '/').'/storage/'.$settings->avatarPath
-                                : URL::asset('build/images/users/avatar-1.jpg') }}" alt="AI avatar">
+                             src="{{ \App\Support\AnisystemMedia::url($settings->avatarPath)
+                                ?: URL::asset('build/images/users/avatar-1.jpg') }}" alt="AI avatar">
                         <div class="flex-grow-1">
                             <input type="file" class="form-control form-control-sm" id="avatarFile" accept="image/*">
                             <div class="form-text">JPG, PNG or WebP · up to 2MB</div>
@@ -256,6 +257,8 @@
                     @unless ($settings->avatarPath)
                         <p class="text-muted font-size-12 mb-0 mt-3">
                             No avatar set — AniSystem shows a placeholder icon until one is uploaded.
+                            The same picture is used by the AI chat, the floating chat bubble and the
+                            AI Technician's replies in the community discussions.
                         </p>
                     @endunless
                 </div>
@@ -517,7 +520,9 @@ $(function () {
             method: 'POST', data: form, processData: false, contentType: false,
             success: function (res) {
                 toastr.success(res.message);
-                $('#avatarPreview').attr('src', "{{ rtrim(config('anisystem.url'), '/') }}/storage/" + res.data.path + '?t=' + Date.now());
+                // The address comes back with the answer: composing it here
+                // would mean guessing which of the two disks it landed on.
+                $('#avatarPreview').attr('src', res.data.url + '?t=' + Date.now());
             },
             error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Upload failed.'); },
             complete: function () { $btn.prop('disabled', false); },

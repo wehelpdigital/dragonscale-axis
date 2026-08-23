@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\aniSensoAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnisystemUser;
 use App\Models\AsAiSetting;
+use App\Services\AniSenso\CommunityAiAnswerService;
 use App\Support\AiKeyCipher;
+use App\Support\AnisystemMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 /**
@@ -158,30 +162,108 @@ class AnisystemAiSettingsController extends Controller
             $ext = in_array($guessed, ['jpg', 'jpeg', 'png', 'webp'], true) ? $guessed : 'jpg';
             $name = 'ai-avatar-'.time().'.'.$ext;
 
-            // AniSystem serves this from its own public/storage disk.
-            $dir = rtrim(config('anisystem.storage_path', 'C:\\xampp\\htdocs\\anisystem\\storage\\app\\public'), '\\/')
-                .DIRECTORY_SEPARATOR.'ai';
+            $previous = AsAiSetting::current()->avatarPath;
 
-            if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
-                throw new \RuntimeException('Could not create the avatar folder.');
+            /*
+             * Where the face goes, and therefore whose /storage serves it.
+             *
+             * This used to write into AniSystem's own storage directory over
+             * the filesystem. On one machine running both apps that works; on
+             * the deployment it cannot — the two are separate containers, so
+             * the file went nowhere while the shared database happily recorded
+             * a path AniSystem had no file for. That is the broken image.
+             *
+             * So: if AniSystem's disk is genuinely reachable from here (a
+             * local install), keep writing there and record a bare path,
+             * which is AniSystem's own to serve. Otherwise the file is ours,
+             * written to our public disk and marked `mm:` — the same prefix
+             * every other file shared between these two apps carries, which
+             * both sides already know how to resolve.
+             *
+             * The directory is never created: its existence is the test.
+             */
+            $aniRoot = rtrim((string) config('anisystem.storage_path'), '\\/');
+            $aniReachable = $aniRoot !== '' && is_dir($aniRoot) && is_writable($aniRoot);
+
+            if ($aniReachable) {
+                $dir = $aniRoot.DIRECTORY_SEPARATOR.'ai';
+                if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
+                    throw new \RuntimeException('Could not create the avatar folder.');
+                }
+                $file->move($dir, $name);
+                $path = 'ai/'.$name;
+            } else {
+                Storage::disk('public')->putFileAs('ai', $file, $name);
+                $path = AnisystemMedia::REMOTE_PREFIX.'ai/'.$name;
             }
 
-            $file->move($dir, $name);
-
             $settings = AsAiSetting::current();
-            $settings->avatarPath = 'ai/'.$name;
+            $settings->avatarPath = $path;
             $settings->deleteStatus = 1;
             $settings->save();
+
+            $this->forgetAvatar($previous);
+            // The AI answers community questions under its own account; that
+            // face is this one, or the discussions show initials while the
+            // chat shows a portrait.
+            $this->syncPersonaAvatar($settings);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Avatar updated.',
-                'data' => ['path' => $settings->avatarPath],
+                // The URL as well as the path: only this side knows which of
+                // the two disks the file just landed on.
+                'data' => ['path' => $settings->avatarPath, 'url' => AnisystemMedia::url($settings->avatarPath)],
             ]);
         } catch (\Throwable $e) {
             Log::error('AniSystem AI avatar upload failed: '.$e->getMessage());
 
             return response()->json(['success' => false, 'message' => 'Upload failed: '.$e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Give the community's AI Technician account the same face.
+     *
+     * A member reading a discussion sees the persona's user row, not the AI
+     * settings, so the two have to be told the same thing. Best effort: a
+     * failure here must not fail an upload that has already succeeded.
+     */
+    private function syncPersonaAvatar(AsAiSetting $settings): void
+    {
+        try {
+            $persona = AnisystemUser::where('email', CommunityAiAnswerService::PERSONA_EMAIL)->first();
+            if ($persona) {
+                $persona->avatarPath = $settings->avatarPath;
+                $persona->save();
+            }
+        } catch (\Throwable $e) {
+            Log::warning('AI persona avatar sync failed: '.$e->getMessage());
+        }
+    }
+
+    /** Take the old face off whichever disk was holding it. */
+    private function forgetAvatar(?string $path): void
+    {
+        if (blank($path)) {
+            return;
+        }
+
+        try {
+            if (AnisystemMedia::isOurs($path)) {
+                Storage::disk('public')->delete(ltrim(substr($path, strlen(AnisystemMedia::REMOTE_PREFIX)), '/'));
+
+                return;
+            }
+
+            $aniRoot = rtrim((string) config('anisystem.storage_path'), '\\/');
+            $file = $aniRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, ltrim($path, '/'));
+            if ($aniRoot !== '' && is_file($file)) {
+                @unlink($file);
+            }
+        } catch (\Throwable $e) {
+            // An avatar nobody points at any more is litter, not a failure.
+            Log::warning('Old AI avatar could not be removed: '.$e->getMessage());
         }
     }
 

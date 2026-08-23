@@ -47,9 +47,14 @@ class CommunityAiAnswerService
             $user->status = 'active';
             $user->deleteStatus = 1;
         }
-        // Keep the display name aligned with the configured persona.
+        // Keep the display name aligned with the configured persona — and the
+        // face with it, or a discussion shows initials where the chat shows a
+        // portrait of the same assistant.
         $user->firstName = $name;
         $user->lastName = '';
+        if (filled($settings->avatarPath)) {
+            $user->avatarPath = $settings->avatarPath;
+        }
         $user->save();
 
         return $user;
