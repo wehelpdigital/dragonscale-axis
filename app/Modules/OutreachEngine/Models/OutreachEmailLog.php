@@ -26,6 +26,8 @@ class OutreachEmailLog extends BaseModel
         'leadId',
         'templateId',
         'messageId',
+        'trackingId',
+        'taskId',
         'subjectUsed',
         'bodyUsed',
         'status',
@@ -33,6 +35,13 @@ class OutreachEmailLog extends BaseModel
         'errorMessage',
         'aiRephrased',
         'sentAt',
+        'openedAt',
+        'lastOpenedAt',
+        'openCount',
+        'bouncedAt',
+        'bounceType',
+        'complainedAt',
+        'isFollowUp',
         'delete_status',
     ];
 
