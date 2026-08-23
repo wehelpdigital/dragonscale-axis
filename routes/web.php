@@ -477,6 +477,11 @@ Route::post('/anisenso-community-announcements', [App\Http\Controllers\aniSensoA
 // AniSenso — AI answers for community questions
 Route::get('/anisenso-community-ai-answers', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'index'])->name('anisenso-community.ai-answers')->middleware('auth');
 Route::post('/anisenso-community-ai-answers-generate', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'generate'])->name('anisenso-community.ai-answers.generate')->middleware('auth');
+Route::get('/anisenso-community-ai-answers-posted', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'posted'])->name('anisenso-community.ai-answers.posted')->middleware('auth');
+Route::put('/anisenso-community-ai-answers-posted-update', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'updatePosted'])->name('anisenso-community.ai-answers.posted.update')->middleware('auth');
+Route::delete('/anisenso-community-ai-answers-unpost', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'unpost'])->name('anisenso-community.ai-answers.unpost')->middleware('auth');
+Route::post('/anisenso-community-ai-answers-tidy', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'tidy'])->name('anisenso-community.ai-answers.tidy')->middleware('auth');
+Route::post('/anisenso-community-ai-answers-regenerate', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'regenerate'])->name('anisenso-community.ai-answers.regenerate')->middleware('auth');
 Route::post('/anisenso-community-ai-answers-post-all', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'postAll'])->name('anisenso-community.ai-answers.post-all')->middleware('auth');
 Route::put('/anisenso-community-ai-answers', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'update'])->whereNumber('id')->name('anisenso-community.ai-answers.update')->middleware('auth');
 Route::post('/anisenso-community-ai-answers-post', [App\Http\Controllers\aniSensoAdmin\CommunityAiAnswersController::class, 'post'])->whereNumber('id')->name('anisenso-community.ai-answers.post')->middleware('auth');

@@ -43,8 +43,7 @@ class CommunityAiAnswersController extends Controller
             'unansweredCount' => $unansweredCount,
             'aiUsable' => $this->ai->isUsable(),
             'assistantName' => $this->ai->settings()->assistantName ?: 'AI Technician',
-            'recentPosted' => CommunityAiAnswerDraft::active()->where('status', 'posted')
-                ->orderByDesc('postedAt')->limit(10)->with('post.group')->get(),
+            'postedCount' => CommunityAiAnswerDraft::active()->where('status', 'posted')->count(),
         ]);
     }
 
@@ -90,10 +89,8 @@ class CommunityAiAnswersController extends Controller
             if ($question === '') {
                 continue;
             }
-            $context = 'This is a question posted by a farmer in the "' . ($post->group->name ?? 'community')
-                . '" community group. Reply helpfully and concisely as the AI Technician. Do not mention that you are an AI unless asked.';
             try {
-                $answer = $this->ai->answer($question, $context);
+                $answer = $this->ai->answer($question, $this->groupContext($post));
             } catch (\Throwable $e) {
                 $failed++;
                 Log::warning('Community AI answer failed', ['postId' => $post->id, 'error' => $e->getMessage()]);
@@ -157,6 +154,209 @@ class CommunityAiAnswersController extends Controller
 
         return rtrim((string) config('anisystem.url'), '/')
             . '/app/community/groups/' . $post->groupId . '#post-' . $post->id;
+    }
+
+    /**
+     * Answers that are already live in the community.
+     *
+     * Their own tab rather than a list of links: an answer that has been
+     * posted is the one most likely to need a second look, and until now the
+     * only way back to it was to open the community and find the topic.
+     */
+    public function posted(Request $request)
+    {
+        $search = trim((string) $request->query('searchFilter'));
+        $start = max(0, (int) $request->query('start', 0));
+        $length = (int) $request->query('length', 10);
+        $length = $length < 1 ? 10 : min(50, $length);
+
+        $query = CommunityAiAnswerDraft::active()
+            ->where('status', 'posted')
+            ->with('post.group', 'post.author')
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('questionTitle', 'like', "%{$search}%")
+                ->orWhere('answerBody', 'like', "%{$search}%")))
+            ->orderByDesc('postedAt');
+
+        $total = (clone $query)->count();
+        $rows = $query->skip($start)->take($length)->get();
+
+        // The live reply is the truth about what the community can read: a
+        // draft's answerBody is only what was sent. They part company the
+        // moment a member's own edit or a takedown happens elsewhere.
+        $replies = CommunityGroupReply::whereIn('id', $rows->pluck('postedReplyId')->filter()->all())
+            ->get(['id', 'body', 'deleteStatus', 'isDeleted'])
+            ->keyBy('id');
+
+        return response()->json([
+            'success' => true,
+            'total' => $total,
+            'start' => $start,
+            'rows' => $rows->map(function ($draft) use ($replies) {
+                $reply = $draft->postedReplyId ? $replies->get($draft->postedReplyId) : null;
+                $live = $reply && (int) $reply->deleteStatus === 1 && ! $reply->isDeleted;
+
+                return array_merge($this->draftPayload($draft), [
+                    'postedAt' => $draft->postedAt?->format('M j, Y g:i A'),
+                    'replyId' => $draft->postedReplyId,
+                    'live' => $live,
+                    // Show what is actually on the page, not what was sent.
+                    'answerBody' => $live ? (string) $reply->body : (string) $draft->answerBody,
+                ]);
+            })->values(),
+        ]);
+    }
+
+    /** Re-word an answer that is already live, in place. */
+    public function updatePosted(Request $request)
+    {
+        $draft = CommunityAiAnswerDraft::active()->where('status', 'posted')
+            ->find($this->draftId($request));
+        if (! $draft) {
+            return response()->json(['success' => false, 'message' => 'Posted answer not found.'], 404);
+        }
+
+        $body = trim((string) $request->input('answerBody', ''));
+        if ($body === '') {
+            return response()->json(['success' => false, 'message' => 'The answer cannot be empty.'], 422);
+        }
+
+        $reply = $draft->postedReplyId ? CommunityGroupReply::find($draft->postedReplyId) : null;
+        if (! $reply || (int) $reply->deleteStatus !== 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'That answer is no longer in the community, so there is nothing to edit.',
+            ], 404);
+        }
+
+        $reply->update(['body' => $body]);
+        $draft->update(['answerBody' => $body]);
+
+        return response()->json(['success' => true, 'message' => 'The community now shows the edited answer.']);
+    }
+
+    /**
+     * Take a posted answer back off the community.
+     *
+     * The reply goes the way everything goes here — hidden, not destroyed —
+     * and the draft returns to the review shelf rather than disappearing, so
+     * a takedown is a second chance at the wording, not a loss of the work.
+     */
+    public function unpost(Request $request)
+    {
+        $draft = CommunityAiAnswerDraft::active()->where('status', 'posted')
+            ->find($this->draftId($request));
+        if (! $draft) {
+            return response()->json(['success' => false, 'message' => 'Posted answer not found.'], 404);
+        }
+
+        if ($draft->postedReplyId) {
+            CommunityGroupReply::where('id', $draft->postedReplyId)->update(['deleteStatus' => 0]);
+        }
+        $draft->update(['status' => 'pending', 'postedReplyId' => null, 'postedAt' => null]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Taken down. It is back on the review shelf.',
+            'draft' => $this->draftPayload($draft->fresh()),
+        ]);
+    }
+
+    /**
+     * Ask again, with a note about what to change.
+     *
+     * The instruction is the operator's, and it is about the answer that is
+     * already there — "shorter", "give the rates in bags", "answer in
+     * Tagalog" — so the previous answer goes to the model with it.
+     */
+    public function regenerate(Request $request)
+    {
+        if (! $this->ai->isUsable()) {
+            return response()->json(['success' => false, 'message' => 'The AniSenso AI is not configured yet.'], 422);
+        }
+
+        $draft = CommunityAiAnswerDraft::active()->find($this->draftId($request));
+        if (! $draft) {
+            return response()->json(['success' => false, 'message' => 'Answer not found.'], 404);
+        }
+
+        $post = $draft->post;
+        $question = trim(($draft->questionTitle ? $draft->questionTitle . "\n\n" : '') . (string) $draft->questionBody);
+        if ($question === '') {
+            return response()->json(['success' => false, 'message' => 'That question has no text to answer.'], 422);
+        }
+
+        // What the page is showing is what the operator is asking to improve;
+        // for a posted answer that is the live reply, not the stored draft.
+        $previous = trim((string) $request->input('answerBody', '')) ?: (string) $draft->answerBody;
+
+        try {
+            $answer = $this->ai->refine(
+                $question,
+                $previous,
+                (string) $request->input('instruction', ''),
+                $this->groupContext($post)
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Community AI regenerate failed', ['draftId' => $draft->id, 'error' => $e->getMessage()]);
+
+            return response()->json(['success' => false, 'message' => 'The AI could not answer again: ' . $e->getMessage()], 502);
+        }
+
+        // A pending draft keeps the new wording; a posted one waits for the
+        // operator to press Save, because saving it means editing what the
+        // community is already reading.
+        if ($draft->status === 'pending') {
+            $draft->update(['answerBody' => $answer, 'model' => $this->ai->settings()->effectiveModel()]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Answered again.',
+            'answerBody' => $answer,
+            'model' => $this->ai->settings()->effectiveModel(),
+            'saved' => $draft->status === 'pending',
+        ]);
+    }
+
+    /**
+     * Strip the markdown out of an answer, without asking the model again.
+     *
+     * Everything generated before the house style existed is full of
+     * asterisks and hashes that the community shows literally. Rewriting
+     * those through the AI costs a call and changes the words; this only
+     * changes the punctuation, and it is the same tidy() every new answer
+     * already passes through.
+     */
+    public function tidy(Request $request)
+    {
+        $body = (string) $request->input('answerBody', '');
+        if (trim($body) === '') {
+            return response()->json(['success' => false, 'message' => 'There is nothing to tidy.'], 422);
+        }
+
+        $clean = CommunityAiAnswerService::tidy($body);
+
+        return response()->json([
+            'success' => true,
+            'message' => $clean === trim($body) ? 'Nothing to clean up — it was already plain.' : 'Formatting cleaned up.',
+            'answerBody' => $clean,
+            'changed' => $clean !== trim($body),
+        ]);
+    }
+
+    /** The id every one of these actions is addressed by. */
+    private function draftId(Request $request): int
+    {
+        return (int) ($request->query('id') ?: $request->input('id'));
+    }
+
+    /** What the model is told about where the question was asked. */
+    private function groupContext(?CommunityGroupPost $post): string
+    {
+        return 'This is a question posted by a farmer in the "' . (optional(optional($post)->group)->name ?? 'community')
+            . '" community group. Reply helpfully and concisely as the AI Technician.'
+            . ' Do not mention that you are an AI unless asked.';
     }
 
     /** Save an admin edit to a draft's answer. */
