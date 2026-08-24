@@ -105,6 +105,7 @@ class GridScrapeService
         $didSplit = false;
         $pageNote = null;
         $seenPlaceIds = [];
+        $capReached = false;
 
         try {
             // Claim the cell before the first network call, so a cron run and the
@@ -117,6 +118,24 @@ class GridScrapeService
 
             if (!$this->places->isConfigured()) {
                 throw new OutreachException('No Google Places API key is saved. Add one under Lead Finder > Settings.');
+            }
+
+            // Checked BEFORE the first request, not after: a cell that cannot
+            // contribute any leads should not cost a Places call to find out.
+            $remaining = $this->remainingLeadAllowance($grid);
+
+            if ($remaining !== null && $remaining <= 0) {
+                $this->retireBatch($grid, 'Lead limit reached');
+
+                $grid->update([
+                    'status' => OutreachSearchGrid::STATUS_COMPLETED,
+                    'resultsCount' => 0,
+                    'newLeadsCount' => 0,
+                    'pageToken' => null,
+                    'processedAt' => Carbon::now('Asia/Manila'),
+                ]);
+
+                return ['results' => 0, 'new' => 0, 'split' => false, 'sparse' => false, 'error' => null];
             }
 
             $radiusKm = (float) $grid->radiusKm;
@@ -175,9 +194,20 @@ class GridScrapeService
                         continue;
                     }
 
+                    if ($remaining !== null && $newLeads >= $remaining) {
+                        // The cap is a sweep-wide ceiling, so hitting it here
+                        // ends the whole batch, not just this cell.
+                        $capReached = true;
+                        break;
+                    }
+
                     if ($this->createLead($grid, $place, $placeId)) {
                         $newLeads++;
                     }
+                }
+
+                if ($capReached) {
+                    break;
                 }
 
                 $pageToken = $response['nextPageToken'];
@@ -195,9 +225,18 @@ class GridScrapeService
             $maxDepth = (int) ($this->settings->maxSubdivisionDepth ?? 4);
             $minRadiusKm = (float) ($this->settings->minGridRadiusKm ?? 0.5);
 
-            $shouldSplit = $totalResults >= OutreachSearchGrid::SATURATION_THRESHOLD
+            $shouldSplit = !$capReached
+                && $totalResults >= OutreachSearchGrid::SATURATION_THRESHOLD
                 && (int) $grid->depth < $maxDepth
                 && $childRadiusKm >= $minRadiusKm;
+
+            if ($capReached) {
+                // Retire the rest of the sweep. Without this the batch keeps a
+                // queue of pending cells it will never work, BatchProgressService
+                // sees pendingCells > 0, and the batch sits on "scraping" forever.
+                $this->retireBatch($grid, 'Lead limit reached');
+                $pageNote = 'Stopped: the sweep hit its lead limit.';
+            }
 
             if ($shouldSplit) {
                 $didSplit = $this->createChildren($grid, $childRadiusKm) > 0;
@@ -256,7 +295,7 @@ class GridScrapeService
      *
      * @throws OutreachException when the region is unknown or produces no cells.
      */
-    public function queueRegion(int $userId, string $businessType, string $regionLabel, float $radiusKm): string
+    public function queueRegion(int $userId, string $businessType, string $regionLabel, float $radiusKm, ?int $maxLeads = null): string
     {
         $businessType = trim($businessType);
         $regionLabel = trim($regionLabel);
@@ -340,6 +379,7 @@ class GridScrapeService
             'businessType' => mb_substr($businessType, 0, 190),
             'regionLabel' => mb_substr($regionLabel, 0, 190),
             'radiusKm' => round($radiusKm, 3),
+            'maxLeads' => ($maxLeads !== null && $maxLeads > 0) ? $maxLeads : null,
             'status' => OutreachBatch::STATUS_SCRAPING,
             'totalCells' => count($rows),
             'pendingCells' => count($rows),
@@ -629,5 +669,67 @@ class GridScrapeService
         $value = (string) preg_replace('/\s+/', ' ', $value);
 
         return trim($value);
+    }
+
+    /**
+     * How many more leads this sweep is still allowed to collect.
+     *
+     * Null means uncapped, which is what every sweep without a limit returns.
+     * Counted live off the lead table rather than the batch's cached counter,
+     * because that counter is refreshed on a cron tick and could be a minute
+     * stale - and a stale number here would overshoot the limit.
+     */
+    protected function remainingLeadAllowance(OutreachSearchGrid $grid): ?int
+    {
+        $batch = OutreachBatch::query()
+            ->where('batchId', (string) $grid->batchId)
+            ->where('usersId', (int) $grid->usersId)
+            ->first();
+
+        $cap = $batch ? (int) $batch->maxLeads : 0;
+
+        if (!$batch || $cap <= 0) {
+            return null;
+        }
+
+        $found = OutreachLead::query()
+            ->where('batchId', (string) $grid->batchId)
+            ->where('delete_status', 'active')
+            ->count();
+
+        return max(0, $cap - $found);
+    }
+
+    /**
+     * Close off the rest of a sweep that has stopped early.
+     *
+     * Pending cells are completed rather than deleted so the batch still shows
+     * the grid it laid down, and the reason is recorded on the batch so the
+     * screen can explain why a province finished after eleven cells.
+     */
+    protected function retireBatch(OutreachSearchGrid $grid, string $reason): void
+    {
+        try {
+            OutreachSearchGrid::query()
+                ->where('batchId', (string) $grid->batchId)
+                ->where('usersId', (int) $grid->usersId)
+                ->where('id', '!=', $grid->id)
+                ->whereIn('status', [OutreachSearchGrid::STATUS_PENDING])
+                ->update([
+                    'status' => OutreachSearchGrid::STATUS_COMPLETED,
+                    'lastError' => $reason,
+                    'processedAt' => Carbon::now('Asia/Manila'),
+                ]);
+
+            OutreachBatch::query()
+                ->where('batchId', (string) $grid->batchId)
+                ->where('usersId', (int) $grid->usersId)
+                ->whereNull('stoppedReason')
+                ->update(['stoppedReason' => mb_substr($reason, 0, 190)]);
+        } catch (\Throwable $e) {
+            // Retiring is tidy-up, not the job. A sweep that collected its leads
+            // has succeeded even if the leftover cells could not be closed.
+            Log::warning('[OutreachEngine] Could not retire batch cells: ' . $e->getMessage());
+        }
     }
 }

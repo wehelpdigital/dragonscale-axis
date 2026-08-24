@@ -51,6 +51,17 @@ class ScraperController extends Controller
     const RADIUS_OPTIONS = [5.0, 10.0, 20.0, 30.0, 50.0];
 
     /**
+     * Optional ceilings on how many businesses one sweep may collect.
+     *
+     * 0 means no limit. The small values exist so the whole pipeline - scrape,
+     * find emails, verify, campaign - can be run end to end in a couple of
+     * minutes without waiting on a province or paying to enrich all of it.
+     *
+     * @var array<int, int>
+     */
+    const MAX_LEAD_OPTIONS = [0, 5, 10, 25, 50, 100, 250, 500, 1000];
+
+    /**
      * One line of plain guidance per option, shown under the dropdown.
      *
      * @var array<string, string>
@@ -104,6 +115,7 @@ class ScraperController extends Controller
             'minRadiusKm' => (float) $settings->minGridRadiusKm,
             'maxRadiusKm' => self::MAX_RADIUS_KM,
             'radiusOptions' => self::RADIUS_OPTIONS,
+            'maxLeadOptions' => self::MAX_LEAD_OPTIONS,
             'radiusHints' => self::RADIUS_HINTS,
         ]);
     }
@@ -121,10 +133,12 @@ class ScraperController extends Controller
                 'businessType' => 'required|string|max:190',
                 'regionLabel' => 'required|string|max:190',
                 'radiusKm' => 'nullable|numeric|in:' . implode(',', self::RADIUS_OPTIONS),
+                'maxLeads' => 'nullable|integer|in:' . implode(',', self::MAX_LEAD_OPTIONS),
             ], [
                 'businessType.required' => 'Tell us what kind of business to look for.',
                 'regionLabel.required' => 'Choose a region to search.',
                 'radiusKm.in' => 'Choose one of the offered grid sizes.',
+                'maxLeads.in' => 'Choose one of the offered lead limits.',
             ]);
 
             if ($validator->fails()) {
@@ -168,8 +182,12 @@ class ScraperController extends Controller
             }
 
             try {
+                // 0 (or absent) means uncapped; the service takes null for that.
+                $maxLeads = (int) $request->input('maxLeads', 0);
+                $maxLeads = in_array($maxLeads, self::MAX_LEAD_OPTIONS, true) && $maxLeads > 0 ? $maxLeads : null;
+
                 $batchId = (new GridScrapeService($settings))
-                    ->queueRegion($userId, $businessType, $regionLabel, $radiusKm);
+                    ->queueRegion($userId, $businessType, $regionLabel, $radiusKm, $maxLeads);
             } catch (OutreachException $e) {
                 // Unknown region, radius that tiles to nothing - all user-fixable.
                 return response()->json([

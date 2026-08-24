@@ -23,6 +23,8 @@ class OutreachBatch extends BaseModel
         'businessType',
         'regionLabel',
         'radiusKm',
+        'maxLeads',
+        'stoppedReason',
         'status',
         'totalCells',
         'pendingCells',
@@ -39,6 +41,7 @@ class OutreachBatch extends BaseModel
     protected $casts = [
         'usersId' => 'integer',
         'radiusKm' => 'decimal:3',
+        'maxLeads' => 'integer',
         'totalCells' => 'integer',
         'pendingCells' => 'integer',
         'totalLeads' => 'integer',

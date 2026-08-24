@@ -147,6 +147,20 @@
                     <small class="text-secondary" id="radiusHint"></small>
                 </div>
 
+                <div class="mb-3">
+                    <label for="maxLeads" class="form-label text-dark">Lead Limit</label>
+                    <select class="form-select" id="maxLeads" name="maxLeads">
+                        @foreach($maxLeadOptions as $option)
+                            <option value="{{ $option }}" @if($option === 0) selected @endif>
+                                {{ $option === 0 ? 'No limit - sweep the whole region' : 'Stop after ' . number_format($option) . ' businesses' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-secondary">Handy for testing: a small limit runs the whole
+                    pipeline end to end in a couple of minutes. The sweep stops as soon as the limit
+                    is reached and the remaining cells are closed, so the batch still completes.</small>
+                </div>
+
                 <div class="alert alert-light border mb-3" id="gridEstimate">
                     <span class="text-secondary">Pick a region to see how many cells it tiles into.</span>
                 </div>
@@ -711,6 +725,7 @@ $(document).ready(function () {
         var businessType = $.trim($('#businessType').val());
         var regionLabel = $('#regionLabel').val();
         var radiusKm = $('#radiusKm').val();
+        var maxLeads = $('#maxLeads').val();
 
         if (!businessType) {
             toastr.warning('Tell us what kind of business to look for.', 'Missing business type');
@@ -738,7 +753,8 @@ $(document).ready(function () {
                 _token: '{{ csrf_token() }}',
                 businessType: businessType,
                 regionLabel: regionLabel,
-                radiusKm: radiusKm
+                radiusKm: radiusKm,
+                maxLeads: maxLeads
             },
             success: function (response) {
                 if (!response || !response.success || !response.data) {
