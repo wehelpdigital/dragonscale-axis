@@ -122,6 +122,12 @@
                                 <span key="t-anisenso-mail-settings">Mail Settings</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-mail-log*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-mail-log.index') }}" class="waves-effect {{ request()->is('anisenso-mail-log*') ? 'active' : '' }}">
+                                <i class="bx bx-mail-send"></i>
+                                <span key="t-anisenso-mail-log">Mail Log</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-community*') ? 'mm-active' : '' }}">
                             <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('anisenso-community*') ? 'mm-active' : '' }}">
                                 <i class="bx bx-conversation"></i>

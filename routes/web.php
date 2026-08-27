@@ -462,6 +462,12 @@ Route::delete('/anisenso-tutorials', [App\Http\Controllers\aniSensoAdmin\AniSens
 // AniSystem's in-app "How to use" guides — one per module per device. The
 // Tutorials routes above are the YouTube library, which is a different thing.
 // Drag-and-drop editor for the same email templates Mail Settings edits by hand.
+/* The mail book: every email AniSystem has meant to send, and the button that
+   does now what the cron does at ten past. One path segment, parameters in the
+   query string, as every route in this admin is. */
+Route::get('/anisenso-mail-log', [App\Http\Controllers\aniSensoAdmin\AnisystemMailLogController::class, 'index'])->name('anisenso-mail-log.index')->middleware('auth');
+Route::post('/anisenso-mail-log-run', [App\Http\Controllers\aniSensoAdmin\AnisystemMailLogController::class, 'run'])->name('anisenso-mail-log.run')->middleware('auth');
+Route::post('/anisenso-mail-log-retry', [App\Http\Controllers\aniSensoAdmin\AnisystemMailLogController::class, 'retry'])->name('anisenso-mail-log.retry')->middleware('auth');
 Route::get('/anisenso-email-builder', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'index'])->name('anisenso-email-builder.index')->middleware('auth');
 Route::put('/anisenso-email-builder', [App\Http\Controllers\aniSensoAdmin\AniSensoEmailBuilderController::class, 'update'])->whereNumber('id')->name('anisenso-email-builder.update')->middleware('auth');
 Route::get('/anisenso-help-guides', [App\Http\Controllers\aniSensoAdmin\AniSensoHelpGuideController::class, 'index'])->name('anisenso-help-guides.index')->middleware('auth');

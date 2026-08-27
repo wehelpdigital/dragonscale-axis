@@ -73,14 +73,48 @@
                 <div class="card"><div class="card-body">
                     <button type="submit" class="btn btn-success w-100 mb-3">Save layout</button>
 
+                    @php
+                        /* The chips this template can actually use.
+                         *
+                         * EmailBlocks::MERGE_FIELDS is the house list, written
+                         * for the daily digest. Every other template has tags
+                         * of its own — {{workerName}}, {{inviteUrl}},
+                         * {{tasksTable}} — which were printed as a sentence
+                         * at the bottom of this panel and had to be typed by
+                         * hand, one character wrong being one email that
+                         * arrives with a brace in it. They are chips now, and
+                         * they lead, because they are the ones this layout
+                         * is about. */
+                        $ownTags = collect(preg_split('/[,\s]+/', (string) $template->availableTags))
+                            ->map(fn ($t) => trim($t))
+                            ->filter(fn ($t) => str_starts_with($t, '{{') && str_ends_with($t, '}}'))
+                            ->unique()
+                            ->values();
+                        $houseTags = collect(\App\Support\EmailBlocks::MERGE_FIELDS)
+                            ->reject(fn ($what, $tag) => $ownTags->contains($tag));
+                    @endphp
+
                     <h6 class="text-dark">Merge fields</h6>
                     <p class="eb-note mb-2">Click one to drop it where the cursor is. The app fills these in when it
                         sends — it is the only one that knows whose email this is.</p>
-                    <div class="d-flex flex-wrap gap-1">
-                        @foreach (\App\Support\EmailBlocks::MERGE_FIELDS as $tag => $what)
-                            <span class="eb-field" data-field="{{ $tag }}" title="{{ $what }}">{{ $tag }}</span>
-                        @endforeach
-                    </div>
+
+                    @if ($ownTags->isNotEmpty())
+                        <p class="eb-note mb-1"><strong>This template</strong></p>
+                        <div class="d-flex flex-wrap gap-1 mb-3">
+                            @foreach ($ownTags as $tag)
+                                <span class="eb-field" data-field="{{ $tag }}">{{ $tag }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if ($houseTags->isNotEmpty())
+                        <p class="eb-note mb-1"><strong>Everywhere</strong></p>
+                        <div class="d-flex flex-wrap gap-1">
+                            @foreach ($houseTags as $tag => $what)
+                                <span class="eb-field" data-field="{{ $tag }}" title="{{ $what }}">{{ $tag }}</span>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <hr>
                     <h6 class="text-dark">The day's activities</h6>
@@ -88,11 +122,6 @@
                         work should appear. It is the one block the layout cannot fill in itself — the app expands
                         it per person, so a worker sees only their own jobs.</p>
 
-                    @if ($template->availableTags)
-                        <hr>
-                        <h6 class="text-dark">This template also accepts</h6>
-                        <p class="eb-note mb-0" style="word-break:break-word;">{{ $template->availableTags }}</p>
-                    @endif
                 </div></div>
             </div>
         </div>
