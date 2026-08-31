@@ -896,30 +896,10 @@
                      materials and services are picked while writing one, so
                      none of the three is a place you go. --}}
                 <div class="tab-pane fade show active" id="tab-activities">
-                    <ul class="nav sm-subtabs mb-3" role="tablist">
-                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#sub-plan"><i class="bx bx-calendar-check"></i> The plan <span class="badge">{{ $schedule->activities->count() }}</span></a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-day-cash"><i class="bx bx-wallet"></i> Day cash</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-irrigations"><i class="bx bx-water"></i> Irrigation <span class="badge" id="badge-irrigations">{{ $schedule->irrigations->count() }}</span></a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-materials"><i class="bx bx-package"></i> Materials <span class="badge" id="badge-materials">{{ $schedule->materials->count() }}</span></a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-services"><i class="bx bx-wrench"></i> Services <span class="badge" id="badge-services">{{ $schedule->services->count() }}</span></a></li>
-                    </ul>
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="sub-plan">
-                            @include('aniSensoAdmin.scheduleManager.partials.activities', ['schedule' => $schedule])
-                        </div>
-                        <div class="tab-pane fade" id="sub-day-cash">
-                            @include('aniSensoAdmin.scheduleManager.partials.day-cash', ['schedule' => $schedule])
-                        </div>
-                        <div class="tab-pane fade" id="sub-irrigations">
-                            @include('aniSensoAdmin.scheduleManager.partials.irrigations', ['schedule' => $schedule])
-                        </div>
-                        <div class="tab-pane fade" id="sub-materials">
-                            @include('aniSensoAdmin.scheduleManager.partials.materials', ['schedule' => $schedule])
-                        </div>
-                        <div class="tab-pane fade" id="sub-services">
-                            @include('aniSensoAdmin.scheduleManager.partials.services', ['schedule' => $schedule])
-                        </div>
-                    </div>
+                    {{-- The plan. It had four drawers beside it — Day cash,
+                         Irrigation, Materials, Services — and not one of them
+                         is a place in the client's app. --}}
+                    @include('aniSensoAdmin.scheduleManager.partials.activities', ['schedule' => $schedule])
                 </div>
 
                 {{-- SETTINGS --}}
@@ -1080,13 +1060,7 @@ const URLS = {
 
     protocolSave:      () => `${ROOT}/anisenso-schedule-manager-protocol-save${Q}`,
 
-    materialsStore:    () => `${ROOT}/anisenso-schedule-manager-materials-store${Q}`,
-    materialsUpdate:   (id) => `${ROOT}/anisenso-schedule-manager-materials-update${Q}&id=${id}`,
-    materialsDelete:   (id) => `${ROOT}/anisenso-schedule-manager-materials-delete${Q}&id=${id}`,
 
-    servicesStore:     () => `${ROOT}/anisenso-schedule-manager-services-store${Q}`,
-    servicesUpdate:    (id) => `${ROOT}/anisenso-schedule-manager-services-update${Q}&id=${id}`,
-    servicesDelete:    (id) => `${ROOT}/anisenso-schedule-manager-services-delete${Q}&id=${id}`,
 
     attachmentsStore:  () => `${ROOT}/anisenso-schedule-manager-attachments-store${Q}`,
     attachmentsUpdate: (id) => `${ROOT}/anisenso-schedule-manager-attachments-update${Q}&id=${id}`,
@@ -1131,11 +1105,6 @@ const URLS = {
     markersMove:    (id) => `${ROOT}/anisenso-schedule-manager-markers-move${Q}&id=${id}`,
     markersDelete:  (id) => `${ROOT}/anisenso-schedule-manager-markers-delete${Q}&id=${id}`,
 
-    irrigationsStore:  () => `${ROOT}/anisenso-schedule-manager-irrigations-store${Q}`,
-    irrigationsUpdate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-update${Q}&id=${id}`,
-    irrigationsDelete: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-delete${Q}&id=${id}`,
-    irrigationsDuplicate: (id) => `${ROOT}/anisenso-schedule-manager-irrigations-duplicate${Q}&id=${id}`,
-    irrigationsReorder:   () => `${ROOT}/anisenso-schedule-manager-irrigations-reorder${Q}`,
 
     // Readings rather than writes: what is missing, what the crop is doing,
     // what the sky is about to do over each lot.
@@ -1446,13 +1415,9 @@ function recomputeReadiness() {
 @include('aniSensoAdmin.scheduleManager.partials.script-lots')
 @include('aniSensoAdmin.scheduleManager.partials.script-workers')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol')
-@include('aniSensoAdmin.scheduleManager.partials.script-materials')
-@include('aniSensoAdmin.scheduleManager.partials.script-services')
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
 @include('aniSensoAdmin.scheduleManager.partials.script-doc-entries')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
-@include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
-@include('aniSensoAdmin.scheduleManager.partials.script-day-cash')
 @include('aniSensoAdmin.scheduleManager.partials.script-inventory')
 @include('aniSensoAdmin.scheduleManager.partials.script-post-harvest')
 @include('aniSensoAdmin.scheduleManager.partials.script-notes')

@@ -181,8 +181,11 @@
     // Elements whose text content mirrors server-side counts/labels.
     const TEXT_REGIONS = [
         '#scheduleHeaderTitle', '#scheduleHeaderDescription',
-        '#badge-lots', '#badge-workers', '#badge-materials', '#badge-services',
-        '#badge-protocol-doc', '#badge-activities', '#badge-irrigations',
+        // The materials, services and irrigation badges went with the drawers
+        // they counted; a selector that matches nothing is a swap that
+        // silently does nothing, which is how a live-sync bug hides.
+        '#badge-lots', '#badge-workers',
+        '#badge-protocol-doc', '#badge-activities',
     ];
 
     function swapFromHtml(html) {

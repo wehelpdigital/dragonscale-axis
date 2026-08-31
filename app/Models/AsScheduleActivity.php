@@ -73,6 +73,17 @@ class AsScheduleActivity extends BaseModel
         'targetEndDate',
         'priority',
         'activityType',
+        // Everything else an activity carries in the farmer app, all of it
+        // already in the shared table and none of it known here: the extra
+        // types beside the main one, the checklist of workers and the day's
+        // errands, the pictures, the tags and the marker's colour.
+        'extraTypes',
+        'reminders',
+        'workerChecklist',
+        'workerSelfCheck',
+        'imagePaths',
+        'tags',
+        'markerColor',
         'waterTask',
         'servicePrice',
         'isDayZero',
@@ -88,6 +99,11 @@ class AsScheduleActivity extends BaseModel
     ];
 
     protected $casts = [
+        'extraTypes' => 'array',
+        'reminders' => 'array',
+        'workerChecklist' => 'array',
+        'imagePaths' => 'array',
+        'tags' => 'array',
         'targetDate' => 'date:Y-m-d',
         'targetEndDate' => 'date:Y-m-d',
         'isDayZero' => 'boolean',

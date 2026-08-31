@@ -1645,6 +1645,13 @@ class ActivityController extends BaseScheduleController
             'lotIds.*'         => 'integer',
             'workerIds'        => 'nullable|array',
             'workerIds.*'      => 'integer',
+            // The day's errands: what has to happen, and — only when it
+            // involves money — whether ticking it costs or earns.
+            'reminders'              => 'nullable|array|max:60',
+            'reminders.*.text'       => 'required_with:reminders|string|max:255',
+            'reminders.*.kind'       => 'nullable|in:none,expense,income',
+            'reminders.*.amount'     => 'nullable|numeric|min:0|max:99999999',
+            'reminders.*.done'       => 'nullable|boolean',
             'items'                  => 'nullable|array',
             // `custom` is a line that is only a name and a price — the way
             // the farmer app writes every item now.
@@ -1732,6 +1739,12 @@ class ActivityController extends BaseScheduleController
             'description'        => $request->description,
             'imagePath'          => $submittedImagePath,
             'timeRequired'       => $request->timeRequired,
+            // The day's errands, and only on the kind of activity that IS a
+            // list of them — a task with a stray checklist attached would be
+            // a second thing pretending to be one.
+            'reminders'          => $request->activityType === 'reminder_checklist'
+                ? $this->cleanReminders($request->input('reminders'))
+                : null,
             'deleteStatus'       => 1,
         ];
 
@@ -2174,6 +2187,37 @@ class ActivityController extends BaseScheduleController
      * shouldn't happen post-migration but is handled defensively so save
      * actions never blow up on a misconfigured row.
      */
+    /**
+     * One line per errand, and nothing that is not one.
+     *
+     * A line with no words is not an errand. A line that says it involves no
+     * money carries no amount, so a figure left behind by a change of mind
+     * cannot quietly become a cost on the day it is ticked.
+     */
+    private function cleanReminders($rows): ?array
+    {
+        $out = collect(is_array($rows) ? $rows : [])
+            ->map(function ($r) {
+                $text = trim((string) ($r['text'] ?? ''));
+                if ($text === '') {
+                    return null;
+                }
+                $kind = in_array($r['kind'] ?? '', ['expense', 'income'], true) ? $r['kind'] : 'none';
+
+                return [
+                    'text' => mb_substr($text, 0, 255),
+                    'kind' => $kind,
+                    'amount' => $kind === 'none' ? 0 : round((float) ($r['amount'] ?? 0), 2),
+                    'done' => (bool) ($r['done'] ?? false),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        return $out ?: null;
+    }
+
     private function activeVersionIdFor(int $scheduleId): ?int
     {
         $active = AsScheduleActivityVersion::active()

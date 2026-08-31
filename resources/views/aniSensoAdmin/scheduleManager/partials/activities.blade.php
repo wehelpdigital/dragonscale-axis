@@ -1537,6 +1537,18 @@
                     <button type="button" class="activity-mode-tab" data-mode="service" aria-selected="false">
                         <i class="bx bx-wrench"></i> Service
                     </button>
+                    {{-- Beside the three kinds, not underneath one of them:
+                         who is on the job is asked the same way as what the
+                         job is, and it does not change the activity's type. --}}
+                    <button type="button" class="activity-mode-tab" data-mode="payroll" aria-selected="false">
+                        <i class="bx bx-group"></i> Worker checklist
+                    </button>
+                    {{-- The day's errands: things that are nobody's task and
+                         nobody's wage but still have to happen, some of which
+                         cost or bring in money once they do. --}}
+                    <button type="button" class="activity-mode-tab" data-mode="reminders" aria-selected="false">
+                        <i class="bx bx-list-check"></i> Reminder checklist
+                    </button>
                 </div>
 
                 <div class="row">
@@ -1825,6 +1837,24 @@
                     <span id="activityItemsSectionLabel">Materials & Services Used</span>
                     <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
                 </h6>
+                {{-- Reminder checklist. One line per errand: what it is, and
+                     — only if it involves money — whether ticking it costs or
+                     earns, and how much. A line with money on it becomes an
+                     expense or an income on the day it is ticked, which is
+                     where the day's cash comes from. --}}
+                <div id="activityRemindersPane" style="display:none;" class="mb-3">
+                    <label class="form-label text-dark">Reminders
+                        <small class="text-secondary fw-normal">— ticked on the day, as they happen</small>
+                    </label>
+                    <div id="reminderRows"></div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addReminderRow">
+                        <i class="bx bx-plus"></i> Add a reminder
+                    </button>
+                    <small class="text-secondary d-block mt-2">
+                        A line with money attached only counts on the day it is ticked.
+                    </small>
+                </div>
+
                 <small class="text-secondary d-block mb-2">
                     Pick any inputs this activity consumes. <strong>Leave empty</strong> if the activity uses no materials and no paid services
                     (e.g. a manual task with nothing to apply, or work done by your own crew).

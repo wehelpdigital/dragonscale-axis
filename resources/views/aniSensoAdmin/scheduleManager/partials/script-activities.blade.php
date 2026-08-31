@@ -997,7 +997,7 @@ function _animateModeField($el) {
     $el.addClass('mode-field-in');
 }
 function setActivityMode(mode) {
-    activityMode = ['irrigation', 'service'].includes(mode) ? mode : 'task';
+    activityMode = ['irrigation', 'service', 'payroll', 'reminders'].includes(mode) ? mode : 'task';
     $('#activityModeTabs .activity-mode-tab').each(function () {
         const on = $(this).data('mode') === activityMode;
         $(this).toggleClass('is-active', on).attr('aria-selected', on ? 'true' : 'false');
@@ -1005,19 +1005,86 @@ function setActivityMode(mode) {
     const isTask = activityMode === 'task';
     const isIrr = activityMode === 'irrigation';
     const isSvc = activityMode === 'service';
-    $('#activityTypeWrap').toggle(isTask);
+    // Who is on the job does not change what the job IS: the type stays
+    // whatever was picked to its left, and this mode only brings the workers
+    // forward. The errand list is its own kind of activity, though.
+    const isPay = activityMode === 'payroll';
+    const isRem = activityMode === 'reminders';
+    $('#activityTypeWrap').toggle(isTask || isPay);
     $('#activityWaterTaskWrap').toggle(isIrr);
     $('#activityServicePriceWrap').toggle(isSvc);
-    // Services don't consume materials; hide the picker in that mode.
-    $('#activityItemsSection').toggle(!isSvc);
+    // Services don't consume materials, and an errand list is not a job with
+    // inputs; hide the picker in both.
+    $('#activityItemsSection').toggle(!isSvc && !isRem);
+    $('#activityRemindersPane').toggle(isRem);
+    if (isRem && !$('#reminderRows .reminder-row').length) addReminderRow();
     $('#activityItemsSectionLabel').text(isIrr ? 'Materials' : 'Materials & Services Used');
     $('#activityTitle').attr('placeholder',
         isSvc ? 'e.g. Land preparation (tractor)'
         : isIrr ? 'e.g. Irrigate Lot A — Day 20–35'
+        : isRem ? 'e.g. Errands for the day'
+        : isPay ? 'e.g. Weeding — Lot A crew'
         : 'e.g. Basal Fertilizer');
     if (isIrr) _animateModeField($('#activityWaterTaskWrap'));
     else if (isSvc) _animateModeField($('#activityServicePriceWrap'));
+    else if (isRem) _animateModeField($('#activityRemindersPane'));
     else _animateModeField($('#activityTypeWrap'));
+    // Worker checklist puts the question it is about in front of the eye.
+    if (isPay) {
+        const el = document.getElementById('activityWorkersContainer')
+            || document.getElementById('activityWorkersWrap');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+/* ---- the errand list ------------------------------------------------
+ * One line per errand: what it is, and — only when it involves money —
+ * whether ticking it costs or earns, and how much. A line with an amount
+ * becomes an expense or an income on the day it is ticked, which is where
+ * the day's cash comes from in the client's app.
+ */
+function reminderRowHtml(r) {
+    const kind = (r && r.kind) || 'none';
+    const amount = (r && r.amount) || '';
+    return `<div class="reminder-row d-flex align-items-center gap-2 mb-2">
+        <div class="form-check mb-0">
+            <input class="form-check-input rem-done" type="checkbox" ${r && r.done ? 'checked' : ''} title="Already done">
+        </div>
+        <input type="text" class="form-control form-control-sm rem-text" maxlength="255"
+               placeholder="e.g. Buy diesel for the pump" value="${escapeHtml((r && r.text) || '')}">
+        <select class="form-select form-select-sm rem-kind" style="max-width:9rem;">
+            <option value="none" ${kind === 'none' ? 'selected' : ''}>No money</option>
+            <option value="expense" ${kind === 'expense' ? 'selected' : ''}>Costs</option>
+            <option value="income" ${kind === 'income' ? 'selected' : ''}>Earns</option>
+        </select>
+        <input type="number" min="0" step="0.01" class="form-control form-control-sm rem-amount"
+               style="max-width:8rem;${kind === 'none' ? 'display:none;' : ''}" placeholder="0.00" value="${escapeHtml(String(amount))}">
+        <button type="button" class="btn btn-sm btn-outline-danger rem-drop" title="Remove"><i class="bx bx-x"></i></button>
+    </div>`;
+}
+function addReminderRow(r) {
+    $('#reminderRows').append(reminderRowHtml(r));
+}
+$(document).on('click', '#addReminderRow', () => addReminderRow());
+$(document).on('click', '.rem-drop', function () { $(this).closest('.reminder-row').remove(); });
+// An amount only makes sense once the line says it involves money.
+$(document).on('change', '.rem-kind', function () {
+    $(this).closest('.reminder-row').find('.rem-amount').toggle($(this).val() !== 'none');
+});
+function collectReminders() {
+    const out = [];
+    $('#reminderRows .reminder-row').each(function () {
+        const text = ($(this).find('.rem-text').val() || '').trim();
+        if (!text) return;
+        const kind = $(this).find('.rem-kind').val() || 'none';
+        out.push({
+            text,
+            kind,
+            amount: kind === 'none' ? 0 : (parseFloat($(this).find('.rem-amount').val()) || 0),
+            done: $(this).find('.rem-done').is(':checked') ? 1 : 0,
+        });
+    });
+    return out;
 }
 $(document).on('click', '#activityModeTabs .activity-mode-tab', function () {
     setActivityMode($(this).data('mode'));
@@ -1684,6 +1751,7 @@ function resetActivityModal() {
     $('#activityType').val('');
     $('#activityWaterTask').val('irrigate');
     $('#activityServicePrice').val('');
+    $('#reminderRows').empty();
     setActivityMode('task');
     $('#activityTimeRequired').val('half');
     $('#activityIsDayZero').prop('checked', false);
@@ -1825,6 +1893,11 @@ $(document).on('click', '.edit-activity-btn', function () {
         } else if (a.activityType === 'service') {
             setActivityMode('service');
             $('#activityServicePrice').val(a.servicePrice != null ? a.servicePrice : '');
+        } else if (a.activityType === 'reminder_checklist') {
+            // The errands come back as they were written, ticks and all.
+            $('#reminderRows').empty();
+            (a.reminders || []).forEach(addReminderRow);
+            setActivityMode('reminders');
         } else {
             setActivityMode('task');
             $('#activityType').val(a.activityType || '');
@@ -1951,8 +2024,12 @@ $('#saveActivityBtn').on('click', function () {
     }
     const isIrrigation = activityMode === 'irrigation';
     const isService = activityMode === 'service';
+    const isReminders = activityMode === 'reminders';
+    // Worker checklist does not change what the activity IS — the type stays
+    // whatever the select says — so it is not in this ladder.
     const resolvedType = isIrrigation ? 'irrigation'
         : isService ? 'service'
+        : isReminders ? 'reminder_checklist'
         : ($('#activityType').val() || '');
     const payload = {
         _token: CSRF,
@@ -1970,8 +2047,10 @@ $('#saveActivityBtn').on('click', function () {
         isTransplant: $('#activityIsTransplant').is(':checked') ? 1 : 0,
         lotIds: getActivityLotIds(),
         workerIds: getActivityWorkerIds(),
-        // Services carry a price, not material items.
-        items: isService ? [] : items
+        // Services carry a price, and an errand list carries errands —
+        // neither carries material items.
+        items: (isService || isReminders) ? [] : items,
+        reminders: isReminders ? collectReminders() : []
     };
     if (!payload.activityTitle) { toastr.warning('Activity title is required'); return; }
     if (!payload.targetDate) { toastr.warning('Pick a target date'); return; }
