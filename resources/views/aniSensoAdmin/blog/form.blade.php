@@ -27,10 +27,27 @@
                         <label class="form-label">Excerpt <span class="text-secondary">(shown on the card)</span></label>
                         <textarea name="excerpt" class="form-control" rows="2" maxlength="500">{{ old('excerpt', $post->excerpt) }}</textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Body</label>
-                        <textarea name="body" class="form-control" rows="14" placeholder="Write the article. Basic HTML (headings, lists, bold) is allowed.">{{ old('body', $post->body) }}</textarea>
-                    </div>
+                    {{-- The body is built, not typed. It stays reachable as raw
+                         markup for the odd fix, but the builder is the door:
+                         it shows the article as anee.io will draw it while it
+                         is being written, which a textarea never could. --}}
+                    @if($mode === 'edit')
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                            <label class="form-label mb-0">Body</label>
+                            <a href="{{ route('anisenso-blog.build', ['id' => $post->id]) }}" class="btn btn-primary btn-sm">
+                                <i class="bx bx-layer me-1"></i> Open the builder
+                            </a>
+                        </div>
+                        <div class="mb-3">
+                            <textarea name="body" class="form-control" rows="10"
+                                      placeholder="Written by the builder. Editing it here is fine — the builder will offer it back as one block of text.">{{ old('body', $post->body) }}</textarea>
+                        </div>
+                    @else
+                        <div class="mb-3">
+                            <label class="form-label">Body</label>
+                            <textarea name="body" class="form-control" rows="8" placeholder="Save the article first, then build it — the builder needs somewhere to put the pieces.">{{ old('body', $post->body) }}</textarea>
+                        </div>
+                    @endif
                 </div></div>
             </div>
 

@@ -50,6 +50,7 @@
                                     <td class="text-secondary">{{ $post->publishedAt ? $post->publishedAt->format('M j, Y') : '—' }}</td>
                                     <td class="text-end">
                                         <a href="{{ route('anisenso-blog.edit', ['id' => $post->id]) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>
+                                    <a href="{{ route('anisenso-blog.build', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-primary" title="Build the article"><i class="bx bx-layer"></i></a>
                                         <button type="button" class="btn btn-sm btn-soft-danger btn-del" data-id="{{ $post->id }}"><i class="bx bx-trash"></i></button>
                                     </td>
                                 </tr>

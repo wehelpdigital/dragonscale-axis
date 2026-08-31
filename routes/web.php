@@ -484,6 +484,12 @@ Route::get('/anisenso-community-members', [App\Http\Controllers\aniSensoAdmin\An
 Route::delete('/anisenso-community-wall-posts', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
 Route::delete('/anisenso-community-wall-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');
 Route::post('/anisenso-community-restrict', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'toggleRestrict'])->whereNumber('id')->where('type', 'wall-post|wall-comment|post|reply')->name('anisenso-community.restrict')->middleware('auth');
+// The article builder: pieces on the left, anee.io on the right
+Route::get('/anisenso-blog-build',           [App\Http\Controllers\aniSensoAdmin\AniSensoBlogBuilderController::class, 'page'])->name('anisenso-blog.build')->middleware('auth');
+Route::get('/anisenso-blog-builder-blocks',  [App\Http\Controllers\aniSensoAdmin\AniSensoBlogBuilderController::class, 'blocks'])->name('anisenso-blog.builder.blocks')->middleware('auth');
+Route::post('/anisenso-blog-builder-save',   [App\Http\Controllers\aniSensoAdmin\AniSensoBlogBuilderController::class, 'save'])->name('anisenso-blog.builder.save')->middleware('auth');
+Route::post('/anisenso-blog-builder-upload', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogBuilderController::class, 'upload'])->name('anisenso-blog.builder.upload')->middleware('auth');
+
 Route::get('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'index'])->name('anisenso-blog.index')->middleware('auth');
 Route::get('/anisenso-blog-create', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'create'])->name('anisenso-blog.create')->middleware('auth');
 Route::post('/anisenso-blog', [App\Http\Controllers\aniSensoAdmin\AniSensoBlogController::class, 'store'])->name('anisenso-blog.store')->middleware('auth');

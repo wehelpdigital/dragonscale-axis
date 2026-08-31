@@ -8,6 +8,9 @@ class AsCommunityBlogPost extends BaseModel
 
     protected $fillable = [
         'title', 'slug', 'coverImagePath', 'excerpt', 'body',
+        // The blocks the body was built from. Only this app reads it — the
+        // client app renders `body` and knows nothing about builders.
+        'builderJson',
         'authorName', 'isPublished', 'publishedAt', 'viewCount', 'deleteStatus',
     ];
 
