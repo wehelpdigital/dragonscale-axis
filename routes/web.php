@@ -469,6 +469,11 @@ Route::get('/anisenso-community-groups', [App\Http\Controllers\aniSensoAdmin\Ani
 Route::delete('/anisenso-community-groups', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteGroup'])->whereNumber('id')->name('anisenso-community.groups.delete')->middleware('auth');
 Route::delete('/anisenso-community-posts', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deletePost'])->whereNumber('id')->name('anisenso-community.posts.delete')->middleware('auth');
 Route::delete('/anisenso-community-replies', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteReply'])->whereNumber('id')->name('anisenso-community.replies.delete')->middleware('auth');
+// Co-farmers — the handshakes, and the one-sided follows beside them
+Route::get('/anisenso-community-cofarmers',       [App\Http\Controllers\aniSensoAdmin\AniSensoCoFarmerController::class, 'index'])->name('anisenso-community.cofarmers')->middleware('auth');
+Route::delete('/anisenso-community-cofarmers',    [App\Http\Controllers\aniSensoAdmin\AniSensoCoFarmerController::class, 'destroy'])->name('anisenso-community.cofarmers.delete')->middleware('auth');
+Route::delete('/anisenso-community-follows',      [App\Http\Controllers\aniSensoAdmin\AniSensoCoFarmerController::class, 'unfollow'])->name('anisenso-community.follows.delete')->middleware('auth');
+
 Route::get('/anisenso-community-members', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'members'])->name('anisenso-community.members')->middleware('auth');
 Route::delete('/anisenso-community-wall-posts', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
 Route::delete('/anisenso-community-wall-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');

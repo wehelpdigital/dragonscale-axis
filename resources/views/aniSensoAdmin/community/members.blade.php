@@ -13,6 +13,8 @@
         @slot('title') Members @endslot
     @endcomponent
 
+    @include('aniSensoAdmin.community.partials.shelf', ['cmHere' => 'members'])
+
     <div class="row">
         <div class="col-12">
             <div class="card">

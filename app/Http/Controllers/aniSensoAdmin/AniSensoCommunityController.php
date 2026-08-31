@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\aniSensoAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\aniSensoAdmin\AniSensoCoFarmerController;
 use App\Models\AnisystemUser;
 use App\Models\AsCroppingSchedule;
 use App\Models\CommunityComment;
@@ -239,8 +240,9 @@ class AniSensoCommunityController extends Controller
             ->get()->pluck('groupId');
         $groupList = CommunityGroup::active()->whereIn('id', $groups)->get();
 
-        $connectionIds = CommunityConnection::connectedIds($member->id);
-        $connections = AnisystemUser::whereIn('id', $connectionIds)->where('deleteStatus', 1)->get();
+        // Who they farm with, which way round the asking went, and who is
+        // still waiting — a bare list of accepted names answered none of it.
+        $people = AniSensoCoFarmerController::peopleAround($member->id);
 
         $wallPosts = CommunityWallPost::active()
             ->where('wallUserId', $member->id)
@@ -249,7 +251,7 @@ class AniSensoCommunityController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('aniSensoAdmin.community.member-show', compact('member', 'plans', 'groupList', 'connections', 'wallPosts'));
+        return view('aniSensoAdmin.community.member-show', compact('member', 'plans', 'groupList', 'people', 'wallPosts'));
     }
 
     public function deleteWallPost($id)

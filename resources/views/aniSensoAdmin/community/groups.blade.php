@@ -14,6 +14,8 @@
         @slot('title') Groups @endslot
     @endcomponent
 
+    @include('aniSensoAdmin.community.partials.shelf', ['cmHere' => 'groups'])
+
     <div class="row">
         <div class="col-12">
             <div class="card">

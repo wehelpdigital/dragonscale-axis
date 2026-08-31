@@ -75,6 +75,8 @@
         @slot('title') AI Answers @endslot
     @endcomponent
 
+    @include('aniSensoAdmin.community.partials.shelf', ['cmHere' => 'ai'])
+
     <div class="row">
         <div class="col-12">
             <div class="card">

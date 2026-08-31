@@ -30,7 +30,7 @@
                     @if($member->bio)<p class="text-dark small mb-2" style="white-space:pre-line;">{{ $member->bio }}</p>@endif
                     <div class="d-flex gap-3 small text-secondary">
                         <span>{{ $plans->count() }} shared plans</span>
-                        <span>{{ $connections->count() }} connections</span>
+                        <span>{{ collect($people['connections'])->where('status', 'accepted')->count() }} co-farmers</span>
                         <span>{{ $groupList->count() }} groups</span>
                     </div>
                 </div>
@@ -52,12 +52,38 @@
                 @empty <p class="text-secondary small mb-0">None.</p>@endforelse
             </div></div>
 
-            {{-- Connections --}}
+            {{-- Co-farmers. A handshake has a direction and a state: who
+                 asked, and whether the other has answered. A list of accepted
+                 names hid both, and hid the requests nobody had replied to. --}}
             <div class="card"><div class="card-body">
-                <h6 class="text-dark">Connections</h6>
-                @forelse($connections as $conn)
-                    <a href="{{ route('anisenso-community.members', ['id' => $conn->id]) }}" class="d-block small border-bottom py-1 text-dark">{{ $conn->full_name }}@if($conn->location)<span class="text-secondary"> · {{ $conn->location }}</span>@endif</a>
-                @empty <p class="text-secondary small mb-0">None.</p>@endforelse
+                <h6 class="text-dark">Co-farmers</h6>
+                @forelse($people['connections'] as $c)
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-1 gap-2">
+                        <a href="{{ route('anisenso-community.members', ['id' => $c['whoId']]) }}" class="small text-dark">
+                            {{ $c['who'] }}
+                        </a>
+                        <span class="d-flex align-items-center gap-2">
+                            @if($c['status'] === 'pending')
+                                <span class="badge bg-warning text-dark" style="font-size:10px;">
+                                    {{ $c['theyAsked'] ? 'they asked' : 'waiting on them' }}
+                                </span>
+                            @endif
+                            <button class="btn btn-sm btn-link text-danger p-0 js-cf-cut" data-id="{{ $c['id'] }}"
+                                    title="Sever this link"><i class="bx bx-unlink"></i></button>
+                        </span>
+                    </div>
+                @empty <p class="text-secondary small mb-0">Nobody yet.</p>@endforelse
+            </div></div>
+
+            {{-- Follows are one-sided, so they are counted rather than paired. --}}
+            <div class="card"><div class="card-body">
+                <h6 class="text-dark">Follows</h6>
+                <p class="text-secondary small mb-1">
+                    Following {{ count($people['following']) }} · followed by {{ count($people['followers']) }}
+                </p>
+                @foreach(array_slice($people['following'], 0, 8) as $f)
+                    <span class="badge bg-light text-dark border me-1 mb-1">{{ $f['who'] }}</span>
+                @endforeach
             </div></div>
         </div>
 
@@ -100,6 +126,24 @@
 @endsection
 
 @section('script')
+<script>
+/* Severing from a member's page is the same act as severing from the
+   co-farmer list, so it is the same endpoint and the same question. */
+$(document).on('click', '.js-cf-cut', function () {
+    if (!confirm('Sever this co-farmer link? Both sides lose it.')) return;
+    const row = $(this).closest('.d-flex');
+    $.ajax({
+        url: '{{ url('/anisenso-community-cofarmers') }}?id=' + $(this).data('id'),
+        type: 'DELETE', data: { _token: '{{ csrf_token() }}' },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message); return; }
+            toastr.success(res.message);
+            row.fadeOut(180, function () { $(this).remove(); });
+        },
+        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'That did not work.')
+    });
+});
+</script>
 <script src="{{ URL::asset('build/libs/toastr/build/toastr.min.js') }}"></script>
 <script>
     const CSRF = "{{ csrf_token() }}";

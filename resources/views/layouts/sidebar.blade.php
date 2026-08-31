@@ -140,6 +140,12 @@
                                         <span key="t-anisenso-community-plans">Shared Plans</span>
                                     </a>
                                 </li>
+                                <li class="{{ request()->is('anisenso-community-cofarmers*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('anisenso-community.cofarmers') }}" class="waves-effect {{ request()->is('anisenso-community-cofarmers*') ? 'active' : '' }}">
+                                        <i class="bx bx-link"></i>
+                                        <span key="t-anisenso-community-cofarmers">Co-farmers</span>
+                                    </a>
+                                </li>
                                 <li class="{{ request()->is('anisenso-community-groups*') ? 'mm-active' : '' }}">
                                     <a href="{{ route('anisenso-community.groups') }}" class="waves-effect {{ request()->is('anisenso-community-groups*') ? 'active' : '' }}">
                                         <i class="bx bx-group"></i>
