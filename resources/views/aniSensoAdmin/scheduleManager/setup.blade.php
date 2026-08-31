@@ -866,10 +866,14 @@
                 </a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-post-harvest"><i class="bx bx-basket me-1"></i> Post-harvest</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-notes"><i class="bx bx-edit me-1"></i> Notes</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-weather"><i class="bx bx-cloud me-1"></i> Weather</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-growth"><i class="bx bx-leaf me-1"></i> Growth Stages</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-gallery"><i class="bx bx-images me-1"></i> Gallery</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-maps"><i class="bx bx-map-alt me-1"></i> Maps</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-draw"><i class="bx bx-pencil me-1"></i> Draw</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-chat-technician"><i class="bx bx-bot me-1"></i> Chat Technician</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-collab"><i class="bx bx-group me-1"></i> Collab room</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-reports"><i class="bx bx-line-chart me-1"></i> Reports</a></li>
             </ul>
 
             <div class="tab-content">
@@ -937,6 +941,16 @@
                     @include('aniSensoAdmin.scheduleManager.partials.notes', ['schedule' => $schedule])
                 </div>
 
+                {{-- WEATHER --}}
+                <div class="tab-pane fade" id="tab-weather">
+                    @include('aniSensoAdmin.scheduleManager.partials.weather', ['schedule' => $schedule])
+                </div>
+
+                {{-- GROWTH STAGES --}}
+                <div class="tab-pane fade" id="tab-growth">
+                    @include('aniSensoAdmin.scheduleManager.partials.growth', ['schedule' => $schedule])
+                </div>
+
                 {{-- GALLERY --}}
                 <div class="tab-pane fade" id="tab-gallery">
                     @include('aniSensoAdmin.scheduleManager.partials.gallery', ['schedule' => $schedule])
@@ -955,6 +969,16 @@
                 {{-- CHAT TECHNICIAN --}}
                 <div class="tab-pane fade" id="tab-chat-technician">
                     @include('aniSensoAdmin.scheduleManager.partials.chat-technician', ['schedule' => $schedule])
+                </div>
+
+                {{-- COLLAB ROOM --}}
+                <div class="tab-pane fade" id="tab-collab">
+                    @include('aniSensoAdmin.scheduleManager.partials.collab', ['schedule' => $schedule])
+                </div>
+
+                {{-- REPORTS --}}
+                <div class="tab-pane fade" id="tab-reports">
+                    @include('aniSensoAdmin.scheduleManager.partials.reports', ['schedule' => $schedule])
                 </div>
             </div>
         </div>
@@ -1381,6 +1405,8 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-notes')
 @include('aniSensoAdmin.scheduleManager.partials.script-gallery')
 @include('aniSensoAdmin.scheduleManager.partials.script-client-records')
+@include('aniSensoAdmin.scheduleManager.partials.script-collab')
+@include('aniSensoAdmin.scheduleManager.partials.script-reports')
 @include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>
 

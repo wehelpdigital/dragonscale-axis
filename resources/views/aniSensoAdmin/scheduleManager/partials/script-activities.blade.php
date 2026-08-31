@@ -2851,13 +2851,19 @@ function loadGrowth(dateStr) {
     }).fail(() => $('#growthStageBody').html('<p class="text-secondary mb-0">Could not read the lots.</p>'));
 }
 
-$('#growthStageBtn').on('click', function () {
-    $('#activityToolsBtn').dropdown('hide');
-    $('#growthStageModal').modal('show');
-    loadGrowth($('#growthStageDate').val() || '');
-});
+// Both of these are tabs now, so they load the first time their tab is
+// looked at rather than when a menu item is pressed.
 $('#growthStageDate').on('change', function () { loadGrowth($(this).val()); });
 $('#growthStageToday').on('click', function () { $('#growthStageDate').val(''); loadGrowth(''); });
+(function () {
+    let started = false;
+    $('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        if ($(e.target).attr('href') !== '#tab-growth' || started) return;
+        started = true;
+        loadGrowth($('#growthStageDate').val() || '');
+    });
+    if (location.hash === '#tab-growth') { started = true; $(() => loadGrowth('')); }
+})();
 
 // ---------- Weather: per lot, because a farm is not a point ----------
 function loadWeather() {
@@ -2906,11 +2912,15 @@ function loadWeather() {
     }).fail(() => $('#scheduleWeatherBody').html('<p class="text-secondary mb-0">Could not reach the forecast.</p>'));
 }
 
-$('#scheduleWeatherBtn').on('click', function () {
-    $('#activityToolsBtn').dropdown('hide');
-    $('#scheduleWeatherModal').modal('show');
-    loadWeather();
-});
+(function () {
+    let started = false;
+    $('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        if ($(e.target).attr('href') !== '#tab-weather' || started) return;
+        started = true;
+        loadWeather();
+    });
+    if (location.hash === '#tab-weather') { started = true; $(loadWeather); }
+})();
 $('#scheduleWeatherReload').on('click', loadWeather);
 
 // ---------- Share: the client's own public link ----------

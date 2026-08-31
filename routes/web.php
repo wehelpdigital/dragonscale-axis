@@ -320,6 +320,11 @@ Route::get('/anisenso-schedule-manager-records-ai-one',            [App\Http\Con
 Route::put('/anisenso-schedule-manager-records-ai-rename',         [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiRename'])->name('anisenso-schedule-manager.records.ai.rename')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-records-ai-delete',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiDestroy'])->name('anisenso-schedule-manager.records.ai.delete')->middleware('auth');
 
+// The post-harvest reports the client saved, as against the costings this
+// app computes next door
+Route::get('/anisenso-schedule-manager-saved-reports-data',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\SavedReportController::class, 'data'])->name('anisenso-schedule-manager.saved-reports.data')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-saved-reports-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\SavedReportController::class, 'destroy'])->name('anisenso-schedule-manager.saved-reports.delete')->middleware('auth');
+
 // Lots
 Route::post('/anisenso-schedule-manager-lots-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'store'])->name('anisenso-schedule-manager.lots.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-lots-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'update'])->name('anisenso-schedule-manager.lots.update')->middleware('auth');

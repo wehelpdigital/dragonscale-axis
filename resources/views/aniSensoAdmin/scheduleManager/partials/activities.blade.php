@@ -321,14 +321,6 @@
                     <i class="bx bx-bell"></i> Notice
                     <span class="tools-state" id="scheduleNoticeState"></span>
                 </button></li>
-                <li><button class="dropdown-item" type="button" id="growthStageBtn"
-                            title="What each lot's crop is doing today">
-                    <i class="bx bx-leaf"></i> Growth stage
-                </button></li>
-                <li><button class="dropdown-item" type="button" id="scheduleWeatherBtn"
-                            title="The forecast for each lot's own location">
-                    <i class="bx bx-cloud"></i> Weather
-                </button></li>
                 <li><button class="dropdown-item" type="button" id="openDraftsModalBtn"
                             title="Activities moved to drafts">
                     <i class="bx bx-archive"></i> Drafts
@@ -1998,59 +1990,6 @@
             <div class="modal-body" id="scheduleNoticeBody"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light btn-sm" id="scheduleNoticeReload"><i class="bx bx-refresh"></i> Check again</button>
-                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- ============================ GROWTH STAGE ============================
-     A season counts days; a grower reads what those days mean for the plant.
-     The tables are the same ones the client app carries — one catalogue,
-     shared through the codebase, not copied per screen. --}}
-<div class="modal fade" id="growthStageModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title mb-0"><i class="bx bx-leaf me-1"></i> Growth stage</h5>
-                    <small class="text-secondary" id="growthStageWhen">every lot</small>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-                    <label class="form-label mb-0 text-secondary" for="growthStageDate" style="font-size:12.5px;">Read the farm on</label>
-                    <input type="date" class="form-control form-control-sm" id="growthStageDate" style="max-width:190px;">
-                    <button type="button" class="btn btn-light btn-sm" id="growthStageToday">Today</button>
-                </div>
-                <div id="growthStageBody"></div>
-                <small class="text-secondary d-block mt-3">
-                    Common field guidance, not a prescription — the same note the farmer sees.
-                    Stages are read from each lot's crop and its own day-0, so a lot with no crop
-                    or no anchor is named rather than guessed at.
-                </small>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- ============================ WEATHER ============================
-     Per lot, because a farm is not a point: two fields an hour apart get
-     different rain. Identical addresses are resolved once. --}}
-<div class="modal fade" id="scheduleWeatherModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title mb-0"><i class="bx bx-cloud me-1"></i> Weather</h5>
-                    <small class="text-secondary">Six days over each lot's own location</small>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="scheduleWeatherBody"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light btn-sm" id="scheduleWeatherReload"><i class="bx bx-refresh"></i> Refresh</button>
                 <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
