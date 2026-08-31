@@ -20,11 +20,18 @@
     $(document).ajaxError(function (event, jqXHR, ajaxSettings, thrownError) {
         if (jqXHR.status !== 419 || ajaxSettings._csrfRetried) return;
 
+        // A background poll must never be allowed to navigate the page. The
+        // heartbeat and the screen pollers run on timers, so letting one of them
+        // reload on a transient failure means a user who is simply reading the
+        // screen gets thrown out mid-sentence with no idea why. Background
+        // requests refresh their own token and otherwise give up quietly.
+        var isBackground = !!ajaxSettings._background;
+
         $.get('/csrf-token').done(function (data) {
             if (!data || !data.token) {
                 // The session is genuinely gone (e.g. logged out elsewhere) —
                 // /csrf-token returned a login redirect, not a token.
-                window.location.reload();
+                if (!isBackground) window.location.reload();
                 return;
             }
             // Publish the fresh token everywhere the app reads it from.
@@ -42,8 +49,11 @@
             ajaxSettings.headers['X-CSRF-TOKEN'] = data.token;
             $.ajax(ajaxSettings);
         }).fail(function () {
-            // Couldn't even fetch a token — the session has ended.
-            window.location.reload();
+            // Couldn't even fetch a token. For a real user action that means the
+            // session has ended and a reload sends them to the login page; for a
+            // timer in the background it usually just means the network blipped,
+            // and reloading would throw away whatever they were doing.
+            if (!isBackground) window.location.reload();
         });
     });
 </script>
@@ -177,11 +187,33 @@ $(document).ready(function() {
 @auth
 <script>
 (function() {
+    var timer = null;
+    var consecutiveFailures = 0;
+
     function sendHeartbeat() {
-        $.post('/admin-heartbeat');
+        $.ajax({
+            url: '/admin-heartbeat',
+            type: 'POST',
+            // Flagged so the global 419 handler above never reloads the page on
+            // this request's behalf.
+            _background: true,
+            success: function () {
+                consecutiveFailures = 0;
+            },
+            error: function () {
+                // Give up after a minute of failures. A heartbeat that cannot
+                // get through will not start working by being retried every
+                // twenty seconds, and the log filled with thousands of them.
+                if (++consecutiveFailures >= 3 && timer) {
+                    clearInterval(timer);
+                    timer = null;
+                }
+            }
+        });
     }
+
     sendHeartbeat();
-    setInterval(sendHeartbeat, 20000);
+    timer = setInterval(sendHeartbeat, 20000);
 })();
 </script>
 @endauth

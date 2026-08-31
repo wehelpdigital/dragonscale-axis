@@ -20,5 +20,14 @@ class VerifyCsrfToken extends Middleware
         // `auth`, so the session still gates them; we drop the extra CSRF check
         // here so moving activities never fails with "CSRF token mismatch".
         'anisenso-schedule-manager-*',
+
+        // The 20-second admin heartbeat. It is a background timestamp write
+        // behind `auth`, so the session still gates it and there is nothing to
+        // forge - a CSRF "attack" here could only update a clock the attacker
+        // cannot read. Left in, it was by far the largest source of 419s in the
+        // log (over 1,500), and each one fired the global handler below, which
+        // reloads the page. That is what made an idle tab throw the user back
+        // to the login screen roughly every twenty seconds.
+        'admin-heartbeat',
     ];
 }
