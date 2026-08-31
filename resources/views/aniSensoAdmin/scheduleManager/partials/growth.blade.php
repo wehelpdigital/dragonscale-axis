@@ -14,6 +14,9 @@
         <label class="form-label mb-0 text-secondary" for="growthStageDate" style="font-size:12.5px;">Read the farm on</label>
         <input type="date" class="form-control form-control-sm" id="growthStageDate" style="max-width:190px;">
         <button type="button" class="btn btn-light btn-sm" id="growthStageToday">Today</button>
+        {{-- The failure message tells people to press Refresh, so there has
+             to be one. Weather next door already had its own. --}}
+        <button type="button" class="btn btn-light btn-sm" id="growthStageReload"><i class="bx bx-refresh"></i> Refresh</button>
     </div>
 </div>
 

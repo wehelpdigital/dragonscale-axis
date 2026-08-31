@@ -2856,6 +2856,7 @@ function loadGrowth(dateStr) {
 // looked at rather than when a menu item is pressed.
 $('#growthStageDate').on('change', function () { loadGrowth($(this).val()); });
 $('#growthStageToday').on('click', function () { $('#growthStageDate').val(''); loadGrowth(''); });
+$('#growthStageReload').on('click', function () { loadGrowth($('#growthStageDate').val() || ''); });
 (function () {
     let started = false;
     $('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
