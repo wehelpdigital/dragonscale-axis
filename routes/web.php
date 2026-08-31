@@ -474,6 +474,12 @@ Route::get('/anisenso-community-cofarmers',       [App\Http\Controllers\aniSenso
 Route::delete('/anisenso-community-cofarmers',    [App\Http\Controllers\aniSensoAdmin\AniSensoCoFarmerController::class, 'destroy'])->name('anisenso-community.cofarmers.delete')->middleware('auth');
 Route::delete('/anisenso-community-follows',      [App\Http\Controllers\aniSensoAdmin\AniSensoCoFarmerController::class, 'unfollow'])->name('anisenso-community.follows.delete')->middleware('auth');
 
+// A discussion room's door, its roster, and the queue at the door
+Route::post('/anisenso-community-groups-door',        [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'saveGroupDoor'])->name('anisenso-community.groups.door')->middleware('auth');
+Route::post('/anisenso-community-groups-request',     [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'decideJoinRequest'])->name('anisenso-community.groups.request')->middleware('auth');
+Route::delete('/anisenso-community-groups-member',    [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'removeGroupMember'])->name('anisenso-community.groups.member.delete')->middleware('auth');
+Route::delete('/anisenso-community-groups-message',   [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteGroupMessage'])->name('anisenso-community.groups.message.delete')->middleware('auth');
+
 Route::get('/anisenso-community-members', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'members'])->name('anisenso-community.members')->middleware('auth');
 Route::delete('/anisenso-community-wall-posts', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallPost'])->whereNumber('id')->name('anisenso-community.wall-posts.delete')->middleware('auth');
 Route::delete('/anisenso-community-wall-comments', [App\Http\Controllers\aniSensoAdmin\AniSensoCommunityController::class, 'deleteWallComment'])->whereNumber('id')->name('anisenso-community.wall-comments.delete')->middleware('auth');

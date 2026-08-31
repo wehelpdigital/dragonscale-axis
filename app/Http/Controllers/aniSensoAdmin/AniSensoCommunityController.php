@@ -149,7 +149,144 @@ class AniSensoCommunityController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('aniSensoAdmin.community.group-show', compact('group', 'posts', 'memberCount'));
+        // Who is in the room. `role` is who runs it; a removed member keeps
+        // their row with a reason on it, which is worth showing rather than
+        // hiding, because "why is she not in here any more" is a question
+        // somebody eventually asks.
+        $roster = DB::table('as_community_group_members as m')
+            ->leftJoin('anisystem_users as u', 'u.id', '=', 'm.userId')
+            ->where('m.groupId', $group->id)
+            ->orderByDesc('m.deleteStatus')->orderBy('m.role')->orderBy('u.firstName')
+            ->get([
+                'm.id', 'm.userId', 'm.role', 'm.deleteStatus', 'm.removedAt', 'm.removedReason',
+                'u.firstName', 'u.lastName', 'u.email',
+            ]);
+
+        // Standing at the door. Only a room that asks for approval has one.
+        $requests = DB::table('as_community_group_join_requests as r')
+            ->leftJoin('anisystem_users as u', 'u.id', '=', 'r.userId')
+            ->where('r.groupId', $group->id)
+            ->where('r.deleteStatus', 1)
+            ->orderByDesc('r.id')
+            ->get(['r.id', 'r.userId', 'r.status', 'r.decidedAt', 'r.created_at', 'u.firstName', 'u.lastName']);
+
+        // The room's own chat, which is not the same as its posts.
+        $chat = DB::table('as_community_group_messages as g')
+            ->leftJoin('anisystem_users as u', 'u.id', '=', 'g.userId')
+            ->where('g.groupId', $group->id)
+            ->where('g.deleteStatus', 1)
+            ->orderByDesc('g.id')
+            ->limit(60)
+            ->get(['g.id', 'g.body', 'g.imagePath', 'g.created_at', 'u.firstName', 'u.lastName'])
+            ->reverse()->values();
+
+        return view('aniSensoAdmin.community.group-show', compact(
+            'group', 'posts', 'memberCount', 'roster', 'requests', 'chat'
+        ));
+    }
+
+    /** Let somebody in, or turn them away. */
+    public function decideJoinRequest(Request $request)
+    {
+        $id = (int) $request->query('id');
+        $verdict = (string) $request->input('verdict');
+        if (! in_array($verdict, ['approved', 'declined'], true)) {
+            return response()->json(['success' => false, 'message' => 'Approve or decline.'], 422);
+        }
+
+        $row = DB::table('as_community_group_join_requests')->where('id', $id)->where('deleteStatus', 1)->first();
+        if (! $row) {
+            return response()->json(['success' => false, 'message' => 'That request is gone.'], 404);
+        }
+
+        DB::transaction(function () use ($row, $verdict) {
+            DB::table('as_community_group_join_requests')->where('id', $row->id)->update([
+                'status' => $verdict,
+                'decidedByUserId' => null,   // decided from the admin side, not by a member
+                'decidedAt' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($verdict !== 'approved') {
+                return;
+            }
+            // Approving means they are in the room. A row may already exist
+            // from an earlier stay, in which case it is revived rather than
+            // duplicated.
+            $existing = DB::table('as_community_group_members')
+                ->where('groupId', $row->groupId)->where('userId', $row->userId)->first();
+            if ($existing) {
+                DB::table('as_community_group_members')->where('id', $existing->id)->update([
+                    'deleteStatus' => 1, 'removedAt' => null, 'removedReason' => null,
+                    'removedByUserId' => null, 'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('as_community_group_members')->insert([
+                    'groupId' => $row->groupId, 'userId' => $row->userId, 'role' => 'member',
+                    'deleteStatus' => 1, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        });
+
+        return response()->json(['success' => true, 'message' => $verdict === 'approved' ? 'Let in.' : 'Turned away.']);
+    }
+
+    /** Take somebody out of a room, with the reason written down. */
+    public function removeGroupMember(Request $request)
+    {
+        $row = DB::table('as_community_group_members')
+            ->where('id', (int) $request->query('id'))->where('deleteStatus', 1)->first();
+        if (! $row) {
+            return response()->json(['success' => false, 'message' => 'They are not in that room.'], 404);
+        }
+
+        DB::table('as_community_group_members')->where('id', $row->id)->update([
+            'deleteStatus' => 0,
+            'removedAt' => now(),
+            'removedReason' => mb_substr(trim((string) $request->input('reason', '')), 0, 255) ?: 'Removed by an administrator',
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Taken out of the room.']);
+    }
+
+    /** One line of a room's chat. */
+    public function deleteGroupMessage(Request $request)
+    {
+        $hit = DB::table('as_community_group_messages')
+            ->where('id', (int) $request->query('id'))->where('deleteStatus', 1)
+            ->update(['deleteStatus' => 0, 'updated_at' => now()]);
+
+        return response()->json($hit
+            ? ['success' => true, 'message' => 'Message removed.']
+            : ['success' => false, 'message' => 'Already gone.'], $hit ? 200 : 404);
+    }
+
+    /** The door: public, a password, or somebody has to say yes. */
+    public function saveGroupDoor(Request $request)
+    {
+        $group = CommunityGroup::active()->where('id', (int) $request->query('id'))->firstOrFail();
+
+        $privacy = (string) $request->input('privacy');
+        $joinMode = (string) $request->input('joinMode');
+        if (! in_array($privacy, ['public', 'private'], true) || ! in_array($joinMode, ['open', 'password', 'approval'], true)) {
+            return response()->json(['success' => false, 'message' => 'That is not one of the doors.'], 422);
+        }
+
+        $payload = ['privacy' => $privacy, 'joinMode' => $joinMode];
+        // A password only means anything on a room that asks for one, and a
+        // blank field means "leave the one you have" rather than "erase it".
+        if ($joinMode === 'password') {
+            $pw = trim((string) $request->input('joinPassword', ''));
+            if ($pw !== '') {
+                $payload['joinPassword'] = $pw;
+            }
+        } else {
+            $payload['joinPassword'] = null;
+        }
+        $group->update($payload);
+
+        return response()->json(['success' => true, 'message' => 'The door is set.']);
     }
 
     public function deleteGroup($id)
