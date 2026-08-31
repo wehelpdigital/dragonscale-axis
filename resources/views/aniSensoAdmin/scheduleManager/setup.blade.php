@@ -891,6 +891,7 @@
                 <div class="tab-pane fade show active" id="tab-activities">
                     <ul class="nav sm-subtabs mb-3" role="tablist">
                         <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#sub-plan"><i class="bx bx-calendar-check"></i> The plan <span class="badge">{{ $schedule->activities->count() }}</span></a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-day-cash"><i class="bx bx-wallet"></i> Day cash</a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-irrigations"><i class="bx bx-water"></i> Irrigation <span class="badge" id="badge-irrigations">{{ $schedule->irrigations->count() }}</span></a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-materials"><i class="bx bx-package"></i> Materials <span class="badge" id="badge-materials">{{ $schedule->materials->count() }}</span></a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-services"><i class="bx bx-wrench"></i> Services <span class="badge" id="badge-services">{{ $schedule->services->count() }}</span></a></li>
@@ -898,6 +899,9 @@
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="sub-plan">
                             @include('aniSensoAdmin.scheduleManager.partials.activities', ['schedule' => $schedule])
+                        </div>
+                        <div class="tab-pane fade" id="sub-day-cash">
+                            @include('aniSensoAdmin.scheduleManager.partials.day-cash', ['schedule' => $schedule])
                         </div>
                         <div class="tab-pane fade" id="sub-irrigations">
                             @include('aniSensoAdmin.scheduleManager.partials.irrigations', ['schedule' => $schedule])
@@ -1450,6 +1454,7 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-doc-entries')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
+@include('aniSensoAdmin.scheduleManager.partials.script-day-cash')
 @include('aniSensoAdmin.scheduleManager.partials.script-inventory')
 @include('aniSensoAdmin.scheduleManager.partials.script-post-harvest')
 @include('aniSensoAdmin.scheduleManager.partials.script-notes')

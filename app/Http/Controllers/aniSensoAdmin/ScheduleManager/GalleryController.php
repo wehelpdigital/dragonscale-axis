@@ -54,6 +54,9 @@ class GalleryController extends BaseScheduleController
                 'isTeam' => (int) ($g->isTeam ?? 0),
                 'url' => AnisystemMedia::url((string) $g->path),
                 'name' => AnisystemMedia::basename((string) $g->path),
+                // A farmer's gallery holds clips as well as photographs, and
+                // a clip drawn as an <img> is a grey box for ever.
+                'isVideo' => AnisystemMedia::isVideo((string) $g->path),
                 'when' => (string) ($g->created_at ?? ''),
             ])->values();
 

@@ -20,6 +20,15 @@
     .gl-tile .gl-body { padding: .45rem .55rem; }
     .gl-tile .gl-cap { font-size: 12px; font-weight: 600; color: #343a40; }
     .gl-tile .gl-meta { font-size: 11px; color: #98a4b6; margin-top: .1rem; }
+    /* A clip in the grid: its first frame, with the mark that says it moves. */
+    .gl-film { position: relative; width: 100%; height: 124px; background: #0d1408; cursor: zoom-in; }
+    .gl-film video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gl-play {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        width: 2.1rem; height: 2.1rem; border-radius: 999px; display: flex;
+        align-items: center; justify-content: center; color: #fff;
+        background: rgb(0 0 0 / .45); font-size: 1.2rem;
+    }
     .gl-gone {
         width: 100%; height: 124px; display: flex; align-items: center; justify-content: center;
         background: #f6f8fb; color: #c3cbd6; font-size: 1.6rem;

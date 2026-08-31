@@ -333,6 +333,11 @@ Route::delete('/anisenso-schedule-manager-doc-entries-delete',  [App\Http\Contro
 Route::post('/anisenso-schedule-manager-doc-entries-tag-save',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'tagSave'])->name('anisenso-schedule-manager.doc-entries.tag.save')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-doc-entries-tag-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'tagDestroy'])->name('anisenso-schedule-manager.doc-entries.tag.delete')->middleware('auth');
 
+// Day cash — what a day cost and what it brought in, per board version
+Route::get('/anisenso-schedule-manager-day-cash-data',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DayCashController::class, 'data'])->name('anisenso-schedule-manager.day-cash.data')->middleware('auth');
+Route::post('/anisenso-schedule-manager-day-cash-save',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DayCashController::class, 'save'])->name('anisenso-schedule-manager.day-cash.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-day-cash-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DayCashController::class, 'destroy'])->name('anisenso-schedule-manager.day-cash.delete')->middleware('auth');
+
 // Lots
 Route::post('/anisenso-schedule-manager-lots-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'store'])->name('anisenso-schedule-manager.lots.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-lots-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'update'])->name('anisenso-schedule-manager.lots.update')->middleware('auth');

@@ -49,8 +49,16 @@ function draw() {
     const rows = visible();
     $('#glBody').html(rows.length ? `<div class="gl-tiles">${rows.map(r => `
         <div class="gl-tile">
-            ${r.url ? `<img class="js-gl-img js-gl-open" src="${esc(r.url)}" data-id="${r.id}" alt="">`
-                    : `<div class="gl-gone"><i class="bx bx-image-alt"></i></div>`}
+            ${!r.url ? `<div class="gl-gone"><i class="bx bx-image-alt"></i></div>`
+              : r.isVideo
+                // A clip's thumbnail is its first frame, which is what
+                // preload="metadata" fetches. Drawn as an <img> it could only
+                // ever be a grey box.
+                ? `<div class="gl-film js-gl-open" data-id="${r.id}">
+                       <video src="${esc(r.url)}" preload="metadata" muted playsinline></video>
+                       <span class="gl-play"><i class="bx bx-play"></i></span>
+                   </div>`
+                : `<img class="js-gl-img js-gl-open" src="${esc(r.url)}" data-id="${r.id}" alt="">`}
             <div class="gl-body">
                 <div class="gl-cap">${esc(r.caption || r.name || 'Untitled')}</div>
                 <div class="gl-meta">${esc(r.when || '')}${r.isTeam ? ' · team' : ''}</div>
@@ -87,7 +95,9 @@ $(document).on('click', '.js-gl-open', function () {
     if (!r) return;
     $('#glId').val(r.id);
     $('#glModalTitle').text(r.caption || r.name || 'Picture');
-    $('#glPreview').html(`<img src="${esc(r.url)}" style="max-height:46vh;max-width:100%;border-radius:8px" alt="">`);
+    $('#glPreview').html(r.isVideo
+        ? `<video src="${esc(r.url)}" controls playsinline style="max-height:46vh;max-width:100%;border-radius:8px"></video>`
+        : `<img src="${esc(r.url)}" style="max-height:46vh;max-width:100%;border-radius:8px" alt="">`);
     $('#glCaption').val(r.caption || '');
     $('#glDescription').val(r.description || '');
     $('#glOpen').attr('href', r.url || '#');
