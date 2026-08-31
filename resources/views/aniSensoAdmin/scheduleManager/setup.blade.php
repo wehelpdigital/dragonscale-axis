@@ -858,7 +858,13 @@
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-protocol-doc"><i class="bx bx-clipboard me-1"></i> Documentation
                     @php
                         $hasProto = optional($schedule->protocol)->protocolContent || optional($schedule->protocol)->protocolFile;
-                        $protoCount = $schedule->attachments->count()
+                        // The client's own documents count too. Without them
+                        // the badge read 0 on a season holding five, because
+                        // it only knew about the two older tables.
+                        $protoCount = \Illuminate\Support\Facades\DB::table('as_schedule_doc_entries')
+                                        ->where('croppingScheduleId', $schedule->id)
+                                        ->where('deleteStatus', 1)->count()
+                                    + $schedule->attachments->count()
                                     + $schedule->criticalRules->count()
                                     + ($hasProto ? 1 : 0);
                     @endphp
