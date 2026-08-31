@@ -70,7 +70,14 @@ class Handler extends ExceptionHandler
                 'method'     => $request->method(),
                 'ip'         => $request->ip(),
                 'has_token'  => $request->hasHeader('X-CSRF-TOKEN') || $request->filled('_token'),
+                // has_cookie reads the DECRYPTED bag, so it goes false both when
+                // the browser sent nothing and when EncryptCookies threw the
+                // cookie away because it could not decrypt it. Those are opposite
+                // problems - a scope/SameSite issue versus a stale cookie from an
+                // older APP_KEY - and telling them apart needs the raw header.
                 'has_cookie' => $request->hasCookie(config('session.cookie')),
+                'raw_cookie' => str_contains((string) $request->header('Cookie'), config('session.cookie') . '='),
+                'raw_cookie_count' => substr_count((string) $request->header('Cookie'), config('session.cookie') . '='),
                 'user_agent' => substr((string) $request->header('User-Agent'), 0, 200),
             ]);
         });
