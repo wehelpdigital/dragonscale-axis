@@ -854,6 +854,7 @@
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-settings"><i class="bx bx-cog me-1"></i> Settings</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-lots"><i class="bx bx-map-pin me-1"></i> Lots <span class="badge bg-light text-dark ms-1" id="badge-lots">{{ $schedule->lots->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-workers"><i class="bx bx-user me-1"></i> Workers <span class="badge bg-light text-dark ms-1" id="badge-workers">{{ $schedule->workers->count() }}</span></a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-inventory"><i class="bx bx-package me-1"></i> Inventory</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-protocol-doc"><i class="bx bx-clipboard me-1"></i> Documentation
                     @php
                         $hasProto = optional($schedule->protocol)->protocolContent || optional($schedule->protocol)->protocolFile;
@@ -863,7 +864,9 @@
                     @endphp
                     <span class="badge bg-light text-dark ms-1" id="badge-protocol-doc">{{ $protoCount }}</span>
                 </a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-post-harvest"><i class="bx bx-basket me-1"></i> Post-harvest</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-notes"><i class="bx bx-edit me-1"></i> Notes</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-gallery"><i class="bx bx-images me-1"></i> Gallery</a></li>
                 {{-- What is left of the season's own records that has no
                      module of its own here yet. Read live from their app. --}}
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-records"><i class="bx bx-folder-open me-1"></i> Field records</a></li>
@@ -913,15 +916,30 @@
                     @include('aniSensoAdmin.scheduleManager.partials.workers', ['schedule' => $schedule])
                 </div>
 
+                {{-- INVENTORY --}}
+                <div class="tab-pane fade" id="tab-inventory">
+                    @include('aniSensoAdmin.scheduleManager.partials.inventory', ['schedule' => $schedule])
+                </div>
+
                 {{-- DOCUMENTATION (Introduction + Attachments + Critical Rules
                      + the protocol document, which was once a tab of its own) --}}
                 <div class="tab-pane fade" id="tab-protocol-doc">
                     @include('aniSensoAdmin.scheduleManager.partials.protocol-doc', ['schedule' => $schedule])
                 </div>
 
+                {{-- POST-HARVEST --}}
+                <div class="tab-pane fade" id="tab-post-harvest">
+                    @include('aniSensoAdmin.scheduleManager.partials.post-harvest', ['schedule' => $schedule])
+                </div>
+
                 {{-- NOTES --}}
                 <div class="tab-pane fade" id="tab-notes">
                     @include('aniSensoAdmin.scheduleManager.partials.notes', ['schedule' => $schedule])
+                </div>
+
+                {{-- GALLERY --}}
+                <div class="tab-pane fade" id="tab-gallery">
+                    @include('aniSensoAdmin.scheduleManager.partials.gallery', ['schedule' => $schedule])
                 </div>
 
                 {{-- FIELD RECORDS --}}
@@ -1348,7 +1366,10 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
+@include('aniSensoAdmin.scheduleManager.partials.script-inventory')
+@include('aniSensoAdmin.scheduleManager.partials.script-post-harvest')
 @include('aniSensoAdmin.scheduleManager.partials.script-notes')
+@include('aniSensoAdmin.scheduleManager.partials.script-gallery')
 @include('aniSensoAdmin.scheduleManager.partials.script-records')
 @include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>

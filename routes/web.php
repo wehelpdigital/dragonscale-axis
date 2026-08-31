@@ -293,6 +293,21 @@ Route::post('/anisenso-schedule-manager-notes-store',    [App\Http\Controllers\a
 Route::put('/anisenso-schedule-manager-notes-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'update'])->name('anisenso-schedule-manager.notes.update')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-notes-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'destroy'])->name('anisenso-schedule-manager.notes.delete')->middleware('auth');
 
+// Gallery — the client's pictures and the albums they sorted them into
+Route::get('/anisenso-schedule-manager-gallery-data',           [App\Http\Controllers\aniSensoAdmin\ScheduleManager\GalleryController::class, 'data'])->name('anisenso-schedule-manager.gallery.data')->middleware('auth');
+Route::post('/anisenso-schedule-manager-gallery-album-save',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\GalleryController::class, 'albumSave'])->name('anisenso-schedule-manager.gallery.album.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-gallery-album-delete',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\GalleryController::class, 'albumDestroy'])->name('anisenso-schedule-manager.gallery.album.delete')->middleware('auth');
+Route::post('/anisenso-schedule-manager-gallery-image-store',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\GalleryController::class, 'imageStore'])->name('anisenso-schedule-manager.gallery.image.store')->middleware('auth');
+Route::put('/anisenso-schedule-manager-gallery-image-update',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\GalleryController::class, 'imageUpdate'])->name('anisenso-schedule-manager.gallery.image.update')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-gallery-image-delete',[App\Http\Controllers\aniSensoAdmin\ScheduleManager\GalleryController::class, 'imageDestroy'])->name('anisenso-schedule-manager.gallery.image.delete')->middleware('auth');
+
+// Inventory — what the farm holds; on hand is the sum of the movements
+Route::get('/anisenso-schedule-manager-inventory-data',           [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'data'])->name('anisenso-schedule-manager.inventory.data')->middleware('auth');
+Route::post('/anisenso-schedule-manager-inventory-item-save',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'itemSave'])->name('anisenso-schedule-manager.inventory.item.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-inventory-item-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'itemDestroy'])->name('anisenso-schedule-manager.inventory.item.delete')->middleware('auth');
+Route::post('/anisenso-schedule-manager-inventory-move',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'move'])->name('anisenso-schedule-manager.inventory.move')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-inventory-move-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'moveDestroy'])->name('anisenso-schedule-manager.inventory.move.delete')->middleware('auth');
+
 // Lots
 Route::post('/anisenso-schedule-manager-lots-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'store'])->name('anisenso-schedule-manager.lots.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-lots-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'update'])->name('anisenso-schedule-manager.lots.update')->middleware('auth');
@@ -345,6 +360,8 @@ Route::get('/anisenso-schedule-manager-growth',  [App\Http\Controllers\aniSensoA
 Route::get('/anisenso-schedule-manager-weather', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'weather'])->name('anisenso-schedule-manager.weather')->middleware('auth');
 
 Route::get('/anisenso-schedule-manager-harvest', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'harvest'])->name('anisenso-schedule-manager.harvest')->middleware('auth');
+Route::get('/anisenso-schedule-manager-harvest-one',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\PostHarvestController::class, 'show'])->name('anisenso-schedule-manager.harvest.show')->middleware('auth');
+Route::post('/anisenso-schedule-manager-harvest-save', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\PostHarvestController::class, 'save'])->name('anisenso-schedule-manager.harvest.save')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-harvest-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'harvestDestroy'])->name('anisenso-schedule-manager.harvest.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-share',   [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'share'])->name('anisenso-schedule-manager.share')->middleware('auth');
 Route::post('/anisenso-schedule-manager-share-create', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ScheduleInsightController::class, 'shareCreate'])->name('anisenso-schedule-manager.share.create')->middleware('auth');

@@ -57,19 +57,17 @@
     <div>
         <h5 class="text-dark mb-1">Field records</h5>
         <small class="text-secondary">
-            Everything this season produced outside the plan itself — photos, drawings, maps,
-            harvest records and AI threads, read live from their app. The words live in
-            <strong>Notes</strong>.
+            Everything this season produced outside the plan itself — drawings, maps and AI
+            threads, read live from their app. The words live in <strong>Notes</strong>, the
+            pictures in <strong>Gallery</strong> and the harvest in <strong>Post-harvest</strong>.
         </small>
     </div>
     <button type="button" class="btn btn-light btn-sm" id="recReload"><i class="bx bx-refresh"></i> Refresh</button>
 </div>
 
 <div class="rec-subtabs" id="recSubtabs">
-    <a class="nav-link active" data-section="photos"><i class="bx bx-image"></i> Photos <span class="badge" data-count="photos">–</span></a>
-    <a class="nav-link" data-section="drawings"><i class="bx bx-pencil"></i> Drawings <span class="badge" data-count="drawings">–</span></a>
+    <a class="nav-link active" data-section="drawings"><i class="bx bx-pencil"></i> Drawings <span class="badge" data-count="drawings">–</span></a>
     <a class="nav-link" data-section="maps"><i class="bx bx-map-alt"></i> Maps <span class="badge" data-count="maps">–</span></a>
-    <a class="nav-link" data-section="harvest"><i class="bx bx-basket"></i> Post-harvest <span class="badge" data-count="harvest">–</span></a>
     <a class="nav-link" data-section="ai"><i class="bx bx-bot"></i> AI threads <span class="badge" data-count="ai">–</span></a>
 </div>
 

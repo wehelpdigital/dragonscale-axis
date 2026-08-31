@@ -8,7 +8,7 @@ const REC_PAGE = 12;
 const MEDIA = '{{ url('/') }}';
 const SQ = '?scheduleId={{ $schedule->id }}';
 
-const state = { section: 'photos', start: 0, search: '', total: 0 };
+const state = { section: 'drawings', start: 0, search: '', total: 0 };
 
 const esc = (v) => escapeHtml(v);
 const when = (v) => esc(v || '—');
@@ -39,18 +39,6 @@ function tile(url, title, meta, extra) {
 }
 
 const SECTIONS = {
-    photos: {
-        url: (s) => `${MEDIA}/anisenso-media-gallery-data${SQ}&draw=1&start=${s.start}&length=${REC_PAGE}` +
-                    (s.search ? `&searchFilter=${encodeURIComponent(s.search)}` : ''),
-        empty: ['bx-image', 'No photos in this season’s gallery.'],
-        draw: (rows) => `<div class="rec-tiles">` + rows.map(r => tile(
-            r.url, r.caption || r.fileName || 'Untitled',
-            [r.albumTitle, r.created_at].filter(Boolean).join(' · '),
-            `<button class="btn btn-sm btn-outline-danger mt-2 w-100 js-rec-del"
-                     data-url="${MEDIA}/anisenso-media-gallery-delete?id=${r.id}"
-                     data-ask="Remove this photo from the client's gallery?"><i class="bx bx-trash"></i> Remove</button>`
-        )).join('') + `</div>`,
-    },
     drawings: {
         url: (s) => `${MEDIA}/anisenso-media-drawings-data${SQ}&draw=1&start=${s.start}&length=${REC_PAGE}` +
                     (s.search ? `&searchFilter=${encodeURIComponent(s.search)}` : ''),
@@ -77,41 +65,6 @@ const SECTIONS = {
                     <button class="btn btn-sm btn-outline-danger js-rec-del"
                             data-url="${MEDIA}/anisenso-media-maps-delete?id=${r.id}"
                             data-ask="Remove this saved map?"><i class="bx bx-trash"></i></button>
-                </div>
-            </div>
-        </div>`).join(''),
-    },
-    harvest: {
-        // Its own endpoint, and small enough to arrive whole: a season has a
-        // handful of harvest records, not a page of them.
-        url: () => `${MEDIA}/anisenso-schedule-manager-harvest${SQ}`,
-        whole: true,
-        empty: ['bx-basket', 'Nothing recorded off the field yet.'],
-        draw: (rows, extra) => (extra && extra.totalValue
-                ? `<div class="rec-card" style="background:#f6f8fb;">
-                       <div class="rec-title">Season value so far</div>
-                       <div class="rec-meta">From the records that carry both a yield and a price</div>
-                       <div class="text-dark mt-1" style="font-size:18px;font-weight:600;">${fmtPeso(extra.totalValue)}</div>
-                   </div>` : '')
-            + rows.map(r => `<div class="rec-card">
-            <div class="d-flex justify-content-between align-items-start gap-2">
-                <div class="min-w-0">
-                    <div class="rec-title">${esc(r.title)}
-                        ${r.category ? `<span class="rec-chip ms-1">${esc(r.category)}</span>` : ''}</div>
-                    <div class="rec-meta">${[r.lotName, r.when].filter(Boolean).map(esc).join(' · ') || '—'}</div>
-                    <div class="rec-words">
-                        ${r.yieldAmount !== null ? `<b>${fmtNumber(r.yieldAmount, 0)}</b> ${esc(r.yieldUnit || '')}` : ''}
-                        ${r.moisturePercent !== null ? ` · ${fmtNumber(r.moisturePercent, 1)}% moisture` : ''}
-                        ${r.pricePerUnit !== null ? ` · ${fmtPeso(r.pricePerUnit)}/${esc(r.yieldUnit || 'unit')}` : ''}
-                        ${r.value ? ` · <b>${fmtPeso(r.value)}</b>` : ''}
-                        ${r.buyer ? ` · sold to ${esc(r.buyer)}` : ''}
-                    </div>
-                    ${r.photos.length ? `<div class="rec-tiles mt-2">` + r.photos.map(u => tile(u, r.title, '')).join('') + `</div>` : ''}
-                </div>
-                <div class="text-nowrap">
-                    <button class="btn btn-sm btn-outline-danger js-rec-del"
-                            data-url="${MEDIA}/anisenso-schedule-manager-harvest-delete${SQ}&id=${r.id}"
-                            data-ask="Remove this post-harvest record?"><i class="bx bx-trash"></i></button>
                 </div>
             </div>
         </div>`).join(''),
