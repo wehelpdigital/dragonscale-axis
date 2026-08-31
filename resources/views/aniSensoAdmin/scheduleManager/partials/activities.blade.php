@@ -1297,24 +1297,27 @@
                         </div>
 
                         <div class="row g-3">
-                            {{-- Group filter (replaces the per-lot picker) --}}
+                            {{-- Lot filter. It used to be lot GROUPS, with a
+                                 line pointing at the Settings tab to define
+                                 one — and that screen went with the concept.
+                                 A group only ever resolved to its lots on the
+                                 server, and the endpoint takes lot ids
+                                 directly, so this asks the question itself. --}}
                             <div class="col-md-6">
                                 <label class="form-label text-dark mb-1" style="font-size:12px;">
-                                    <i class="bx bxs-group"></i> Groups
-                                    <small class="text-secondary fw-normal">— filter by lot group</small>
-                                    <a href="javascript:void(0);" class="text-decoration-none ms-2" id="laborSelectAllGroups" style="font-size:11px;">all</a> ·
-                                    <a href="javascript:void(0);" class="text-decoration-none" id="laborClearGroups" style="font-size:11px;">none</a>
+                                    <i class="bx bx-map-pin"></i> Lots
+                                    <small class="text-secondary fw-normal">— filter by lot</small>
+                                    <a href="javascript:void(0);" class="text-decoration-none ms-2" id="laborSelectAllLots" style="font-size:11px;">all</a> ·
+                                    <a href="javascript:void(0);" class="text-decoration-none" id="laborClearLots" style="font-size:11px;">none</a>
                                 </label>
-                                <div class="lot-chip-container" id="laborGroupsContainer" style="min-height: 60px;">
-                                    @foreach($schedule->defaultGroupings as $group)
-                                        @php $glots = $group->lots; @endphp
-                                        <span class="lot-chip" data-group-id="{{ $group->id }}" data-lot-ids="{{ $glots->pluck('id')->implode(',') }}" role="button" aria-pressed="false" title="{{ $glots->pluck('lotName')->implode(', ') ?: 'No lots' }}">
-                                            {{ $group->groupName }}
-                                            <small class="text-muted ms-1">{{ $glots->count() }} {{ \Illuminate\Support\Str::plural('lot', $glots->count()) }}</small>
+                                <div class="lot-chip-container" id="laborLotsContainer" style="min-height: 60px;">
+                                    @foreach($schedule->lots as $lot)
+                                        <span class="lot-chip" data-lot-id="{{ $lot->id }}" role="button" aria-pressed="false" title="{{ $lot->crop ?: '' }}">
+                                            {{ $lot->lotName }}
                                         </span>
                                     @endforeach
-                                    @if($schedule->defaultGroupings->count() === 0)
-                                        <small class="text-secondary">No groups defined. Add groups in the Settings tab to enable group-based filtering.</small>
+                                    @if($schedule->lots->count() === 0)
+                                        <small class="text-secondary">No lots yet. Add them in the <strong>Lots</strong> tab.</small>
                                     @endif
                                 </div>
                             </div>

@@ -3453,8 +3453,8 @@ function renderLaborSummary(d) {
 let LATEST_LABOR_DATA = null;
 
 function getLaborFilterPayload() {
-    const groupIds = $('#laborGroupsContainer .lot-chip.active')
-        .map((_, e) => parseInt($(e).data('group-id'), 10)).get();
+    const lotIds = $('#laborLotsContainer .lot-chip.active')
+        .map((_, e) => parseInt($(e).data('lot-id'), 10)).get();
     const workerIds = $('#laborWorkersContainer .lot-chip.active')
         .map((_, e) => parseInt($(e).data('worker-id'), 10)).get();
     const dasMinRaw = ($('#laborDasMin').val() || '').trim();
@@ -3462,7 +3462,7 @@ function getLaborFilterPayload() {
     const startDateRaw = ($('#laborStartDate').val() || '').trim();
     const endDateRaw   = ($('#laborEndDate').val()   || '').trim();
     const payload = {};
-    if (groupIds.length) payload.groupIds = groupIds;
+    if (lotIds.length) payload.lotIds = lotIds;
     if (workerIds.length) payload.workerIds = workerIds;
     if (dasMinRaw !== '' && !isNaN(parseInt(dasMinRaw, 10))) payload.dasMin = parseInt(dasMinRaw, 10);
     if (dasMaxRaw !== '' && !isNaN(parseInt(dasMaxRaw, 10))) payload.dasMax = parseInt(dasMaxRaw, 10);
@@ -3583,7 +3583,7 @@ $(document).on('click', '#presentGenerateBtn', function () {
 $(document).on('click', '#openLaborSummaryBtn', function () {
     // Reset filters every open so the user always sees the unfiltered grand
     // total first; they can then narrow down from there.
-    $('#laborGroupsContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
+    $('#laborLotsContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     $('#laborWorkersContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     $('#laborDasMin').val('');
     $('#laborDasMax').val('');
@@ -3594,7 +3594,7 @@ $(document).on('click', '#openLaborSummaryBtn', function () {
 });
 
 // ---- Filter chip handlers ----
-$(document).on('click', '#laborGroupsContainer .lot-chip', function () {
+$(document).on('click', '#laborLotsContainer .lot-chip', function () {
     const $c = $(this);
     $c.toggleClass('active');
     $c.attr('aria-pressed', $c.hasClass('active') ? 'true' : 'false');
@@ -3606,12 +3606,12 @@ $(document).on('click', '#laborWorkersContainer .lot-chip', function () {
     $c.attr('aria-pressed', $c.hasClass('active') ? 'true' : 'false');
     updateLaborFilterHint();
 });
-$(document).on('click', '#laborSelectAllGroups', function () {
-    $('#laborGroupsContainer .lot-chip').addClass('active').attr('aria-pressed', 'true');
+$(document).on('click', '#laborSelectAllLots', function () {
+    $('#laborLotsContainer .lot-chip').addClass('active').attr('aria-pressed', 'true');
     updateLaborFilterHint();
 });
-$(document).on('click', '#laborClearGroups', function () {
-    $('#laborGroupsContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
+$(document).on('click', '#laborClearLots', function () {
+    $('#laborLotsContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     updateLaborFilterHint();
 });
 $(document).on('click', '#laborSelectAllWorkers', function () {
@@ -3640,7 +3640,7 @@ $(document).on('click', '#laborApplyFiltersBtn', function () {
     reloadLaborSummary();
 });
 $(document).on('click', '#laborResetFiltersBtn', function () {
-    $('#laborGroupsContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
+    $('#laborLotsContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     $('#laborWorkersContainer .lot-chip').removeClass('active').attr('aria-pressed', 'false');
     $('#laborDasMin').val('');
     $('#laborDasMax').val('');

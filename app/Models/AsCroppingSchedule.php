@@ -13,6 +13,12 @@ class AsCroppingSchedule extends BaseModel
         'description',
         'dayType',
         'defaultStaggerDays',
+        // Who hears about this season each morning. Written by the client's
+        // own Settings module and, since the Settings tab mirrors it, by
+        // this side too.
+        'notifyWorkersDaily',
+        'notifyOwnerDaily',
+        'notifyHour',
         'status',
         'isActive',
         'deleteStatus',
@@ -20,6 +26,9 @@ class AsCroppingSchedule extends BaseModel
 
     protected $casts = [
         'defaultStaggerDays' => 'integer',
+        'notifyWorkersDaily' => 'boolean',
+        'notifyOwnerDaily' => 'boolean',
+        'notifyHour' => 'integer',
         'anisystemUserId' => 'integer',
         'isActive' => 'boolean',
         'deleteStatus' => 'integer',

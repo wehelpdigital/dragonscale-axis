@@ -107,8 +107,13 @@ class CroppingScheduleController extends Controller
         $validator = Validator::make($request->all(), [
             'title'              => 'required|string|max:255',
             'description'        => 'nullable|string|max:5000',
-            'dayType'            => 'nullable|in:DAP,DAS,DAT',
+            // TREE is the fourth answer: an orchard keeps no day count at
+            // all and is read by the tree's age instead.
+            'dayType'            => 'nullable|in:DAP,DAS,DAT,TREE',
             'defaultStaggerDays' => 'nullable|integer|min:0',
+            'notifyWorkersDaily' => 'nullable|boolean',
+            'notifyOwnerDaily'   => 'nullable|boolean',
+            'notifyHour'         => 'nullable|integer|min:0|max:23',
         ]);
 
         if ($validator->fails()) {
@@ -124,6 +129,18 @@ class CroppingScheduleController extends Controller
         }
         if ($request->has('defaultStaggerDays')) {
             $payload['defaultStaggerDays'] = (int) $request->input('defaultStaggerDays', 0);
+        }
+        // The morning email. Sent as a group by the Notifications card, and
+        // absent from the Basic Info save, so each key is answered for only
+        // when it was actually asked about.
+        if ($request->has('notifyWorkersDaily')) {
+            $payload['notifyWorkersDaily'] = (int) $request->boolean('notifyWorkersDaily');
+        }
+        if ($request->has('notifyOwnerDaily')) {
+            $payload['notifyOwnerDaily'] = (int) $request->boolean('notifyOwnerDaily');
+        }
+        if ($request->filled('notifyHour')) {
+            $payload['notifyHour'] = (int) $request->input('notifyHour');
         }
 
         $schedule->update($payload);
