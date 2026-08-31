@@ -41,8 +41,24 @@
     .sm-quill-wrap.is-html-mode > .sm-quill-html-source { display: block !important; }
 </style>
 <style>
-    .sm-tabs .nav-link { color: #495057; font-weight: 500; }
+    /* Fourteen modules do not fit on one line of a laptop, and a tab that
+       falls off the right edge is a tab nobody finds. */
+    .sm-tabs { flex-wrap: wrap; row-gap: .15rem; }
+    .sm-tabs .nav-link { color: #495057; font-weight: 500; white-space: nowrap; }
     .sm-tabs .nav-link.active { color: #556ee6; border-bottom: 2px solid #556ee6; background: transparent; }
+
+    /* The drawers inside a module: pills, so they never read as another
+       shelf of their own. */
+    .sm-subtabs { display: flex; flex-wrap: wrap; gap: .4rem; border-bottom: 0; }
+    .sm-subtabs .nav-link {
+        border: 1px solid #e6e8ec; border-radius: 999px; padding: .35rem .9rem;
+        font-size: 12.5px; font-weight: 500; color: #495057; background: #fff;
+        display: flex; align-items: center; gap: .4rem;
+    }
+    .sm-subtabs .nav-link:hover { background: #eef2ff; color: #2c3e8c; }
+    .sm-subtabs .nav-link.active { background: #556ee6; border-color: #556ee6; color: #fff; }
+    .sm-subtabs .nav-link .badge { font-size: 10.5px; font-weight: 600; background: #eef1f6; color: #495057; }
+    .sm-subtabs .nav-link.active .badge { background: rgba(255,255,255,.85); color: #2c3e8c; }
     .sm-pill { border-radius: 50px; padding: 4px 12px; font-size: 11px; font-weight: 500; }
     .priority-critical { background:#9c1c1c; color:#fff; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
     .priority-high { background:#f46a6a; color:#fff; }
@@ -831,13 +847,13 @@
     {{-- Tabs --}}
     <div class="card">
         <div class="card-body">
+            {{-- The shelf is the client's module shelf, in their order. What
+                 is not a module over there is not a tab over here. --}}
             <ul class="nav nav-tabs sm-tabs mb-3" role="tablist">
-                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-settings"><i class="bx bx-cog me-1"></i> Settings</a></li>
+                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-activities"><i class="bx bx-task me-1"></i> Activities <span class="badge bg-light text-dark ms-1" id="badge-activities">{{ $schedule->activities->count() }}</span></a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-settings"><i class="bx bx-cog me-1"></i> Settings</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-lots"><i class="bx bx-map-pin me-1"></i> Lots <span class="badge bg-light text-dark ms-1" id="badge-lots">{{ $schedule->lots->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-workers"><i class="bx bx-user me-1"></i> Workers <span class="badge bg-light text-dark ms-1" id="badge-workers">{{ $schedule->workers->count() }}</span></a></li>
-                {{-- The standalone "Protocol" tab moved into the Documentation tab as a subtab (Protocol Document). --}}
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-materials"><i class="bx bx-package me-1"></i> Materials <span class="badge bg-light text-dark ms-1" id="badge-materials">{{ $schedule->materials->count() }}</span></a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-services"><i class="bx bx-wrench me-1"></i> Services <span class="badge bg-light text-dark ms-1" id="badge-services">{{ $schedule->services->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-protocol-doc"><i class="bx bx-clipboard me-1"></i> Documentation
                     @php
                         $hasProto = optional($schedule->protocol)->protocolContent || optional($schedule->protocol)->protocolFile;
@@ -847,8 +863,6 @@
                     @endphp
                     <span class="badge bg-light text-dark ms-1" id="badge-protocol-doc">{{ $protoCount }}</span>
                 </a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-activities"><i class="bx bx-task me-1"></i> Activities <span class="badge bg-light text-dark ms-1" id="badge-activities">{{ $schedule->activities->count() }}</span></a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-irrigations"><i class="bx bx-water me-1"></i> Irrigation <span class="badge bg-light text-dark ms-1" id="badge-irrigations">{{ $schedule->irrigations->count() }}</span></a></li>
                 {{-- What the season produced away from the plan: the client's
                      notes, photos, drawings, maps, harvest records and AI
                      threads. Read live from their app, never copied. --}}
@@ -856,8 +870,36 @@
             </ul>
 
             <div class="tab-content">
+                {{-- ACTIVITIES — the plan itself, and the three catalogues it
+                     draws from. They were tabs of their own; in the client's
+                     app irrigation is a mode of the add-activity sheet and
+                     materials and services are picked while writing one, so
+                     none of the three is a place you go. --}}
+                <div class="tab-pane fade show active" id="tab-activities">
+                    <ul class="nav sm-subtabs mb-3" role="tablist">
+                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#sub-plan"><i class="bx bx-calendar-check"></i> The plan <span class="badge">{{ $schedule->activities->count() }}</span></a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-irrigations"><i class="bx bx-water"></i> Irrigation <span class="badge" id="badge-irrigations">{{ $schedule->irrigations->count() }}</span></a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-materials"><i class="bx bx-package"></i> Materials <span class="badge" id="badge-materials">{{ $schedule->materials->count() }}</span></a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#sub-services"><i class="bx bx-wrench"></i> Services <span class="badge" id="badge-services">{{ $schedule->services->count() }}</span></a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="sub-plan">
+                            @include('aniSensoAdmin.scheduleManager.partials.activities', ['schedule' => $schedule])
+                        </div>
+                        <div class="tab-pane fade" id="sub-irrigations">
+                            @include('aniSensoAdmin.scheduleManager.partials.irrigations', ['schedule' => $schedule])
+                        </div>
+                        <div class="tab-pane fade" id="sub-materials">
+                            @include('aniSensoAdmin.scheduleManager.partials.materials', ['schedule' => $schedule])
+                        </div>
+                        <div class="tab-pane fade" id="sub-services">
+                            @include('aniSensoAdmin.scheduleManager.partials.services', ['schedule' => $schedule])
+                        </div>
+                    </div>
+                </div>
+
                 {{-- SETTINGS --}}
-                <div class="tab-pane fade show active" id="tab-settings">
+                <div class="tab-pane fade" id="tab-settings">
                     @include('aniSensoAdmin.scheduleManager.partials.settings', ['schedule' => $schedule])
                 </div>
 
@@ -871,39 +913,15 @@
                     @include('aniSensoAdmin.scheduleManager.partials.workers', ['schedule' => $schedule])
                 </div>
 
-                {{-- PROTOCOL --}}
-                {{-- The standalone "Protocol" tab-pane was removed and the
-                     partial is now @include'd as a subtab inside the
-                     Documentation tab. --}}
-
-                {{-- MATERIALS --}}
-                <div class="tab-pane fade" id="tab-materials">
-                    @include('aniSensoAdmin.scheduleManager.partials.materials', ['schedule' => $schedule])
-                </div>
-
-                {{-- SERVICES --}}
-                <div class="tab-pane fade" id="tab-services">
-                    @include('aniSensoAdmin.scheduleManager.partials.services', ['schedule' => $schedule])
-                </div>
-
-                {{-- PROTOCOL / DOCUMENTATION (Introduction + Attachments + Critical Rules) --}}
+                {{-- DOCUMENTATION (Introduction + Attachments + Critical Rules
+                     + the protocol document, which was once a tab of its own) --}}
                 <div class="tab-pane fade" id="tab-protocol-doc">
                     @include('aniSensoAdmin.scheduleManager.partials.protocol-doc', ['schedule' => $schedule])
-                </div>
-
-                {{-- ACTIVITIES --}}
-                <div class="tab-pane fade" id="tab-activities">
-                    @include('aniSensoAdmin.scheduleManager.partials.activities', ['schedule' => $schedule])
                 </div>
 
                 {{-- FIELD RECORDS --}}
                 <div class="tab-pane fade" id="tab-records">
                     @include('aniSensoAdmin.scheduleManager.partials.records', ['schedule' => $schedule])
-                </div>
-
-                {{-- IRRIGATIONS --}}
-                <div class="tab-pane fade" id="tab-irrigations">
-                    @include('aniSensoAdmin.scheduleManager.partials.irrigations', ['schedule' => $schedule])
                 </div>
             </div>
         </div>
@@ -1061,14 +1079,21 @@ function fmtNumber(n, d=2) { const v = Number(n ?? 0); return isNaN(v) ? '0' : v
 function fmtPeso(n) { return '₱ ' + Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 // --- Tab persistence (works even if some saves still reload) ---
-$('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+// Both shelves, because a save that reloads inside Materials should come
+// back to Materials and not to the top of Activities.
+$('.sm-tabs a[data-bs-toggle="tab"], .sm-subtabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
     history.replaceState(null, null, e.target.getAttribute('href'));
 });
 $(function () {
-    if (location.hash) {
-        const $tab = $('.sm-tabs a[data-bs-toggle="tab"][href="' + location.hash + '"]');
-        if ($tab.length) $tab.tab('show');
-    }
+    if (!location.hash) return;
+    const $tab = $('.sm-tabs a[data-bs-toggle="tab"][href="' + location.hash + '"]');
+    if ($tab.length) { $tab.tab('show'); return; }
+    // A drawer: open the module that holds it first, then the drawer.
+    const $sub = $('.sm-subtabs a[data-bs-toggle="tab"][href="' + location.hash + '"]');
+    if (!$sub.length) return;
+    const $outer = $sub.closest('.tab-pane');
+    if ($outer.length) $('.sm-tabs a[href="#' + $outer.attr('id') + '"]').tab('show');
+    $sub.tab('show');
 });
 
 function bumpBadge(id, delta = 1) {
