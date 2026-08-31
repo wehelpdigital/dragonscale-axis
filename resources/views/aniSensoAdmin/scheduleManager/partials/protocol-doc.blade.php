@@ -13,9 +13,10 @@
     <div>
         <h5 class="text-dark mb-1">Protocol &amp; Documentation</h5>
         <small class="text-secondary">
-            The full protocol document, the per-version introduction, reference attachments, and
-            critical rules. All four render at the top of the
-            <strong>Worker Presentation</strong> and the <strong>Export Schedule</strong>.
+            The documents the client's app holds, plus this app's own protocol document, the
+            per-version introduction, reference attachments and critical rules — those four
+            render at the top of the <strong>Worker Presentation</strong> and the
+            <strong>Export Schedule</strong>.
         </small>
     </div>
 </div>
@@ -28,8 +29,17 @@
                     || optional($schedule->protocol)->protocolFile;
 @endphp
 <ul class="nav nav-pills doc-subtabs mb-3" role="tablist">
+    {{-- First, because it is what the client's Documentation module actually
+         holds. The three beside it are older tables that nothing writes any
+         more, kept because the Worker Presentation and the Export Schedule —
+         this app's own screens — render from them. --}}
     <li class="nav-item">
-        <a class="nav-link active" data-bs-toggle="tab" href="#sub-protocol-pdf" role="tab">
+        <a class="nav-link active" data-bs-toggle="tab" href="#sub-doc-entries" role="tab">
+            <i class="bx bx-file-blank"></i> Documents
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#sub-protocol-pdf" role="tab">
             <i class="bx bx-file"></i> Protocol Document
             @if($hasProtocolDoc)<span class="doc-subtab-dot" title="Saved"></span>@endif
         </a>
@@ -56,12 +66,16 @@
 
 <div class="tab-content doc-subtab-content">
 
+    <div class="tab-pane fade show active" id="sub-doc-entries" role="tabpanel">
+        @include('aniSensoAdmin.scheduleManager.partials.doc-entries', ['schedule' => $schedule])
+    </div>
+
 {{-- ============================================================
      Subtab 1. Protocol Document (formerly the standalone Protocol tab —
      PDF/DOC upload + plain-text protocol content. Moved in here as a
      subtab so all protocol-related setup lives under one umbrella.)
 ============================================================ --}}
-<div class="tab-pane fade show active" id="sub-protocol-pdf" role="tabpanel">
+<div class="tab-pane fade" id="sub-protocol-pdf" role="tabpanel">
     <div class="card mb-0 protocol-section">
         <div class="card-body">
             @include('aniSensoAdmin.scheduleManager.partials.protocol', ['schedule' => $schedule])

@@ -325,6 +325,14 @@ Route::delete('/anisenso-schedule-manager-records-ai-delete',      [App\Http\Con
 Route::get('/anisenso-schedule-manager-saved-reports-data',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\SavedReportController::class, 'data'])->name('anisenso-schedule-manager.saved-reports.data')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-saved-reports-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\SavedReportController::class, 'destroy'])->name('anisenso-schedule-manager.saved-reports.delete')->middleware('auth');
 
+// Documentation entries — the typed, tagged documents the client's
+// Documentation module actually holds
+Route::get('/anisenso-schedule-manager-doc-entries-data',       [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'data'])->name('anisenso-schedule-manager.doc-entries.data')->middleware('auth');
+Route::post('/anisenso-schedule-manager-doc-entries-save',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'save'])->name('anisenso-schedule-manager.doc-entries.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-doc-entries-delete',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'destroy'])->name('anisenso-schedule-manager.doc-entries.delete')->middleware('auth');
+Route::post('/anisenso-schedule-manager-doc-entries-tag-save',  [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'tagSave'])->name('anisenso-schedule-manager.doc-entries.tag.save')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-doc-entries-tag-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DocEntryController::class, 'tagDestroy'])->name('anisenso-schedule-manager.doc-entries.tag.delete')->middleware('auth');
+
 // Lots
 Route::post('/anisenso-schedule-manager-lots-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'store'])->name('anisenso-schedule-manager.lots.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-lots-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'update'])->name('anisenso-schedule-manager.lots.update')->middleware('auth');

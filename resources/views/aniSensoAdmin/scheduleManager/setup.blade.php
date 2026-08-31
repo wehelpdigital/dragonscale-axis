@@ -1398,6 +1398,7 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-materials')
 @include('aniSensoAdmin.scheduleManager.partials.script-services')
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
+@include('aniSensoAdmin.scheduleManager.partials.script-doc-entries')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
 @include('aniSensoAdmin.scheduleManager.partials.script-inventory')
