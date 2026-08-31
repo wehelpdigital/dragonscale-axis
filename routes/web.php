@@ -286,6 +286,13 @@ Route::delete('/anisenso-schedule-manager-delete',[App\Http\Controllers\aniSenso
 Route::get('/anisenso-schedule-manager-sync-status', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\SyncController::class, 'status'])->name('anisenso-schedule-manager.sync-status')->middleware('auth');
 
 
+// Notes — the client's Notes module, over its three shelves
+Route::get('/anisenso-schedule-manager-notes-data',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'data'])->name('anisenso-schedule-manager.notes.data')->middleware('auth');
+Route::get('/anisenso-schedule-manager-notes-one',       [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'show'])->name('anisenso-schedule-manager.notes.show')->middleware('auth');
+Route::post('/anisenso-schedule-manager-notes-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'store'])->name('anisenso-schedule-manager.notes.store')->middleware('auth');
+Route::put('/anisenso-schedule-manager-notes-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'update'])->name('anisenso-schedule-manager.notes.update')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-notes-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\NoteController::class, 'destroy'])->name('anisenso-schedule-manager.notes.delete')->middleware('auth');
+
 // Lots
 Route::post('/anisenso-schedule-manager-lots-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'store'])->name('anisenso-schedule-manager.lots.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-lots-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'update'])->name('anisenso-schedule-manager.lots.update')->middleware('auth');

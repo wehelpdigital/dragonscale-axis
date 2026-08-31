@@ -57,16 +57,16 @@
     <div>
         <h5 class="text-dark mb-1">Field records</h5>
         <small class="text-secondary">
-            Everything this season produced outside the plan itself — the client's own notes,
-            photos, drawings, maps, harvest records and AI threads, read live from their app.
+            Everything this season produced outside the plan itself — photos, drawings, maps,
+            harvest records and AI threads, read live from their app. The words live in
+            <strong>Notes</strong>.
         </small>
     </div>
     <button type="button" class="btn btn-light btn-sm" id="recReload"><i class="bx bx-refresh"></i> Refresh</button>
 </div>
 
 <div class="rec-subtabs" id="recSubtabs">
-    <a class="nav-link active" data-section="notes"><i class="bx bx-note"></i> Notes <span class="badge" data-count="notes">–</span></a>
-    <a class="nav-link" data-section="photos"><i class="bx bx-image"></i> Photos <span class="badge" data-count="photos">–</span></a>
+    <a class="nav-link active" data-section="photos"><i class="bx bx-image"></i> Photos <span class="badge" data-count="photos">–</span></a>
     <a class="nav-link" data-section="drawings"><i class="bx bx-pencil"></i> Drawings <span class="badge" data-count="drawings">–</span></a>
     <a class="nav-link" data-section="maps"><i class="bx bx-map-alt"></i> Maps <span class="badge" data-count="maps">–</span></a>
     <a class="nav-link" data-section="harvest"><i class="bx bx-basket"></i> Post-harvest <span class="badge" data-count="harvest">–</span></a>
@@ -87,23 +87,6 @@
     <div class="btn-group btn-group-sm">
         <button type="button" class="btn btn-outline-secondary" id="recPrev"><i class="bx bx-chevron-left"></i> Newer</button>
         <button type="button" class="btn btn-outline-secondary" id="recNext">Older <i class="bx bx-chevron-right"></i></button>
-    </div>
-</div>
-
-{{-- One note, its words and everything attached to it. --}}
-<div class="modal fade" id="recNoteModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h5 class="modal-title mb-0" id="recNoteTitle">Note</h5>
-                    <small class="text-secondary" id="recNoteSub"></small>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="recNoteBody"></div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
-        </div>
     </div>
 </div>
 

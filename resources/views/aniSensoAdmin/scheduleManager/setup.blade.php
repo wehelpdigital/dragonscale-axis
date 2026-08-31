@@ -863,9 +863,9 @@
                     @endphp
                     <span class="badge bg-light text-dark ms-1" id="badge-protocol-doc">{{ $protoCount }}</span>
                 </a></li>
-                {{-- What the season produced away from the plan: the client's
-                     notes, photos, drawings, maps, harvest records and AI
-                     threads. Read live from their app, never copied. --}}
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-notes"><i class="bx bx-edit me-1"></i> Notes</a></li>
+                {{-- What is left of the season's own records that has no
+                     module of its own here yet. Read live from their app. --}}
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-records"><i class="bx bx-folder-open me-1"></i> Field records</a></li>
             </ul>
 
@@ -917,6 +917,11 @@
                      + the protocol document, which was once a tab of its own) --}}
                 <div class="tab-pane fade" id="tab-protocol-doc">
                     @include('aniSensoAdmin.scheduleManager.partials.protocol-doc', ['schedule' => $schedule])
+                </div>
+
+                {{-- NOTES --}}
+                <div class="tab-pane fade" id="tab-notes">
+                    @include('aniSensoAdmin.scheduleManager.partials.notes', ['schedule' => $schedule])
                 </div>
 
                 {{-- FIELD RECORDS --}}
@@ -1343,6 +1348,7 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-irrigations')
+@include('aniSensoAdmin.scheduleManager.partials.script-notes')
 @include('aniSensoAdmin.scheduleManager.partials.script-records')
 @include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>

@@ -8,7 +8,7 @@ const REC_PAGE = 12;
 const MEDIA = '{{ url('/') }}';
 const SQ = '?scheduleId={{ $schedule->id }}';
 
-const state = { section: 'notes', start: 0, search: '', total: 0 };
+const state = { section: 'photos', start: 0, search: '', total: 0 };
 
 const esc = (v) => escapeHtml(v);
 const when = (v) => esc(v || '—');
@@ -39,27 +39,6 @@ function tile(url, title, meta, extra) {
 }
 
 const SECTIONS = {
-    notes: {
-        url: (s) => `${MEDIA}/anisenso-media-notes-data${SQ}&draw=1&start=${s.start}&length=${REC_PAGE}` +
-                    (s.search ? `&searchFilter=${encodeURIComponent(s.search)}` : ''),
-        empty: ['bx-note', 'Nothing written on this season yet.'],
-        draw: (rows) => rows.map(r => `<div class="rec-card">
-            <div class="d-flex justify-content-between align-items-start gap-2">
-                <div class="min-w-0">
-                    <div class="rec-title">${esc(r.title)}</div>
-                    <div class="rec-meta">${esc({note: 'The notebook', inline: 'Board sticky', date: "A day's note"}[r.shelf] || r.shelf)}
-                        · ${when(r.when)}${r.attachments ? ' · ' + r.attachments + ' attached' : ''}</div>
-                    ${r.words ? `<div class="rec-words">${esc(r.words)}</div>` : ''}
-                </div>
-                <div class="text-nowrap">
-                    <button class="btn btn-sm btn-outline-primary js-rec-note" data-shelf="${esc(r.shelf)}" data-id="${r.id}">Read</button>
-                    <button class="btn btn-sm btn-outline-danger js-rec-del"
-                            data-url="${MEDIA}/anisenso-media-notes-delete?shelf=${esc(r.shelf)}&id=${r.id}"
-                            data-ask="Remove this note from the client's app?"><i class="bx bx-trash"></i></button>
-                </div>
-            </div>
-        </div>`).join(''),
-    },
     photos: {
         url: (s) => `${MEDIA}/anisenso-media-gallery-data${SQ}&draw=1&start=${s.start}&length=${REC_PAGE}` +
                     (s.search ? `&searchFilter=${encodeURIComponent(s.search)}` : ''),
@@ -240,29 +219,6 @@ $(document).on('click', '.js-rec-open', function () {
     $('#recViewer').modal('show');
 });
 
-$(document).on('click', '.js-rec-note', function () {
-    const b = $(this);
-    $('#recNoteBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i></div>');
-    $('#recNoteModal').modal('show');
-    $.get(`${MEDIA}/anisenso-media-notes-one?shelf=${b.data('shelf')}&id=${b.data('id')}`, function (res) {
-        if (!res.success) { $('#recNoteBody').html(`<p class="text-secondary mb-0">${esc(res.message)}</p>`); return; }
-        const d = res.data;
-        $('#recNoteTitle').text(d.title);
-        $('#recNoteSub').text([d.clientName || d.clientEmail, d.when].filter(Boolean).join(' · '));
-        let html = d.body ? `<div class="text-dark" style="white-space:pre-wrap">${esc(d.body)}</div>`
-                          : '<p class="text-secondary">No words in this note.</p>';
-        if (d.media && d.media.length) {
-            html += '<h6 class="text-dark mt-3 mb-2">Attached</h6><div class="rec-tiles">';
-            html += d.media.map(m => m.url
-                ? (m.type === 'video'
-                    ? `<a class="rec-chip" href="${esc(m.url)}" target="_blank">&#9654; ${esc(m.name || 'Video')}</a>`
-                    : tile(m.url, m.name || '', ''))
-                : `<span class="rec-chip">${esc(m.name || m.type)}</span>`).join('');
-            html += '</div>';
-        }
-        $('#recNoteBody').html(html);
-    }).fail(() => $('#recNoteBody').html('<p class="text-secondary mb-0">Could not read that note.</p>'));
-});
 
 $(document).on('click', '.js-rec-thread', function () {
     const b = $(this);
