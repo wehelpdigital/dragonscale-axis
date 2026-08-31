@@ -308,6 +308,18 @@ Route::delete('/anisenso-schedule-manager-inventory-item-delete', [App\Http\Cont
 Route::post('/anisenso-schedule-manager-inventory-move',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'move'])->name('anisenso-schedule-manager.inventory.move')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-inventory-move-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::class, 'moveDestroy'])->name('anisenso-schedule-manager.inventory.move.delete')->middleware('auth');
 
+// The season's own records: the maps drawn on it, the drawings made on it,
+// and the threads asked about it
+Route::get('/anisenso-schedule-manager-records-maps',              [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'maps'])->name('anisenso-schedule-manager.records.maps')->middleware('auth');
+Route::put('/anisenso-schedule-manager-records-map-rename',        [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapRename'])->name('anisenso-schedule-manager.records.map.rename')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-records-map-delete',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapDestroy'])->name('anisenso-schedule-manager.records.map.delete')->middleware('auth');
+Route::get('/anisenso-schedule-manager-records-drawings',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'drawings'])->name('anisenso-schedule-manager.records.drawings')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-records-drawing-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'drawingDestroy'])->name('anisenso-schedule-manager.records.drawing.delete')->middleware('auth');
+Route::get('/anisenso-schedule-manager-records-ai',                [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'ai'])->name('anisenso-schedule-manager.records.ai')->middleware('auth');
+Route::get('/anisenso-schedule-manager-records-ai-one',            [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiShow'])->name('anisenso-schedule-manager.records.ai.show')->middleware('auth');
+Route::put('/anisenso-schedule-manager-records-ai-rename',         [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiRename'])->name('anisenso-schedule-manager.records.ai.rename')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-records-ai-delete',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiDestroy'])->name('anisenso-schedule-manager.records.ai.delete')->middleware('auth');
+
 // Lots
 Route::post('/anisenso-schedule-manager-lots-store',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'store'])->name('anisenso-schedule-manager.lots.store')->middleware('auth');
 Route::put('/anisenso-schedule-manager-lots-update',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\LotController::class, 'update'])->name('anisenso-schedule-manager.lots.update')->middleware('auth');

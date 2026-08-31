@@ -867,9 +867,9 @@
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-post-harvest"><i class="bx bx-basket me-1"></i> Post-harvest</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-notes"><i class="bx bx-edit me-1"></i> Notes</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-gallery"><i class="bx bx-images me-1"></i> Gallery</a></li>
-                {{-- What is left of the season's own records that has no
-                     module of its own here yet. Read live from their app. --}}
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-records"><i class="bx bx-folder-open me-1"></i> Field records</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-maps"><i class="bx bx-map-alt me-1"></i> Maps</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-draw"><i class="bx bx-pencil me-1"></i> Draw</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-chat-technician"><i class="bx bx-bot me-1"></i> Chat Technician</a></li>
             </ul>
 
             <div class="tab-content">
@@ -942,9 +942,19 @@
                     @include('aniSensoAdmin.scheduleManager.partials.gallery', ['schedule' => $schedule])
                 </div>
 
-                {{-- FIELD RECORDS --}}
-                <div class="tab-pane fade" id="tab-records">
-                    @include('aniSensoAdmin.scheduleManager.partials.records', ['schedule' => $schedule])
+                {{-- MAPS --}}
+                <div class="tab-pane fade" id="tab-maps">
+                    @include('aniSensoAdmin.scheduleManager.partials.maps', ['schedule' => $schedule])
+                </div>
+
+                {{-- DRAW --}}
+                <div class="tab-pane fade" id="tab-draw">
+                    @include('aniSensoAdmin.scheduleManager.partials.draw', ['schedule' => $schedule])
+                </div>
+
+                {{-- CHAT TECHNICIAN --}}
+                <div class="tab-pane fade" id="tab-chat-technician">
+                    @include('aniSensoAdmin.scheduleManager.partials.chat-technician', ['schedule' => $schedule])
                 </div>
             </div>
         </div>
@@ -1370,7 +1380,7 @@ $(document).on('click', '#generateScheduleBtn.disabled', function (e) {
 @include('aniSensoAdmin.scheduleManager.partials.script-post-harvest')
 @include('aniSensoAdmin.scheduleManager.partials.script-notes')
 @include('aniSensoAdmin.scheduleManager.partials.script-gallery')
-@include('aniSensoAdmin.scheduleManager.partials.script-records')
+@include('aniSensoAdmin.scheduleManager.partials.script-client-records')
 @include('aniSensoAdmin.scheduleManager.partials.script-sync')
 </script>
 
