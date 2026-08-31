@@ -41,11 +41,22 @@
     .sm-quill-wrap.is-html-mode > .sm-quill-html-source { display: block !important; }
 </style>
 <style>
-    /* Fourteen modules do not fit on one line of a laptop, and a tab that
-       falls off the right edge is a tab nobody finds. */
-    .sm-tabs { flex-wrap: wrap; row-gap: .15rem; }
-    .sm-tabs .nav-link { color: #495057; font-weight: 500; white-space: nowrap; }
-    .sm-tabs .nav-link.active { color: #556ee6; border-bottom: 2px solid #556ee6; background: transparent; }
+    /* The client's hub is a shelf of tags you tap, not a filing cabinet.
+       Sixteen of them in two rows of tab stubs read as a cabinet; the same
+       sixteen as tags read as a shelf, which is what they are. */
+    .sm-tabs { display: flex; flex-wrap: wrap; gap: .4rem; border-bottom: 0; margin-bottom: 1rem !important; }
+    .sm-tabs .nav-item { margin: 0; }
+    .sm-tabs .nav-link {
+        border: 1px solid #e6e8ec; border-radius: 999px; padding: .4rem .9rem;
+        color: #495057; font-weight: 500; font-size: 13px; white-space: nowrap;
+        background: #fff; display: inline-flex; align-items: center; gap: .35rem;
+    }
+    .sm-tabs .nav-link:hover { background: #eef2ff; border-color: #c7d2fe; color: #2c3e8c; }
+    .sm-tabs .nav-link.active {
+        background: #556ee6; border-color: #556ee6; color: #fff;
+    }
+    .sm-tabs .nav-link .badge { background: #eef1f6 !important; color: #495057 !important; }
+    .sm-tabs .nav-link.active .badge { background: rgba(255,255,255,.9) !important; color: #2c3e8c !important; }
 
     /* The drawers inside a module: pills, so they never read as another
        shelf of their own. */
@@ -67,6 +78,8 @@
     .activity-card { border-left: 3px solid #556ee6; }
     .item-tag { background:#eef0fb; color:#3a4699; padding:2px 8px; border-radius:8px; font-size:11px; margin-right:4px; display:inline-block; margin-bottom:3px;}
     .item-tag.service { background:#e6f7f1; color:#0f8a5f; }
+    /* A line that is only a name and a price — no catalogue behind it. */
+    .item-tag.custom { background:#fff4e5; color:#a66200; }
 
     /* ---- Activities grouped by date with flat color coding ---- */
     .activity-timeline { padding: 4px 0; }
@@ -807,34 +820,25 @@
                     {{-- Live-sync presence: filled by script-sync with the other
                          users currently viewing this schedule. --}}
                     <div id="syncPresence" style="display:none;gap:6px;align-items:center;flex-wrap:wrap;"></div>
-                    <a href="{{ $isReadyToGenerate ? route('anisenso-schedule-manager.generate.form', ['scheduleId' => $schedule->id]) : 'javascript:void(0);' }}"
-                       class="btn btn-primary btn-sm @if(!$isReadyToGenerate) disabled @endif"
-                       id="generateScheduleBtn"
-                       data-ready-url="{{ route('anisenso-schedule-manager.generate.form', ['scheduleId' => $schedule->id]) }}"
-                       @if(!$isReadyToGenerate) aria-disabled="true" title="Finish required setup first" @endif>
-                        <i class="bx bx-calendar-plus me-1"></i> <span id="generateScheduleBtnLabel">{{ $isReadyToGenerate ? 'Generate Calendar' : 'Generate (locked)' }}</span>
-                    </a>
-                    @if($schedule->currentGeneration)
-                        <a href="{{ route('anisenso-schedule-manager.calendar', ['scheduleId' => $schedule->id]) }}" class="btn btn-success btn-sm">
-                            <i class="bx bx-calendar me-1"></i> Open Calendar
-                        </a>
-                    @endif
+                    {{-- Generate Calendar stood here. It builds a season from
+                         a form the farmer app has no counterpart for — over
+                         there a plan is written activity by activity — so it
+                         is not something this side is the admin OF. The
+                         generator still answers at its own address for anyone
+                         who wants it; it is simply not offered beside the
+                         modules any more. --}}
                 </div>
             </div>
         </div>
     </div>
 
 
-    {{-- Schedule-level action toolbar — sits above the tab card so the
-         Worker Presentation / Labor Expenses / Export Schedule buttons are
-         always reachable regardless of which tab the user is currently on.
-         They operate on the whole schedule, not just the activities tab. --}}
+    {{-- Schedule-level actions — the ones that read the whole season out
+         rather than opening a screen of their own. Card Viewer stood here
+         too, a slide deck the client app has no counterpart for. --}}
     <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
         <button type="button" class="btn btn-outline-success btn-sm" id="openLaborSummaryBtn" title="See the total labor expense across all activities">
             <i class="bx bx-money me-1"></i> Labor Expenses
-        </button>
-        <button type="button" class="btn btn-outline-info btn-sm" id="openCardViewerBtn" title="Open a PowerPoint-style card viewer — one slide per day with all activities, irrigation, and notes">
-            <i class="bx bx-slideshow me-1"></i> Card Viewer
         </button>
         <button type="button" class="btn btn-outline-dark btn-sm" id="openWorkerPresentationBtn" title="Open a printable presentation (intro, activities, monthly labor, per-worker pages, irrigation, calendar) in a new tab">
             <i class="bx bx-book-open me-1"></i> Worker Presentation
@@ -849,7 +853,10 @@
         <div class="card-body">
             {{-- The shelf is the client's module shelf, in their order. What
                  is not a module over there is not a tab over here. --}}
-            <ul class="nav nav-tabs sm-tabs mb-3" role="tablist">
+            {{-- No `nav-tabs`: that class is what draws tab stubs, and equal
+                 specificity means it beats these rules on source order alone.
+                 A shelf of tags is not a tab bar wearing different paint. --}}
+            <ul class="nav sm-tabs mb-3" role="tablist">
                 <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-activities"><i class="bx bx-task me-1"></i> Activities <span class="badge bg-light text-dark ms-1" id="badge-activities">{{ $schedule->activities->count() }}</span></a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-settings"><i class="bx bx-cog me-1"></i> Settings</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-lots"><i class="bx bx-map-pin me-1"></i> Lots <span class="badge bg-light text-dark ms-1" id="badge-lots">{{ $schedule->lots->count() }}</span></a></li>
@@ -1420,29 +1427,20 @@ const READINESS_RULES = [
     { badge: 'badge-activities', label: 'Add at least one activity' },
 ];
 
+/* What a season still needs before it reads as a season. This used to gate a
+   Generate button as well; the banner outlived it, because "no lots yet" is
+   worth saying whether or not anything is about to be generated. */
 function recomputeReadiness() {
     const issues = READINESS_RULES.filter(r => (parseInt($('#' + r.badge).text(), 10) || 0) === 0);
-    const $btn = $('#generateScheduleBtn');
     if (issues.length === 0) {
-        $btn.removeClass('disabled').attr('href', $btn.data('ready-url')).removeAttr('aria-disabled').attr('title', '');
-        $('#generateScheduleBtnLabel').text('Generate Calendar');
         $('#readinessBanner').hide();
         $('#readinessOk').show();
     } else {
-        $btn.addClass('disabled').attr('href', 'javascript:void(0);').attr('aria-disabled', 'true')
-            .attr('title', 'Finish setup first: ' + issues.map(r => r.label).join(', '));
-        $('#generateScheduleBtnLabel').text('Generate (locked)');
         $('#readinessIssuesList').html(issues.map(r => `<li>${escapeHtml(r.label)}</li>`).join(''));
         $('#readinessBanner').show();
         $('#readinessOk').hide();
     }
 }
-
-// Guard clicks even though the disabled class blocks pointer events at the CSS level.
-$(document).on('click', '#generateScheduleBtn.disabled', function (e) {
-    e.preventDefault();
-    toastr.warning('Finish the required setup before generating the calendar.');
-});
 
 @include('aniSensoAdmin.scheduleManager.partials.script-settings')
 @include('aniSensoAdmin.scheduleManager.partials.script-lots')

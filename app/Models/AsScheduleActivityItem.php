@@ -11,6 +11,12 @@ class AsScheduleActivityItem extends BaseModel
         'itemType',
         'materialId',
         'serviceId',
+        // A free-form line: what it is called, what it cost, and which thing
+        // on the inventory shelf it spends, if any. The farmer app writes all
+        // three; this app could only ever read past them.
+        'itemName',
+        'unitPrice',
+        'inventoryItemId',
         'quantity',
         'unitOfMeasure',
         'notes',
@@ -19,6 +25,8 @@ class AsScheduleActivityItem extends BaseModel
 
     protected $casts = [
         'quantity' => 'decimal:4',
+        'unitPrice' => 'decimal:2',
+        'inventoryItemId' => 'integer',
         'deleteStatus' => 'integer',
     ];
 

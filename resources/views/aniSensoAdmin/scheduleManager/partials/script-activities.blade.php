@@ -1198,6 +1198,12 @@ function renderActivityCard(a) {
                 const showQty = qtyTrim !== '1' || unit;
                 const qtyChunk = showQty ? ` ×${escapeHtml(qtyTrim)}${unitDisplay}` : '';
                 inner += `<span class="item-tag service">${escapeHtml(it.service.serviceName)}${qtyChunk}</span>`;
+            } else if (it.itemName) {
+                // A free-form line. It has no catalogue row behind it, which
+                // is exactly why it used to draw as nothing at all.
+                const price = (it.unitPrice === null || it.unitPrice === undefined || it.unitPrice === '')
+                    ? '' : ` <span class="item-tag-price">${fmtPeso(it.unitPrice)}</span>`;
+                inner += `<span class="item-tag custom">${escapeHtml(it.itemName)} ×${escapeHtml(qtyTrim)}${unitDisplay}${price}</span>`;
             }
         });
         itemsBlock = `<div class="mt-2">${inner}</div>`;
@@ -1841,6 +1847,9 @@ $(document).on('click', '.edit-activity-btn', function () {
                 appendItemTag('material', it.materialId, it.material.materialName, it.quantity, itemUnit);
             } else if (it.itemType === 'service' && it.service) {
                 appendItemTag('service', it.serviceId, it.service.serviceName, it.quantity, it.unitOfMeasure || '');
+            } else if (it.itemName) {
+                // A line the client wrote as a name and a price.
+                appendItemTag('custom', '', it.itemName, it.quantity, it.unitOfMeasure || '', it.unitPrice ?? '');
             }
         });
         refreshActivityModalLotState();
@@ -1848,13 +1857,15 @@ $(document).on('click', '.edit-activity-btn', function () {
     });
 });
 
-function appendItemTag(type, id, label, qty, unit) {
-    const cls = type === 'material' ? 'item-tag' : 'item-tag service';
+function appendItemTag(type, id, label, qty, unit, price) {
+    const cls = type === 'material' ? 'item-tag' : (type === 'service' ? 'item-tag service' : 'item-tag custom');
     const unitSafe = unit || '';
     const unitDisplay = unitSafe ? ' ' + escapeHtml(unitSafe) : '';
+    const priceSafe = (price === undefined || price === null || price === '') ? '' : String(price);
+    const priceDisplay = priceSafe ? ` <span class="item-tag-price">${fmtPeso(priceSafe)}</span>` : '';
     $('#itemsContainer').append(`
-        <span class="${cls} me-2 mb-2" style="font-size:13px; padding:6px 12px;" data-type="${type}" data-id="${id}" data-qty="${qty}" data-unit="${escapeHtml(unitSafe)}">
-            <strong>${escapeHtml(label)}</strong> × ${qty}${unitDisplay}
+        <span class="${cls} me-2 mb-2" style="font-size:13px; padding:6px 12px;" data-type="${type}" data-id="${id}" data-qty="${qty}" data-unit="${escapeHtml(unitSafe)}" data-name="${escapeHtml(label)}" data-price="${escapeHtml(priceSafe)}">
+            <strong>${escapeHtml(label)}</strong> × ${qty}${unitDisplay}${priceDisplay}
             <a href="javascript:void(0);" class="text-danger ms-2 remove-item-tag" title="Remove">&times;</a>
         </span>
     `);
@@ -1868,6 +1879,13 @@ $(document).on('click', '.remove-item-tag', function () {
 
 $('#itemPickerType').on('change', function () {
     const t = $(this).val();
+    // "Something else" asks for the two things a catalogue row would have
+    // supplied, and puts the catalogue away.
+    const custom = t === 'custom';
+    $('#itemPickerPickWrap').toggle(!custom);
+    $('#itemPickerCustomWrap').toggle(custom);
+    $('#itemPickerPriceWrap').toggle(custom);
+    if (custom) return;
     $('#itemPickerId optgroup').hide();
     $('#itemPickerId optgroup[label="' + (t === 'material' ? 'Materials' : 'Services') + '"]').show();
     $('#itemPickerId').val($('#itemPickerId optgroup[label="' + (t === 'material' ? 'Materials' : 'Services') + '"] option:first').val()).trigger('change');
@@ -1885,6 +1903,17 @@ $('#itemPickerId').on('change', function () {
 });
 
 $('#addItemBtn').on('click', function () {
+    const qtyC = parseFloat($('#itemPickerQty').val()) || 1;
+    const unitC = ($('#itemPickerUnit').val() || '').trim();
+    if ($('#itemPickerType').val() === 'custom') {
+        const name = ($('#itemPickerName').val() || '').trim();
+        if (!name) { toastr.warning('What is it called?'); return; }
+        const price = ($('#itemPickerPrice').val() || '').trim();
+        appendItemTag('custom', '', name, qtyC, unitC, price);
+        $('#itemPickerName').val('');
+        $('#itemPickerPrice').val('');
+        return;
+    }
     const v = $('#itemPickerId').val();
     if (!v) { toastr.warning('Pick a material or service'); return; }
     const [type, id] = v.split('::');
@@ -1908,6 +1937,8 @@ $('#saveActivityBtn').on('click', function () {
         items.push({
             itemType: $(this).data('type'),
             itemId: $(this).data('id'),
+            itemName: $(this).data('name') || '',
+            unitPrice: $(this).data('price') === '' ? null : $(this).data('price'),
             quantity: $(this).data('qty'),
             unitOfMeasure: $(this).data('unit') || ''
         });
@@ -3535,11 +3566,6 @@ function reloadLaborSummary() {
 // and calendar) and has its own "Save as PDF / Print" button at the top.
 // Open the worker-presentation options modal first, then open the report
 // in a new tab with each toggle's choice as a query param.
-$(document).on('click', '#openCardViewerBtn', function () {
-    // Card Viewer is a self-contained slide deck — no options modal,
-    // just opens the active version's per-day slides in a new tab.
-    window.open(URLS.cardViewer(), '_blank');
-});
 
 $(document).on('click', '#openWorkerPresentationBtn', function () {
     // Reset the worker filter every open so it starts in the opt-out

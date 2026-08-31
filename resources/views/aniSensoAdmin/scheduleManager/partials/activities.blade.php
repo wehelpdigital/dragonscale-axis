@@ -1835,9 +1835,20 @@
                         <select class="form-select" id="itemPickerType">
                             <option value="material">Material</option>
                             <option value="service">Service</option>
+                            {{-- The way the farmer app writes every item now:
+                                 a name and a price, no catalogue involved. --}}
+                            <option value="custom">Something else</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3" id="itemPickerCustomWrap" style="display:none;">
+                        <label class="form-label text-dark">What it is</label>
+                        <input type="text" class="form-control" id="itemPickerName" maxlength="255" placeholder="e.g. Urea 46-0-0">
+                    </div>
+                    <div class="col-md-2" id="itemPickerPriceWrap" style="display:none;">
+                        <label class="form-label text-dark">Price</label>
+                        <input type="number" min="0" step="0.01" class="form-control" id="itemPickerPrice" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3" id="itemPickerPickWrap">
                         <label class="form-label text-dark">Pick</label>
                         <select class="form-select" id="itemPickerId">
                             <optgroup label="Materials">

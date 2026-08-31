@@ -1646,8 +1646,12 @@ class ActivityController extends BaseScheduleController
             'workerIds'        => 'nullable|array',
             'workerIds.*'      => 'integer',
             'items'                  => 'nullable|array',
-            'items.*.itemType'       => 'required_with:items|in:material,service',
-            'items.*.itemId'         => 'required_with:items|integer',
+            // `custom` is a line that is only a name and a price — the way
+            // the farmer app writes every item now.
+            'items.*.itemType'       => 'required_with:items|in:material,service,custom',
+            'items.*.itemId'         => 'nullable|integer',
+            'items.*.itemName'       => 'nullable|string|max:255',
+            'items.*.unitPrice'      => 'nullable|numeric|min:0|max:99999999',
             'items.*.quantity'       => 'nullable|numeric|min:0',
             'items.*.unitOfMeasure'  => 'nullable|string|max:30',
             'items.*.notes'          => 'nullable|string|max:500',
@@ -1768,16 +1772,31 @@ class ActivityController extends BaseScheduleController
                 // Replace only the material/service items this admin form knows
                 // about — free-form "custom" items created in the client app
                 // (itemName + unitPrice) are preserved untouched.
+                // The form now knows about all three kinds, so it replaces
+                // all three rather than tiptoeing around the one it could not
+                // draw. A custom line's inventory link is carried across
+                // untouched: which thing on the shelf it spends is the
+                // client's answer, not this form's.
+                $shelfLinks = AsScheduleActivityItem::where('activityId', $activity->id)
+                    ->where('deleteStatus', 1)
+                    ->whereNotNull('inventoryItemId')
+                    ->pluck('inventoryItemId', 'itemName');
+
                 AsScheduleActivityItem::where('activityId', $activity->id)
-                    ->whereIn('itemType', ['material', 'service'])
                     ->update(['deleteStatus' => 0]);
 
                 foreach ((array) $request->input('items', []) as $item) {
+                    $type = $item['itemType'];
+                    $name = trim((string) ($item['itemName'] ?? ''));
                     AsScheduleActivityItem::create([
                         'activityId'    => $activity->id,
-                        'itemType'      => $item['itemType'],
-                        'materialId'    => $item['itemType'] === 'material' ? $item['itemId'] : null,
-                        'serviceId'     => $item['itemType'] === 'service'  ? $item['itemId'] : null,
+                        'itemType'      => $type,
+                        'materialId'    => $type === 'material' ? ($item['itemId'] ?? null) : null,
+                        'serviceId'     => $type === 'service'  ? ($item['itemId'] ?? null) : null,
+                        'itemName'      => $type === 'custom' && $name !== '' ? $name : null,
+                        'unitPrice'     => $type === 'custom' && isset($item['unitPrice']) && $item['unitPrice'] !== ''
+                            ? (float) $item['unitPrice'] : null,
+                        'inventoryItemId' => $type === 'custom' ? ($shelfLinks[$name] ?? null) : null,
                         'quantity'      => $item['quantity'] ?? 1,
                         'unitOfMeasure' => isset($item['unitOfMeasure']) && $item['unitOfMeasure'] !== '' ? $item['unitOfMeasure'] : null,
                         'notes'         => $item['notes'] ?? null,
