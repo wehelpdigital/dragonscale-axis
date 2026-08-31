@@ -9,8 +9,6 @@
     .status-badge { text-transform: capitalize; font-size: 11px; letter-spacing: .3px; }
     .schedule-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); transition: all .15s ease; }
     .empty-state { padding: 60px 20px; }
-    .disabled-look { opacity: .55; cursor: not-allowed; }
-    .disabled-look:hover { opacity: .65; }
 </style>
 @endsection
 
@@ -92,7 +90,7 @@
                                 <th>Owner</th>
                                 <th>Status</th>
                                 <th>Created</th>
-                                <th class="text-end" style="width: 320px;">Actions</th>
+                                <th class="text-end" style="width: 150px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -133,30 +131,8 @@
                                     </td>
                                     <td class="text-dark">{{ $s->created_at?->format('M j, Y g:i A') }}</td>
                                     <td class="text-end">
-                                        @php
-                                            $readyIssues = $s->getReadinessIssues();
-                                            $isReady = empty($readyIssues);
-                                        @endphp
                                         <a href="{{ route('anisenso-schedule-manager.setup', ['id' => $s->id]) }}" class="btn btn-sm btn-outline-primary" title="Setup">
                                             <i class="bx bx-cog"></i> Setup
-                                        </a>
-                                        @if($isReady)
-                                            <a href="{{ route('anisenso-schedule-manager.generate.form', ['scheduleId' => $s->id]) }}" class="btn btn-sm btn-outline-info" title="Generate calendar">
-                                                <i class="bx bx-calendar-plus"></i> Generate
-                                            </a>
-                                        @else
-                                            <a href="{{ route('anisenso-schedule-manager.setup', ['id' => $s->id]) }}"
-                                               class="btn btn-sm btn-outline-secondary disabled-look"
-                                               title="Cannot generate yet — finish setup first: {{ implode(', ', $readyIssues) }}"
-                                               data-bs-toggle="tooltip">
-                                                <i class="bx bx-lock-alt"></i> Generate
-                                            </a>
-                                        @endif
-                                        <a href="{{ route('anisenso-schedule-manager.calendar', ['scheduleId' => $s->id]) }}" class="btn btn-sm btn-outline-success" title="Calendar">
-                                            <i class="bx bx-calendar"></i> Calendar
-                                        </a>
-                                        <a href="{{ route('anisenso-schedule-manager.reports', ['scheduleId' => $s->id]) }}" class="btn btn-sm btn-outline-warning" title="Reports">
-                                            <i class="bx bx-bar-chart-alt-2"></i>
                                         </a>
                                         <button type="button" class="btn btn-sm btn-outline-danger delete-schedule-btn"
                                                 data-id="{{ $s->id }}" data-name="{{ $s->title }}" title="Delete">
@@ -204,7 +180,7 @@
 <script>
 toastr.options = { closeButton: true, progressBar: true, positionClass: "toast-top-right", timeOut: 3000 };
 
-// Initialize Bootstrap tooltips so disabled-Generate buttons explain themselves
+// Initialize Bootstrap tooltips (the owner email in the table uses one)
 document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 
 let scheduleToDelete = null;
