@@ -22,18 +22,22 @@ document.addEventListener('error', function (e) {
 // Opens whichever tab is asked for once, the first time it is looked at.
 function onFirstShow(hash, run) {
     let started = false;
+    // `run` is handed a way to say it did not manage it, so a tab whose first
+    // read dropped asks again next time it is looked at rather than showing
+    // the failure for ever.
+    const failed = () => { started = false; };
     $('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
         if ($(e.target).attr('href') !== hash || started) return;
         started = true;
-        run();
+        run(failed);
     });
-    if (location.hash === hash) { started = true; $(run); }
+    if (location.hash === hash) { started = true; $(() => run(failed)); }
 }
 
 // ---- maps -------------------------------------------------------------
-function loadMaps() {
+function loadMaps(failed) {
     $('#mpBody').html('<div class="mp-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the maps…</div>');
-    $.get(`${CR}-maps${SQ}`, function (res) {
+    smGet(`${CR}-maps${SQ}`, function (res) {
         const rows = (res && res.data) || [];
         $('#mpBody').html(rows.length ? rows.map(r => `
             <div class="mp-card">
@@ -51,7 +55,10 @@ function loadMaps() {
                 ${(r.labels && r.labels.length) ? `<div class="mp-labels">${r.labels.map(esc).join(' · ')}</div>` : ''}
             </div>`).join('')
             : '<div class="mp-empty"><i class="bx bx-map-alt"></i>No maps saved on this season.</div>');
-    }).fail(() => $('#mpBody').html('<div class="mp-empty"><i class="bx bx-error"></i>Could not read the maps.</div>'));
+    }).fail((xhr) => {
+        if (failed) failed();
+        $('#mpBody').html('<div class="mp-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#mpReload').on('click', loadMaps);
@@ -82,9 +89,9 @@ $(document).on('click', '.js-mp-del', function () {
 onFirstShow('#tab-maps', loadMaps);
 
 // ---- drawings ---------------------------------------------------------
-function loadDrawings() {
+function loadDrawings(failed) {
     $('#dwBody').html('<div class="dw-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the drawings…</div>');
-    $.get(`${CR}-drawings${SQ}`, function (res) {
+    smGet(`${CR}-drawings${SQ}`, function (res) {
         const rows = (res && res.data) || [];
         $('#dwBody').html(rows.length ? `<div class="dw-tiles">${rows.map(r => `
             <div class="dw-tile">
@@ -101,7 +108,10 @@ function loadDrawings() {
                 </div>
             </div>`).join('')}</div>`
             : '<div class="dw-empty"><i class="bx bx-pencil"></i>Nothing drawn on this season.</div>');
-    }).fail(() => $('#dwBody').html('<div class="dw-empty"><i class="bx bx-error"></i>Could not read the drawings.</div>'));
+    }).fail((xhr) => {
+        if (failed) failed();
+        $('#dwBody').html('<div class="dw-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#dwReload').on('click', loadDrawings);
@@ -129,9 +139,9 @@ $(document).on('click', '.js-dw-del', function () {
 onFirstShow('#tab-draw', loadDrawings);
 
 // ---- threads ----------------------------------------------------------
-function loadThreads() {
+function loadThreads(failed) {
     $('#ctBody').html('<div class="ai-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the threads…</div>');
-    $.get(`${CR}-ai${SQ}`, function (res) {
+    smGet(`${CR}-ai${SQ}`, function (res) {
         const rows = (res && res.data) || [];
         $('#ctBody').html(rows.length ? rows.map(r => `
             <div class="ai-row">
@@ -149,7 +159,10 @@ function loadThreads() {
                 </div>
             </div>`).join('')
             : '<div class="ai-empty"><i class="bx bx-bot"></i>Nothing was asked about this season.</div>');
-    }).fail(() => $('#ctBody').html('<div class="ai-empty"><i class="bx bx-error"></i>Could not read the threads.</div>'));
+    }).fail((xhr) => {
+        if (failed) failed();
+        $('#ctBody').html('<div class="ai-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#ctReload').on('click', loadThreads);
@@ -158,7 +171,7 @@ $(document).on('click', '.js-ct-read', function () {
     const b = $(this);
     $('#ctModalBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i></div>');
     new bootstrap.Modal(document.getElementById('ctModal')).show();
-    $.get(`${CR}-ai-one${SQ}&kind=${encodeURIComponent(b.data('kind'))}&id=${b.data('id')}`, function (res) {
+    smGet(`${CR}-ai-one${SQ}&kind=${encodeURIComponent(b.data('kind'))}&id=${b.data('id')}`, function (res) {
         if (!res.success) { $('#ctModalBody').html(`<p class="text-secondary mb-0">${esc(res.message)}</p>`); return; }
         $('#ctModalTitle').text(res.data.title);
         const turns = res.data.turns || [];

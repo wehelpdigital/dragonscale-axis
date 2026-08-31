@@ -61,11 +61,16 @@ function draw() {
 
 function load() {
     $('#glBody').html('<div class="gl-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the gallery…</div>');
-    $.get(`${GL}-data${SQ}`, function (res) {
+    smGet(`${GL}-data${SQ}`, function (res) {
         ALBUMS = (res && res.albums) || [];
         IMAGES = (res && res.images) || [];
         draw();
-    }).fail(() => $('#glBody').html('<div class="gl-empty"><i class="bx bx-error"></i>Could not read the gallery.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#glBody').html('<div class="gl-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#glReload').on('click', load);

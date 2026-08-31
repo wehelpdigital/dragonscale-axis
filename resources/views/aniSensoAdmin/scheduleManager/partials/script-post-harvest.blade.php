@@ -36,14 +36,19 @@ function card(r) {
 
 function load() {
     $('#phBody').html('<div class="ph-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the records…</div>');
-    $.get(`${PH}${SQ}`, function (res) {
+    smGet(`${PH}${SQ}`, function (res) {
         const d = (res && res.data) || {};
         const rows = d.rows || [];
         $('#phTotal').html(d.totalValue ? `Everything sold so far: <b>${fmtPeso(d.totalValue)}</b>` : '');
         $('#phBody').html(rows.length
             ? rows.map(card).join('')
             : `<div class="ph-empty"><i class="bx bx-basket"></i>Nothing recorded off this season yet.</div>`);
-    }).fail(() => $('#phBody').html('<div class="ph-empty"><i class="bx bx-error"></i>Could not read the records.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#phBody').html('<div class="ph-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#phReload').on('click', load);
@@ -68,7 +73,7 @@ function fill(d) {
 $(document).on('click', '.js-ph-open', function (e) {
     if (e.target.tagName === 'IMG') { window.open(e.target.src, '_blank'); return; }
     const id = $(this).data('id');
-    $.get(`${PH}-one${SQ}&id=${id}`, function (res) {
+    smGet(`${PH}-one${SQ}&id=${id}`, function (res) {
         if (!res.success) { toastr.error(res.message); return; }
         fill(res.data);
         new bootstrap.Modal(document.getElementById('phModal')).show();

@@ -52,11 +52,16 @@ function stripTags(html) {
 
 function load() {
     $('#deBody').html('<div class="de-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the documents…</div>');
-    $.get(`${DE}-data${SQ}`, function (res) {
+    smGet(`${DE}-data${SQ}`, function (res) {
         TAGS = (res && res.tags) || [];
         ENTRIES = (res && res.entries) || [];
         draw();
-    }).fail(() => $('#deBody').html('<div class="de-empty"><i class="bx bx-error"></i>Could not read the documents.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#deBody').html('<div class="de-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#deReload').on('click', load);

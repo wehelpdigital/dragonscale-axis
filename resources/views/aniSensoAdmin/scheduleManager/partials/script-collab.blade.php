@@ -15,7 +15,7 @@ document.addEventListener('error', function (e) {
 
 function load() {
     $('#cbBody').html('<div class="cb-empty"><i class="bx bx-loader-alt bx-spin"></i> Reading the room…</div>');
-    $.get(`${MEDIA}/anisenso-media-rooms-one?id=${SCHEDULE_ID}`, function (res) {
+    smGet(`${MEDIA}/anisenso-media-rooms-one?id=${SCHEDULE_ID}`, function (res) {
         if (!res || !res.success) { $('#cbBody').html('<div class="cb-empty">Could not read the room.</div>'); return; }
         const d = res.data;
         const chat = d.chat || [];
@@ -62,7 +62,12 @@ function load() {
                 </div>
             </div>
         </div>`);
-    }).fail(() => $('#cbBody').html('<div class="cb-empty">Could not read the room.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#cbBody').html('<div class="cb-empty">HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#cbReload').on('click', load);

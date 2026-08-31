@@ -49,10 +49,15 @@ function draw() {
 
 function load() {
     $('#ntBody').html('<div class="nt-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the client\'s notes…</div>');
-    $.get(`${NT}-data${SQ}`, function (res) {
+    smGet(`${NT}-data${SQ}`, function (res) {
         ROWS = (res && res.data) || [];
         draw();
-    }).fail(() => $('#ntBody').html('<div class="nt-empty"><i class="bx bx-error"></i>Could not read the notes.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#ntBody').html('<div class="nt-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#ntReload').on('click', load);
@@ -60,7 +65,7 @@ $('#ntSearch').on('input', draw);
 
 // ---- one note --------------------------------------------------------
 function openNote(id, shelf) {
-    $.get(`${NT}-one${SQ}&id=${id}&shelf=${encodeURIComponent(shelf)}`, function (res) {
+    smGet(`${NT}-one${SQ}&id=${id}&shelf=${encodeURIComponent(shelf)}`, function (res) {
         if (!res.success) { toastr.error(res.message); return; }
         const d = res.data;
         $('#ntId').val(d.id);

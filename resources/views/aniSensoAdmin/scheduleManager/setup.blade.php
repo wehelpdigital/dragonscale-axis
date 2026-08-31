@@ -1139,6 +1139,49 @@ function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function fmtNumber(n, d=2) { const v = Number(n ?? 0); return isNaN(v) ? '0' : v.toFixed(d); }
+
+/**
+ * A GET that asks again when the answer was not an answer.
+ *
+ * The session for this page lives in a remote MySQL and the read drops now
+ * and then: the same cookie gets 200, then 401, then 200 again, three seconds
+ * apart. A list that gave up on the first blip told the operator the data
+ * could not be read, which was not true of the data.
+ *
+ * Only the blips are retried — a dropped session, a lost connection, a server
+ * that fell over. A 404 or a refusal is an answer, and asking twice will not
+ * change it. Returns a promise, so `.fail(...)` still chains.
+ */
+function smGet(url, data, onDone) {
+    // Called both ways: (url, done) and (url, data, done), as $.get is.
+    if (typeof data === 'function') { onDone = data; data = undefined; }
+    const d = $.Deferred();
+    let tries = 0;
+    (function go() {
+        tries++;
+        $.ajax({ url: url, data: data, dataType: 'json' })
+            .done((res) => d.resolve(res))
+            .fail((xhr) => {
+                const blip = xhr.status === 401 || xhr.status === 0 || xhr.status >= 500;
+                // The access log has runs of four dropped polls in a row —
+                // twelve seconds — so one quick retry is not enough, and
+                // backing off gives the connection time to come back rather
+                // than hammering the same bad one.
+                if (blip && tries < 4) { setTimeout(go, [600, 1800, 4000][tries - 1]); return; }
+                d.reject(xhr);
+            });
+    })();
+    if (onDone) d.done(onDone);
+    return d.promise();
+}
+
+/** What to tell someone whose list did not arrive. */
+function smWhyFailed(xhr) {
+    if (!xhr || xhr.status === 401) return 'The session dropped. Press Refresh, or reload the page.';
+    if (xhr.status === 0) return 'The connection went. Try again in a moment.';
+    if (xhr.status === 404) return 'That is not there any more.';
+    return 'Something went wrong reading this.';
+}
 function fmtPeso(n) { return '₱ ' + Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 // --- Tab persistence (works even if some saves still reload) ---

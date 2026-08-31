@@ -48,12 +48,17 @@ function drawMoves() {
 
 function load() {
     $('#ivBody').html('<div class="iv-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the shelf…</div>');
-    $.get(`${IV}-data${SQ}`, function (res) {
+    smGet(`${IV}-data${SQ}`, function (res) {
         ITEMS = (res && res.items) || [];
         MOVES = (res && res.moves) || [];
         drawItems();
         drawMoves();
-    }).fail(() => $('#ivBody').html('<div class="iv-empty"><i class="bx bx-error"></i>Could not read the inventory.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#ivBody').html('<div class="iv-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#ivReload').on('click', load);

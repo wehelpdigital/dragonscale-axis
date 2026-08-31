@@ -1797,7 +1797,7 @@ $(document).on('click', '.rest-day-add-btn, .group-add-activity-btn', function (
 
 $(document).on('click', '.edit-activity-btn', function () {
     const id = $(this).data('id');
-    $.get(URLS.activitiesShow(id), function (res) {
+    smGet(URLS.activitiesShow(id), function (res) {
         if (!res.success) { toastr.error(res.message); return; }
         $('#activityModalTitle').text('Edit Activity');
         resetActivityModal();
@@ -2502,7 +2502,7 @@ $(document).on('click', '#openDraftsModalBtn', function () {
     $('#draftsEmpty').hide();
     $('#draftsModal').modal('show');
 
-    $.get(URLS.activitiesDrafts(), function (res) {
+    smGet(URLS.activitiesDrafts(), function (res) {
         if (!res.success) {
             toastr.error(res.message || 'Could not load drafts');
             renderDraftsList([]);
@@ -2759,7 +2759,7 @@ function loadNotice(intoModal) {
     if (intoModal) {
         $('#scheduleNoticeBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i></div>');
     }
-    return $.get(URLS.scheduleNotice(), function (res) {
+    return smGet(URLS.scheduleNotice(), function (res) {
         if (!res || !res.success) return;
         const data = res.data || { count: 0, blocking: 0, items: [] };
         paintNoticeBadge(data);
@@ -2800,7 +2800,7 @@ loadNotice(false);   // the badge, before anyone opens anything
 // ---------- Growth stage: what the plant is doing, not just how old it is ----------
 function loadGrowth(dateStr) {
     $('#growthStageBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i></div>');
-    $.get(URLS.scheduleGrowth(dateStr || ''), function (res) {
+    return smGet(URLS.scheduleGrowth(dateStr || ''), function (res) {
         if (!res || !res.success) { $('#growthStageBody').html('<p class="text-secondary mb-0">Could not read the lots.</p>'); return; }
         const d = res.data;
         $('#growthStageWhen').text(d.prettyDate + ' \u00b7 every lot');
@@ -2848,7 +2848,8 @@ function loadGrowth(dateStr) {
         }
         if (!html) html = '<p class="text-secondary mb-0">No lots on this schedule yet.</p>';
         $('#growthStageBody').html(html);
-    }).fail(() => $('#growthStageBody').html('<p class="text-secondary mb-0">Could not read the lots.</p>'));
+    }).fail((xhr) => $('#growthStageBody').html(
+        '<p class="text-secondary mb-0">HERE</p>'.replace('HERE', escapeHtml(smWhyFailed(xhr)))));
 }
 
 // Both of these are tabs now, so they load the first time their tab is
@@ -2860,7 +2861,7 @@ $('#growthStageToday').on('click', function () { $('#growthStageDate').val(''); 
     $('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
         if ($(e.target).attr('href') !== '#tab-growth' || started) return;
         started = true;
-        loadGrowth($('#growthStageDate').val() || '');
+        loadGrowth($('#growthStageDate').val() || '').fail(() => { started = false; });
     });
     if (location.hash === '#tab-growth') { started = true; $(() => loadGrowth('')); }
 })();
@@ -2868,7 +2869,7 @@ $('#growthStageToday').on('click', function () { $('#growthStageDate').val(''); 
 // ---------- Weather: per lot, because a farm is not a point ----------
 function loadWeather() {
     $('#scheduleWeatherBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i><div class="text-secondary mt-2" style="font-size:12.5px;">Asking the forecast\u2026</div></div>');
-    $.get(URLS.scheduleWeather(), function (res) {
+    return smGet(URLS.scheduleWeather(), function (res) {
         if (!res || !res.success) { $('#scheduleWeatherBody').html('<p class="text-secondary mb-0">Could not reach the forecast.</p>'); return; }
         const d = res.data;
         let html = '';
@@ -2909,7 +2910,8 @@ function loadWeather() {
         }
         if (!html) html = '<p class="text-secondary mb-0">No lots on this schedule yet.</p>';
         $('#scheduleWeatherBody').html(html);
-    }).fail(() => $('#scheduleWeatherBody').html('<p class="text-secondary mb-0">Could not reach the forecast.</p>'));
+    }).fail((xhr) => $('#scheduleWeatherBody').html(
+        '<p class="text-secondary mb-0">HERE</p>'.replace('HERE', escapeHtml(smWhyFailed(xhr)))));
 }
 
 (function () {
@@ -2917,7 +2919,8 @@ function loadWeather() {
     $('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
         if ($(e.target).attr('href') !== '#tab-weather' || started) return;
         started = true;
-        loadWeather();
+        const p = loadWeather();
+        if (p && p.fail) p.fail(() => { started = false; });
     });
     if (location.hash === '#tab-weather') { started = true; $(loadWeather); }
 })();
@@ -2946,7 +2949,7 @@ $('#quickShareBtn').on('click', function () {
     $('#quickShareHas, #quickShareNone').hide();
     $('#quickShareLoading').show();
     $('#quickShareModal').modal('show');
-    $.get(URLS.scheduleShare(), function (res) {
+    smGet(URLS.scheduleShare(), function (res) {
         paintShare(res && res.success ? res.data : null);
     }).fail(function () {
         $('#quickShareLoading').hide();
@@ -3508,7 +3511,7 @@ function reloadLaborSummary() {
         </div>
     `);
     updateLaborFilterHint();
-    $.get(URLS.activitiesLabor(), filters, function (res) {
+    smGet(URLS.activitiesLabor(), filters, function (res) {
         if (!res.success) {
             LATEST_LABOR_DATA = null;
             $('#laborSummaryBody').html(

@@ -11,7 +11,7 @@ $('#rpLaborBtn').on('click', () => $('#openLaborSummaryBtn').trigger('click'));
 
 function load() {
     $('#rpBody').html('<div class="rp-empty"><i class="bx bx-loader-alt bx-spin"></i>Reading the saved reports…</div>');
-    $.get(`${RP}-data${SQ}`, function (res) {
+    smGet(`${RP}-data${SQ}`, function (res) {
         const rows = (res && res.data) || [];
         $('#rpBody').html(rows.length ? rows.map(r => `
             <div class="rp-card">
@@ -34,7 +34,12 @@ function load() {
                 ${r.notes ? `<div class="rp-meta mt-2" style="white-space:pre-wrap">${esc(r.notes)}</div>` : ''}
             </div>`).join('')
             : '<div class="rp-empty"><i class="bx bx-line-chart"></i>The client has not saved a post-harvest report on this season.</div>');
-    }).fail(() => $('#rpBody').html('<div class="rp-empty"><i class="bx bx-error"></i>Could not read the reports.</div>'));
+    }).fail((xhr) => {
+        // The tab is not marked as read when the read failed, so coming back
+        // to it asks again instead of showing this for ever.
+        started = false;
+        $('#rpBody').html('<div class="rp-empty"><i class="bx bx-error"></i>HERE</div>'.replace('HERE', escapeHtml(smWhyFailed(xhr))));
+    });
 }
 
 $('#rpReload').on('click', load);
