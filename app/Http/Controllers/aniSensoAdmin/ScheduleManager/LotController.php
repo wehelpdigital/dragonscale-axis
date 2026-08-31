@@ -21,7 +21,14 @@ class LotController extends BaseScheduleController
             // too, which is what makes growth stages and the forecast
             // manageable from this side.
             'crop'           => 'nullable|string|max:80',
-            'dayType'        => 'nullable|in:DAS,DAT,DAP',
+            // TREE is the fourth: an orchard keeps no day count and is
+            // read by the tree's age instead.
+            'dayType'        => 'nullable|in:DAS,DAT,DAP,TREE',
+            'daysToMaturity' => 'nullable|integer|min:1|max:2000',
+            'treePlantedAt'  => 'nullable|date',
+            'pinLat'         => 'nullable|numeric|between:-90,90',
+            'pinLng'         => 'nullable|numeric|between:-180,180',
+            'pinLabel'       => 'nullable|string|max:191',
             'locBarangay'    => 'nullable|string|max:255',
             'locZone'        => 'nullable|string|max:255',
             'locTown'        => 'nullable|string|max:255',
@@ -49,6 +56,11 @@ class LotController extends BaseScheduleController
             'locProvince'        => $request->filled('locProvince') ? trim($request->locProvince) : null,
             'dayZeroDate'        => $request->filled('dayZeroDate') ? $request->dayZeroDate : null,
             'transplantDate'     => $request->filled('transplantDate') ? $request->transplantDate : null,
+            'daysToMaturity'     => $request->filled('daysToMaturity') ? (int) $request->daysToMaturity : null,
+            'treePlantedAt'      => $request->filled('treePlantedAt') ? $request->treePlantedAt : null,
+            'pinLat'             => $request->filled('pinLat') ? (float) $request->pinLat : null,
+            'pinLng'             => $request->filled('pinLng') ? (float) $request->pinLng : null,
+            'pinLabel'           => $request->filled('pinLabel') ? trim($request->pinLabel) : null,
             'notes'              => $request->notes,
             'deleteStatus'       => 1,
         ]);
@@ -72,7 +84,14 @@ class LotController extends BaseScheduleController
             // too, which is what makes growth stages and the forecast
             // manageable from this side.
             'crop'           => 'nullable|string|max:80',
-            'dayType'        => 'nullable|in:DAS,DAT,DAP',
+            // TREE is the fourth: an orchard keeps no day count and is
+            // read by the tree's age instead.
+            'dayType'        => 'nullable|in:DAS,DAT,DAP,TREE',
+            'daysToMaturity' => 'nullable|integer|min:1|max:2000',
+            'treePlantedAt'  => 'nullable|date',
+            'pinLat'         => 'nullable|numeric|between:-90,90',
+            'pinLng'         => 'nullable|numeric|between:-180,180',
+            'pinLabel'       => 'nullable|string|max:191',
             'locBarangay'    => 'nullable|string|max:255',
             'locZone'        => 'nullable|string|max:255',
             'locTown'        => 'nullable|string|max:255',
@@ -99,6 +118,11 @@ class LotController extends BaseScheduleController
             'locProvince'    => $request->filled('locProvince') ? trim($request->locProvince) : null,
             'dayZeroDate'    => $request->filled('dayZeroDate') ? $request->dayZeroDate : null,
             'transplantDate' => $request->filled('transplantDate') ? $request->transplantDate : null,
+            'daysToMaturity' => $request->filled('daysToMaturity') ? (int) $request->daysToMaturity : null,
+            'treePlantedAt'  => $request->filled('treePlantedAt') ? $request->treePlantedAt : null,
+            'pinLat'         => $request->filled('pinLat') ? (float) $request->pinLat : null,
+            'pinLng'         => $request->filled('pinLng') ? (float) $request->pinLng : null,
+            'pinLabel'       => $request->filled('pinLabel') ? trim($request->pinLabel) : null,
             'notes'          => $request->notes,
         ]);
         return $this->jsonOk('Lot updated.', ['data' => $lot]);

@@ -24,6 +24,14 @@ class AsScheduleLot extends BaseModel
         'dayType',
         'dayZeroDate',
         'transplantDate',
+        // How long this crop takes here, when the tree went in, and where the
+        // field actually IS — all written by the farmer app, all settable
+        // from the Lots tab now.
+        'daysToMaturity',
+        'treePlantedAt',
+        'pinLat',
+        'pinLng',
+        'pinLabel',
         'notes',
         'deleteStatus',
     ];

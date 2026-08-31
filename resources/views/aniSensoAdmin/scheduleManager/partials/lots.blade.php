@@ -76,6 +76,11 @@
                                 data-loc-province="{{ $lot->locProvince }}"
                                 data-day-zero-date="{{ $lot->dayZeroDate ? \Illuminate\Support\Carbon::parse($lot->dayZeroDate)->format('Y-m-d') : '' }}"
                                 data-transplant-date="{{ $lot->transplantDate ? \Illuminate\Support\Carbon::parse($lot->transplantDate)->format('Y-m-d') : '' }}"
+                                data-days-to-maturity="{{ $lot->daysToMaturity }}"
+                                data-tree-planted-at="{{ $lot->treePlantedAt ? \Illuminate\Support\Carbon::parse($lot->treePlantedAt)->format('Y-m-d') : '' }}"
+                                data-pin-lat="{{ $lot->pinLat }}"
+                                data-pin-lng="{{ $lot->pinLng }}"
+                                data-pin-label="{{ $lot->pinLabel }}"
                                 data-notes="{{ $lot->notes }}"><i class="bx bx-edit-alt"></i></button>
                         <button class="btn btn-sm btn-outline-danger delete-lot-btn" data-id="{{ $lot->id }}" data-name="{{ $lot->lotName }}"><i class="bx bx-trash"></i></button>
                     </td>
@@ -146,7 +151,12 @@
                     <select class="form-select" id="lotDayType">
                         <option value="DAT">DAS then DAT — sown, then transplanted</option>
                         <option value="DAS">DAS only — direct seeded, never transplanted</option>
-                        <option value="DAP">DAP — planted (corn, vegetables, trees)</option>
+                        <option value="DAP">DAP — planted (corn, vegetables)</option>
+                        {{-- An orchard keeps no day count at all: it is read
+                             by the tree's age, from the date below. Without
+                             this, a lot made here could not be an orchard,
+                             and one made over there could not be read here. --}}
+                        <option value="TREE">Mature trees — no day count, read by age</option>
                     </select>
                     <small class="text-secondary">
                         A sown-then-transplanted lot starts a fresh DAT count on its transplant
@@ -155,6 +165,44 @@
                 </div>
                 {{-- Where the field actually is. Town and province are what the
                      forecast is looked up by; barangay and zone are for reading. --}}
+                {{-- How long this crop takes on this lot, and when the tree
+                     went in. Both are the farmer app's columns; the first is
+                     what a progress bar is a fraction of, the second is the
+                     only anchor an orchard has. --}}
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-dark" for="lotDaysToMaturity">
+                            <i class="bx bx-time-five me-1 text-info"></i> Days to maturity
+                            <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                        </label>
+                        <input type="number" min="1" max="2000" step="1" class="form-control" id="lotDaysToMaturity" placeholder="e.g. 115">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-dark" for="lotTreePlantedAt">
+                            <i class="bx bx-tree me-1 text-success"></i> Tree planted on
+                            <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Trees only</span>
+                        </label>
+                        <input type="date" class="form-control" id="lotTreePlantedAt">
+                    </div>
+                </div>
+
+                {{-- The pin. An address gets a delivery note written; a pin
+                     gets somebody to the gate. Normally dropped on the map in
+                     the client's app — here it is the two numbers, so a pin
+                     read off anywhere can be typed in. --}}
+                <div class="mb-3">
+                    <label class="form-label text-dark">
+                        <i class="bx bx-current-location me-1 text-primary"></i>
+                        Its pin
+                        <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
+                    </label>
+                    <div class="row g-2">
+                        <div class="col-md-4"><input type="number" step="0.0000001" min="-90" max="90" class="form-control" id="lotPinLat" placeholder="Latitude"></div>
+                        <div class="col-md-4"><input type="number" step="0.0000001" min="-180" max="180" class="form-control" id="lotPinLng" placeholder="Longitude"></div>
+                        <div class="col-md-4"><input type="text" class="form-control" id="lotPinLabel" maxlength="191" placeholder="What is at the pin"></div>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label text-dark">
                         <i class="bx bx-map-pin me-1 text-danger"></i>

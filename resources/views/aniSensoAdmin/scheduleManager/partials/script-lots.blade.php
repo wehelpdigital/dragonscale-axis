@@ -84,6 +84,11 @@ function renderLotRow(lot) {
                     data-loc-province="${escapeHtml(lot.locProvince || '')}"
                     data-day-zero-date="${escapeHtml(d0)}"
                     data-transplant-date="${escapeHtml(tp)}"
+                    data-days-to-maturity="${escapeHtml(lot.daysToMaturity ?? '')}"
+                    data-tree-planted-at="${escapeHtml((lot.treePlantedAt || '').toString().slice(0, 10))}"
+                    data-pin-lat="${escapeHtml(lot.pinLat ?? '')}"
+                    data-pin-lng="${escapeHtml(lot.pinLng ?? '')}"
+                    data-pin-label="${escapeHtml(lot.pinLabel || '')}"
                     data-notes="${escapeHtml(lot.notes || '')}"><i class="bx bx-edit-alt"></i></button>
             <button class="btn btn-sm btn-outline-danger delete-lot-btn" data-id="${lot.id}" data-name="${escapeHtml(lot.lotName)}"><i class="bx bx-trash"></i></button>
         </td>
@@ -105,6 +110,11 @@ $('#addLotBtn').on('click', function () {
     $('#lotLocProvince').val('');
     $('#lotDayZeroDate').val('');
     $('#lotTransplantDate').val('');
+    $('#lotDaysToMaturity').val('');
+    $('#lotTreePlantedAt').val('');
+    $('#lotPinLat').val('');
+    $('#lotPinLng').val('');
+    $('#lotPinLabel').val('');
     $('#lotNotes').val('');
 });
 
@@ -123,6 +133,11 @@ $(document).on('click', '.edit-lot-btn', function () {
     $('#lotLocProvince').val($(this).data('loc-province') || '');
     $('#lotDayZeroDate').val(($(this).data('day-zero-date') || '').toString().slice(0, 10));
     $('#lotTransplantDate').val(($(this).data('transplant-date') || '').toString().slice(0, 10));
+    $('#lotDaysToMaturity').val($(this).data('days-to-maturity') || '');
+    $('#lotTreePlantedAt').val(($(this).data('tree-planted-at') || '').toString().slice(0, 10));
+    $('#lotPinLat').val($(this).data('pin-lat') ?? '');
+    $('#lotPinLng').val($(this).data('pin-lng') ?? '');
+    $('#lotPinLabel').val($(this).data('pin-label') || '');
     $('#lotNotes').val($(this).data('notes'));
     $('#lotModal').modal('show');
 });
@@ -153,6 +168,11 @@ $('#saveLotBtn').on('click', function () {
         locProvince: ($('#lotLocProvince').val() || '').trim(),
         dayZeroDate: dayZero || null,
         transplantDate: transplant || null,
+        daysToMaturity: ($('#lotDaysToMaturity').val() || '').trim() || null,
+        treePlantedAt: ($('#lotTreePlantedAt').val() || '').trim() || null,
+        pinLat: ($('#lotPinLat').val() || '').trim() || null,
+        pinLng: ($('#lotPinLng').val() || '').trim() || null,
+        pinLabel: ($('#lotPinLabel').val() || '').trim() || null,
         notes: $('#lotNotes').val()
     };
     if (!payload.lotName) { toastr.warning('Lot name is required'); return; }
