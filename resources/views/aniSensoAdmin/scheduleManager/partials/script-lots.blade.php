@@ -7,6 +7,112 @@
 // onions or cassava showed no crop at all: the name was in the picker and
 // nowhere in the lookup that renders the row.
 const CROP_CATALOGUE = @json(collect(\App\Support\CropCatalog::CROPS)->map(fn ($c) => ['label' => $c['label'], 'icon' => $c['icon'] ?? '']));
+/* ---- the crop decides how the lot is counted ----
+   Which counters a crop can take, whether it is a tree, and how long it
+   usually needs. Read from the same catalogue the picker is built from, so
+   one list answers for both. */
+@php
+    /* What each crop allows: whether it is a tree, which day counters it can
+       take, and how long it usually needs. Built here rather than inline —
+       Blade parses a directive's argument by matching brackets, and an arrow
+       function returning an array literal defeats it. */
+    $cropRules = [];
+    foreach (\App\Support\CropCatalog::CROPS as $cropRuleKey => $cropRuleInfo) {
+        $cropRules[$cropRuleKey] = [
+            'tree' => \App\Support\CropCatalog::isPerennial($cropRuleKey),
+            'counters' => \App\Support\CropCatalog::countersFor($cropRuleKey),
+            'maturity' => \App\Support\CropCatalog::maturity($cropRuleKey),
+        ];
+    }
+@endphp
+const CROP_RULES = @json($cropRules);
+
+{{-- Old names, so a lot recorded before the catalogue was split still finds
+     its crop. --}}
+const CROP_RENAMED = @json(\App\Support\CropCatalog::RENAMED);
+
+/** A stored crop key as the catalogue knows it today. */
+function cropKey(stored) {
+    const k = String(stored || '').trim().toLowerCase();
+    if (!k) return '';
+    if (CROP_RULES[k]) return k;
+    return CROP_RENAMED[k] || k;
+}
+
+const DAY_TYPE_WORDS = {
+    DAT: 'DAS then DAT — sown, then transplanted',
+    DAS: 'DAS only — direct seeded, never transplanted',
+    DAP: 'DAP — planted (corn, vegetables)',
+    TREE: 'Mature trees — no day count, read by age',
+};
+
+/**
+ * Fit the day counter to the crop.
+ *
+ * `keep` is passed when the form is merely being filled from a saved lot, so
+ * its own answer survives; on a crop change it is left out and the counter
+ * moves to how that crop is actually grown.
+ */
+function fitLotCrop(cropKey, keep) {
+    const rule = CROP_RULES[cropKey] || null;
+    const sel = $('#lotDayType');
+    const allow = rule
+        ? (rule.tree ? ['TREE'] : (rule.counters || ['DAT', 'DAS', 'DAP']))
+        : ['DAT', 'DAS', 'DAP', 'TREE'];
+
+    const want = (keep && allow.includes(keep)) ? keep : allow[0];
+    sel.html(allow.map((k) =>
+        `<option value="${k}"${k === want ? ' selected' : ''}>${DAY_TYPE_WORDS[k] || k}</option>`).join(''));
+    sel.val(want).trigger('change');
+
+    // The crop's usual duration as the placeholder: leaving the box alone is
+    // then an answer rather than a gap.
+    const box = $('#lotDaysToMaturity');
+    if (rule && !rule.tree && rule.maturity) {
+        box.attr('placeholder', rule.maturity + ' — the usual for this crop');
+        $('#lotMaturityHint').text('Leave it empty and ' + rule.maturity
+            + ' days is assumed. Varieties are sold by their duration — put yours in and every stage moves with it.');
+    } else {
+        box.attr('placeholder', 'e.g. 115');
+        $('#lotMaturityHint').text('');
+    }
+}
+
+$(document).on('change', '#lotCrop', function () {
+    // No `keep`: choosing a crop is choosing how it is grown.
+    fitLotCrop($(this).val(), null);
+});
+
+/**
+ * What a lot already is, when it is being edited.
+ *
+ * The three that decide the counting are not offered on an existing lot, and
+ * a form that simply omits the crop reads as a lot that has none — so it is
+ * said in a line instead.
+ */
+function lockLotFixed(isEdit, cropKey, dayType, maturity) {
+    $('.js-lot-once').toggleClass('d-none', !!isEdit);
+    $('#lotOnceNotice').toggleClass('d-none', !!isEdit);
+    $('#lotFixedSays').toggleClass('d-none', !isEdit);
+    if (!isEdit) return;
+
+    const crop = CROP_CATALOGUE[cropKey];
+    const rule = CROP_RULES[cropKey];
+    const bits = [];
+    bits.push(crop ? `${crop.icon || ''} ${crop.label}`.trim() : 'No crop set');
+    bits.push(DAY_TYPE_WORDS[dayType] || dayType || 'counter not set');
+    if (rule && rule.tree) {
+        bits.push('read by the trees’ age');
+    } else if (maturity) {
+        bits.push(maturity + ' days to maturity');
+    } else if (rule && rule.maturity) {
+        bits.push(rule.maturity + ' days to maturity (the crop’s usual)');
+    }
+
+    $('#lotFixedText').html('<strong>Set when this lot was made and not changed here:</strong> '
+        + bits.map(escapeHtml).join(' &middot; '));
+}
+
 /* ---- where a lot is: two lists rather than two typing boxes ----
    Town and province are what the forecast is looked up by, so a province
    spelled the way somebody actually spells it is a lot with no weather and
@@ -156,7 +262,7 @@ function renderLotRow(lot) {
     const variety = (lot.variety || '').trim();
     // Crop, variety and place — the same three the server-rendered row shows,
     // because a row that changes shape after a save reads as a bug.
-    const cropInfo = CROP_CATALOGUE[(lot.crop || '').trim()] || null;
+    const cropInfo = CROP_CATALOGUE[cropKey(lot.crop)] || null;
     const address = [
         lot.locBarangay ? 'Brgy. ' + String(lot.locBarangay).trim() : '',
         lot.locZone ? 'Zone ' + String(lot.locZone).trim() : '',
@@ -223,7 +329,8 @@ $('#addLotBtn').on('click', function () {
     $('#lotSizeUnit').val('hectare');
     $('#lotVariety').val('');
     $('#lotCrop').val('');
-    $('#lotDayType').val('DAT');
+    fitLotCrop('', 'DAT');
+    lockLotFixed(false);
     $('#lotLocBarangay').val('');
     $('#lotLocZone').val('');
 
@@ -247,8 +354,12 @@ $(document).on('click', '.edit-lot-btn', function () {
     $('#lotSize').val($(this).data('size'));
     $('#lotSizeUnit').val($(this).data('unit'));
     $('#lotVariety').val($(this).data('variety') || '');
-    $('#lotCrop').val($(this).data('crop') || '');
-    $('#lotDayType').val($(this).data('day-type') || 'DAT');
+    $('#lotCrop').val(cropKey($(this).data('crop')));
+    // Filled from the lot, so `keep` is passed — its own counter survives
+    // rather than being moved to the crop's usual one.
+    fitLotCrop(cropKey($(this).data('crop')), $(this).data('day-type') || 'DAT');
+    lockLotFixed(true, cropKey($(this).data('crop')), $(this).data('day-type') || '',
+        $(this).data('days-to-maturity') || '');
     $('#lotLocBarangay').val($(this).data('loc-barangay') || '');
     $('#lotLocZone').val($(this).data('loc-zone') || '');
     setLotPlace($(this).data('loc-province') || '', $(this).data('loc-town') || '');

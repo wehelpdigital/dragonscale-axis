@@ -488,6 +488,46 @@ class CropCatalog
     ];
 
     /** Does this crop live for years, and count its age rather than its days? */
+    /**
+     * Crops recorded under a name this list no longer uses.
+     *
+     * `corn` is the one that matters: this catalogue splits it into yellow,
+     * sweet and glutinous, so lots recorded before the split match nothing.
+     * The Tagalog names are from before there was a list to pick from.
+     *
+     * A twin of the farmer app's CropStages::RENAMED — both sides read the
+     * same rows, so both have to know the same old names.
+     */
+    public const RENAMED = [
+        'corn' => 'corn_yellow',
+        'mais' => 'corn_yellow',
+        'palay' => 'rice',
+        'saging' => 'banana',
+        'mangga' => 'mango',
+        'niyog' => 'coconut',
+        'tubo' => 'sugarcane',
+        'gulay' => 'vegetables',
+    ];
+
+    /**
+     * A stored crop key as this catalogue knows it.
+     *
+     * Everything that looks a crop up should come through here, or a lot
+     * recorded under an old name reads as a lot with no crop at all.
+     */
+    public static function normalize(?string $crop): ?string
+    {
+        $crop = strtolower(trim((string) $crop));
+        if ($crop === '') {
+            return null;
+        }
+        if (isset(self::CROPS[$crop])) {
+            return $crop;
+        }
+
+        return self::RENAMED[$crop] ?? null;
+    }
+
     public static function isPerennial(?string $key): bool
     {
         return ($key && isset(self::CROPS[$key]))

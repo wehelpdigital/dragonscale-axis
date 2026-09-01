@@ -80,14 +80,8 @@ class LotController extends BaseScheduleController
             'lotSize'     => 'required|numeric|min:0',
             'lotSizeUnit' => 'required|string|max:50',
             'variety'        => 'nullable|string|max:255',
-            // The farmer app writes these three; the admin can now set them
-            // too, which is what makes growth stages and the forecast
-            // manageable from this side.
-            'crop'           => 'nullable|string|max:80',
-            // TREE is the fourth: an orchard keeps no day count and is
-            // read by the tree's age instead.
-            'dayType'        => 'nullable|in:DAS,DAT,DAP,TREE',
-            'daysToMaturity' => 'nullable|integer|min:1|max:2000',
+            // crop, dayType and daysToMaturity are NOT here. They are settled
+            // when the lot is made — see the note on the write below.
             'treePlantedAt'  => 'nullable|date',
             'pinLat'         => 'nullable|numeric|between:-90,90',
             'pinLng'         => 'nullable|numeric|between:-180,180',
@@ -110,15 +104,27 @@ class LotController extends BaseScheduleController
             'lotSize'     => $request->lotSize,
             'lotSizeUnit' => $request->lotSizeUnit,
             'variety'        => $request->filled('variety') ? trim($request->variety) : null,
-            'crop'           => $request->filled('crop') ? trim($request->crop) : null,
-            'dayType'        => $request->filled('dayType') ? $request->dayType : 'DAT',
+            /* crop, dayType and daysToMaturity are absent on purpose.
+             *
+             * They are answered when the lot is made and never again. Every
+             * date on the board is derived from them, so changing one would
+             * not move the plan — it would quietly change what the plan means,
+             * on a season already being worked.
+             *
+             * Ignored rather than refused: a screen posting the whole form it
+             * has is not misbehaving, and failing an entire save over a field
+             * nobody meant to change would be the worse answer. The reply
+             * carries what is actually stored, so anything that thought
+             * otherwise is corrected by it.
+             */
             'locBarangay'    => $request->filled('locBarangay') ? trim($request->locBarangay) : null,
             'locZone'        => $request->filled('locZone') ? trim($request->locZone) : null,
             'locTown'        => $request->filled('locTown') ? trim($request->locTown) : null,
             'locProvince'    => $request->filled('locProvince') ? trim($request->locProvince) : null,
             'dayZeroDate'    => $request->filled('dayZeroDate') ? $request->dayZeroDate : null,
             'transplantDate' => $request->filled('transplantDate') ? $request->transplantDate : null,
-            'daysToMaturity' => $request->filled('daysToMaturity') ? (int) $request->daysToMaturity : null,
+            // The trees' age is not one of the three: nobody knows the day an
+            // orchard went in, so this one may still be corrected.
             'treePlantedAt'  => $request->filled('treePlantedAt') ? $request->treePlantedAt : null,
             'pinLat'         => $request->filled('pinLat') ? (float) $request->pinLat : null,
             'pinLng'         => $request->filled('pinLng') ? (float) $request->pinLng : null,
