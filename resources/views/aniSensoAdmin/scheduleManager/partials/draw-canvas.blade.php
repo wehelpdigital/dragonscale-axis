@@ -434,6 +434,13 @@
 
 <script>
 (function drawPad() {
+    /* The pad is written inside the Draw tab's pane, and a Bootstrap tab pane
+       that is not the active one is display:none — which hides everything in
+       it, fixed and full-screen included. A drawing opened from a note would
+       have drawn nowhere. Onto the body, once. */
+    const padHost = document.getElementById('drawModal');
+    if (padHost && padHost.parentElement !== document.body) document.body.appendChild(padHost);
+
     if (window.__drawPadBound) return;
     window.__drawPadBound = true;
 

@@ -79,7 +79,8 @@ class NoteController extends BaseScheduleController
             ->where('scheduleId', $schedule->id)
             ->where('deleteStatus', 1)
             ->whereNotNull('noteId')
-            ->pluck('id', 'noteId')
+            ->get(['id', 'title', 'noteId'])
+            ->keyBy('noteId')
             ->all();
 
         try {
@@ -174,8 +175,13 @@ class NoteController extends BaseScheduleController
                 'shelf' => $shelf,
                 'noteId' => $noteId,
                 'url' => $url,
-                'name' => (string) ($m['title'] ?? AnisystemMedia::basename((string) ($m['path'] ?? ''))),
-                'saveId' => $kind === 'map' ? (int) ($mapSaves[$noteId] ?? 0) : 0,
+                // What the thing is CALLED. A map's name is the save's, because
+                // that is what a person named and what the window opening on
+                // it should say; a file's name is an accident of the disk.
+                'name' => $kind === 'map' && isset($mapSaves[$noteId])
+                    ? (string) ($mapSaves[$noteId]->title ?: 'Untitled map')
+                    : (string) ($m['title'] ?? AnisystemMedia::basename((string) ($m['path'] ?? ''))),
+                'saveId' => $kind === 'map' ? (int) ($mapSaves[$noteId]->id ?? 0) : 0,
             ];
         }
 

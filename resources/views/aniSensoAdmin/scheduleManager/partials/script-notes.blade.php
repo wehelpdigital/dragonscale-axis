@@ -159,14 +159,17 @@ function openDrawingFromNote(shelf, noteId, index) {
 }
 
 // A map opens in the map window, on the plan this note is about.
+//
+// Straight through the Maps module's own door. It used to switch tabs and
+// then click that map's row after a third of a second — but the list those
+// rows come from is still being fetched then, so the click landed on nothing
+// and you got the list instead of the map.
 function openMapFromNote(saveId, name) {
-    if (!window.cmapOpenSave) {
-        toastr.error('The map needs a Google Maps key before it can open.');
+    if (!window.smOpenMapSave) {
+        toastr.error('The Maps module is not on this page.');
         return;
     }
-    // The Maps tab owns the window; this asks it to show that plan.
-    $('.sm-tabs a[href="#tab-maps"]').tab('show');
-    setTimeout(() => $(`.js-mp-load[data-id="${saveId}"]`).trigger('click'), 350);
+    window.smOpenMapSave(saveId, name);
 }
 
 function draw() {

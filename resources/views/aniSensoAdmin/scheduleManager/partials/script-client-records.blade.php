@@ -137,6 +137,10 @@ onFirstShow('#tab-maps', loadMaps);
 // measures it as nothing and keeps that size until told to look again.
 // shown.bs.modal is the first moment the window has a size.
 const mpModalEl = document.getElementById('mpEditModal');
+// Out of the Maps tab and onto the body. A tab pane that is not the active
+// one is display:none, and that hides everything inside it however fixed and
+// full-screen it is — so a map opened from Notes was drawn nowhere.
+if (mpModalEl && mpModalEl.parentElement !== document.body) document.body.appendChild(mpModalEl);
 const mpModal = mpModalEl ? new bootstrap.Modal(mpModalEl) : null;
 
 if (mpModalEl) {
@@ -279,14 +283,24 @@ function paintMap() { drawMap(openMap.objects); drawShapeList(openMap.objects); 
 // The window is opened first and the load run after it is up, because the
 // engine cannot fit a map to a container that has no size yet — and because
 // the veil it raises while swapping is worth seeing.
-$(document).on('click', '.js-mp-load', function () {
-    const b = $(this);
+/**
+ * Open a saved map in the window, by id.
+ *
+ * A door rather than a click to simulate: a note's Map chip needs this too,
+ * and the row it would have clicked lives in a list that may not have been
+ * fetched yet — which is how opening a map from a note produced the Maps
+ * list and no map.
+ *
+ * The window goes up first and the load runs once it is up: the engine
+ * cannot fit a map to a container with no size, and the veil it raises while
+ * swapping is worth seeing.
+ */
+window.smOpenMapSave = function (id, name) {
     if (!window.initCollabMap) {
         toastr.error('The map needs a Google Maps key before it can open.');
         return;
     }
 
-    const id = b.data('id'), name = b.data('title');
     openMapWindow(name);
 
     const run = () => {
@@ -298,9 +312,12 @@ $(document).on('click', '.js-mp-load', function () {
             .then(() => loadMaps());
     };
 
-    // If the window is already up, go now; otherwise wait for it to be.
     if (mpModalEl.classList.contains('show')) run();
     else mpModalEl.addEventListener('shown.bs.modal', run, { once: true });
+};
+
+$(document).on('click', '.js-mp-load', function () {
+    window.smOpenMapSave($(this).data('id'), $(this).data('title'));
 });
 
 $(document).on('click', '.js-mp-open', function () {
