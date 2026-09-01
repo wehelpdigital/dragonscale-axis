@@ -4,6 +4,11 @@
 
 @section('css')
 <style> #membersTable td { vertical-align: middle; } .avatar-chip { width:38px;height:38px;border-radius:50%;background:#556ee6;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:13px; } </style>
+
+{{-- The mode layer, last in the head so it answers after the rules
+     above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')

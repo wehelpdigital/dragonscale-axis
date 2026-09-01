@@ -16,6 +16,11 @@
     .cf-fig b { display: block; font-size: 17px; font-weight: 700; line-height: 1.2; color: #556ee6; }
     .cf-fig span { font-size: 11.5px; color: #98a4b6; }
 </style>
+
+{{-- The mode layer, last in the head so it answers after the rules
+     above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')

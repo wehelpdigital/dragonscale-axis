@@ -211,31 +211,49 @@ File: Main Js File
         });
     }
 
+    /* Where the choice is kept. localStorage, because a theme is a
+       preference and not a thing about this tab; sessionStorage stays as the
+       fallback for a browser that refuses it (private windows do). */
+    function themeStore() {
+        try {
+            if (window.localStorage) { localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); return localStorage; }
+        } catch (e) { /* fall through */ }
+        return window.sessionStorage || null;
+    }
+
     function initSettings() {
-        if (window.sessionStorage) {
-            var alreadyVisited = sessionStorage.getItem("is_visited");
+        var store = themeStore();
+        if (store) {
+            var alreadyVisited = store.getItem("is_visited")
+                // A choice made before this moved house is still a choice.
+                || (window.sessionStorage && sessionStorage.getItem("is_visited"));
             if (!alreadyVisited) {
                 if ($('html').attr('dir') === 'rtl' && $('html').attr('data-bs-theme') === 'dark') {
                     $("#dark-rtl-mode-switch").prop('checked', true);
                     $("#light-mode-switch").prop('checked', false);
-                    sessionStorage.setItem("is_visited", "dark-rtl-mode-switch");
+                    themeStore() && themeStore().setItem("is_visited", "dark-rtl-mode-switch");
                     updateThemeSetting(alreadyVisited);
                 }else if ($('html').attr('dir') === 'rtl') {
                     $("#rtl-mode-switch").prop('checked', true);
                     $("#light-mode-switch").prop('checked', false);
-                    sessionStorage.setItem("is_visited", "rtl-mode-switch");
+                    themeStore() && themeStore().setItem("is_visited", "rtl-mode-switch");
                     updateThemeSetting(alreadyVisited);
                 }else if ($('html').attr('data-bs-theme') === 'dark') {
                     $("#dark-mode-switch").prop('checked', true);
                     $("#light-mode-switch").prop('checked', false);
-                    sessionStorage.setItem("is_visited", "dark-mode-switch");
+                    themeStore() && themeStore().setItem("is_visited", "dark-mode-switch");
                     updateThemeSetting(alreadyVisited);
                 } else {
-                    sessionStorage.setItem("is_visited", "light-mode-switch");
+                    themeStore() && themeStore().setItem("is_visited", "light-mode-switch");
                 }
             } else {
                 $(".right-bar input:checkbox").prop('checked', false);
                 $("#" + alreadyVisited).prop('checked', true);
+                // ...and then actually apply it. Ticking the box in the
+                // settings bar was the whole of what happened here, so the
+                // switch said Dark and every page after the first was drawn
+                // light.
+                updateThemeSetting(alreadyVisited);
             }
         }
         $("#light-mode-switch, #dark-mode-switch, #rtl-mode-switch, #dark-rtl-mode-switch").on("change", function (e) {
@@ -261,7 +279,7 @@ File: Main Js File
             $('html').attr('data-bs-theme', 'light');
             if($("#app-style").attr('href') != 'build/css/app.min.css')
             $("#app-style").attr('href', 'build/css/app.min.css');
-            sessionStorage.setItem("is_visited", "light-mode-switch");
+            themeStore() && themeStore().setItem("is_visited", "light-mode-switch");
         } else if ($("#dark-mode-switch").prop("checked") == true && id === "dark-mode-switch") {
             $("html").removeAttr("dir");
             $("#light-mode-switch").prop("checked", false);
@@ -272,7 +290,7 @@ File: Main Js File
                 $("#bootstrap-style").attr('href', 'build/css/bootstrap.min.css');
             if($("#app-style").attr('href') != 'build/css/app.min.css')
                 $("#app-style").attr('href', 'build/css/app.min.css');
-            sessionStorage.setItem("is_visited", "dark-mode-switch");
+            themeStore() && themeStore().setItem("is_visited", "dark-mode-switch");
         } else if ($("#rtl-mode-switch").prop("checked") == true && id === "rtl-mode-switch") {
             $("#light-mode-switch").prop("checked", false);
             $("#dark-mode-switch").prop("checked", false);
@@ -283,7 +301,7 @@ File: Main Js File
                 $("#app-style").attr('href', 'build/css/app-rtl.min.css');
             $("html").attr("dir", 'rtl');
             $('html').attr('data-bs-theme', 'light');
-            sessionStorage.setItem("is_visited", "rtl-mode-switch");
+            themeStore() && themeStore().setItem("is_visited", "rtl-mode-switch");
         }
         else if ($("#dark-rtl-mode-switch").prop("checked") == true && id === "dark-rtl-mode-switch") {
             $("#light-mode-switch").prop("checked", false);
@@ -295,7 +313,7 @@ File: Main Js File
                 $("#app-style").attr('href', 'build/css/app-rtl.min.css');
             $("html").attr("dir", 'rtl');
             $('html').attr('data-bs-theme', 'dark');
-            sessionStorage.setItem("is_visited", "dark-rtl-mode-switch");
+            themeStore() && themeStore().setItem("is_visited", "dark-rtl-mode-switch");
         }
     }
 

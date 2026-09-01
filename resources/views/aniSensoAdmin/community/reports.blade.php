@@ -14,6 +14,11 @@
     .rp-note { font-size: .8125rem; color: #6c757d; margin-top: .25rem; }
     .rp-tabs .btn { text-transform: none; }
 </style>
+
+{{-- The mode layer, last in the head so it answers after the rules
+     above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')

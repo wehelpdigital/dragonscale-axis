@@ -66,6 +66,11 @@
     }
     .aia-gone { font-size:11.5px; }
 </style>
+
+{{-- The mode layer, last in the head so it answers after the rules
+     above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')

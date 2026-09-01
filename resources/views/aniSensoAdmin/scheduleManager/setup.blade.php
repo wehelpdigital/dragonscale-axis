@@ -782,6 +782,11 @@
     }
     @keyframes setupLoaderSpin { to { transform: rotate(360deg); } }
 </style>
+
+{{-- The mode layer goes last in the head, so it answers after every
+     rule above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')

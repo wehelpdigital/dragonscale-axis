@@ -33,6 +33,11 @@
     .bb-frame { width: 100%; height: 74vh; border: 1px solid #e6e8ec; border-radius: 12px; background: #fff; }
     .bb-link { font-size: 11.5px; word-break: break-all; color: #74788d; }
 </style>
+
+{{-- The mode layer, last in the head so it answers after the rules
+     above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')

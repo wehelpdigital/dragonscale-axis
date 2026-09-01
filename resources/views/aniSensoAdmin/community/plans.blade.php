@@ -8,6 +8,11 @@
     #plansTable td { vertical-align: middle; }
     .rate-stars { color: #f1b44c; letter-spacing: 1px; }
 </style>
+
+{{-- The mode layer, last in the head so it answers after the rules
+     above it. --}}
+@include('aniSensoAdmin.partials.dark')
+
 @endsection
 
 @section('content')
