@@ -329,6 +329,12 @@ Route::put('/anisenso-schedule-manager-records-map-save',          [App\Http\Con
 Route::put('/anisenso-schedule-manager-records-map-rename',        [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapRename'])->name('anisenso-schedule-manager.records.map.rename')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-records-map-delete',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapDestroy'])->name('anisenso-schedule-manager.records.map.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-records-drawings',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'drawings'])->name('anisenso-schedule-manager.records.drawings')->middleware('auth');
+
+/* Opening a client's drawing in the pad, and putting the changed one back. */
+Route::get('/anisenso-schedule-manager-records-drawing-one',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DrawController::class, 'one'])->name('anisenso-schedule-manager.records.drawing.show')->middleware('auth');
+Route::get('/anisenso-schedule-manager-records-drawing-image',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DrawController::class, 'picture'])->name('anisenso-schedule-manager.records.drawing.image')->middleware('auth');
+Route::post('/anisenso-schedule-manager-records-drawing-save',    [App\Http\Controllers\aniSensoAdmin\ScheduleManager\DrawController::class, 'save'])->name('anisenso-schedule-manager.records.drawing.save')->middleware('auth');
+
 Route::delete('/anisenso-schedule-manager-records-drawing-delete', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'drawingDestroy'])->name('anisenso-schedule-manager.records.drawing.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-records-ai',                [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'ai'])->name('anisenso-schedule-manager.records.ai')->middleware('auth');
 Route::get('/anisenso-schedule-manager-records-ai-one',            [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiShow'])->name('anisenso-schedule-manager.records.ai.show')->middleware('auth');

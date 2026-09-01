@@ -377,6 +377,10 @@ function loadDrawings(failed) {
                     <div class="dw-title">${esc(r.noteTitle || 'Untitled note')}</div>
                     <div class="dw-meta">${r.team ? 'Team board' : 'Drawing pad'}${r.when ? ' · ' + esc(r.when) : ''}</div>
                     <div class="dw-acts">
+                        <button class="btn btn-sm btn-primary js-dw-edit"
+                                data-shelf="${esc(r.shelf)}" data-note="${r.noteId}" data-index="${r.index}"
+                                data-title="${esc(r.noteTitle || '')}" data-team="${r.team ? 1 : 0}"
+                                title="Open it in the drawing pad"><i class="bx bx-edit-alt"></i> Edit</button>
                         <button class="btn btn-sm btn-light js-dw-note" data-shelf="${esc(r.shelf)}" data-id="${r.noteId}">Its note</button>
                         <button class="btn btn-sm btn-outline-danger js-dw-del"
                                 data-shelf="${esc(r.shelf)}" data-note="${r.noteId}" data-index="${r.index}"><i class="bx bx-trash"></i></button>
@@ -424,6 +428,72 @@ $(document).on('click', '.js-dw-del', function () {
         data: { _token: CSRF },
         success: (res) => { res.success ? (toastr.success(res.message), loadDrawings()) : toastr.error(res.message); },
         error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Delete failed')
+    });
+});
+
+// ---- editing a drawing ------------------------------------------------
+// Read it first. A drawing filed as a flat picture has no strokes, and the
+// pad opens that as a backdrop to draw over — which is a different thing
+// from editing, so the difference is said out loud rather than discovered.
+$(document).on('click', '.js-dw-edit', function () {
+    const b = $(this);
+    if (typeof window.openDrawCanvas !== 'function') {
+        toastr.error('The drawing pad is not on this page.');
+        return;
+    }
+
+    const shelf = b.data('shelf'), noteId = b.data('note'), index = b.data('index');
+
+    // The farmer app refuses this outright and copies instead. The console may
+    // — an admin correcting a client's record is what it is for — but a team's
+    // board is a room's agreement, so it is asked about by name rather than
+    // rewritten on a reflex.
+    if (b.data('team') && !confirm(
+        `“${b.data('title') || 'This board'}” is a team whiteboard — what is on it is what the room agreed.\n\n`
+        + 'Saving will replace it for everyone. Continue?')) return;
+
+    b.prop('disabled', true);
+
+    smGet(`${CR}-drawing-one${SQ}&shelf=${encodeURIComponent(shelf)}&noteId=${noteId}&index=${index}`, function (res) {
+        b.prop('disabled', false);
+        if (!res.success) { toastr.error(res.message); return; }
+        const d = res.data;
+        if (!d.editable) {
+            toastr.info('This one was filed as a flat picture — the pad opens it to draw over, not to change what is under.');
+        }
+
+        window.openDrawCanvas((dataUrl, objects) => {
+            $.ajax({
+                url: `${CR}-drawing-save${SQ}`,
+                type: 'POST',
+                data: {
+                    _token: CSRF,
+                    shelf, noteId, index,
+                    image: dataUrl,
+                    // What was drawn WITH, so the next person to open it gets
+                    // the shapes back and not a photograph of them.
+                    strokes: objects ? JSON.stringify(objects) : null,
+                    title: d.title || '',
+                    note: d.note || '',
+                },
+                success: (out) => {
+                    out.success ? (toastr.success(out.message), loadDrawings()) : toastr.error(out.message);
+                },
+                error: (xhr) => toastr.error(xhr.responseJSON?.message || 'That did not save.')
+            });
+        }, d.url || null, {
+            editable: true,
+            objects: d.strokes || null,
+            title: d.title || 'Drawing',
+            // Saving replaces the drawing that was opened; the pad says so on
+            // its own save button rather than leaving it to be found out.
+            overwrite: true,
+            overwriteLabel: d.title ? `“${d.title}”` : 'the one you opened',
+            scheduleId: SCHEDULE_ID,
+        });
+    }).fail(() => {
+        b.prop('disabled', false);
+        toastr.error('Could not read that drawing.');
     });
 });
 

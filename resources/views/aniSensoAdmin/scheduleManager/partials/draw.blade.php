@@ -23,9 +23,9 @@
     <div>
         <h5 class="text-dark mb-1">Draw</h5>
         <small class="text-secondary">
-            What was sketched on this season, from the drawing pad and from the team board. A
-            drawing lives inside the note that holds it, so its name is that note's — fix it in
-            <strong>Notes</strong>.
+            What was sketched on this season, from the drawing pad and from the team board.
+            Editing one opens the same pad the client draws in, and what you save replaces the
+            drawing on their note.
         </small>
     </div>
     <button type="button" class="btn btn-light btn-sm" id="dwReload"><i class="bx bx-refresh"></i> Refresh</button>
@@ -57,3 +57,7 @@
         </div>
     </div>
 </div>
+
+{{-- The pad itself. Included once, and opened by name — it is a full-screen
+     surface of its own rather than something living in this tab. --}}
+@include('aniSensoAdmin.scheduleManager.partials.draw-canvas')
