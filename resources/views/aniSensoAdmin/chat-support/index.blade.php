@@ -367,6 +367,31 @@
     color: #495057;
     margin-bottom: 0.5rem;
 }
+
+/* IN THE DARK. Every panel in this page is a hard white, so the whole
+   conversation went white-on-white when the switch was thrown: names at
+   1.08:1, timestamps at 2.07:1, and the empty-state heading invisible. */
+[data-bs-theme="dark"] .chat-sidebar,
+[data-bs-theme="dark"] .chat-window,
+[data-bs-theme="dark"] .chat-sidebar-header,
+[data-bs-theme="dark"] .chat-window-header,
+[data-bs-theme="dark"] .chat-input-area,
+[data-bs-theme="dark"] .conversation-item { background: #2a3042; border-color: #39405a; }
+[data-bs-theme="dark"] .chat-messages,
+[data-bs-theme="dark"] .chat-empty { background: #222736; }
+[data-bs-theme="dark"] .conversation-item:hover { background: #313850; }
+[data-bs-theme="dark"] .conversation-item.active { background: #384063; }
+[data-bs-theme="dark"] .chat-sidebar .text-dark,
+[data-bs-theme="dark"] .chat-window .text-dark,
+[data-bs-theme="dark"] .chat-sidebar h5,
+[data-bs-theme="dark"] .chat-window h5 { color: #e5e9f3 !important; }
+[data-bs-theme="dark"] .chat-sidebar .text-secondary,
+[data-bs-theme="dark"] .chat-window .text-secondary,
+[data-bs-theme="dark"] .time { color: #9aa2ba !important; }
+
+
+[data-bs-theme="dark"] .conversation-preview { color: #9aa2ba; }
+
 </style>
 @endsection
 

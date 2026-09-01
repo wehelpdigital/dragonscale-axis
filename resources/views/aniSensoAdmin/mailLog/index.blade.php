@@ -20,6 +20,31 @@
     .ml-when { white-space:nowrap; font-size:12.5px; color:#74788d; }
     .ml-warn { border-left:3px solid #f1b44c; background:#fff9ee; padding:12px 14px; border-radius:6px;
         font-size:13px; color:#7a5b1e; margin-bottom:16px; }
+
+/* IN THE DARK.
+   .ml-to was #2a3042 — the exact colour a card becomes when the switch is
+   thrown — so every recipient name was painted in the background: 1.00:1, not
+   faint but gone. */
+[data-bs-theme="dark"] .ml-to { color: #e5e9f3; }
+[data-bs-theme="dark"] .ml-sub { color: #9aa2ba; }
+[data-bs-theme="dark"] .ml-card,
+[data-bs-theme="dark"] .ml-panel { background: #2a3042; border-color: #39405a; }
+
+
+/* The counters at the top of the page keep a near-white tile in the dark. */
+[data-bs-theme="dark"] .ml-stat { background: #262c3c; border-color: #39405a; }
+[data-bs-theme="dark"] .ml-stat b { color: #e5e9f3; }
+[data-bs-theme="dark"] .ml-stat span,
+[data-bs-theme="dark"] .ml-key,
+[data-bs-theme="dark"] .ml-when { color: #9aa2ba; }
+[data-bs-theme="dark"] .ml-stat.is-on { background: #2c3a24; border-color: #45603a; }
+[data-bs-theme="dark"] .ml-warn { background: #2c2517; border-color: #4a3d1c; }
+
+
+/* The failure reason, which is the one line on this page somebody is actually
+   hunting for. #f46a6a is 4.45:1 on a dark card — under by a rounding error. */
+[data-bs-theme="dark"] .ml-why { color: #ff9494; }
+
 </style>
 @endsection
 

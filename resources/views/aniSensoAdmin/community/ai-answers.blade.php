@@ -50,7 +50,8 @@
         font-size:12.5px; font-weight:500; color:#495057; background:#fff; cursor:pointer;
     }
     .aia-tabs .nav-link:hover { background:#eef2ff; color:#2c3e8c; }
-    .aia-tabs .nav-link.active { background:#556ee6; border-color:#556ee6; color:#fff; }
+        /* The same blue the buttons stepped down to: white on #556ee6 is 4.41:1. */
+    .aia-tabs .nav-link.active { background:#4c65e0; border-color:#4c65e0; color:#fff; }
     .aia-tabs .nav-link .badge { font-size:10.5px; font-weight:600; background:#eef1f6; color:#495057; }
     .aia-tabs .nav-link.active .badge { background:rgba(255,255,255,.85); color:#2c3e8c; }
 

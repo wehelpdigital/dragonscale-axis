@@ -19,6 +19,15 @@
     .item-card.disabled {
         opacity: 0.55;
     }
+
+/* IN THE DARK. The card is painted white here, so `.text-dark` inside it —
+   which becomes near-white when the switch is thrown — went to 1.08:1. The
+   surface moves rather than the ink: a panel that asked to be white asked for
+   "the card colour", and in the dark that is not white. */
+[data-bs-theme="dark"] .item-card { background: #2a3042; border-color: #39405a; }
+[data-bs-theme="dark"] .item-card .text-dark { color: #e5e9f3 !important; }
+[data-bs-theme="dark"] .item-card .text-secondary { color: #9aa2ba !important; }
+
 </style>
 @endsection
 
@@ -93,6 +102,12 @@
                         </div>
                     </div>
                     @endforelse
+
+                    {{-- Shown only when there is more than one page, so a farm
+                         with six quotes is not given navigation for nothing. --}}
+                    @if($testimonials->hasPages())
+                        <div class="mt-3">{{ $testimonials->links() }}</div>
+                    @endif
                 </div>
             </div>
         </div>

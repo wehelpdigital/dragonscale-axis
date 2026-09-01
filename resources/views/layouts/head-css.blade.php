@@ -1250,3 +1250,7 @@ body.sidebar-enable #vertical-menu-btn i {
     }
 }
 </style>
+
+{{-- Last, so it wins on order rather than on !important. Everything in it was
+     measured on a real page rather than guessed at. --}}
+@include('layouts.theme-contrast')

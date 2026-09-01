@@ -11,7 +11,8 @@
         display: inline-flex; align-items: center; gap: .35rem; text-decoration: none;
     }
     .cm-shelf a:hover { background: #eef2ff; border-color: #c7d2fe; color: #2c3e8c; }
-    .cm-shelf a.is-on { background: #556ee6; border-color: #556ee6; color: #fff; }
+    /* The same blue the buttons stepped down to: white on #556ee6 is 4.41:1. */
+    .cm-shelf a.is-on { background: #4c65e0; border-color: #4c65e0; color: #fff; }
     .cm-shelf .badge { font-size: 10.5px; font-weight: 600; background: #eef1f6; color: #495057; }
     .cm-shelf a.is-on .badge { background: rgba(255,255,255,.9); color: #2c3e8c; }
 </style>

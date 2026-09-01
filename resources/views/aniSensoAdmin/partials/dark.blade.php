@@ -286,7 +286,7 @@
 /* ---- the community's shelf and its screens ---- */
 [data-bs-theme="dark"] .cm-shelf a { background: var(--sm-surface); border-color: var(--sm-line); color: var(--sm-text); }
 [data-bs-theme="dark"] .cm-shelf a:hover { background: #333b52; border-color: #4a5474; color: #fff; }
-[data-bs-theme="dark"] .cm-shelf a.is-on { background: #556ee6; border-color: #556ee6; color: #fff; }
+[data-bs-theme="dark"] .cm-shelf a.is-on { background: #4c65e0; border-color: #4c65e0; color: #fff; }
 [data-bs-theme="dark"] .cm-shelf .badge { background: #3a4258; color: var(--sm-text); }
 [data-bs-theme="dark"] .cf-name { color: var(--sm-text); }
 [data-bs-theme="dark"] .cf-arrow { color: var(--sm-dim); }

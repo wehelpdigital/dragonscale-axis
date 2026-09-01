@@ -11,6 +11,10 @@
     .system-badge { background: #556ee6; color: #fff; font-size: 11px; }
     .client-detail-label { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #74788d; margin-bottom: 2px; }
     #clientsTable td { vertical-align: middle; }
+
+/* The same blue the buttons stepped down to, so white reads on it. */
+.badge.system-badge { background-color: #4c65e0 !important; }
+
 </style>
 @endsection
 

@@ -13,10 +13,16 @@ class TestimonialsController extends Controller
 {
     public function index()
     {
+        /* Paginated, because this list only ever grows.
+         *
+         * The order matters more than usual here — testimonialOrder is what
+         * decides which quotes appear on the website — so the page size is
+         * generous enough that reordering rarely spans two pages. */
         $testimonials = AsTestimonial::active()
             ->orderBy('testimonialOrder')
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(24)
+            ->withQueryString();
 
         return view('aniSensoAdmin.testimonials.index', compact('testimonials'));
     }

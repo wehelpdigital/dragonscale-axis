@@ -365,6 +365,19 @@
     color: #6c757d;
     font-size: 12px;
 }
+
+/* IN THE DARK. .badge-style sets `color` on the element itself, which beats
+   the --bs-btn-color variable an outline button reads from — so the framework
+   layer could not reach these. Said here instead, where the colour is. */
+/* !important, because the page's own .btn-outline-*.badge-style rules use it —
+   which is also why the framework layer could not reach these. */
+[data-bs-theme="dark"] .badge-style.btn-outline-primary { color: #9fb0f5 !important; }
+[data-bs-theme="dark"] .badge-style.btn-outline-secondary { color: #a8b0c4 !important; }
+[data-bs-theme="dark"] .badge-style.btn-outline-dark { color: #b9c0cf !important; }
+[data-bs-theme="dark"] .badge-style.btn-outline-info { color: #7cc0f5 !important; }
+[data-bs-theme="dark"] .badge-style.btn-outline-success { color: #6ed6ae !important; }
+[data-bs-theme="dark"] .badge-style.btn-outline-danger { color: #f59b9b !important; }
+
 </style>
 @endsection
 
