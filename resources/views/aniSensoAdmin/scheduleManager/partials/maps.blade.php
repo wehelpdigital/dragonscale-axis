@@ -39,6 +39,11 @@
         color: #74788d; min-width: 3.4rem; }
     .mp-shape.is-cut { opacity: .4; }
     .mp-shape.is-cut input { text-decoration: line-through; }
+
+    /* In the window, the map takes the room the window has — the height it
+       was given for sitting in a tab would leave a band of nothing under it
+       on a tall screen. */
+    #mpEditBody #cmapWrap { height: auto; flex: 1 1 auto; min-height: 0; }
 </style>
 
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -52,27 +57,89 @@
     <button type="button" class="btn btn-light btn-sm" id="mpReload"><i class="bx bx-refresh"></i> Refresh saved maps</button>
 </div>
 
-{{-- The map itself — the same editor the client uses, over the same shapes.
-     Above the shelf, because the shelf is a filing cabinet and this is the
-     desk. --}}
-@include('aniSensoAdmin.scheduleManager.partials.map-canvas',
-    ['schedule' => $schedule, 'mapChrome' => 'admin'])
-{{-- 'admin', not 'team': the Collab Room's chrome puts a "Team map" heading
-     above the tools, because there the map is one tab among several and has
-     to say which. Here it is the whole tab and the page already says Maps.
-     Everything else the room's chrome brings — the save shelf, Clear — is
-     gated on NOT being a lot's own map, so it stays. --}}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <button type="button" class="btn btn-primary" id="mpEditLive">
+        <i class="bx bx-edit-alt me-1"></i>Edit the map
+    </button>
+    <small class="text-secondary">
+        Opens what is on their map right now. Saved plans below open into the same window.
+    </small>
+</div>
 
-<h6 class="text-dark mt-4 mb-1" style="font-size:12.5px;">
+<h6 class="text-dark mb-1" style="font-size:12.5px;">
     <i class="bx bx-folder-open me-1"></i>Saved maps
 </h6>
 <p class="text-secondary mb-2" style="font-size:11.5px;">
-    Plans filed from the canvas above. Opening one puts it back on the map — which replaces
+    Plans filed from the map. Editing one puts it back on the canvas first — which replaces
     what is drawn there now, because a saved map is a picture of a whole canvas and not a
     layer to lay over one.
 </p>
 
 <div id="mpBody"></div>
+
+{{-- ---- the map, in a window of its own ----
+     Full screen, because a map is worth the whole screen while you are
+     drawing on it and none of it while you are reading a list of them. The
+     canvas used to sit in the tab above the shelf, which meant the Maps tab
+     was mostly map and the maps were below the fold. --}}
+<div class="modal fade" id="mpEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <div class="min-w-0">
+                    <h5 class="modal-title mb-0" id="mpEditTitle">The map</h5>
+                    <small class="text-secondary">
+                        This is the client's own map — what you draw here is on theirs.
+                    </small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 d-flex flex-column" id="mpEditBody">
+                @include('aniSensoAdmin.scheduleManager.partials.map-canvas',
+                    ['schedule' => $schedule, 'mapChrome' => 'admin'])
+                {{-- 'admin', not 'team': the Collab Room's chrome puts a "Team map"
+                     heading above the tools, because there the map is one tab among
+                     several and has to say which. Here the window is the map.
+                     Everything else that chrome brings — the save menu, Clear — is
+                     gated on NOT being a lot's own map, so it stays. --}}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ---- what a saved map is called, and what it is for ---- --}}
+<div class="modal fade" id="mpMetaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0">Edit this map</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="mpMetaId">
+                <div class="mb-3">
+                    <label class="form-label" for="mpMetaTitle">Name</label>
+                    <input type="text" class="form-control" id="mpMetaTitle" maxlength="180"
+                           placeholder="e.g. North field — drainage plan">
+                </div>
+                <div class="mb-1">
+                    <label class="form-label" for="mpMetaDesc">Description</label>
+                    <textarea class="form-control" id="mpMetaDesc" rows="5" maxlength="2000"
+                              placeholder="What this map shows, and what it is for."></textarea>
+                </div>
+                <small class="text-secondary" id="mpMetaHint">
+                    A map's words live on the note filed with it, which is where the client reads them.
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="mpMetaSave">
+                    <i class="bx bx-save me-1"></i>Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="mpModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">

@@ -48,10 +48,11 @@ function loadMaps(failed) {
                     </div>
                     <div class="text-nowrap">
                         <button class="btn btn-sm btn-primary js-mp-load" data-id="${r.id}" data-title="${esc(r.title)}"
-                                title="Put this plan back on the map"><i class="bx bx-upload"></i> Open on the map</button>
+                                title="Put this plan on the canvas and open it"><i class="bx bx-edit-alt"></i> Edit the map</button>
                         <button class="btn btn-sm btn-outline-primary js-mp-open" data-id="${r.id}"
                                 title="Look at its shapes without touching the map"><i class="bx bx-shape-polygon"></i></button>
-                        <button class="btn btn-sm btn-light js-mp-rename" data-id="${r.id}" data-title="${esc(r.title)}"><i class="bx bx-pencil"></i></button>
+                        <button class="btn btn-sm btn-light js-mp-rename" data-id="${r.id}"
+                                title="Its name and what it is for"><i class="bx bx-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger js-mp-del" data-id="${r.id}"><i class="bx bx-trash"></i></button>
                     </div>
                 </div>
@@ -67,15 +68,52 @@ function loadMaps(failed) {
 
 $('#mpReload').on('click', loadMaps);
 
+// What a map is called and what it is for, in a dialog rather than a prompt.
+// Read first: a box somebody is meant to edit should arrive holding what is
+// in it now, not empty.
+const mpMetaEl = document.getElementById('mpMetaModal');
+const mpMeta = mpMetaEl ? new bootstrap.Modal(mpMetaEl) : null;
+
 $(document).on('click', '.js-mp-rename', function () {
-    const title = prompt('What should this map be called?', $(this).data('title'));
-    if (title === null) return;
+    const id = $(this).data('id');
+    $('#mpMetaId').val(id);
+    $('#mpMetaTitle').val('');
+    $('#mpMetaDesc').val('').prop('disabled', true);
+    $('#mpMetaHint').text('Reading…');
+    if (mpMeta) mpMeta.show();
+
+    smGet(`${CR}-map-one${SQ}&id=${id}`, function (res) {
+        if (!res.success) { $('#mpMetaHint').text(res.message); return; }
+        $('#mpMetaTitle').val(res.data.title || '');
+        $('#mpMetaDesc').val(res.data.description || '').prop('disabled', !res.data.noteId);
+        $('#mpMetaHint').text(res.data.noteId
+            ? 'A map’s words live on the note filed with it, which is where the client reads them.'
+            : 'This map has no note filed with it, so there is nowhere to keep a description. The name still saves.');
+        $('#mpMetaTitle').trigger('focus');
+    }).fail(() => $('#mpMetaHint').text('Could not read that map.'));
+});
+
+$('#mpMetaSave').on('click', function () {
+    const btn = $(this).prop('disabled', true);
     $.ajax({
-        url: `${CR}-map-rename${SQ}&id=${$(this).data('id')}`,
+        url: `${CR}-map-rename${SQ}&id=${$('#mpMetaId').val()}`,
         type: 'PUT',
-        data: { _token: CSRF, title },
-        success: (res) => { res.success ? (toastr.success(res.message), loadMaps()) : toastr.error(res.message); },
-        error: (xhr) => toastr.error(xhr.responseJSON?.message || 'Rename failed')
+        data: {
+            _token: CSRF,
+            title: $('#mpMetaTitle').val(),
+            description: $('#mpMetaDesc').val(),
+        },
+        success: (res) => {
+            btn.prop('disabled', false);
+            if (!res.success) { toastr.error(res.message); return; }
+            toastr.success(res.message);
+            if (mpMeta) mpMeta.hide();
+            loadMaps();
+        },
+        error: (xhr) => {
+            btn.prop('disabled', false);
+            toastr.error(xhr.responseJSON?.message || 'That did not save.');
+        }
     });
 });
 
@@ -92,22 +130,30 @@ $(document).on('click', '.js-mp-del', function () {
 
 onFirstShow('#tab-maps', loadMaps);
 
-// ---- and the map itself ----------------------------------------------
-// The engine waits to be started, and fetches Google's script only then, so
-// a season whose map is never opened costs nothing. Every showing, not only
-// the first: a map built inside a hidden pane measures its container as zero
-// and keeps that height until something tells it to look again.
-function wakeTheMap() {
-    if (!window.initCollabMap) return;
-    // After the pane is actually visible — Google reads the container's size
-    // the moment it builds, and Bootstrap has not finished showing it when
-    // the event fires.
-    requestAnimationFrame(() => window.initCollabMap());
+// ---- the map, in its own window --------------------------------------
+// The engine waits to be started and fetches Google's script only then, so a
+// season whose map is never opened costs nothing. Started when the window is
+// shown, and on EVERY showing: a map built while its container is hidden
+// measures it as nothing and keeps that size until told to look again.
+// shown.bs.modal is the first moment the window has a size.
+const mpModalEl = document.getElementById('mpEditModal');
+const mpModal = mpModalEl ? new bootstrap.Modal(mpModalEl) : null;
+
+if (mpModalEl) {
+    mpModalEl.addEventListener('shown.bs.modal', () => {
+        if (window.initCollabMap) window.initCollabMap();
+    });
 }
-$('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-    if ($(e.target).attr('href') === '#tab-maps') wakeTheMap();
-});
-if (location.hash === '#tab-maps') $(wakeTheMap);
+
+// `named` is the saved map being worked on, when there is one — the window's
+// title should say which map you are drawing on, and "the map" is only right
+// for the canvas as it stands.
+function openMapWindow(named) {
+    $('#mpEditTitle').text(named || 'The map');
+    if (mpModal) mpModal.show();
+}
+
+$('#mpEditLive').on('click', () => openMapWindow(null));
 
 // ---- one map, drawn --------------------------------------------------
 // What is open, and the shapes as the server last confirmed them. `at` is a
@@ -224,22 +270,37 @@ function paintMap() { drawMap(openMap.objects); drawShapeList(openMap.objects); 
 // happen in — the edits owed to the map being left are written before the
 // swap, or they would be filed under the arriving map's name. Not repeated
 // here.
+// Editing a saved map: onto the canvas first, then the window opens on it.
+//
+// The engine does the first half — it knows the order, and the order matters:
+// the edits owed to whatever was on the canvas are written BEFORE the swap,
+// or they would be filed under the arriving map's name.
+//
+// The window is opened first and the load run after it is up, because the
+// engine cannot fit a map to a container that has no size yet — and because
+// the veil it raises while swapping is worth seeing.
 $(document).on('click', '.js-mp-load', function () {
     const b = $(this);
-    if (!window.cmapOpenSave) {
-        toastr.error('The map is not on this page — it needs a Google Maps key.');
+    if (!window.initCollabMap) {
+        toastr.error('The map needs a Google Maps key before it can open.');
         return;
     }
-    b.prop('disabled', true);
-    Promise.resolve(window.cmapOpenSave({ id: b.data('id'), name: b.data('title') }))
-        .catch(() => {})
-        .then(() => {
-            b.prop('disabled', false);
-            // The shelf's own cards carry shape counts, and one of them just
-            // became the canvas.
-            loadMaps();
-            document.getElementById('cmapWrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+
+    const id = b.data('id'), name = b.data('title');
+    openMapWindow(name);
+
+    const run = () => {
+        if (!window.cmapOpenSave) return;
+        Promise.resolve(window.cmapOpenSave({ id, name }))
+            .catch(() => {})
+            // The shelf's cards carry shape counts, and one of them has just
+            // become the canvas.
+            .then(() => loadMaps());
+    };
+
+    // If the window is already up, go now; otherwise wait for it to be.
+    if (mpModalEl.classList.contains('show')) run();
+    else mpModalEl.addEventListener('shown.bs.modal', run, { once: true });
 });
 
 $(document).on('click', '.js-mp-open', function () {

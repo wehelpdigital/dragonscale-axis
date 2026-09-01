@@ -64,12 +64,15 @@
    keeps nine of them: tools, colour, thickness, save, open, pin, text.
    Written out because the original is Tailwind @apply. */
 .sheet-backdrop {
-    position: fixed; inset: 0; z-index: 1040; background: rgb(23 28 38 / .5);
+    /* Above a Bootstrap modal, not under one. The map now opens in a
+       full-screen modal (z-index 1055, its backdrop 1050), and a sheet at the
+       old 1050/1040 opened behind the very window that asked for it. */
+    position: fixed; inset: 0; z-index: 1080; background: rgb(23 28 38 / .5);
     opacity: 0; pointer-events: none; transition: opacity .2s;
 }
 .sheet-backdrop.is-open { opacity: 1; pointer-events: auto; }
 .sheet {
-    position: fixed; z-index: 1050; left: 0; right: 0; bottom: 0;
+    position: fixed; z-index: 1090; left: 0; right: 0; bottom: 0;
     background: var(--sheet-bg, #fff); border-radius: 1.5rem 1.5rem 0 0;
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / .35);
     display: flex; flex-direction: column; overflow: hidden;
@@ -638,9 +641,12 @@
         @if ($mapChrome !== 'lot')
         {{-- Broadcasting where you are standing is a thing you do for a room.
              A lot's own map has nobody in it to tell. --}}
-        <button type="button" class="cmap-tool" id="cmapGps" title="Share my live GPS position with the team" aria-label="Share my live GPS position">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path stroke-linecap="round" d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22M12 12h.01"/></svg>
-        </button>
+        {{-- The live-position button was here. It shares where YOU are with
+             the rest of a team, which is a farmer-app idea: there is no team
+             on this side, the endpoint it posts to is not routed here, and an
+             admin at a desk broadcasting their own position onto a client's
+             farm is nothing anybody asked for. The code behind it is left in
+             place and simply never reached. --}}
         @endif
         <button type="button" class="cmap-tool is-active" id="cmapLayer" title="Toggle map / satellite" aria-label="Toggle map or satellite view" aria-pressed="true">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg>

@@ -101,6 +101,7 @@ class ClientRecordController extends BaseScheduleController
             'title' => (string) ($map->title ?: 'Untitled map'),
             'source' => (string) ($map->source ?? ''),
             'noteId' => $map->noteId ? (int) $map->noteId : 0,
+            'description' => self::mapWords($map->noteId),
             'objects' => self::mapObjects($map->objects),
             'when' => (string) ($map->updated_at ?? ''),
         ]]);
@@ -176,6 +177,14 @@ class ClientRecordController extends BaseScheduleController
         return is_array($objects) ? array_values(array_filter($objects, 'is_array')) : [];
     }
 
+    /**
+     * What a saved map is called, and what it is for.
+     *
+     * The name is the save's own; the description belongs to the note filed
+     * with it, which is where the farmer app puts it and therefore where the
+     * client reads it. Both move together, because a map renamed in one place
+     * and not the other is two maps as far as anybody looking is concerned.
+     */
     public function mapRename(Request $request)
     {
         $schedule = $this->scheduleFromRequest($request);
@@ -183,14 +192,91 @@ class ClientRecordController extends BaseScheduleController
         if ($title === '') {
             return $this->jsonFail('A map needs a name.', 422);
         }
+        if (mb_strlen($title) > 180) {
+            return $this->jsonFail('That name is too long.', 422);
+        }
 
-        $hit = DB::table('as_schedule_map_saves')
+        $said = trim((string) $request->input('description', ''));
+        if (mb_strlen($said) > 2000) {
+            return $this->jsonFail('That description is too long.', 422);
+        }
+
+        $map = DB::table('as_schedule_map_saves')
             ->where('id', $this->queryId($request))
             ->where('scheduleId', $schedule->id)
             ->where('deleteStatus', 1)
-            ->update(['title' => mb_substr($title, 0, 191), 'updated_at' => now()]);
+            ->first();
+        if (! $map) {
+            return $this->jsonFail('That map is gone.', 404);
+        }
 
-        return $hit ? $this->jsonOk('Map renamed.') : $this->jsonFail('That map is gone.', 404);
+        DB::table('as_schedule_map_saves')->where('id', $map->id)->update([
+            'title' => mb_substr($title, 0, 180),
+            'updated_at' => now(),
+        ]);
+
+        // The note carries the same name and holds the words. A map with no
+        // note has nowhere to keep a description; the name still lands, and
+        // the browser is told so rather than being left to wonder.
+        $kept = true;
+        if ($map->noteId) {
+            $note = DB::table('as_schedule_notes')
+                ->where('id', $map->noteId)->where('deleteStatus', 1)->first();
+            if ($note) {
+                DB::table('as_schedule_notes')->where('id', $note->id)->update([
+                    'title' => mb_substr($title, 0, 180),
+                    'body' => self::mapNoteBody($said, (string) $note->body),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                $kept = false;
+            }
+        } else {
+            $kept = false;
+        }
+
+        return $this->jsonOk(
+            ($kept || $said === '') ? 'Map saved.' : 'Name saved. This map has no note, so the description had nowhere to go.',
+            ['data' => ['title' => $title, 'descriptionKept' => $kept]]
+        );
+    }
+
+    /**
+     * The words on a map's note, without the sentence the app wrote itself.
+     *
+     * The farmer app ends the body with a line telling the reader how to open
+     * the map. Showing that in an edit box invites somebody to delete it, and
+     * they did not write it.
+     */
+    private static function mapWords($noteId): string
+    {
+        if (! $noteId) {
+            return '';
+        }
+
+        $body = (string) DB::table('as_schedule_notes')
+            ->where('id', $noteId)->where('deleteStatus', 1)->value('body');
+
+        $text = trim(html_entity_decode(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body)), ENT_QUOTES));
+
+        return trim((string) preg_replace('/\s*Saved team map[^\n]*$/u', '', $text));
+    }
+
+    /**
+     * A note body from what somebody typed, keeping the app's own last line.
+     */
+    private static function mapNoteBody(string $said, string $was): string
+    {
+        preg_match('/(Saved team map[^\n<]*)/u', strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $was)), $m);
+        $tail = trim($m[1] ?? 'Saved team map — tap View map to open it.');
+
+        $text = trim($said === '' ? $tail : $said . "\n\n" . $tail);
+
+        // The newline is REPLACED, not decorated. nl2br inserts a <br> and
+        // keeps the newline beside it, and the reader above counts both — so
+        // a description written with single line breaks came back with double
+        // ones, and gained another pair every time it was saved.
+        return '<p>' . str_replace("\n", '<br>', e($text)) . '</p>';
     }
 
     public function mapDestroy(Request $request)
