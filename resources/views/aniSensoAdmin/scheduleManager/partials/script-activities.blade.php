@@ -2978,6 +2978,59 @@ $('#growthStageReload').on('click', function () { loadGrowth($('#growthStageDate
 })();
 
 // ---------- Weather: per lot, because a farm is not a point ----------
+// The hours that came with the forecast, by location and then by date.
+let WX_HOURS = {};
+
+/**
+ * One day's hours, opened under the day.
+ *
+ * Leads with the sentence somebody wants before any numbers — when the wet
+ * hours are — because hunting through twenty-two little cards for the one
+ * with 80% on it is work the screen can do instead.
+ */
+function wxHoursHtml(hours) {
+    if (!hours || !hours.length) return '';
+
+    const wet = hours.filter(function (h) { return (h.pop || 0) >= 50; });
+    const peak = hours.reduce(function (a, b) { return (b.pop || 0) > (a.pop || 0) ? b : a; }, hours[0]);
+    const say = wet.length
+        ? 'Rain most likely around <b>' + escapeHtml(peak.hour) + '</b> (' + (peak.pop || 0) + '%). ' +
+          wet.length + ' ' + (wet.length === 1 ? 'hour is' : 'hours are') + ' at or above 50%.'
+        : 'No hour today is above a 50% chance of rain.';
+
+    const rail = hours.map(function (h) {
+        return '<div class="wx-hour' + (h.isNow ? ' is-now' : '') + ((h.pop || 0) >= 50 ? ' is-wet' : '') + '">' +
+            '<div class="wx-hour-h">' + escapeHtml(h.hour) + '</div>' +
+            '<div class="wx-hour-e">' + (h.emoji || '') + '</div>' +
+            '<div class="wx-hour-t">' + (h.temp !== null && h.temp !== undefined ? h.temp + '\u00b0' : '\u2014') + '</div>' +
+            (h.pop !== null && h.pop !== undefined ? '<div class="wx-hour-p">\uD83D\uDCA7 ' + h.pop + '%</div>' : '') +
+            (h.wind !== null && h.wind !== undefined ? '<div class="wx-hour-w">' + h.wind + ' km/h</div>' : '') +
+        '</div>';
+    }).join('');
+
+    return '<div class="wx-hours-wrap">' +
+        '<div class="wx-hours-say">' + say + '</div>' +
+        '<div class="wx-hours">' + rail + '</div>' +
+        '<p class="wx-legend">Swipe the hours sideways. \uD83D\uDCA7 is the chance of rain in that hour.</p>' +
+    '</div>';
+}
+
+// One day open at a time: six rails of twenty-four cards is a wall, and the
+// question is always about one day. Tapping the open one shuts it.
+$(document).on('click', '.js-wx-day', function () {
+    const card = $(this);
+    const place = card.data('place');
+    const date = String(card.data('date'));
+    const host = card.closest('.wx-place').find('.wx-hours-host');
+    const already = card.hasClass('is-open');
+
+    card.closest('.wx-place').find('.wx-day').removeClass('is-open');
+    if (already) { host.empty(); return; }
+
+    card.addClass('is-open');
+    host.html(wxHoursHtml((WX_HOURS[place] || {})[date] || []));
+});
+
 function loadWeather() {
     $('#scheduleWeatherBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-3 text-secondary"></i><div class="text-secondary mt-2" style="font-size:12.5px;">Asking the forecast\u2026</div></div>');
     return smGet(URLS.scheduleWeather(), function (res) {
@@ -2992,20 +3045,26 @@ function loadWeather() {
                        '<div class="gs-day">' + lots + '</div>' +
                        '<div class="notice-detail mt-2">That address could not be placed on the map, so there is no forecast for it.</div></div>';
             }
+            const byDay = loc.hoursByDay || {};
             const days = (loc.days || []).map(function (day) {
-                return '<div class="wx-day' + (day.isToday ? ' is-today' : '') + '">' +
+                const has = (byDay[day.date] || []).length;
+                return '<div class="wx-day' + (day.isToday ? ' is-today' : '') + (has ? ' js-wx-day' : '') + '"' +
+                    ' data-place="' + escapeHtml(loc.key) + '" data-date="' + escapeHtml(day.date || '') + '"' +
+                    (has ? ' role="button" title="' + escapeHtml(day.text || '') + ' \u2014 tap for this day\u2019s hours"' : '') + '>' +
                     '<div class="wx-dow">' + escapeHtml(day.dow) + '</div>' +
                     '<div class="wx-emoji">' + (day.emoji || '') + '</div>' +
                     '<div class="wx-temp">' + (day.max !== null ? day.max + '\u00b0' : '\u2014') +
                         (day.min !== null ? ' / ' + day.min + '\u00b0' : '') + '</div>' +
                     (day.pop !== null ? '<div class="wx-pop">' + day.pop + '% rain</div>' : '') +
                     '<div class="wx-text">' + escapeHtml(day.text || '') + '</div>' +
+                    (has ? '<div class="wx-day-hint">' + has + ' hours</div>' : '') +
                 '</div>';
             }).join('');
-            return '<div class="wx-place">' +
+            return '<div class="wx-place" data-place="' + escapeHtml(loc.key) + '">' +
                 '<div class="gs-lotname">' + escapeHtml(loc.place) + '</div>' +
                 '<div class="gs-day">' + lots + '</div>' +
                 '<div class="wx-days">' + days + '</div>' +
+                '<div class="wx-hours-host"></div>' +
             '</div>';
         }).join('');
 
@@ -3020,6 +3079,10 @@ function loadWeather() {
             html += '<small class="text-secondary d-block mt-2">' + d.dropped + ' more location(s) were not looked up in this request.</small>';
         }
         if (!html) html = '<p class="text-secondary mb-0">No lots on this schedule yet.</p>';
+        // Kept, so opening a day is instant rather than another round trip to
+        // a forecast that has not changed in the last four seconds.
+        WX_HOURS = {};
+        (d.locations || []).forEach(function (loc) { WX_HOURS[loc.key] = loc.hoursByDay || {}; });
         $('#scheduleWeatherBody').html(html);
     }).fail((xhr) => $('#scheduleWeatherBody').html(
         '<p class="text-secondary mb-0">HERE</p>'.replace('HERE', escapeHtml(smWhyFailed(xhr)))));

@@ -142,10 +142,16 @@ class ScheduleInsightController extends BaseScheduleController
             $locations[$key]['lots'][] = ['lotId' => $lot->id, 'lotName' => $lot->lotName];
         }
 
+        // Hour by hour is for the Weather module's own tab. The same endpoint
+        // feeds the little chips on a day header, which want six cards and
+        // nothing else — asking for hours there would treble the response for
+        // nothing anybody is looking at.
+        $wantHourly = $request->boolean('hourly');
+
         $out = [];
         foreach (array_slice($locations, 0, self::MAX_LOCATIONS, true) as $key => $info) {
             $forecast = $weather->forecastForPlace($info['query'], 6);
-            $out[] = [
+            $row = [
                 'key' => $key,
                 'label' => $info['label'],
                 'lots' => $info['lots'],
@@ -153,6 +159,18 @@ class ScheduleInsightController extends BaseScheduleController
                 'place' => $forecast['place'] ?? $info['label'],
                 'days' => $forecast['days'] ?? [],
             ];
+
+            if ($wantHourly && $forecast) {
+                // Grouped by date, because the hours belong to the day you
+                // opened rather than to a flat rail of the next twenty-four.
+                $row['hoursByDay'] = $weather->hourlyByDay(
+                    (float) $forecast['lat'],
+                    (float) $forecast['lon'],
+                    6
+                ) ?: [];
+            }
+
+            $out[] = $row;
         }
 
         return $this->jsonOk('Forecast', [

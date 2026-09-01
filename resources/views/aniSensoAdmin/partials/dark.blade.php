@@ -221,6 +221,22 @@
 [data-bs-theme="dark"] .ai-empty, [data-bs-theme="dark"] .cb-empty, [data-bs-theme="dark"] .rp-empty,
 [data-bs-theme="dark"] .de-empty, [data-bs-theme="dark"] .cf-empty { color: var(--sm-dim); }
 
+/* ---- the weather's hours ---- */
+[data-bs-theme="dark"] .wx-day:hover { border-color: #6d84ee; }
+[data-bs-theme="dark"] .wx-day.is-open { border-color: #6d84ee; background: #313a5e; }
+[data-bs-theme="dark"] .wx-day-hint { color: var(--sm-dim); }
+[data-bs-theme="dark"] .wx-hours-wrap { background: var(--sm-surface-2); border-color: var(--sm-line); }
+[data-bs-theme="dark"] .wx-hours-say { color: var(--sm-text); }
+[data-bs-theme="dark"] .wx-hours-say b { color: #b9c4f0; }
+[data-bs-theme="dark"] .wx-hour { background: var(--sm-surface); border-color: var(--sm-line); }
+[data-bs-theme="dark"] .wx-hour.is-now { border-color: #6d84ee; box-shadow: 0 0 0 1px #6d84ee inset; }
+[data-bs-theme="dark"] .wx-hour.is-wet { background: #2b3352; }
+[data-bs-theme="dark"] .wx-hour-h { color: var(--sm-dim); }
+[data-bs-theme="dark"] .wx-hour-t { color: var(--sm-text); }
+[data-bs-theme="dark"] .wx-hour-p { color: #9dbcf5; }
+[data-bs-theme="dark"] .wx-hour-w,
+[data-bs-theme="dark"] .wx-legend { color: var(--sm-dim); }
+
 /* ---- what a note has on it ---- */
 [data-bs-theme="dark"] .nt-att { background: #313a5e; color: #b9c4f0; }
 [data-bs-theme="dark"] .nt-att.is-map { background: #23345c; color: #9dbcf5; }

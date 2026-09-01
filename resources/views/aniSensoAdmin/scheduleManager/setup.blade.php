@@ -1180,7 +1180,8 @@ const URLS = {
     // what the sky is about to do over each lot.
     scheduleNotice:   () => `${ROOT}/anisenso-schedule-manager-notice${Q}`,
     scheduleGrowth:   (date) => `${ROOT}/anisenso-schedule-manager-growth${Q}` + (date ? `&date=${date}` : ''),
-    scheduleWeather:  () => `${ROOT}/anisenso-schedule-manager-weather${Q}`,
+    // `hourly` is what turns six day cards into six days you can open.
+    scheduleWeather:  () => `${ROOT}/anisenso-schedule-manager-weather${Q}&hourly=1`,
     scheduleShare:       () => `${ROOT}/anisenso-schedule-manager-share${Q}`,
     scheduleShareCreate: () => `${ROOT}/anisenso-schedule-manager-share-create${Q}`,
 };
