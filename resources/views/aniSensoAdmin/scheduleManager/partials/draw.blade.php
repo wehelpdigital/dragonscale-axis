@@ -32,3 +32,28 @@
 </div>
 
 <div id="dwBody"></div>
+
+{{-- A drawing opened its file in a new tab, which is the browser showing a
+     PNG rather than the console showing a drawing: no title, no idea which
+     note it came from, and the page lost behind it. This keeps it here. --}}
+<div class="modal fade" id="dwModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="min-w-0">
+                    <h5 class="modal-title mb-0" id="dwModalTitle">Drawing</h5>
+                    <small class="text-secondary" id="dwModalMeta"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center" style="background:#f6f8fb;">
+                <img id="dwModalImg" src="" alt="" style="max-width:100%;max-height:70vh;border-radius:8px;background:#fff;">
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-light" id="dwModalOpen" href="#" target="_blank"><i class="bx bx-link-external"></i> Full size</a>
+                <button type="button" class="btn btn-light js-dw-note" id="dwModalNote">Its note</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

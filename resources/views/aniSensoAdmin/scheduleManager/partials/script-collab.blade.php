@@ -13,6 +13,22 @@ document.addEventListener('error', function (e) {
     el.remove();
 }, true);
 
+// One message. bodyHtml, not body: the server has already escaped it and put
+// Anee's faces back — the team asks her in here too, so a room carries her
+// shortcodes the same way a thread does.
+function msgHtml(m) {
+    return `<div class="cb-msg ${m.mine ? 'is-mine' : ''}">
+        <div class="min-w-0">
+            <div class="cb-who">${esc(m.who)} <span class="cb-at fw-normal">${esc(m.at)}</span></div>
+            ${m.body ? `<div class="cb-body">${m.bodyHtml || esc(m.body)}</div>` : ''}
+            ${m.photo ? `<img class="js-cb-img js-cb-open" src="${esc(m.photo)}" alt="">` : ''}
+        </div>
+        <div class="text-nowrap">
+            <button class="btn btn-sm btn-outline-danger js-cb-msg-del" data-id="${m.id}"><i class="bx bx-trash"></i></button>
+        </div>
+    </div>`;
+}
+
 function load() {
     $('#cbBody').html('<div class="cb-empty"><i class="bx bx-loader-alt bx-spin"></i> Reading the room…</div>');
     smGet(`${MEDIA}/anisenso-media-rooms-one?id=${SCHEDULE_ID}`, function (res) {
@@ -25,18 +41,19 @@ function load() {
         $('#cbBody').html(`<div class="cb-cols">
             <div class="cb-panel">
                 <h6>Chat <span class="text-secondary fw-normal">${chat.length}</span></h6>
-                ${chat.length ? chat.map(m => `
-                    <div class="cb-msg">
-                        <div class="min-w-0">
-                            <div class="cb-who">${esc(m.who)} <span class="cb-at fw-normal">${esc(m.at)}</span></div>
-                            ${m.body ? `<div class="cb-body">${esc(m.body)}</div>` : ''}
-                            ${m.photo ? `<img class="js-cb-img js-cb-open" src="${esc(m.photo)}" alt="">` : ''}
-                        </div>
-                        <div class="text-nowrap">
-                            <button class="btn btn-sm btn-outline-danger js-cb-msg-del" data-id="${m.id}"><i class="bx bx-trash"></i></button>
-                        </div>
-                    </div>`).join('')
+                <div id="cbChat">
+                ${chat.length ? chat.map(msgHtml).join('')
                     : '<div class="cb-empty">Nothing said in here yet.</div>'}
+                </div>
+                <div class="cb-say">
+                    <textarea id="cbSay" class="form-control" rows="1" maxlength="4000"
+                              placeholder="Say something to the team…"></textarea>
+                    <button type="button" class="btn btn-primary" id="cbSend"><i class="bx bx-send"></i></button>
+                </div>
+                <p class="cb-say-note">
+                    Goes into the room itself, signed AniSystem Technician — the client and their
+                    team see it in their app.
+                </p>
             </div>
             <div>
                 <div class="cb-panel mb-3">
@@ -71,6 +88,43 @@ function load() {
 }
 
 $('#cbReload').on('click', load);
+
+// The box grows with what is written in it; enter sends, shift+enter breaks
+// the line — the same bargain every chat makes.
+$(document).on('input', '#cbSay', function () {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+$(document).on('keydown', '#cbSay', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#cbSend').trigger('click'); }
+});
+
+$(document).on('click', '#cbSend', function () {
+    const said = $('#cbSay').val().trim();
+    if (!said) return;
+    const box = $('#cbSay'), btn = $(this);
+    box.prop('disabled', true); btn.prop('disabled', true);
+
+    $.ajax({
+        url: `${MEDIA}/anisenso-media-rooms-message-post?id=${SCHEDULE_ID}`,
+        type: 'POST',
+        data: { _token: CSRF, body: said },
+        success: (res) => {
+            if (!res.success) { toastr.error(res.message); }
+            else {
+                $('#cbChat').find('.cb-empty').remove();
+                $('#cbChat').append(msgHtml(res.data));
+                box.val('').css('height', 'auto');
+            }
+            box.prop('disabled', false); btn.prop('disabled', false);
+            box.trigger('focus');
+        },
+        error: (xhr) => {
+            toastr.error(xhr.responseJSON?.message || 'That did not send.');
+            box.prop('disabled', false); btn.prop('disabled', false);
+        }
+    });
+});
 $(document).on('click', '.js-cb-open', function () { window.open(this.src, '_blank'); });
 
 function remove(url, ask, done) {

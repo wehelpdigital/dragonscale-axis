@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\aniSensoAdmin\ScheduleManager;
 
+use App\Models\AsAiSetting;
+use App\Services\AniSensoAiClient;
 use App\Support\AneeEmoji;
+use App\Support\AniSensoTechnician;
 use App\Support\AnisystemMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +24,20 @@ use Illuminate\Support\Facades\DB;
  */
 class ClientRecordController extends BaseScheduleController
 {
+    /**
+     * What stands in front of a line an admin wrote into a client's thread.
+     *
+     * The conversation has two roles and no third one, so an admin's message
+     * has to go in as a user turn. Without a mark the client would open their
+     * app and find words in their own voice that they never said. With it,
+     * both apps can see whose line it is: this one renders it as a label, and
+     * the farmer app shows the mark until it is taught the same trick.
+     *
+     * Plain text on purpose — it lives in the same column as everything else,
+     * and it has to survive being read by anything that reads that column.
+     */
+    public const ADMIN_MARK = '[technician] ';
+
     // ---------------------------------------------------------------- maps --
 
     public function maps(Request $request)
@@ -55,6 +72,108 @@ class ClientRecordController extends BaseScheduleController
             })->values();
 
         return $this->jsonOk('OK', ['data' => $rows]);
+    }
+
+    /**
+     * One map, with everything drawn on it.
+     *
+     * The list can say a map has nine shapes on it; it cannot say whether the
+     * north field is the big one. Handing the objects over lets the console
+     * draw them, which is the difference between administering a map and
+     * administering a row that mentions one.
+     */
+    public function mapShow(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+
+        $map = DB::table('as_schedule_map_saves')
+            ->where('id', $this->queryId($request))
+            ->where('scheduleId', $schedule->id)
+            ->where('deleteStatus', 1)
+            ->first();
+
+        if (! $map) {
+            return $this->jsonFail('That map is gone.', 404);
+        }
+
+        return $this->jsonOk('OK', ['data' => [
+            'id' => (int) $map->id,
+            'title' => (string) ($map->title ?: 'Untitled map'),
+            'source' => (string) ($map->source ?? ''),
+            'noteId' => $map->noteId ? (int) $map->noteId : 0,
+            'objects' => self::mapObjects($map->objects),
+            'when' => (string) ($map->updated_at ?? ''),
+        ]]);
+    }
+
+    /**
+     * Write a map's shapes back.
+     *
+     * Rebuilt field by field rather than stored as it arrived. The console
+     * edits what a shape is CALLED and what colour it is drawn in, and it can
+     * take one off the map — it does not move points about, and a season's
+     * map is not the place to discover that a request body could. So the
+     * geometry is carried across from what is already stored, by position,
+     * and only the parts an admin can actually edit are read from the wire.
+     */
+    public function mapSave(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $id = $this->queryId($request);
+
+        $map = DB::table('as_schedule_map_saves')
+            ->where('id', $id)->where('scheduleId', $schedule->id)->where('deleteStatus', 1)->first();
+        if (! $map) {
+            return $this->jsonFail('That map is gone.', 404);
+        }
+
+        $sent = json_decode((string) $request->input('objects', ''), true);
+        if (! is_array($sent)) {
+            return $this->jsonFail('That did not arrive as a list of shapes.', 422);
+        }
+
+        $existing = self::mapObjects($map->objects);
+        $kept = [];
+
+        foreach ($sent as $row) {
+            $at = (int) ($row['at'] ?? -1);
+            if (! isset($existing[$at])) {
+                // A shape the console invented, or one that has moved under
+                // it because the map was edited in their app while this was
+                // open. Either way it is not ours to write.
+                continue;
+            }
+
+            $shape = $existing[$at];
+            $label = trim((string) ($row['label'] ?? ''));
+            $shape['label'] = $label === '' ? null : mb_substr($label, 0, 120);
+
+            $colour = strtolower(trim((string) ($row['color'] ?? '')));
+            if (preg_match('/^#[0-9a-f]{6}$/', $colour)) {
+                $shape['color'] = $colour;
+            }
+
+            $kept[] = $shape;
+        }
+
+        DB::table('as_schedule_map_saves')->where('id', $id)->update([
+            'objects' => json_encode(array_values($kept)),
+            'updated_at' => now(),
+        ]);
+
+        return $this->jsonOk('Map saved.', ['data' => ['objects' => $kept]]);
+    }
+
+    /**
+     * The shapes on a map, as a list, whatever the column happens to hold.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function mapObjects($raw): array
+    {
+        $objects = json_decode((string) $raw, true);
+
+        return is_array($objects) ? array_values(array_filter($objects, 'is_array')) : [];
     }
 
     public function mapRename(Request $request)
@@ -314,6 +433,153 @@ class ClientRecordController extends BaseScheduleController
             ->update(['deleteStatus' => 0, 'updated_at' => now()]);
 
         return $hit ? $this->jsonOk('Thread removed.') : $this->jsonFail('That thread is gone.', 404);
+    }
+
+    /**
+     * Say something into a thread, and let Anee answer it.
+     *
+     * The thread belongs to the client — this writes into the same rows their
+     * app reads, so whatever is said here appears in their app the next time
+     * they open it. That is the point of it: an admin reading a season can
+     * answer a question in the place the question was asked, instead of
+     * somewhere the client will never look.
+     *
+     * The admin's turn is stored as a user turn, because that is the only
+     * role the conversation has for "not the assistant", and Anee has to see
+     * it as the thing she is replying to. It is marked so the client can tell
+     * it apart from their own words.
+     *
+     * Nothing here is charged. Credits are the client's, spent when the
+     * client asks; an admin answering on their season should not empty a
+     * wallet the client did not reach for.
+     */
+    public function aiReply(Request $request)
+    {
+        $schedule = $this->scheduleFromRequest($request);
+        $kind = (string) $request->query('kind');
+        $id = $this->queryId($request);
+
+        $said = trim((string) $request->input('body', ''));
+        if ($said === '') {
+            return $this->jsonFail('Nothing was written.', 422);
+        }
+        if (mb_strlen($said) > 4000) {
+            return $this->jsonFail('That is too long for one message.', 422);
+        }
+
+        $settings = AsAiSetting::current();
+        if (! $settings->isUsable()) {
+            return $this->jsonFail('The AI is switched off, or has no key. Set it up under AniSystem AI.', 422);
+        }
+
+        [$head, $messages, $link] = $this->aiThreadFor($kind, $id, $schedule->id);
+        if (! $head) {
+            return $this->jsonFail('That thread is gone.', 404);
+        }
+
+        // What Anee has already said and been told, oldest first. Bounded:
+        // a season's thread can run long, and the whole of it is neither
+        // affordable nor useful — the recent turns are what a reply is about.
+        $history = DB::table($messages)
+            ->where($link['col'], $id)->where('deleteStatus', 1)
+            ->orderByDesc('id')->limit(30)->get(['role', 'content'])
+            ->reverse()
+            ->map(fn ($t) => [
+                'role' => $t->role === 'assistant' ? 'assistant' : 'user',
+                'text' => (string) $t->content,
+            ])->values()->all();
+
+        $mine = self::ADMIN_MARK . $said;
+
+        // Ask before writing anything. If Anee cannot be reached the thread
+        // is left exactly as it was, rather than holding a question the
+        // client will open and find unanswered — and the admin can press send
+        // again without wondering whether the first one went in.
+        $answer = app(AniSensoAiClient::class)->ask($settings, $history, $mine);
+
+        if (! ($answer['ok'] ?? false)) {
+            return $this->jsonFail((string) ($answer['error'] ?: 'Anee could not be reached.'), 502);
+        }
+
+        $reply = (string) $answer['text'];
+        $now = now();
+
+        DB::transaction(function () use ($messages, $link, $mine, $reply, $now) {
+            DB::table($messages)->insert(array_merge($link['stamp'], [
+                'role' => 'user',
+                'content' => $mine,
+                'deleteStatus' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]));
+            DB::table($messages)->insert(array_merge($link['stamp'], [
+                'role' => 'assistant',
+                'content' => $reply,
+                'deleteStatus' => 1,
+                'created_at' => $now->copy()->addSecond(),
+                'updated_at' => $now,
+            ]));
+        });
+
+        // The thread's own clock, where it keeps one, so the client's list
+        // sorts this to the top the way a real reply would.
+        if ($link['touch']) {
+            DB::table($link['head'])->where('id', $id)->update([$link['touch'] => now(), 'updated_at' => now()]);
+        }
+
+        return $this->jsonOk('Sent.', ['data' => [
+            'turns' => [
+                ['role' => 'user', 'body' => $mine, 'bodyHtml' => AneeEmoji::body($mine)],
+                ['role' => 'assistant', 'body' => $reply, 'bodyHtml' => AneeEmoji::body($reply)],
+            ],
+        ]]);
+    }
+
+    /**
+     * The head row of a thread, and where its turns live.
+     *
+     * The two kinds are stored differently — a Collab Room session and a
+     * client's own conversation were built at different times — so everything
+     * that differs is answered once, here, rather than at each use.
+     *
+     * @return array{0: ?object, 1: string, 2: array}
+     */
+    private function aiThreadFor(string $kind, int $id, int $scheduleId): array
+    {
+        if ($kind === 'team') {
+            $head = DB::table('as_schedule_ai_sessions')
+                ->where('id', $id)->where('scheduleId', $scheduleId)->where('deleteStatus', 1)->first();
+
+            // A Collab Room message must name a farmer-app user, and an admin
+            // is not one — the two apps keep separate people. The console has
+            // a person of its own for exactly this, so the client's app shows
+            // a name that is true instead of their own over words they never
+            // wrote.
+            return [$head, 'as_schedule_ai_messages', [
+                'head' => 'as_schedule_ai_sessions',
+                'col' => 'sessionId',
+                'touch' => 'lastMessageAt',
+                'stamp' => [
+                    'sessionId' => $id,
+                    'scheduleId' => $scheduleId,
+                    'userId' => AniSensoTechnician::id(),
+                ],
+            ]];
+        }
+
+        if ($kind === 'personal') {
+            $head = DB::table('anisystem_ai_conversations')
+                ->where('id', $id)->where('croppingScheduleId', $scheduleId)->where('deleteStatus', 1)->first();
+
+            return [$head, 'anisystem_ai_messages', [
+                'head' => 'anisystem_ai_conversations',
+                'col' => 'conversationId',
+                'touch' => null,
+                'stamp' => ['conversationId' => $id],
+            ]];
+        }
+
+        return [null, '', []];
     }
 
     /** @return array{0: ?string, 1: string} the table, and the column that names the season */

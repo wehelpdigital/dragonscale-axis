@@ -22,6 +22,32 @@
         background: #f6f8fb; color: #343a40; white-space: pre-wrap;
     }
     .ai-turn.is-bot .ai-bubble { background: #eef2ff; color: #2c3e8c; }
+    /* A line this console put into the client's thread. It reads as theirs
+       otherwise, which it is not. */
+    .ai-turn.is-mine .ai-bubble { background: #fff4e5; color: #5a4413; }
+    .ai-mine-tag {
+        display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .04em;
+        text-transform: uppercase; color: #a66200; margin-bottom: .2rem;
+    }
+
+    /* Anee's own faces, at the size and spacing the farmer app gives them.
+       A face is nearly two lines tall, and a line box grows to hold what is
+       in it and not a pixel more — so the margin is leading the picture
+       brings with it, and the lines around it move apart rather than being
+       written over. */
+    .anee-emo {
+        display: inline-block; width: 1.9em; height: 1.9em;
+        vertical-align: middle; margin: .3em .08em;
+    }
+    .anee-emo img { display: block; width: 100%; height: 100%; max-width: none; }
+
+    /* Saying something back */
+    .ai-say { display: flex; gap: .5rem; align-items: flex-end; width: 100%; }
+    .ai-say textarea {
+        flex: 1 1 auto; resize: none; min-height: 38px; max-height: 8rem;
+        font-size: 13px; border-radius: 8px;
+    }
+    .ai-say-note { font-size: 11px; color: #98a4b6; margin: 0 0 .4rem; width: 100%; }
 </style>
 
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -45,7 +71,21 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="ctModalBody"></div>
-            <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
+            <div class="modal-footer flex-column align-items-stretch">
+                <p class="ai-say-note mb-2">
+                    <i class="bx bx-info-circle"></i>
+                    This writes into the client's own thread — they will see it in their app, marked
+                    as coming from the technician. Anee answers it there too. Their credits are not spent.
+                </p>
+                <div class="ai-say">
+                    <textarea id="ctSay" class="form-control" rows="1" maxlength="4000"
+                              placeholder="Answer this thread…" disabled></textarea>
+                    <button type="button" class="btn btn-primary" id="ctSend" disabled>
+                        <i class="bx bx-send"></i> Send
+                    </button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

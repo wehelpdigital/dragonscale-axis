@@ -13,6 +13,23 @@
     .cb-body { font-size: 12.5px; color: #343a40; white-space: pre-wrap; }
     .cb-at { font-size: 11px; color: #98a4b6; }
     .cb-msg img { max-width: 120px; border-radius: 6px; margin-top: .3rem; display: block; cursor: zoom-in; }
+    /* A line this console put in the room, so it is not mistaken for one of
+       theirs when scanning the column. */
+    .cb-msg.is-mine { background: #f5f8ff; border-left: 2px solid #556ee6; padding-left: .5rem; }
+
+    /* Saying something */
+    .cb-say { display: flex; gap: .45rem; align-items: flex-end; margin-top: .7rem; }
+    .cb-say textarea {
+        flex: 1 1 auto; resize: none; min-height: 36px; max-height: 7rem;
+        font-size: 12.5px; border-radius: 8px;
+    }
+    .cb-say-note { font-size: 10.5px; color: #98a4b6; margin: .35rem 0 0; }
+
+    /* Anee's faces, at the size and spacing the farmer app gives them. The
+       margin is leading the picture brings with it, so the lines around it
+       move apart rather than being written over. */
+    .anee-emo { display: inline-block; width: 1.7em; height: 1.7em; vertical-align: middle; margin: .25em .06em; }
+    .anee-emo img { display: block; width: 100%; height: 100%; max-width: none; }
     .cb-rec { display: flex; gap: .6rem; align-items: center; padding: .45rem .1rem; border-bottom: 1px solid #f1f3f7; }
     .cb-rec:last-child { border-bottom: 0; }
     .cb-rec img { width: 72px; height: 48px; object-fit: cover; border-radius: 6px; background: #f6f8fb; }

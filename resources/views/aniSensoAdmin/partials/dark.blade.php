@@ -218,6 +218,33 @@
 [data-bs-theme="dark"] .ai-empty, [data-bs-theme="dark"] .cb-empty, [data-bs-theme="dark"] .rp-empty,
 [data-bs-theme="dark"] .de-empty, [data-bs-theme="dark"] .cf-empty { color: var(--sm-dim); }
 
+/* ---- a map, drawn ---- */
+[data-bs-theme="dark"] .mp-canvas {
+    background:
+        linear-gradient(#333b52 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(90deg, #333b52 1px, transparent 1px) 0 0 / 24px 24px,
+        var(--sm-surface-2);
+    border-color: var(--sm-line);
+}
+/* The label is drawn over the shape it names, so its halo has to be the
+   ground rather than paper — otherwise every name wears a white box. */
+[data-bs-theme="dark"] .mp-canvas text { fill: var(--sm-text); stroke: var(--sm-surface-2); }
+[data-bs-theme="dark"] .mp-scale { color: var(--sm-dim); }
+[data-bs-theme="dark"] .mp-shape { border-bottom-color: var(--sm-line); }
+[data-bs-theme="dark"] .mp-shape .mp-what { color: var(--sm-dim); }
+[data-bs-theme="dark"] .dw-modal-body { background: var(--sm-sunken); }
+
+/* ---- saying something: the thread, and the room ---- */
+[data-bs-theme="dark"] .ai-turn .ai-bubble { background: var(--sm-surface-2); color: var(--sm-text); }
+[data-bs-theme="dark"] .ai-turn.is-bot .ai-bubble { background: #2b3352; color: #cdd7fb; }
+[data-bs-theme="dark"] .ai-turn.is-mine .ai-bubble { background: #332c1c; color: #e6d6b4; }
+[data-bs-theme="dark"] .ai-mine-tag { color: #e0b877; }
+[data-bs-theme="dark"] .ai-say-note,
+[data-bs-theme="dark"] .cb-say-note { color: var(--sm-dim); }
+[data-bs-theme="dark"] .cb-msg { border-bottom-color: var(--sm-line); }
+[data-bs-theme="dark"] .cb-msg.is-mine { background: #2b3352; border-left-color: #6d84ee; }
+[data-bs-theme="dark"] .cb-body { color: var(--sm-text); }
+
 /* ---- the community's shelf and its screens ---- */
 [data-bs-theme="dark"] .cm-shelf a { background: var(--sm-surface); border-color: var(--sm-line); color: var(--sm-text); }
 [data-bs-theme="dark"] .cm-shelf a:hover { background: #333b52; border-color: #4a5474; color: #fff; }

@@ -311,6 +311,8 @@ Route::delete('/anisenso-schedule-manager-inventory-move-delete', [App\Http\Cont
 // The season's own records: the maps drawn on it, the drawings made on it,
 // and the threads asked about it
 Route::get('/anisenso-schedule-manager-records-maps',              [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'maps'])->name('anisenso-schedule-manager.records.maps')->middleware('auth');
+Route::get('/anisenso-schedule-manager-records-map-one',           [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapShow'])->name('anisenso-schedule-manager.records.map.show')->middleware('auth');
+Route::put('/anisenso-schedule-manager-records-map-save',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapSave'])->name('anisenso-schedule-manager.records.map.save')->middleware('auth');
 Route::put('/anisenso-schedule-manager-records-map-rename',        [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapRename'])->name('anisenso-schedule-manager.records.map.rename')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-records-map-delete',     [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapDestroy'])->name('anisenso-schedule-manager.records.map.delete')->middleware('auth');
 Route::get('/anisenso-schedule-manager-records-drawings',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'drawings'])->name('anisenso-schedule-manager.records.drawings')->middleware('auth');
@@ -319,6 +321,7 @@ Route::get('/anisenso-schedule-manager-records-ai',                [App\Http\Con
 Route::get('/anisenso-schedule-manager-records-ai-one',            [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiShow'])->name('anisenso-schedule-manager.records.ai.show')->middleware('auth');
 Route::put('/anisenso-schedule-manager-records-ai-rename',         [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiRename'])->name('anisenso-schedule-manager.records.ai.rename')->middleware('auth');
 Route::delete('/anisenso-schedule-manager-records-ai-delete',      [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiDestroy'])->name('anisenso-schedule-manager.records.ai.delete')->middleware('auth');
+Route::post('/anisenso-schedule-manager-records-ai-reply',        [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'aiReply'])->name('anisenso-schedule-manager.records.ai.reply')->middleware('auth');
 
 // The post-harvest reports the client saved, as against the costings this
 // app computes next door
@@ -1006,6 +1009,8 @@ Route::delete('/anisenso-media-reels-delete', [App\Http\Controllers\aniSensoAdmi
 Route::get('/anisenso-media-rooms', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'rooms'])->name('anisenso-media-rooms')->middleware('auth');
 Route::get('/anisenso-media-rooms-data', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomsData'])->name('anisenso-media-rooms.data')->middleware('auth');
 Route::get('/anisenso-media-rooms-one', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomShow'])->name('anisenso-media-rooms.show')->middleware('auth');
+Route::post('/anisenso-media-rooms-message-post', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomMessagePost'])->name('anisenso-media-rooms.message.post')
+    ->middleware('auth');
 Route::delete('/anisenso-media-rooms-message-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomMessageDestroy'])->name('anisenso-media-rooms.message.delete')->middleware('auth');
 Route::delete('/anisenso-media-rooms-recording-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemMediaController::class, 'roomRecordingDestroy'])->name('anisenso-media-rooms.recording.delete')->middleware('auth');
 

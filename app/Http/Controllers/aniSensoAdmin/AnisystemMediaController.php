@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\aniSensoAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Support\AneeEmoji;
+use App\Support\AniSensoTechnician;
 use App\Support\AnisystemMedia;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -594,7 +596,7 @@ class AnisystemMediaController extends Controller
                 ->leftJoin('anisystem_users as u', 'u.id', '=', 'm.userId')
                 ->where('m.scheduleId', $id)->where('m.deleteStatus', 1)
                 ->orderByDesc('m.id')->limit(60)
-                ->selectRaw("m.id, m.body, m.imagePath, m.created_at, TRIM(CONCAT(COALESCE(u.firstName,''),' ',COALESCE(u.lastName,''))) as who")
+                ->selectRaw("m.id, m.userId, m.body, m.imagePath, m.created_at, TRIM(CONCAT(COALESCE(u.firstName,''),' ',COALESCE(u.lastName,''))) as who")
                 ->get()->reverse()->values();
 
             $recordings = DB::table('as_team_recordings as r')
@@ -615,6 +617,11 @@ class AnisystemMediaController extends Controller
                     'id' => (int) $m->id,
                     'who' => trim((string) $m->who) ?: 'Someone',
                     'body' => (string) $m->body,
+                    // The room carries Anee's faces too — the team asks her
+                    // in here — so a message is rendered the way the client
+                    // sees it rather than as the shortcodes underneath.
+                    'bodyHtml' => AneeEmoji::body((string) $m->body),
+                    'mine' => (int) $m->userId === AniSensoTechnician::id(),
                     'photo' => AnisystemMedia::url($m->imagePath),
                     'at' => $this->when($m->created_at, 'M j, g:i A'),
                 ]),
@@ -639,6 +646,55 @@ class AnisystemMediaController extends Controller
 
             return response()->json(['success' => false, 'message' => 'Could not read that room.'], 500);
         }
+    }
+
+    /**
+     * Say something in a season's Collab Room, as the technician.
+     *
+     * The room belongs to the client and their team, and this writes the same
+     * row their app writes — so it lands in the room itself, where the people
+     * it is for are already looking, rather than in an email none of them
+     * opens.
+     *
+     * It is signed by the console's own technician account, not by whoever
+     * happens to own the season, so the name against it in their app is true.
+     */
+    public function roomMessagePost(Request $request)
+    {
+        $id = (int) $request->query('id');
+        $said = trim((string) $request->input('body', ''));
+
+        if ($said === '') {
+            return response()->json(['success' => false, 'message' => 'Nothing was written.'], 422);
+        }
+        if (mb_strlen($said) > 4000) {
+            return response()->json(['success' => false, 'message' => 'That is too long for one message.'], 422);
+        }
+
+        $season = DB::table('as_cropping_schedules')->where('id', $id)->where('deleteStatus', 1)->first(['id']);
+        if (! $season) {
+            return response()->json(['success' => false, 'message' => 'That season is gone.'], 404);
+        }
+
+        $now = now();
+        $newId = DB::table('as_schedule_messages')->insertGetId([
+            'scheduleId' => $id,
+            'userId' => AniSensoTechnician::id(),
+            'body' => $said,
+            'deleteStatus' => 1,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Said.', 'data' => [
+            'id' => $newId,
+            'who' => AniSensoTechnician::name(),
+            'body' => $said,
+            'bodyHtml' => AneeEmoji::body($said),
+            'photo' => null,
+            'at' => $this->when($now, 'M j, g:i A'),
+            'mine' => true,
+        ]]);
     }
 
     public function roomMessageDestroy(Request $request)

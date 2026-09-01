@@ -11,8 +11,11 @@ namespace App\Support;
  * mean an admin could not read a thread while the other app was redeploying.
  * Fifty-six names and fifty-six small drawings is a cheap thing to hold twice.
  *
- * This is the reading half only. Choosing a face is the answering app's job,
- * so the paragraph that tells a model which faces exist is not here.
+ * Both halves are here: turning a shortcode into a picture, for reading a
+ * thread, and describing the sheet to a model, for answering in one. The
+ * console does both now — it can read a client's conversation and continue
+ * it, and an Anee who did not know the faces existed would stop using them
+ * mid-thread.
  *
  * If a face is ever added on the far side, add it here and drop its PNG into
  * public/images/anee/emoji. An unknown name is left as written rather than
@@ -78,6 +81,29 @@ class AneeEmoji
         'whisper' => 'hand beside mouth, letting you in on something',
         'delighted' => 'eyes shut, delighted',
         'cheer' => 'cheering',
+    ];
+
+    /**
+     * The sheet as headings, for the paragraph the model is shown.
+     *
+     * Another twin of the farmer app's copy: she is choosing a face from
+     * words alone, so the grouping is part of how she chooses.
+     */
+    public const GROUPS = [
+        'Hello, and goodbye' => ['wave', 'salute'],
+        'Pleased, impressed, celebrating with them' => [
+            'happy', 'grin', 'cheer', 'delighted', 'starstruck', 'amazed',
+            'laughing', 'thumbsup', 'love', 'heart', 'flower',
+        ],
+        'Warm and ordinary' => ['smile', 'wink', 'calm', 'relieved', 'leaf', 'content'],
+        'Working something out' => ['thinking', 'idea', 'unsure', 'doubtful', 'whisper'],
+        'Yes, no, or one of the two' => ['yes', 'no', 'choose'],
+        'Bad news, worry, or bad luck of theirs' => [
+            'concerned', 'worried', 'alarmed', 'shocked', 'sad', 'teary',
+            'wince', 'weary', 'glum',
+        ],
+        'A mistake of your own' => ['oops', 'facepalm', 'blushing'],
+        'Grave, and meant to be' => ['serious'],
     ];
 
     public static function has(string $name): bool
@@ -169,17 +195,68 @@ class AneeEmoji
     /**
      * A whole message, from what is in the database to what goes on screen.
      *
-     * Escape first, then the little of Anee's formatting that carries meaning
-     * — bold, and the line breaks she writes in — then the faces. In that
-     * order: escaping last would eat the markup this adds, and arranging the
-     * faces after they are pictures would mean moving <img> tags about.
+     * Escape first, then the little of Anee's formatting that carries
+     * meaning — her bold — then the faces. In that order: escaping last would
+     * eat the markup this adds, and arranging the faces after they are
+     * pictures would mean moving <img> tags about.
+     *
+     * Her line breaks are left as the newlines they are. The bubble that
+     * holds this is set to pre-wrap, so turning them into <br> here would
+     * space every paragraph twice.
      */
     public static function body(?string $raw): string
     {
-        $html = e((string) $raw);
-        $html = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $html);
-        $html = nl2br((string) $html, false);
+        $html = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', e((string) $raw));
 
         return self::render((string) $html);
+    }
+
+    /** The paragraph the model is given. */
+    public static function promptLine(): string
+    {
+        $block = '';
+        foreach (self::GROUPS as $heading => $names) {
+            $block .= '  ' . $heading . ":\n";
+            foreach ($names as $name) {
+                $block .= '    :anee-' . $name . ': -- ' . self::FACES[$name] . "\n";
+            }
+        }
+
+        return "--- Your face, and how a reply looks ---\n"
+            . "You have a face and you may show it. Writing :anee-NAME: puts a\n"
+            . "small picture of yourself wearing that expression into the reply.\n"
+            . "Find the moment first, then take the face from it:\n"
+            . $block
+            . "\n"
+            . "How to wear them:\n"
+            . "  - AT THE START OR THE END OF A PARAGRAPH, never inside a\n"
+            . "    sentence. A face is punctuation: one on the way in, or one on\n"
+            . "    the way out. Mid-clause it splits the line it lands on and the\n"
+            . "    eye stops on it halfway through what you are saying.\n"
+            . "  - Two or three in a reply that has two or three beats to it: the\n"
+            . "    reaction at the top, the turn at the end of a paragraph, the\n"
+            . "    warning at the end of the last. One is plenty for a short\n"
+            . "    answer. None at all is fine for a grave one.\n"
+            . "  - Never the same face twice in one reply, and do not open every\n"
+            . "    reply with the one you opened the last one with. :anee-smile: is\n"
+            . "    not a default -- it is what you wear when nothing stronger fits.\n"
+            . "  - Match the face to what you are actually saying. Celebrating a\n"
+            . "    harvest is :anee-cheer: or :anee-starstruck:, not a polite smile;\n"
+            . "    bad news is :anee-concerned: or :anee-sad:; your own mistake is\n"
+            . "    :anee-oops:.\n"
+            . "  - Ordinary emoji are welcome too where they carry meaning rather\n"
+            . "    than decorate: a crop, the weather, a pest, water, money.\n"
+            . "\n"
+            . "Lay a reply out so it can be read on a phone in a field:\n"
+            . "  - Short paragraphs with a blank line between them.\n"
+            . "  - **Bold** the thing that matters most -- a rate, a date, a warning.\n"
+            . "  - Bullets or numbered steps when there is more than one thing to do.\n"
+            . "  - A line of three dashes (---) on its own draws a divider, for when\n"
+            . "    the answer turns from what is wrong to what to do about it.\n"
+            . "\n"
+            . "The one rule that does not bend: a face is never INSTEAD of saying\n"
+            . "the thing. Bad news is still said plainly and early, a diagnosis is\n"
+            . "still a diagnosis, and a reply about a loss or a mistake of your own\n"
+            . "is better with a plain word than a picture.";
     }
 }
