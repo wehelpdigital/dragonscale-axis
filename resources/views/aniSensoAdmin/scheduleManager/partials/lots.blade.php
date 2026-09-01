@@ -102,26 +102,6 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="lotId">
-
-                {{-- Said before the three questions it is about, and only while
-                     making a lot. Every date on the board is derived from these,
-                     so changing one later would not adjust the plan — it would
-                     quietly make the plan mean something else. --}}
-                <div class="alert alert-warning py-2 px-3 mb-3" id="lotOnceNotice" style="font-size:12.5px;">
-                    <i class="bx bx-lock-alt me-1"></i>
-                    <strong>The crop, how its days are counted, and its days to maturity are set now
-                    and cannot be changed afterwards.</strong>
-                    Everything on the board is worked out from them. If they turn out wrong, the
-                    lot is remade rather than edited.
-                </div>
-
-                {{-- What a lot already is, when one is being edited. The three
-                     below are not offered then, and a form that simply omits
-                     the crop reads as a lot that has none. --}}
-                <div class="alert alert-light border py-2 px-3 mb-3 d-none" id="lotFixedSays" style="font-size:12.5px;">
-                    <i class="bx bx-lock-alt me-1 text-secondary"></i>
-                    <span id="lotFixedText"></span>
-                </div>
                 <div class="mb-3">
                     <label class="form-label text-dark">Lot Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="lotName" placeholder="e.g. Lot A">

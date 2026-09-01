@@ -84,33 +84,15 @@ $(document).on('change', '#lotCrop', function () {
 });
 
 /**
- * What a lot already is, when it is being edited.
+ * The three that are settled when a lot is made.
  *
- * The three that decide the counting are not offered on an existing lot, and
- * a form that simply omits the crop reads as a lot that has none — so it is
- * said in a line instead.
+ * Not offered on an existing lot: they are what every date on the board was
+ * derived from, so changing one would not move the plan — it would change
+ * what the plan means. They are still filled behind the scenes, because the
+ * crop decides which timing question exists and the save reads these fields.
  */
-function lockLotFixed(isEdit, cropKey, dayType, maturity) {
+function lockLotFixed(isEdit) {
     $('.js-lot-once').toggleClass('d-none', !!isEdit);
-    $('#lotOnceNotice').toggleClass('d-none', !!isEdit);
-    $('#lotFixedSays').toggleClass('d-none', !isEdit);
-    if (!isEdit) return;
-
-    const crop = CROP_CATALOGUE[cropKey];
-    const rule = CROP_RULES[cropKey];
-    const bits = [];
-    bits.push(crop ? `${crop.icon || ''} ${crop.label}`.trim() : 'No crop set');
-    bits.push(DAY_TYPE_WORDS[dayType] || dayType || 'counter not set');
-    if (rule && rule.tree) {
-        bits.push('read by the trees’ age');
-    } else if (maturity) {
-        bits.push(maturity + ' days to maturity');
-    } else if (rule && rule.maturity) {
-        bits.push(rule.maturity + ' days to maturity (the crop’s usual)');
-    }
-
-    $('#lotFixedText').html('<strong>Set when this lot was made and not changed here:</strong> '
-        + bits.map(escapeHtml).join(' &middot; '));
 }
 
 /* ---- where a lot is: two lists rather than two typing boxes ----
@@ -358,8 +340,7 @@ $(document).on('click', '.edit-lot-btn', function () {
     // Filled from the lot, so `keep` is passed — its own counter survives
     // rather than being moved to the crop's usual one.
     fitLotCrop(cropKey($(this).data('crop')), $(this).data('day-type') || 'DAT');
-    lockLotFixed(true, cropKey($(this).data('crop')), $(this).data('day-type') || '',
-        $(this).data('days-to-maturity') || '');
+    lockLotFixed(true);
     $('#lotLocBarangay').val($(this).data('loc-barangay') || '');
     $('#lotLocZone').val($(this).data('loc-zone') || '');
     setLotPlace($(this).data('loc-province') || '', $(this).data('loc-town') || '');
