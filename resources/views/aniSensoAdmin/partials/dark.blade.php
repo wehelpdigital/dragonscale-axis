@@ -72,6 +72,9 @@
 [data-bs-theme="dark"] .btn.btn-outline-success { --bs-btn-color: #6ed6ae; --bs-btn-disabled-color: #47836c; }
 [data-bs-theme="dark"] .btn.btn-outline-info    { --bs-btn-color: #7cc0f5; --bs-btn-disabled-color: #4d7595; }
 [data-bs-theme="dark"] .btn.btn-outline-danger  { --bs-btn-color: #f59b9b; --bs-btn-disabled-color: #915a5a; }
+/* Primary needs no help on white — #556ee6 carries there — but on a dark
+   card it is 2.97, and Add Activity is the button this page is for. */
+[data-bs-theme="dark"] .btn.btn-outline-primary { --bs-btn-color: #9fb0f5; --bs-btn-disabled-color: #5f6b9c; }
 
 [data-bs-theme="dark"] {
     /* The page's own ramp, as five names rather than thirty hexes. */

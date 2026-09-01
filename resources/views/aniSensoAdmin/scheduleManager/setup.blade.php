@@ -101,7 +101,7 @@
     .mir-flag { font-size: 10px; font-weight: 700; border-radius: 999px; padding: .05rem .4rem;
         background: #eef1f6; color: #74788d; margin-left: .3rem; }
     .priority-critical { background:#9c1c1c; color:#fff; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
-    .priority-high { background:#f46a6a; color:#fff; }
+    .priority-high { background:#e14b4b; color:#fff; }
     .priority-medium { background:#f1b44c; color:#212529; }
     .priority-low { background:#74788d; color:#fff; }
     .activity-card { border-left: 3px solid #556ee6; }
@@ -864,10 +864,13 @@
                 <div>
                     @php
                         $statusMap = [
+                            // Light backgrounds take dark ink, and get it
+                            // from the shared layer — which .text-white,
+                            // being marked important, would have overruled.
                             'draft' => 'bg-secondary text-white',
-                            'setup' => 'bg-info text-white',
+                            'setup' => 'bg-info',
                             'generated' => 'bg-primary text-white',
-                            'completed' => 'bg-success text-white',
+                            'completed' => 'bg-success',
                             'archived' => 'bg-dark text-white',
                         ];
                         $cls = $statusMap[$schedule->status] ?? 'bg-secondary text-white';
