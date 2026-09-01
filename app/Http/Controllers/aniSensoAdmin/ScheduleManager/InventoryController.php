@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\aniSensoAdmin\ScheduleManager;
 
+use App\Support\InventoryUnits as Units;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -21,21 +22,12 @@ use Illuminate\Validation\Rule;
  */
 class InventoryController extends BaseScheduleController
 {
-    /** The same ten kinds the farmer app offers, with the units each holds. */
-    public const KINDS = [
-        'granular' => ['label' => 'Granular fertiliser', 'icon' => '🧂'],
-        'foliar' => ['label' => 'Foliar / liquid feed', 'icon' => '🧪'],
-        'pesticide' => ['label' => 'Pesticide', 'icon' => '🐛'],
-        'herbicide' => ['label' => 'Herbicide', 'icon' => '🌿'],
-        'fungicide' => ['label' => 'Fungicide', 'icon' => '🍄'],
-        'molluscicide' => ['label' => 'Molluscicide', 'icon' => '🐌'],
-        'seed' => ['label' => 'Seed', 'icon' => '🌱'],
-        'fuel' => ['label' => 'Fuel', 'icon' => '⛽'],
-        'tool' => ['label' => 'Tool / supply', 'icon' => '🧰'],
-        'other' => ['label' => 'Other', 'icon' => '📦'],
-    ];
+    /* The kinds and the units, from the one list both apps read. Kept as
+       class constants as well so the Blade that draws the modal does not have
+       to know where they moved to. */
+    public const KINDS = Units::KINDS;
 
-    public const UNITS = ['kg', 'g', 'L', 'ml', 'piece'];
+    public const UNITS = Units::UNITS;
 
     /** Why the stock moved. 'activity' is written by the app, never by hand. */
     public const REASONS = [
@@ -75,9 +67,13 @@ class InventoryController extends BaseScheduleController
                     'kindLabel' => self::KINDS[$i->kind]['label'] ?? 'Other',
                     'icon' => self::KINDS[$i->kind]['icon'] ?? '📦',
                     'unit' => (string) $i->unit,
-                    'packSize' => $i->packSize !== null ? (float) $i->packSize : null,
-                    'packLabel' => (string) ($i->packLabel ?? ''),
+                    // Said here, not worked out there: the browser prints the
+                    // unit in four places and none of them should own a second
+                    // copy of the vocabulary.
+                    'unitLabel' => Units::unitSays($i->unit, false),
+                    'says' => Units::say($have, $i->unit),
                     'lowAt' => $i->lowAt !== null ? (float) $i->lowAt : null,
+                    'lowSays' => $i->lowAt !== null ? Units::say((float) $i->lowAt, $i->unit) : null,
                     'note' => (string) ($i->note ?? ''),
                     'onHand' => $have,
                     'isLow' => $i->lowAt !== null && $have <= (float) $i->lowAt,
@@ -95,9 +91,11 @@ class InventoryController extends BaseScheduleController
                 'id' => (int) $m->id,
                 'itemId' => (int) $m->itemId,
                 'itemName' => (string) ($m->itemName ?? 'Removed item'),
-                'unit' => (string) ($m->itemUnit ?? ''),
+                'unit' => Units::unitSays($m->itemUnit, false),
                 'delta' => (float) $m->delta,
+                'saysDelta' => Units::say(abs((float) $m->delta), $m->itemUnit),
                 'qtyAfter' => $m->qtyAfter !== null ? (float) $m->qtyAfter : null,
+                'saysAfter' => $m->qtyAfter !== null ? Units::say((float) $m->qtyAfter, $m->itemUnit) : null,
                 'reason' => (string) $m->reason,
                 'reasonLabel' => self::REASONS[$m->reason] ?? 'Change',
                 'fromActivity' => $m->reason === 'activity',
@@ -120,11 +118,12 @@ class InventoryController extends BaseScheduleController
         $v = Validator::make($request->all(), [
             'name' => 'required|string|max:191',
             'kind' => ['required', Rule::in(array_keys(self::KINDS))],
-            'unit' => ['required', Rule::in(self::UNITS)],
-            'packSize' => 'nullable|numeric|min:0|max:9999999',
-            'packLabel' => 'nullable|string|max:60',
+            'unit' => ['required', Rule::in(array_keys(self::UNITS))],
             'lowAt' => 'nullable|numeric|min:0|max:9999999',
             'note' => 'nullable|string|max:500',
+            // The day the opening count was taken, and what to say about it.
+            'on' => 'nullable|date',
+            'openingNote' => 'nullable|string|max:500',
         ]);
         if ($v->fails()) {
             return $this->jsonFail('Validation failed.', 422, ['errors' => $v->errors()]);
@@ -135,8 +134,6 @@ class InventoryController extends BaseScheduleController
             'name' => $d['name'],
             'kind' => $d['kind'],
             'unit' => $d['unit'],
-            'packSize' => $d['packSize'] ?? null,
-            'packLabel' => $d['packLabel'] ?? null,
             'lowAt' => $d['lowAt'] ?? null,
             'note' => $d['note'] ?? null,
             'updated_at' => now(),
@@ -161,10 +158,25 @@ class InventoryController extends BaseScheduleController
         // any other, so the log starts where the shed does.
         $opening = (float) $request->input('opening', 0);
         if (abs($opening) >= 0.0005) {
-            $this->writeMove($schedule->id, $id, $opening, 'open', null, 'Opening stock');
+            /* The note is null, not "Opening stock". The reason column already
+             * says that and the log line prints both, so the default spelled
+             * itself out twice on the same row. */
+            $this->writeMove(
+                $schedule->id,
+                $id,
+                $opening,
+                'open',
+                $request->input('on'),
+                trim((string) $request->input('openingNote')) ?: null
+            );
         }
 
-        return $this->jsonOk('Item added.', ['id' => $id]);
+        return $this->jsonOk(
+            abs($opening) >= 0.0005
+                ? $d['name'] . ' added — ' . Units::say($opening, $d['unit']) . ' on hand.'
+                : 'Item added.',
+            ['id' => $id]
+        );
     }
 
     public function itemDestroy(Request $request)
@@ -226,7 +238,8 @@ class InventoryController extends BaseScheduleController
         );
 
         return $this->jsonOk(
-            ($in ? 'Added to ' : 'Taken from ') . $item->name . ' — ' . rtrim(rtrim(number_format($after, 3), '0'), '.') . ' ' . $item->unit . ' left.'
+            ($in ? 'Added to ' : 'Taken from ') . $item->name
+                . ' — ' . Units::say($after, $item->unit) . ' left.'
         );
     }
 

@@ -13,13 +13,38 @@ const qty = (n) => {
     return (Math.round(v * 1000) / 1000).toString();
 };
 
+/* The unit vocabulary, from the one list both apps read. Spoken here rather
+   than rebuilt, so a row written by a farmer reads the same on this screen. */
+const IV_UNITS = @json(\App\Support\InventoryUnits::UNITS);
+const IV_KINDS = @json(\App\Support\InventoryUnits::KINDS);
+
+const unitSays = (key, singular) => {
+    const u = IV_UNITS[key];
+    if (!u) return String(key || '');   // from before this list existed
+    const word = singular ? u.one : u.many;
+    return u.of ? `${word} (${u.of})` : word;
+};
+const says = (n, unit) => `${qty(n)} ${unitSays(unit, Math.abs(Number(n) || 0) === 1)}`;
+
+/* Which units a kind is actually bought in. A unit already chosen stays
+   offered even if the kind moved on, so opening the list to look is never a
+   way to lose an answer. */
+function fillUnits(sel, kind, want) {
+    const $sel = $(sel);
+    if (!$sel.length) return;
+    const keys = (IV_KINDS[kind] && IV_KINDS[kind].units) ? IV_KINDS[kind].units.slice() : Object.keys(IV_UNITS);
+    if (want && keys.indexOf(want) === -1 && IV_UNITS[want]) keys.unshift(want);
+    $sel.html(keys.map(k => `<option value="${k}">${esc(unitSays(k, false))}</option>`).join(''));
+    $sel.val(want && keys.indexOf(want) !== -1 ? want : keys[0]);
+}
+
 function drawItems() {
     $('#ivBody').html(ITEMS.length ? `<div class="iv-grid">${ITEMS.map(i => `
         <div class="iv-item ${i.isLow ? 'is-low' : ''}">
             <div class="iv-name">${esc(i.icon)} ${esc(i.name)}</div>
-            <div class="iv-kind">${esc(i.kindLabel)}${i.packSize ? ` · ${qty(i.packSize)} ${esc(i.unit)} per ${esc(i.packLabel || 'pack')}` : ''}</div>
-            <div class="iv-have">${qty(i.onHand)} <small>${esc(i.unit)}</small></div>
-            ${i.isLow ? `<div class="iv-low"><i class="bx bx-error"></i> at or below ${qty(i.lowAt)} ${esc(i.unit)}</div>` : ''}
+            <div class="iv-kind">${esc(i.kindLabel)}</div>
+            <div class="iv-have">${qty(i.onHand)} <small>${esc(i.unitLabel)}</small></div>
+            ${i.isLow ? `<div class="iv-low"><i class="bx bx-error"></i> at or below ${esc(i.lowSays || '')}</div>` : ''}
             <div class="iv-acts">
                 <button class="btn btn-sm btn-outline-primary js-iv-move" data-id="${i.id}"><i class="bx bx-transfer"></i> Move</button>
                 <button class="btn btn-sm btn-light js-iv-edit" data-id="${i.id}"><i class="bx bx-pencil"></i></button>
@@ -69,9 +94,9 @@ function openItem(i) {
     $('#ivItemModalTitle').text(i ? 'Item' : 'New item');
     $('#ivName').val(i ? i.name : '');
     $('#ivKind').val(i ? i.kind : 'granular');
-    $('#ivUnit').val(i ? i.unit : 'kg');
-    $('#ivPackSize').val(i && i.packSize !== null ? i.packSize : '');
-    $('#ivPackLabel').val(i ? i.packLabel : '');
+    $('#ivUnit').data('touched', i ? 1 : 0);
+    fillUnits('#ivUnit', i ? i.kind : 'granular', i ? i.unit : null);
+    sayUnit();
     $('#ivLowAt').val(i && i.lowAt !== null ? i.lowAt : '');
     $('#ivNote').val(i ? i.note : '');
     $('#ivOpening').val('');
@@ -81,6 +106,30 @@ function openItem(i) {
     $('#ivItemDeleteBtn').toggle(!!i);
     new bootstrap.Modal(document.getElementById('ivItemModal')).show();
 }
+
+/* The unit is echoed beside every box a number goes into, so nobody has to
+   scroll back up to remember whether the 12 they are typing is bags or kilos. */
+function sayUnit() {
+    const u = $('#ivUnit').val();
+    const many = unitSays(u, false);
+    $('#ivLowUnit').text(many);
+    $('#ivOpeningUnit').text(many);
+    const first = (IV_KINDS[$('#ivKind').val()] || {}).units;
+    $('#ivUnitHint').text(first && first.length ? `Usually ${unitSays(first[0], false)}.` : '');
+}
+$('#ivKind').on('change', function () {
+    /* Keep an answer somebody actually gave, and only that.
+     *
+     * Carrying the current value across every kind change looks like the same
+     * kindness and is not: on a fresh item nobody chose "bags (50 kg)", it was
+     * the granular default, so switching to Fuel offered bags of diesel. The
+     * value is kept only once it has been touched — which is also true of an
+     * item being edited, where openItem marks it. */
+    var $u = $('#ivUnit');
+    fillUnits($u, $(this).val(), $u.data('touched') ? $u.val() : null);
+    sayUnit();
+});
+$('#ivUnit').on('change', function () { $(this).data('touched', 1); sayUnit(); });
 
 $('#ivNewItem').on('click', () => openItem(null));
 $(document).on('click', '.js-iv-edit', function () {
@@ -101,8 +150,6 @@ $('#ivItemSaveBtn').on('click', function () {
             name: $('#ivName').val(),
             kind: $('#ivKind').val(),
             unit: $('#ivUnit').val(),
-            packSize: $('#ivPackSize').val() || null,
-            packLabel: $('#ivPackLabel').val() || null,
             lowAt: $('#ivLowAt').val() || null,
             note: $('#ivNote').val() || null,
             opening: $('#ivOpening').val() || 0,
@@ -139,14 +186,26 @@ $(document).on('click', '.js-iv-move', function () {
     const i = ITEMS.find(x => x.id === Number($(this).data('id')));
     if (!i) return;
     $('#ivMoveItemId').val(i.id);
-    $('#ivMoveWhat').text(`${i.name} — ${qty(i.onHand)} ${i.unit} on hand.`);
+    $('#ivMoveWhat').text(`${i.name} — ${i.says} on hand.`);
+    $('#ivQtyUnit').text(i.unitLabel);
     $('#ivDirection').val('in');
     $('#ivQty').val('');
+    $('#ivAfter').text('');
     $('#ivReason').val('');
     $('#ivOn').val('');
     $('#ivMoveNote').val('');
     new bootstrap.Modal(document.getElementById('ivMoveModal')).show();
 });
+
+/* What the shelf will read once this is recorded. */
+function sayAfter() {
+    const i = ITEMS.find(x => x.id === Number($('#ivMoveItemId').val()));
+    const n = Number($('#ivQty').val() || 0);
+    if (!i || !(n > 0)) { $('#ivAfter').text(''); return; }
+    const out = $('#ivDirection').val() === 'out';
+    $('#ivAfter').text(`After this: ${says(i.onHand + (out ? -n : n), i.unit)}.`);
+}
+$('#ivQty, #ivDirection').on('input change', sayAfter);
 
 $('#ivMoveSaveBtn').on('click', function () {
     const $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Saving...');

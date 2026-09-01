@@ -3,7 +3,6 @@
      sum of the moves, so everything written here is written as a move. --}}
 @php
     $invKinds = \App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::KINDS;
-    $invUnits = \App\Http\Controllers\aniSensoAdmin\ScheduleManager\InventoryController::UNITS;
 @endphp
 <style>
     .iv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .6rem; }
@@ -67,30 +66,32 @@
                             @endforeach
                         </select>
                     </div>
+                    {{-- COUNTED IN WHAT.
+                         One answer, with the pack inside it: "bags (50 kg)"
+                         sits in the same list as "kg", so a farm that buys
+                         bags counts bags. Which answers appear follows from
+                         the kind — a fuel is not sold in sachets. Filled in by
+                         the script from the one list both apps read, so
+                         nothing here keeps a second copy of it. --}}
                     <div class="col-md-5">
-                        <label class="form-label text-dark">Held in</label>
-                        <select class="form-select" id="ivUnit">
-                            @foreach ($invUnits as $u)
-                                <option value="{{ $u }}">{{ $u }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label text-dark">One pack is</label>
-                        <input type="number" step="0.001" min="0" class="form-control" id="ivPackSize" placeholder="e.g. 50">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label text-dark">Pack is called</label>
-                        <input type="text" class="form-control" id="ivPackLabel" maxlength="60" placeholder="sack, drum, bottle">
+                        <label class="form-label text-dark">Counted in</label>
+                        <select class="form-select" id="ivUnit"></select>
+                        <small class="text-secondary" id="ivUnitHint"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-dark">Say it is low at</label>
-                        <input type="number" step="0.001" min="0" class="form-control" id="ivLowAt">
+                        <div class="input-group">
+                            <input type="number" step="0.001" min="0" class="form-control" id="ivLowAt">
+                            <span class="input-group-text" id="ivLowUnit"></span>
+                        </div>
                     </div>
                     <div class="col-md-6" id="ivOpeningRow">
                         <label class="form-label text-dark">Opening count</label>
-                        <input type="number" step="0.001" min="0" class="form-control" id="ivOpening">
-                        <small class="text-secondary">Written as the first movement.</small>
+                        <div class="input-group">
+                            <input type="number" step="0.001" min="0" class="form-control" id="ivOpening">
+                            <span class="input-group-text" id="ivOpeningUnit"></span>
+                        </div>
+                        <small class="text-secondary">Written as the first movement, and it shows in the log.</small>
                     </div>
                     <div class="col-12">
                         <label class="form-label text-dark">Note</label>
@@ -130,7 +131,14 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-dark">How much <span class="text-danger">*</span></label>
-                        <input type="number" step="0.001" min="0.001" class="form-control" id="ivQty">
+                        <div class="input-group">
+                            <input type="number" step="0.001" min="0.001" class="form-control" id="ivQty">
+                            <span class="input-group-text" id="ivQtyUnit"></span>
+                        </div>
+                        {{-- What the count will BE. The question somebody opens
+                             this modal to answer, answered before the button is
+                             pressed rather than after it. --}}
+                        <small class="text-secondary" id="ivAfter"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-dark">Why</label>
