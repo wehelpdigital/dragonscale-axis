@@ -310,6 +310,19 @@ Route::delete('/anisenso-schedule-manager-inventory-move-delete', [App\Http\Cont
 
 // The season's own records: the maps drawn on it, the drawings made on it,
 // and the threads asked about it
+
+/* The season's map: the live canvas the client draws on, and the named
+   saves made from it. Same rows the farmer app writes. */
+Route::get('/anisenso-schedule-manager-map', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'objects'])->name('anisenso-schedule-manager.map.objects')->middleware('auth');
+Route::post('/anisenso-schedule-manager-map-push', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'push'])->name('anisenso-schedule-manager.map.push')->middleware('auth');
+Route::post('/anisenso-schedule-manager-map-update', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'update'])->name('anisenso-schedule-manager.map.update')->middleware('auth');
+Route::delete('/anisenso-schedule-manager-map-remove', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'remove'])->name('anisenso-schedule-manager.map.remove')->middleware('auth');
+Route::post('/anisenso-schedule-manager-map-clear', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'clear'])->name('anisenso-schedule-manager.map.clear')->middleware('auth');
+Route::get('/anisenso-schedule-manager-map-saves', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'saves'])->name('anisenso-schedule-manager.map.saves')->middleware('auth');
+Route::post('/anisenso-schedule-manager-map-save', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'saveMap'])->name('anisenso-schedule-manager.map.save')->middleware('auth');
+Route::post('/anisenso-schedule-manager-map-load', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'loadSave'])->name('anisenso-schedule-manager.map.load')->middleware('auth');
+Route::get('/anisenso-schedule-manager-map-basemap', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'basemap'])->name('anisenso-schedule-manager.map.basemap')->middleware('auth');
+
 Route::get('/anisenso-schedule-manager-records-maps',              [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'maps'])->name('anisenso-schedule-manager.records.maps')->middleware('auth');
 Route::get('/anisenso-schedule-manager-records-map-one',           [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapShow'])->name('anisenso-schedule-manager.records.map.show')->middleware('auth');
 Route::put('/anisenso-schedule-manager-records-map-save',          [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapSave'])->name('anisenso-schedule-manager.records.map.save')->middleware('auth');

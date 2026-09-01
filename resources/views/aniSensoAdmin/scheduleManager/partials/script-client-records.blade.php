@@ -47,7 +47,10 @@ function loadMaps(failed) {
                         <div class="mp-meta">${esc(r.source || 'map')} · ${r.shapes} ${r.shapes === 1 ? 'shape' : 'shapes'}${r.when ? ' · ' + esc(r.when) : ''}</div>
                     </div>
                     <div class="text-nowrap">
-                        <button class="btn btn-sm btn-outline-primary js-mp-open" data-id="${r.id}"><i class="bx bx-map-alt"></i> Open</button>
+                        <button class="btn btn-sm btn-primary js-mp-load" data-id="${r.id}" data-title="${esc(r.title)}"
+                                title="Put this plan back on the map"><i class="bx bx-upload"></i> Open on the map</button>
+                        <button class="btn btn-sm btn-outline-primary js-mp-open" data-id="${r.id}"
+                                title="Look at its shapes without touching the map"><i class="bx bx-shape-polygon"></i></button>
                         <button class="btn btn-sm btn-light js-mp-rename" data-id="${r.id}" data-title="${esc(r.title)}"><i class="bx bx-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger js-mp-del" data-id="${r.id}"><i class="bx bx-trash"></i></button>
                     </div>
@@ -88,6 +91,23 @@ $(document).on('click', '.js-mp-del', function () {
 });
 
 onFirstShow('#tab-maps', loadMaps);
+
+// ---- and the map itself ----------------------------------------------
+// The engine waits to be started, and fetches Google's script only then, so
+// a season whose map is never opened costs nothing. Every showing, not only
+// the first: a map built inside a hidden pane measures its container as zero
+// and keeps that height until something tells it to look again.
+function wakeTheMap() {
+    if (!window.initCollabMap) return;
+    // After the pane is actually visible — Google reads the container's size
+    // the moment it builds, and Bootstrap has not finished showing it when
+    // the event fires.
+    requestAnimationFrame(() => window.initCollabMap());
+}
+$('.sm-tabs a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+    if ($(e.target).attr('href') === '#tab-maps') wakeTheMap();
+});
+if (location.hash === '#tab-maps') $(wakeTheMap);
 
 // ---- one map, drawn --------------------------------------------------
 // What is open, and the shapes as the server last confirmed them. `at` is a
@@ -197,6 +217,30 @@ function drawShapeList(objects) {
 }
 
 function paintMap() { drawMap(openMap.objects); drawShapeList(openMap.objects); }
+
+// Putting a saved plan back on the canvas above.
+//
+// Handed straight to the map, which already knows the order this has to
+// happen in — the edits owed to the map being left are written before the
+// swap, or they would be filed under the arriving map's name. Not repeated
+// here.
+$(document).on('click', '.js-mp-load', function () {
+    const b = $(this);
+    if (!window.cmapOpenSave) {
+        toastr.error('The map is not on this page — it needs a Google Maps key.');
+        return;
+    }
+    b.prop('disabled', true);
+    Promise.resolve(window.cmapOpenSave({ id: b.data('id'), name: b.data('title') }))
+        .catch(() => {})
+        .then(() => {
+            b.prop('disabled', false);
+            // The shelf's own cards carry shape counts, and one of them just
+            // became the canvas.
+            loadMaps();
+            document.getElementById('cmapWrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+});
 
 $(document).on('click', '.js-mp-open', function () {
     const id = $(this).data('id');

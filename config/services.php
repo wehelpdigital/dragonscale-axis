@@ -40,6 +40,17 @@ return [
      * value in that app's ANISYSTEM_MEDIA_TOKEN; empty means the endpoint is
      * closed rather than open.
      */
+    /*
+     * The map the schedule manager draws on.
+     *
+     * The same Google project the farmer app uses — one product, one key —
+     * but read from this app's own environment, so an admin does not lose the
+     * map because the other app's environment changed.
+     */
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_KEY'),
+    ],
+
     'anisystem_media' => [
         'token' => env('ANISYSTEM_MEDIA_TOKEN', ''),
     ],

@@ -45,12 +45,32 @@
     <div>
         <h5 class="text-dark mb-1">Maps</h5>
         <small class="text-secondary">
-            The ground as the client drew it — lot outlines, pins, walked lines. The name of a
-            map can be fixed here; what is on it is drawn in their app.
+            The ground as the client drew it — lot outlines, pins, walked lines. This is their
+            map, not a copy of it: draw here and it is drawn on theirs.
         </small>
     </div>
-    <button type="button" class="btn btn-light btn-sm" id="mpReload"><i class="bx bx-refresh"></i> Refresh</button>
+    <button type="button" class="btn btn-light btn-sm" id="mpReload"><i class="bx bx-refresh"></i> Refresh saved maps</button>
 </div>
+
+{{-- The map itself — the same editor the client uses, over the same shapes.
+     Above the shelf, because the shelf is a filing cabinet and this is the
+     desk. --}}
+@include('aniSensoAdmin.scheduleManager.partials.map-canvas',
+    ['schedule' => $schedule, 'mapChrome' => 'admin'])
+{{-- 'admin', not 'team': the Collab Room's chrome puts a "Team map" heading
+     above the tools, because there the map is one tab among several and has
+     to say which. Here it is the whole tab and the page already says Maps.
+     Everything else the room's chrome brings — the save shelf, Clear — is
+     gated on NOT being a lot's own map, so it stays. --}}
+
+<h6 class="text-dark mt-4 mb-1" style="font-size:12.5px;">
+    <i class="bx bx-folder-open me-1"></i>Saved maps
+</h6>
+<p class="text-secondary mb-2" style="font-size:11.5px;">
+    Plans filed from the canvas above. Opening one puts it back on the map — which replaces
+    what is drawn there now, because a saved map is a picture of a whole canvas and not a
+    layer to lay over one.
+</p>
 
 <div id="mpBody"></div>
 
