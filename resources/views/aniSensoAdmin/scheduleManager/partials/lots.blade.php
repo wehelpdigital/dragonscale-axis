@@ -129,15 +129,29 @@
                         Crop
                         <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span>
                     </label>
+                    {{-- The whole catalogue, grouped as the client sees it.
+                         This used to list CropStages instead — the seven crops
+                         that have a stage TABLE — so seventy-eight of the
+                         eighty-five a lot can actually be set to were missing,
+                         onions and legumes and root crops among them. --}}
                     <select class="form-select" id="lotCrop">
                         <option value="">— not set —</option>
-                        @foreach(\App\Support\CropStages::CROPS as $cropKey => $cropInfo)
-                            <option value="{{ $cropKey }}">{{ $cropInfo['icon'] }} {{ $cropInfo['label'] }}</option>
+                        @foreach(\App\Support\CropCatalog::GROUPS as $group)
+                            <optgroup label="{{ $group }}">
+                                @foreach(\App\Support\CropCatalog::CROPS as $cropKey => $cropInfo)
+                                    @if(($cropInfo['group'] ?? '') === $group)
+                                        <option value="{{ $cropKey }}"
+                                                data-kind="{{ $cropInfo['kind'] ?? '' }}"
+                                                data-counter="{{ $cropInfo['counter'] ?? '' }}"
+                                                data-maturity="{{ $cropInfo['maturity'] ?? '' }}">{{ $cropInfo['icon'] ?? '' }} {{ $cropInfo['label'] }}</option>
+                                    @endif
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                     <small class="text-secondary">
-                        Decides which stage table the lot's day number is read against — the
-                        same catalogue the farmer's Growth Stages module uses.
+                        The same catalogue the client picks from. A crop that also has a stage
+                        table has its day number read against it in <strong>Growth Stages</strong>.
                     </small>
                 </div>
                 {{-- How this lot counts its days. The lot answers, not the crop:
@@ -178,11 +192,30 @@
                         <input type="number" min="1" max="2000" step="1" class="form-control" id="lotDaysToMaturity" placeholder="e.g. 115">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label text-dark" for="lotTreePlantedAt">
-                            <i class="bx bx-tree me-1 text-success"></i> Tree planted on
-                            <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Trees only</span>
+                        <label class="form-label text-dark">
+                            <i class="bx bx-tree me-1 text-success"></i>
+                            How old are the trees?
                         </label>
-                        <input type="date" class="form-control" id="lotTreePlantedAt">
+                        {{-- Years and months, not a date. Nobody knows the day an
+                             orchard went in; they know it is about nine years old.
+                             The date the column wants is worked out from this, the
+                             same arithmetic the client's app does. --}}
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="input-group">
+                                    <input type="number" min="0" max="120" class="form-control" id="lotTreeYears" placeholder="0">
+                                    <span class="input-group-text">years</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="input-group">
+                                    <input type="number" min="0" max="11" class="form-control" id="lotTreeMonths" placeholder="0">
+                                    <span class="input-group-text">months</span>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="lotTreePlantedAt">
+                        <small class="text-secondary" id="lotTreeHint"></small>
                     </div>
                 </div>
 
@@ -212,8 +245,20 @@
                     <div class="row g-2">
                         <div class="col-md-6"><input type="text" class="form-control" id="lotLocBarangay" maxlength="255" placeholder="Barangay"></div>
                         <div class="col-md-6"><input type="text" class="form-control" id="lotLocZone" maxlength="255" placeholder="Zone / purok"></div>
-                        <div class="col-md-6"><input type="text" class="form-control" id="lotLocTown" maxlength="255" placeholder="Town / city"></div>
-                        <div class="col-md-6"><input type="text" class="form-control" id="lotLocProvince" maxlength="255" placeholder="Province"></div>
+                        {{-- Picked, not typed. These two are what the forecast is
+                             looked up by, and a province spelled the way people
+                             actually spell it is a lot with no weather and nothing
+                             on screen saying why. --}}
+                        <div class="col-md-6">
+                            <select class="form-select" id="lotLocProvince">
+                                <option value="">Province — loading…</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="lotLocTown" disabled>
+                                <option value="">Pick a province first</option>
+                            </select>
+                        </div>
                     </div>
                     <small class="text-secondary">
                         Town and province are what the weather is looked up by — without them

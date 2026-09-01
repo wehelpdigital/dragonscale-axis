@@ -1,8 +1,128 @@
 // ---------- LOTS ----------
 
-// The crop catalogue, from the same const the growth stages read — so a
-// crop added there appears here without a second list being edited.
-const CROP_CATALOGUE = @json(collect(\App\Support\CropStages::CROPS)->map(fn ($c) => ['label' => $c['label'], 'icon' => $c['icon']]));
+// The crop catalogue — the whole of it, the same list the picker offers.
+//
+// This read CropStages, which is the seven crops that have a growth-stage
+// TABLE, not the eighty-five a lot can be set to. So a row whose lot grew
+// onions or cassava showed no crop at all: the name was in the picker and
+// nowhere in the lookup that renders the row.
+const CROP_CATALOGUE = @json(collect(\App\Support\CropCatalog::CROPS)->map(fn ($c) => ['label' => $c['label'], 'icon' => $c['icon'] ?? '']));
+/* ---- where a lot is: two lists rather than two typing boxes ----
+   Town and province are what the forecast is looked up by, so a province
+   spelled the way somebody actually spells it is a lot with no weather and
+   nothing on the screen saying why. */
+const PH_URL = @json(asset('data/ph-locations.json'));
+let PH = null, phPromise = null;
+
+function phSay(state) {
+    const prov = $('#lotLocProvince'), town = $('#lotLocTown');
+    if (state === 'loading') {
+        prov.prop('disabled', true).html('<option value="">Province — loading…</option>');
+        town.prop('disabled', true).html('<option value="">Pick a province first</option>');
+    } else if (state === 'failed') {
+        // Said out loud. A silent empty list looks exactly like a country
+        // with no provinces in it.
+        prov.prop('disabled', true).html('<option value="">Could not load the list</option>');
+        town.prop('disabled', true).html('<option value="">Could not load the list</option>');
+    }
+}
+
+function phLoad() {
+    if (PH) return Promise.resolve(PH);
+    if (!phPromise) {
+        phSay('loading');
+        phPromise = fetch(PH_URL, { headers: { Accept: 'application/json' } })
+            .then((r) => r.json())
+            .then((d) => { PH = d || {}; return PH; })
+            .catch(() => { PH = null; phSay('failed'); return null; });
+    }
+    return phPromise;
+}
+
+/* A value that is not in the list is kept as its own option: a lot recorded
+   before these were lists has a town spelled its own way, and opening it to
+   change the notes must not quietly take its location — and its weather —
+   away. */
+function fillProvinces(chosen) {
+    const sel = $('#lotLocProvince');
+    if (!PH) return;
+    const names = Object.keys(PH).sort();
+    let html = '<option value="">— not set —</option>';
+    if (chosen && !names.includes(chosen)) {
+        html += `<option value="${escapeHtml(chosen)}" selected>${escapeHtml(chosen)} (as recorded)</option>`;
+    }
+    html += names.map((n) => `<option value="${escapeHtml(n)}"${n === chosen ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
+    sel.prop('disabled', false).html(html).val(chosen || '');
+}
+
+function fillTowns(province, chosen) {
+    const sel = $('#lotLocTown');
+    const towns = (PH && PH[province]) ? PH[province].slice().sort() : [];
+    if (!province) {
+        sel.prop('disabled', true).html('<option value="">Pick a province first</option>');
+        return;
+    }
+    let html = '<option value="">— not set —</option>';
+    if (chosen && !towns.includes(chosen)) {
+        html += `<option value="${escapeHtml(chosen)}" selected>${escapeHtml(chosen)} (as recorded)</option>`;
+    }
+    html += towns.map((t) => `<option value="${escapeHtml(t)}"${t === chosen ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+    sel.prop('disabled', false).html(html).val(chosen || '');
+}
+
+/* Opening a lot has to wait for the list before it can select anything in
+   it, so both are painted once it lands. */
+function setLotPlace(province, town) {
+    phLoad().then(() => {
+        if (!PH) return;
+        fillProvinces(province || '');
+        fillTowns(province || '', town || '');
+    });
+}
+
+$(document).on('change', '#lotLocProvince', function () {
+    // A different province means the old town is somewhere else entirely.
+    fillTowns($(this).val(), '');
+});
+
+/* ---- how old the trees are ----
+   Years and months on the screen; the planting date the column wants worked
+   out from them. Both ways, so a lot recorded either side reads the same. */
+function treeAgeFromDate(iso) {
+    if (!iso) { $('#lotTreeYears').val(''); $('#lotTreeMonths').val(''); $('#lotTreePlantedAt').val(''); treeHint(); return; }
+    const then = new Date(iso), now = new Date();
+    let months = (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth());
+    if (months < 0) months = 0;
+    $('#lotTreeYears').val(Math.floor(months / 12));
+    $('#lotTreeMonths').val(months % 12);
+    $('#lotTreePlantedAt').val(iso);
+    treeHint();
+}
+
+function stampTreeDate() {
+    const y = Number($('#lotTreeYears').val() || 0);
+    const m = Number($('#lotTreeMonths').val() || 0);
+    const months = (y * 12) + m;
+    if (!months && $('#lotTreeYears').val() === '' && $('#lotTreeMonths').val() === '') {
+        $('#lotTreePlantedAt').val('');
+        treeHint();
+        return;
+    }
+    const d = new Date();
+    d.setMonth(d.getMonth() - months);
+    $('#lotTreePlantedAt').val(d.toISOString().slice(0, 10));
+    treeHint();
+}
+
+function treeHint() {
+    const iso = $('#lotTreePlantedAt').val();
+    $('#lotTreeHint').text(iso
+        ? 'Recorded as planted about ' + iso + '. Its age is what the stage guidance is read against.'
+        : 'Leave blank if the age is not known.');
+}
+
+$(document).on('input', '#lotTreeYears, #lotTreeMonths', stampTreeDate);
+
 function trimZero(n) {
     const v = String(n ?? '0');
     return v.indexOf('.') >= 0 ? v.replace(/0+$/, '').replace(/\.$/, '') : v;
@@ -106,12 +226,14 @@ $('#addLotBtn').on('click', function () {
     $('#lotDayType').val('DAT');
     $('#lotLocBarangay').val('');
     $('#lotLocZone').val('');
+
+
     $('#lotLocTown').val('');
-    $('#lotLocProvince').val('');
+    setLotPlace('', '');
     $('#lotDayZeroDate').val('');
     $('#lotTransplantDate').val('');
     $('#lotDaysToMaturity').val('');
-    $('#lotTreePlantedAt').val('');
+    treeAgeFromDate('');
     $('#lotPinLat').val('');
     $('#lotPinLng').val('');
     $('#lotPinLabel').val('');
@@ -129,12 +251,11 @@ $(document).on('click', '.edit-lot-btn', function () {
     $('#lotDayType').val($(this).data('day-type') || 'DAT');
     $('#lotLocBarangay').val($(this).data('loc-barangay') || '');
     $('#lotLocZone').val($(this).data('loc-zone') || '');
-    $('#lotLocTown').val($(this).data('loc-town') || '');
-    $('#lotLocProvince').val($(this).data('loc-province') || '');
+    setLotPlace($(this).data('loc-province') || '', $(this).data('loc-town') || '');
     $('#lotDayZeroDate').val(($(this).data('day-zero-date') || '').toString().slice(0, 10));
     $('#lotTransplantDate').val(($(this).data('transplant-date') || '').toString().slice(0, 10));
     $('#lotDaysToMaturity').val($(this).data('days-to-maturity') || '');
-    $('#lotTreePlantedAt').val(($(this).data('tree-planted-at') || '').toString().slice(0, 10));
+    treeAgeFromDate(($(this).data('tree-planted-at') || '').toString().slice(0, 10));
     $('#lotPinLat').val($(this).data('pin-lat') ?? '');
     $('#lotPinLng').val($(this).data('pin-lng') ?? '');
     $('#lotPinLabel').val($(this).data('pin-label') || '');
