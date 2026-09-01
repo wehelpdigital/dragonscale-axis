@@ -78,6 +78,18 @@ class AnisystemClientsController extends Controller
                     ->where('as_worker_grants.status', 'active'),
                 'workerGrantCount'
             )
+            /* How many seasons this client has, so the button into the
+             * schedule manager can say whether there is anything behind it.
+             * A subquery for the same reason the credit balance is one: it
+             * paginates with the rows instead of costing a second round trip
+             * to a database that is a long way away. */
+            ->selectSub(
+                DB::table('as_cropping_schedules')
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('as_cropping_schedules.anisystemUserId', 'anisystem_users.id')
+                    ->where('as_cropping_schedules.deleteStatus', 1),
+                'scheduleCount'
+            )
             ->orderBy('anisystem_users.created_at', 'desc');
 
         // Filter: name / email search (custom param name — DataTables reserves 'search')
@@ -133,6 +145,9 @@ class AnisystemClientsController extends Controller
                     return 'expired';
                 }
                 return $client->subStatus;
+            })
+            ->addColumn('scheduleCount', function ($client) {
+                return (int) ($client->scheduleCount ?? 0);
             })
             ->addColumn('accountStatus', function ($client) {
                 return $client->status; // active | disabled (anisystem_users.status)

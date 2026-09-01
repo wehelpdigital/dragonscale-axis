@@ -9,6 +9,18 @@
     .status-badge { text-transform: capitalize; font-size: 11px; letter-spacing: .3px; }
     .schedule-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); transition: all .15s ease; }
     .empty-state { padding: 60px 20px; }
+    /* Whose farm. A strip rather than a heading, so it reads as context for
+       everything under it rather than as the first item in the list. */
+    .sm-client-strip { display: flex; align-items: center; gap: .55rem;
+        padding: .5rem .7rem; border-radius: .5rem;
+        background: #eff2ff; border: 1px solid #d9e0fb; }
+    .sm-client-strip i { font-size: 1.15rem; color: #556ee6; }
+    .sm-client-strip b { display: block; font-size: 13px; color: #343a40; line-height: 1.2; }
+    .sm-client-strip small { color: #74788d; font-size: 11.5px; }
+    [data-bs-theme="dark"] .sm-client-strip { background: #262c3c; border-color: #39405a; }
+    [data-bs-theme="dark"] .sm-client-strip b { color: #cdd3e4; }
+    [data-bs-theme="dark"] .sm-client-strip small { color: #8b93ab; }
+    [data-bs-theme="dark"] .sm-client-strip i { color: #9fb0f5; }
 </style>
 @endsection
 
@@ -41,15 +53,45 @@
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                 <div>
-                    <h4 class="card-title mb-1 text-dark">Cropping Schedules</h4>
-                    <p class="text-secondary mb-0">Create a cropping schedule, set up its lots, workers, materials, activities, and irrigations, then generate the calendar.</p>
+                    @if(!empty($client))
+                        {{-- Whose farm this is. Said before the list, because
+                             the list has had most of its rows taken out of it
+                             and nothing else on the page would explain why. --}}
+                        <div class="sm-client-strip mb-2">
+                            <i class="bx bx-user-circle"></i>
+                            <span>
+                                <b>{{ trim(($client->firstName ?? '') . ' ' . ($client->lastName ?? '')) ?: $client->email }}</b>
+                                <small>{{ $client->email }}</small>
+                            </span>
+                            <a href="{{ route('anisenso-clients.index') }}" class="btn btn-sm btn-light ms-auto text-nowrap">
+                                <i class="bx bx-arrow-back me-1"></i>All clients
+                            </a>
+                        </div>
+                        <h4 class="card-title mb-1 text-dark">Their cropping schedules</h4>
+                        <p class="text-secondary mb-0">Only this client's seasons are listed. Everything inside one — lots, workers, materials, activities — opens from its Setup.</p>
+                    @else
+                        <h4 class="card-title mb-1 text-dark">Cropping Schedules</h4>
+                        <p class="text-secondary mb-0">Create a cropping schedule, set up its lots, workers, materials, activities, and irrigations, then generate the calendar.</p>
+                    @endif
                 </div>
-                <a href="{{ route('anisenso-schedule-manager.create') }}" class="btn btn-primary">
-                    <i class="bx bx-plus me-1"></i> New Cropping Schedule
-                </a>
+                {{-- Not offered while one client's farm is on screen. A
+                     schedule made from here belongs to the admin who made it,
+                     not to the client whose name is at the top of the page —
+                     so the button would read as "add a season for Kathleen"
+                     and do something else. Seasons are the client's to make. --}}
+                @if(empty($client))
+                    <a href="{{ route('anisenso-schedule-manager.create') }}" class="btn btn-primary">
+                        <i class="bx bx-plus me-1"></i> New Cropping Schedule
+                    </a>
+                @endif
             </div>
 
             <form method="GET" class="row g-2 mb-3">
+                {{-- Searching inside one client's farm must not throw you out
+                     to every client's farm. --}}
+                @if(!empty($client))
+                    <input type="hidden" name="clientId" value="{{ $client->id }}">
+                @endif
                 <div class="col-md-5">
                     <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search by title or description...">
                 </div>
@@ -66,7 +108,7 @@
                 </div>
                 @if(request()->hasAny(['search','status']))
                     <div class="col-md-2">
-                        <a href="{{ route('anisenso-schedule-manager.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                        <a href="{{ route('anisenso-schedule-manager.index', !empty($client) ? ['clientId' => $client->id] : []) }}" class="btn btn-outline-secondary w-100">Clear</a>
                     </div>
                 @endif
             </form>
@@ -74,11 +116,23 @@
             @if($schedules->total() === 0)
                 <div class="text-center empty-state">
                     <i class="bx bx-calendar-x text-secondary" style="font-size: 3.5rem;"></i>
-                    <p class="text-dark mt-2 mb-1 fs-5">No cropping schedules yet.</p>
-                    <small class="text-secondary d-block mb-3">Start by creating one — you'll be able to set up lots, workers, materials, activities and more.</small>
-                    <a href="{{ route('anisenso-schedule-manager.create') }}" class="btn btn-primary">
-                        <i class="bx bx-plus me-1"></i> Create your first schedule
-                    </a>
+                    @if(!empty($client))
+                        {{-- An empty farm and an empty system are different
+                             facts, and the offer to "create your first
+                             schedule" is wrong for the first one: a schedule
+                             made here belongs to the admin, not to them. --}}
+                        <p class="text-dark mt-2 mb-1 fs-5">This client has no cropping schedules.</p>
+                        <small class="text-secondary d-block mb-3">Seasons are created by the client in their own app. Nothing here is missing — there is nothing yet.</small>
+                        <a href="{{ route('anisenso-clients.index') }}" class="btn btn-outline-secondary">
+                            <i class="bx bx-arrow-back me-1"></i> Back to clients
+                        </a>
+                    @else
+                        <p class="text-dark mt-2 mb-1 fs-5">No cropping schedules yet.</p>
+                        <small class="text-secondary d-block mb-3">Start by creating one — you'll be able to set up lots, workers, materials, activities and more.</small>
+                        <a href="{{ route('anisenso-schedule-manager.create') }}" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i> Create your first schedule
+                        </a>
+                    @endif
                 </div>
             @else
                 <div class="table-responsive">

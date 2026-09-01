@@ -34,9 +34,24 @@ class CroppingScheduleController extends Controller
             $query->where('status', $request->status);
         }
 
+        /* One client's farm, when arrived at through the Clients table.
+         *
+         * Without this the page is every client's seasons in one list, which
+         * is a filing cabinet: a technician holding a support ticket wants
+         * this farm, not all farms. The client is loaded as well as filtered
+         * on, so the page can say whose seasons these are — a filtered list
+         * that does not name its filter is just a list that is missing rows. */
+        $client = null;
+        if ($request->filled('clientId')) {
+            $client = \App\Models\AnisystemUser::where('id', (int) $request->query('clientId'))
+                ->where('deleteStatus', 1)
+                ->first();
+            $query->where('anisystemUserId', (int) $request->query('clientId'));
+        }
+
         $schedules = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
 
-        return view('aniSensoAdmin.scheduleManager.index', compact('schedules'));
+        return view('aniSensoAdmin.scheduleManager.index', compact('schedules', 'client'));
     }
 
     public function create()

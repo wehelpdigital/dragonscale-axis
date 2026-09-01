@@ -65,6 +65,12 @@
                                     <th>Plan</th>
                                     <th>Status</th>
                                     <th>Starts / Expires</th>
+                                    {{-- The way into the farm. Beside the
+                                         subscription rather than out at the
+                                         right-hand end, because this is the
+                                         thing a technician opens a client row
+                                         to do. --}}
+                                    <th>Schedule Manager</th>
                                     <th>Order #</th>
                                     <th>AI Credits</th>
                                     <th>Registered</th>
@@ -243,6 +249,20 @@ $(document).ready(function() {
                     if (!row.startsAtFormatted && !row.expiresAtFormatted) return '<span class="text-secondary">—</span>';
                     return '<small class="d-block text-dark">' + esc(row.startsAtFormatted || '—') + '</small>' +
                            '<small class="d-block text-secondary">to ' + esc(row.expiresAtFormatted || '—') + '</small>';
+                }
+            },
+            /* Straight to this client's seasons, and only theirs.
+               The count is on the button so an empty farm is visible before
+               it is opened rather than after. */
+            { data: 'scheduleCount', orderable: false, searchable: false,
+                render: function(d, t, row) {
+                    const n = parseInt(d, 10) || 0;
+                    const url = '{{ route('anisenso-schedule-manager.index') }}?clientId=' + encodeURIComponent(row.id);
+                    const tone = n > 0 ? 'btn-outline-primary' : 'btn-outline-secondary';
+                    const says = n === 0 ? 'No seasons yet' : (n === 1 ? '1 season' : n + ' seasons');
+                    return '<a href="' + url + '" class="btn btn-sm ' + tone + ' text-nowrap" ' +
+                        'title="Open the schedule manager for this client only">' +
+                        '<i class="bx bx-calendar-check me-1"></i>' + says + '</a>';
                 }
             },
             { data: 'subOrderNumber', name: 'sub.orderNumber', orderable: false,
