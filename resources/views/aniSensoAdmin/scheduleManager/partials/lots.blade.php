@@ -154,6 +154,17 @@
                         table has its day number read against it in <strong>Growth Stages</strong>.
                     </small>
                 </div>
+                {{-- Said here rather than discovered later.
+                     Editing a lot simply does not offer the crop or the day
+                     counter, which answers the question only for somebody who
+                     has already gone looking for them. This is the moment it is
+                     worth knowing. It carries js-lot-once itself, so it leaves
+                     with the fields it is about. --}}
+                <div class="lot-once js-lot-once">
+                    <i class="bx bx-lock-alt lot-once-i"></i>
+                    <span>The crop and how its days are counted are set now &mdash; neither can be
+                          changed once this lot is saved.</span>
+                </div>
                 {{-- How this lot counts its days. The lot answers, not the crop:
                      the same rice is a different calendar depending on how the
                      field was established. --}}

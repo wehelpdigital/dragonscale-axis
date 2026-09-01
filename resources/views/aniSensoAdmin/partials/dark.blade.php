@@ -76,6 +76,18 @@
    card it is 2.97, and Add Activity is the button this page is for. */
 [data-bs-theme="dark"] .btn.btn-outline-primary { --bs-btn-color: #9fb0f5; --bs-btn-disabled-color: #5f6b9c; }
 
+/* ---- "set now" on the Add Lot form ----
+   A statement, not a warning: nothing has gone wrong, a fact about the form is
+   being said before it matters. So it is the quietest amber that still reads
+   as its own thing rather than as another paragraph of help text. */
+.lot-once { display: flex; align-items: flex-start; gap: .45rem;
+    margin: -.25rem 0 1rem; padding: .5rem .65rem; border-radius: .5rem;
+    font-size: .78rem; line-height: 1.45;
+    color: #6b5b2e; background: #fdf8ec; border: 1px solid #f0e4c4; }
+.lot-once-i { flex: none; font-size: .95rem; line-height: 1.3; color: #a08334; }
+[data-bs-theme="dark"] .lot-once { color: #d8c99a; background: #2a2417; border-color: #3d3421; }
+[data-bs-theme="dark"] .lot-once-i { color: #c7ab6a; }
+
 [data-bs-theme="dark"] {
     /* The page's own ramp, as five names rather than thirty hexes. */
     --sm-surface: #2a3042;      /* a card, a chip, anything that sits up */
