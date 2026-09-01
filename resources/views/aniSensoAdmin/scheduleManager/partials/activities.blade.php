@@ -354,104 +354,42 @@
             </ul>
         </div>
 
+        {{-- What the board shows. An eye, because the question is about
+             seeing rather than about the plan. --}}
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="viewFilterBtn"
+                title="What the board shows" aria-label="What the board shows">
+            <i class="bx bx-show"></i>
+        </button>
+        {{-- Every filter behind one button, with a count of the ones that
+             are on, so a board narrowed yesterday cannot look like an empty
+             season today. --}}
+        <button type="button" class="btn btn-outline-secondary btn-sm position-relative" id="searchToolbarBtn"
+                title="Search &amp; filter the board">
+            <i class="bx bx-search me-1"></i> Search
+            <span id="toolbarFilterCount"
+                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
+                  style="display:none; font-size:9.5px;">0</span>
+        </button>
+        {{-- The mirror: the whole plan held up to be read, and nothing else.
+             Every day, every activity, the hidden ones included and the done
+             ones marked — with no button on any of it. The board you work on
+             has to be re-filtered and un-hidden to answer "is that done?",
+             and then put back; this answers it without touching the board. --}}
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="mirrorBtn"
+                title="Mirror — read the whole plan">
+            <i class="bx bx-book-open me-1"></i> Mirror
+        </button>
+        {{-- A long session accumulates what a long session accumulates.
+             Rebuilding the page hands it back for the cost of one read. --}}
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="boardRefreshBtn"
+                title="Refresh — rebuild this board">
+            <i class="bx bx-refresh"></i>
+        </button>
         <button type="button" class="btn btn-primary btn-sm" id="addActivityBtn">
             <i class="bx bx-plus me-1"></i> Add Activity
         </button>
     </div>
 </div>
-
-{{-- Dynamic search bar: filters activity cards (and hides empty date groups)
-     as you type. Matches across title, type, lots, workers, and items. --}}
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-    <div class="input-group" style="max-width: 480px;">
-        <span class="input-group-text bg-white" style="border-right: 0;">
-            <i class="bx bx-search text-secondary"></i>
-        </span>
-        <input type="search" class="form-control" id="activitySearchInput"
-               placeholder="Search by title, type, lot, worker, material…"
-               autocomplete="off" style="border-left: 0;">
-        <button type="button" class="btn btn-outline-secondary" id="activitySearchClear" title="Clear search">
-            <i class="bx bx-x"></i>
-        </button>
-    </div>
-    <small class="text-secondary" id="activitySearchHint" style="display:none;">
-        Showing <strong id="activitySearchCount">0</strong> matching activities.
-    </small>
-    {{-- The show-hidden pill now lives in the Tools menu, beside the other
-         questions about what the board is showing. --}}
-</div>
-
-{{-- Activity type filter — toggle chips. Tap one (or more) to narrow the
-     timeline to that type. Empty selection = show all. Combines with the
-     text search above via AND so both filters apply together. --}}
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="activityTypeFilterRow">
-    <small class="text-secondary me-1" style="white-space:nowrap;">
-        <i class="bx bx-filter-alt"></i> Filter by type:
-    </small>
-    @foreach(\App\Models\AsScheduleActivity::ACTIVITY_TYPES as $typeKey => $typeLabel)
-        <span class="lot-chip activity-type-chip"
-              data-type="{{ $typeKey }}"
-              role="button"
-              aria-pressed="false"
-              style="font-size:11.5px; padding:3px 10px;">
-            {{ $typeLabel }}
-        </span>
-    @endforeach
-    <button type="button" class="btn btn-link btn-sm p-0 ms-1"
-            id="activityTypeFilterClearBtn"
-            style="font-size:11.5px; display:none;">
-        Clear types
-    </button>
-</div>
-
-{{-- Lot visibility filter — toggle chips, multi-select. Tapping a lot hides
-     its activities from THIS tab only: nothing is deleted and the per-card
-     visibility switch (isHidden) is untouched, so the calendar, card viewer,
-     presentation, and export are unaffected.
-
-     An activity only disappears once EVERY lot it covers is hidden. Hiding
-     "Lot A" therefore never removes a card that also covers a still-visible
-     "Lot B" — otherwise you'd lose sight of Lot B's work. Activities with no
-     lots at all are governed by the separate N/A chip.
-
-     "Hide all" + un-picking one chip is the focus-on-a-single-lot workflow.
-     Combines with the search + type filters via AND. --}}
-@if($schedule->lots->count() > 0)
-    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="activityLotFilterRow">
-        <small class="text-secondary me-1" style="white-space:nowrap;">
-            <i class="bx bx-hide"></i> Hide lots:
-        </small>
-        @foreach($schedule->lots as $lot)
-            <span class="lot-chip activity-lot-chip"
-                  data-lot-id="{{ $lot->id }}"
-                  role="button"
-                  aria-pressed="false"
-                  title="Hide {{ $lot->lotName }} — cards covering another visible lot stay put"
-                  style="font-size:11.5px; padding:3px 10px;">
-                {{ $lot->lotName }}@if(!empty($lot->variety))<small style="opacity:.75;"> · {{ $lot->variety }}</small>@endif
-            </span>
-        @endforeach
-        <span class="lot-chip lot-chip-na activity-lot-chip"
-              data-lot-id="__na__"
-              role="button"
-              aria-pressed="false"
-              title="Hide activities that aren't tied to any specific lot"
-              style="font-size:11.5px; padding:3px 10px;">
-            <i class="bx bx-globe"></i> N/A
-        </span>
-        <button type="button" class="btn btn-link btn-sm p-0 ms-1"
-                id="activityLotFilterAllBtn"
-                style="font-size:11.5px;"
-                title="Hide every lot — then tap one to view it on its own">
-            Hide all
-        </button>
-        <button type="button" class="btn btn-link btn-sm p-0 ms-1"
-                id="activityLotFilterClearBtn"
-                style="font-size:11.5px; display:none;">
-            Show all lots
-        </button>
-    </div>
-@endif
 
 <div class="activity-timeline" id="activitiesList">
     @php
@@ -2075,6 +2013,188 @@
                     </button>
                 </div>
                 <div id="quickShareLoading" class="text-center py-3"><i class="bx bx-loader-alt bx-spin fs-4 text-secondary"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================ WHAT THE BOARD SHOWS ============================
+     Every row forwards to the control that already does the work and reads
+     its state back, so there is one implementation of each answer and this is
+     a face on it. --}}
+<div class="modal fade" id="viewFilterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark"><i class="bx bx-show me-1"></i>What the board shows</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <button type="button" class="vf-row" data-vf="empty">
+                    <span class="vf-ico"><i class="bx bx-moon"></i></span>
+                    <span class="vf-txt"><b>Empty dates</b><i>Days with nothing scheduled</i></span>
+                    <span class="vf-state" id="vfEmptyState">Shown</span>
+                </button>
+                <button type="button" class="vf-row" data-vf="doneDays">
+                    <span class="vf-ico"><i class="bx bx-calendar-check"></i></span>
+                    <span class="vf-txt"><b>Finished days</b><i>Days where every activity is done</i></span>
+                    <span class="vf-state" id="vfDoneDaysState">Shown</span>
+                </button>
+                <button type="button" class="vf-row" data-vf="doneActs">
+                    <span class="vf-ico"><i class="bx bx-check-circle"></i></span>
+                    <span class="vf-txt"><b>Completed activities</b><i>The ones already ticked</i></span>
+                    <span class="vf-state" id="vfDoneActsState">Shown</span>
+                </button>
+                {{-- Only worth offering when something is actually hidden. --}}
+                <button type="button" class="vf-row" data-vf="hidden" id="vfHiddenRow" style="display:none;">
+                    <span class="vf-ico"><i class="bx bx-hide"></i></span>
+                    <span class="vf-txt"><b>Hidden activities</b><i id="vfHiddenSub">Kept off the farmer's own board</i></span>
+                    <span class="vf-state" id="vfHiddenState">Hidden</span>
+                </button>
+                <button type="button" class="vf-row" data-vf="fold">
+                    <span class="vf-ico"><i class="bx bx-chevrons-up"></i></span>
+                    <span class="vf-txt"><b>Fold every day</b><i>Shut the whole board</i></span>
+                    <span class="vf-go">Fold</span>
+                </button>
+                <button type="button" class="vf-row" data-vf="unfold">
+                    <span class="vf-ico"><i class="bx bx-chevrons-down"></i></span>
+                    <span class="vf-txt"><b>Open every day</b><i>Show every card again</i></span>
+                    <span class="vf-go">Open</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================ SEARCH & FILTER ============================
+     The search box and both rows of chips, which used to sit on the board
+     whether or not anybody was filtering. --}}
+<div class="modal fade" id="filtersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark"><i class="bx bx-search me-1"></i>Search &amp; filter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+{{-- Dynamic search bar: filters activity cards (and hides empty date groups)
+     as you type. Matches across title, type, lots, workers, and items. --}}
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <div class="input-group" style="max-width: 480px;">
+        <span class="input-group-text bg-white" style="border-right: 0;">
+            <i class="bx bx-search text-secondary"></i>
+        </span>
+        <input type="search" class="form-control" id="activitySearchInput"
+               placeholder="Search by title, type, lot, worker, material…"
+               autocomplete="off" style="border-left: 0;">
+        <button type="button" class="btn btn-outline-secondary" id="activitySearchClear" title="Clear search">
+            <i class="bx bx-x"></i>
+        </button>
+    </div>
+    <small class="text-secondary" id="activitySearchHint" style="display:none;">
+        Showing <strong id="activitySearchCount">0</strong> matching activities.
+    </small>
+    {{-- The show-hidden pill now lives in the Tools menu, beside the other
+         questions about what the board is showing. --}}
+</div>
+
+{{-- Activity type filter — toggle chips. Tap one (or more) to narrow the
+     timeline to that type. Empty selection = show all. Combines with the
+     text search above via AND so both filters apply together. --}}
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="activityTypeFilterRow">
+    <small class="text-secondary me-1" style="white-space:nowrap;">
+        <i class="bx bx-filter-alt"></i> Filter by type:
+    </small>
+    @foreach(\App\Models\AsScheduleActivity::ACTIVITY_TYPES as $typeKey => $typeLabel)
+        <span class="lot-chip activity-type-chip"
+              data-type="{{ $typeKey }}"
+              role="button"
+              aria-pressed="false"
+              style="font-size:11.5px; padding:3px 10px;">
+            {{ $typeLabel }}
+        </span>
+    @endforeach
+    <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+            id="activityTypeFilterClearBtn"
+            style="font-size:11.5px; display:none;">
+        Clear types
+    </button>
+</div>
+
+{{-- Lot visibility filter — toggle chips, multi-select. Tapping a lot hides
+     its activities from THIS tab only: nothing is deleted and the per-card
+     visibility switch (isHidden) is untouched, so the calendar, card viewer,
+     presentation, and export are unaffected.
+
+     An activity only disappears once EVERY lot it covers is hidden. Hiding
+     "Lot A" therefore never removes a card that also covers a still-visible
+     "Lot B" — otherwise you'd lose sight of Lot B's work. Activities with no
+     lots at all are governed by the separate N/A chip.
+
+     "Hide all" + un-picking one chip is the focus-on-a-single-lot workflow.
+     Combines with the search + type filters via AND. --}}
+@if($schedule->lots->count() > 0)
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap" id="activityLotFilterRow">
+        <small class="text-secondary me-1" style="white-space:nowrap;">
+            <i class="bx bx-hide"></i> Hide lots:
+        </small>
+        @foreach($schedule->lots as $lot)
+            <span class="lot-chip activity-lot-chip"
+                  data-lot-id="{{ $lot->id }}"
+                  role="button"
+                  aria-pressed="false"
+                  title="Hide {{ $lot->lotName }} — cards covering another visible lot stay put"
+                  style="font-size:11.5px; padding:3px 10px;">
+                {{ $lot->lotName }}@if(!empty($lot->variety))<small style="opacity:.75;"> · {{ $lot->variety }}</small>@endif
+            </span>
+        @endforeach
+        <span class="lot-chip lot-chip-na activity-lot-chip"
+              data-lot-id="__na__"
+              role="button"
+              aria-pressed="false"
+              title="Hide activities that aren't tied to any specific lot"
+              style="font-size:11.5px; padding:3px 10px;">
+            <i class="bx bx-globe"></i> N/A
+        </span>
+        <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+                id="activityLotFilterAllBtn"
+                style="font-size:11.5px;"
+                title="Hide every lot — then tap one to view it on its own">
+            Hide all
+        </button>
+        <button type="button" class="btn btn-link btn-sm p-0 ms-1"
+                id="activityLotFilterClearBtn"
+                style="font-size:11.5px; display:none;">
+            Show all lots
+        </button>
+    </div>
+@endif
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-light btn-sm" id="clearAllFiltersBtn">Clear every filter</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">See the board</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================ MIRROR ============================
+     Read-only, built from the board that is already on the page — so it
+     cannot disagree with it, and it costs nothing to open. --}}
+<div class="modal fade" id="mirrorModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title text-dark mb-0"><i class="bx bx-book-open me-1"></i>Mirror</h5>
+                    <small class="text-secondary" id="mirrorSub">The whole plan, as it stands.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="mirrorBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" id="mirrorPrint"><i class="bx bx-printer me-1"></i>Print</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

@@ -71,6 +71,35 @@
     .sm-subtabs .nav-link .badge { font-size: 10.5px; font-weight: 600; background: #eef1f6; color: #495057; }
     .sm-subtabs .nav-link.active .badge { background: rgba(255,255,255,.85); color: #2c3e8c; }
     .sm-pill { border-radius: 50px; padding: 4px 12px; font-size: 11px; font-weight: 500; }
+
+    /* One question per row: what it is, what it means, and where it stands. */
+    .vf-row { width: 100%; display: flex; align-items: center; gap: .75rem; text-align: left;
+        padding: .7rem .8rem; border-radius: .8rem; background: #fff;
+        border: 1px solid #e6e8ec; margin-bottom: .45rem; }
+    .vf-row:hover { border-color: #c7d2fe; background: #fbfcff; }
+    .vf-ico { width: 2.25rem; height: 2.25rem; border-radius: .7rem; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #eef1f6; color: #556ee6; font-size: 1.1rem; }
+    .vf-txt { flex: 1 1 auto; min-width: 0; }
+    .vf-txt b { display: block; font-size: 13.5px; font-weight: 600; color: #343a40; }
+    .vf-txt i { display: block; font-size: 11.5px; color: #98a4b6; font-style: normal; }
+    .vf-state, .vf-go { font-size: 11px; font-weight: 700; border-radius: 999px; padding: .15rem .55rem;
+        background: #e9f7ef; color: #0f8a5f; white-space: nowrap; }
+    .vf-state.is-off { background: #eef1f6; color: #74788d; }
+    .vf-go { background: #eef2ff; color: #3a4699; }
+
+    /* The mirror: a plan to be read, with nothing to press. */
+    .mir-day { border: 1px solid #e6e8ec; border-radius: 10px; margin-bottom: .6rem; overflow: hidden; }
+    .mir-dayhead { background: #f8fafd; padding: .45rem .8rem; font-weight: 700; font-size: 12.5px; color: #495057;
+        display: flex; justify-content: space-between; gap: .6rem; }
+    .mir-act { padding: .45rem .8rem; border-top: 1px solid #f1f3f7; font-size: 12.5px; color: #343a40; }
+    .mir-act.is-done { color: #98a4b6; }
+    .mir-act.is-done .mir-title { text-decoration: line-through; }
+    .mir-act.is-hidden { background: #fbfbfd; }
+    .mir-title { font-weight: 600; }
+    .mir-meta { font-size: 11px; color: #98a4b6; }
+    .mir-flag { font-size: 10px; font-weight: 700; border-radius: 999px; padding: .05rem .4rem;
+        background: #eef1f6; color: #74788d; margin-left: .3rem; }
     .priority-critical { background:#9c1c1c; color:#fff; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
     .priority-high { background:#f46a6a; color:#fff; }
     .priority-medium { background:#f1b44c; color:#212529; }
@@ -1416,6 +1445,7 @@ function recomputeReadiness() {
 @include('aniSensoAdmin.scheduleManager.partials.script-workers')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol')
 @include('aniSensoAdmin.scheduleManager.partials.script-activities')
+@include('aniSensoAdmin.scheduleManager.partials.script-board-tools')
 @include('aniSensoAdmin.scheduleManager.partials.script-doc-entries')
 @include('aniSensoAdmin.scheduleManager.partials.script-protocol-doc')
 @include('aniSensoAdmin.scheduleManager.partials.script-inventory')
