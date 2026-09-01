@@ -868,7 +868,7 @@
             vertical-align: top;
             border: 1px solid #d1d5db;
         }
-        .cal-grid td.cal-cell.other-month { background: #f9fafb; color: #b3b8c0; }
+        .cal-grid td.cal-cell.other-month { background: #f9fafb; color: #79808d; }
         .cal-grid td.cal-cell .cal-day {
             font-weight: 700;
             font-size: 10.5pt;
@@ -879,7 +879,7 @@
             border-radius: 3px;
             background: #f3f4f6;
         }
-        .cal-grid td.cal-cell.other-month .cal-day { background: transparent; color: #b3b8c0; }
+        .cal-grid td.cal-cell.other-month .cal-day { background: transparent; color: #79808d; }
         .cal-grid td.cal-cell.weekend .cal-day { background: #fef3df; color: #6b4423; }
         .cal-grid td.cal-cell.today .cal-day { background: #5b8c3a; color: #fff; }
 

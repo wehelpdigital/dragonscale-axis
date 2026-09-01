@@ -17,7 +17,7 @@ function renderLotRow(lot) {
         const pretty = dObj
             ? `${MONTH_SHORT[dObj.getMonth()]} ${dObj.getDate()}, ${dObj.getFullYear()}`
             : d0;
-        d0Badge = `<span class="badge bg-info text-white ms-1 day-zero-badge" style="font-size:10px;font-weight:500;" title="${escapeHtml(dayType)} Day 0 anchor">
+        d0Badge = `<span class="badge bg-info text-dark ms-1 day-zero-badge" style="font-size:10px;font-weight:500;" title="${escapeHtml(dayType)} Day 0 anchor">
             <i class="bx bx-target-lock"></i>
             <span class="day-type-label">${escapeHtml(dayType)}</span> 0: ${escapeHtml(pretty)}
         </span>`;

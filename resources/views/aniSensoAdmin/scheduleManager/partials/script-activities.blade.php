@@ -1326,7 +1326,7 @@ function renderActivityCard(a) {
     const isDayZeroFlag = (a.isDayZero === true || a.isDayZero === 1 || a.isDayZero === '1') ? 1 : 0;
     const dayType = (typeof getScheduleDayType === 'function') ? getScheduleDayType() : 'DAS';
     const dayZeroBadge = isDayZeroFlag
-        ? `<span class="badge ms-1 day-zero-badge" style="background:#ff9800; color:#fff; font-weight:600; font-size:11px;" title="This activity is the ${escapeHtml(dayType)} 0 anchor — its date becomes ${escapeHtml(dayType)} 0 for every lot it covers."><i class="bx bxs-star"></i> ${escapeHtml(dayType)} 0</span>`
+        ? `<span class="badge ms-1 day-zero-badge" style="background:#ff9800; color:#3d2600; font-weight:600; font-size:11px;" title="This activity is the ${escapeHtml(dayType)} 0 anchor — its date becomes ${escapeHtml(dayType)} 0 for every lot it covers."><i class="bx bxs-star"></i> ${escapeHtml(dayType)} 0</span>`
         : '';
     const isTransplantFlag = (a.isTransplant === true || a.isTransplant === 1 || a.isTransplant === '1') ? 1 : 0;
     const transplantBadge = isTransplantFlag

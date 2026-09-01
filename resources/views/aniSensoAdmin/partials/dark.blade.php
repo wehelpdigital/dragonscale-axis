@@ -14,8 +14,65 @@
 
      Kept as its own file rather than a tail on the page's style block: it is
      the only thing here that is about the mode rather than about the module,
-     and a reader looking for "why is that grey" should find one answer. --}}
+     and a reader looking for "why is that grey" should find one answer.
+
+     The first block below is the exception, and it is about neither mode: a
+     handful of colours are unreadable in BOTH, so they are corrected once at
+     the top and then given a dark answer further down like everything else. --}}
 <style>
+/* ============ reads badly in either mode ============
+   Three of the framework's colours are light — the amber #f1b44c, the green
+   #34c38f and the blue #50a5f1 — and it writes on all three in white. Filled,
+   that is 2.2 to 2.4 against the fill. As an outline button's resting label
+   on a white card it is 1.85 to 2.25. Either way it is under half of what a
+   person needs to read a word.
+
+   The colours themselves do not move: a success button is still that green
+   and a warning still that amber. Only the ink changes, to a deep version of
+   the same hue.
+
+   Set as variables rather than as `color` because that is how Bootstrap 5.3
+   builds a button: the variant sets --bs-btn-color and friends, and a single
+   rule on .btn reads whichever one the current state calls for. Overriding
+   `color` catches the resting state and misses hover, active and disabled —
+   which is how the Undo button stayed amber on white through two attempts.
+   It renders disabled, and disabled reads its own variable.
+
+   The leading .btn is not decoration either. head-css.blade.php yields the
+   page's own styles on its FIRST line and loads Bootstrap and Skote after
+   them, so anything here that ties on specificity loses on order. Two
+   classes beat one and the order stops mattering. */
+.btn.btn-outline-warning { --bs-btn-color: #a06a05; --bs-btn-disabled-color: #a06a05;
+                           --bs-btn-hover-color: #453100; --bs-btn-active-color: #453100; }
+.btn.btn-outline-success { --bs-btn-color: #17805a; --bs-btn-disabled-color: #17805a;
+                           --bs-btn-hover-color: #06331f; --bs-btn-active-color: #06331f; }
+.btn.btn-outline-info    { --bs-btn-color: #1668b0; --bs-btn-disabled-color: #1668b0;
+                           --bs-btn-hover-color: #062b4a; --bs-btn-active-color: #062b4a; }
+/* Red keeps its white when filled — #f46a6a carries it well enough, and a
+   danger button that stops looking like danger is the worse trade. Only its
+   resting outline label steps down. */
+.btn.btn-outline-danger  { --bs-btn-color: #c53b3b; --bs-btn-disabled-color: #c53b3b; }
+
+.btn.btn-warning { --bs-btn-color: #453100; --bs-btn-hover-color: #453100;
+                   --bs-btn-active-color: #453100; --bs-btn-disabled-color: #6b5527; }
+.btn.btn-success { --bs-btn-color: #06331f; --bs-btn-hover-color: #06331f;
+                   --bs-btn-active-color: #06331f; --bs-btn-disabled-color: #2c5344; }
+.btn.btn-info    { --bs-btn-color: #062b4a; --bs-btn-hover-color: #062b4a;
+                   --bs-btn-active-color: #062b4a; --bs-btn-disabled-color: #2b4e6d; }
+
+/* The same three as badges, which are built the old way and do take a colour. */
+.badge.bg-warning { color: #453100; }
+.badge.bg-success { color: #06331f; }
+.badge.bg-info    { color: #062b4a; }
+
+/* In the dark an outline label is dark ink on a dark card, so it steps back
+   up. Filling one still darkens the ink, because the fill is still that same
+   light colour — those variables are left exactly as set above. */
+[data-bs-theme="dark"] .btn.btn-outline-warning { --bs-btn-color: #f0c274; --bs-btn-disabled-color: #96793f; }
+[data-bs-theme="dark"] .btn.btn-outline-success { --bs-btn-color: #6ed6ae; --bs-btn-disabled-color: #47836c; }
+[data-bs-theme="dark"] .btn.btn-outline-info    { --bs-btn-color: #7cc0f5; --bs-btn-disabled-color: #4d7595; }
+[data-bs-theme="dark"] .btn.btn-outline-danger  { --bs-btn-color: #f59b9b; --bs-btn-disabled-color: #915a5a; }
+
 [data-bs-theme="dark"] {
     /* The page's own ramp, as five names rather than thirty hexes. */
     --sm-surface: #2a3042;      /* a card, a chip, anything that sits up */
@@ -197,6 +254,33 @@
     background: #333b52; border-color: #6d84ee; color: #fff;
 }
 [data-bs-theme="dark"] .bg-light { background-color: var(--sm-surface-2) !important; }
-[data-bs-theme="dark"] .text-dark { color: var(--sm-text) !important; }
 [data-bs-theme="dark"] .table-light > :not(caption) > * > * { background-color: var(--sm-surface-2); color: var(--sm-text); }
+
+/* .text-dark is written for two different reasons and only one of them
+   flips. On a card it means "this heading is the strong one", and in the
+   dark it should be light. On a badge it means "the background under me is
+   light, so I must not be" — and those backgrounds stay exactly as light in
+   the dark as they were in the day. Flipping both turned the amber owner
+   badge into white on yellow. */
+[data-bs-theme="dark"] .text-dark { color: var(--sm-text) !important; }
+[data-bs-theme="dark"] .bg-warning.text-dark,
+[data-bs-theme="dark"] .bg-info.text-dark,
+[data-bs-theme="dark"] .bg-white.text-dark,
+[data-bs-theme="dark"] .bg-warning-subtle.text-dark,
+[data-bs-theme="dark"] .bg-info-subtle.text-dark,
+[data-bs-theme="dark"] .bg-success-subtle.text-dark,
+[data-bs-theme="dark"] .bg-danger-subtle.text-dark,
+[data-bs-theme="dark"] .bg-primary-subtle.text-dark { color: #212529 !important; }
+
+/* A bg-light badge is the one place the layer had it both ways: held light
+   so it would not vanish into its card, which then left it a pale grey chip
+   glowing on a dark page with pale grey text inside it. It steps down with
+   everything else instead. */
+[data-bs-theme="dark"] .badge.bg-light {
+    background-color: #3a4258 !important; color: var(--sm-text) !important;
+}
+
+/* Skote marks .text-secondary !important, so the dark mode Bootstrap ships
+   never reaches it and it stayed at #74788d — 2.3 to 1 on a dark card. */
+[data-bs-theme="dark"] .text-secondary { color: var(--sm-dim) !important; }
 </style>

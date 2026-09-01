@@ -25,7 +25,7 @@
                     <td class="text-dark">
                         <strong data-field="lotName">{{ $lot->lotName }}</strong>
                         @if($lot->dayZeroDate)
-                            <span class="badge bg-info text-white ms-1 day-zero-badge" style="font-size:10px;font-weight:500;" title="{{ $schedule->dayType }} Day 0 anchor">
+                            <span class="badge bg-info text-dark ms-1 day-zero-badge" style="font-size:10px;font-weight:500;" title="{{ $schedule->dayType }} Day 0 anchor">
                                 <i class="bx bx-target-lock"></i>
                                 <span class="day-type-label">{{ $schedule->dayType }}</span> 0:
                                 {{ \Illuminate\Support\Carbon::parse($lot->dayZeroDate)->format('M j, Y') }}

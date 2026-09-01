@@ -175,9 +175,12 @@ $(document).on('click', '.js-ct-read', function () {
         if (!res.success) { $('#ctModalBody').html(`<p class="text-secondary mb-0">${esc(res.message)}</p>`); return; }
         $('#ctModalTitle').text(res.data.title);
         const turns = res.data.turns || [];
+        // bodyHtml, not body: the server has already escaped it and put
+        // Anee's faces back where she wrote them. Escaping it again here
+        // would show the <img> tags as words.
         $('#ctModalBody').html(turns.length ? turns.map(t => `
             <div class="ai-turn ${t.role === 'user' ? '' : 'is-bot'}">
-                <div class="ai-bubble">${esc(t.body)}</div>
+                <div class="ai-bubble">${t.bodyHtml || esc(t.body)}</div>
             </div>`).join('')
             : '<p class="text-secondary mb-0">Nothing was said in this one.</p>');
     }).fail(() => $('#ctModalBody').html('<p class="text-secondary mb-0">Could not read that thread.</p>'));

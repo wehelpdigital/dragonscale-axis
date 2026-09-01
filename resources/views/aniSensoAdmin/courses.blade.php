@@ -91,7 +91,9 @@
 
 .btn-outline-warning.badge-style:hover {
     background-color: #f1b44c !important;
-    color: white !important;
+    /* White on this amber is 1.85:1. Hovering a button should not be the
+       moment its label disappears. */
+    color: #453100 !important;
 }
 
 .btn-outline-secondary.badge-style {

@@ -701,7 +701,7 @@
                                     @endif
                                     @if($a->isDayZero)
                                         <span class="badge ms-1 day-zero-badge"
-                                              style="background:#ff9800; color:#fff; font-weight:600; font-size:11px;"
+                                              style="background:#ff9800; color:#3d2600; font-weight:600; font-size:11px;"
                                               title="This activity is the {{ $schedule->dayType }} 0 anchor — its date becomes {{ $schedule->dayType }} 0 for every lot it covers.">
                                             <i class="bx bxs-star"></i> {{ $schedule->dayType }} 0
                                         </span>

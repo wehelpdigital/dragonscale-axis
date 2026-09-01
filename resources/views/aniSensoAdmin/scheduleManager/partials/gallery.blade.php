@@ -31,7 +31,7 @@
     }
     .gl-gone {
         width: 100%; height: 124px; display: flex; align-items: center; justify-content: center;
-        background: #f6f8fb; color: #c3cbd6; font-size: 1.6rem;
+        background: #f6f8fb; color: #7d8899; font-size: 1.6rem;
     }
     .gl-empty { text-align: center; padding: 2.5rem 1rem; color: #98a4b6; }
     .gl-empty i { font-size: 2.2rem; display: block; margin-bottom: .4rem; }

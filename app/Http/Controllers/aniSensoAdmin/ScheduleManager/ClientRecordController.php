@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\aniSensoAdmin\ScheduleManager;
 
+use App\Support\AneeEmoji;
 use App\Support\AnisystemMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -266,6 +267,12 @@ class ClientRecordController extends BaseScheduleController
             'turns' => $turns->map(fn ($t) => [
                 'role' => (string) $t->role,
                 'body' => (string) $t->content,
+                // What the client actually saw. Anee writes her faces as
+                // `:anee-thinking:` and the farmer app swaps each one for a
+                // drawing; reading the row raw shows the shortcode sitting in
+                // the sentence instead. Escaped here, not in the browser, so
+                // the page can insert it as markup safely.
+                'bodyHtml' => AneeEmoji::body((string) $t->content),
                 'when' => (string) $t->created_at,
             ])->values(),
         ]]);

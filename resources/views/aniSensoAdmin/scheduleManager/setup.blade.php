@@ -112,13 +112,32 @@
 
     /* ---- Activities grouped by date with flat color coding ---- */
     .activity-timeline { padding: 4px 0; }
-    .date-group { margin-bottom: 18px; --date-color: #556ee6; }
+    .date-group {
+        margin-bottom: 18px;
+        --date-color: #556ee6;
+        /* What the band is written in, and the washes it lays over its own
+           colour for the chips and buttons.
+
+           The washes are dark on every colour. A white one lightens the band
+           toward the white text on top of it, which made a chip the hardest
+           thing on the band to read — 2.47 to 1 on the blue, against 3.29 for
+           the bare band beside it. Dark deepens it instead, and a chip that
+           reads as inset is as ordinary as one that reads as raised.
+
+           Only the ink changes per colour, and only for the three light
+           ones. */
+        --date-ink: #fff;
+        --date-veil: rgba(0,0,0,0.16);
+        --date-btn: rgba(0,0,0,0.10);
+        --date-btn-hover: rgba(0,0,0,0.22);
+        --date-edge: rgba(255,255,255,0.32);
+    }
     .date-header {
         display: flex; align-items: center; gap: 10px;
         padding: 10px 14px;
         border-radius: 8px 8px 0 0;
         background: var(--date-color);
-        color: #fff;
+        color: var(--date-ink);
     }
     .date-header .date-header-day { font-weight: 600; font-size: 13px; opacity: .85; }
     .date-header .date-header-date { font-weight: 700; font-size: 16px; }
@@ -129,12 +148,12 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        background: rgba(255,255,255,0.22);
+        background: var(--date-veil);
         padding: 2px 9px;
         border-radius: 11px;
         font-size: 12px;
         font-weight: 600;
-        color: #fff;
+        color: var(--date-ink);
     }
     .date-header .date-header-range i { font-size: 14px; }
     .date-header .date-header-range-days {
@@ -144,16 +163,16 @@
     }
     .date-header .date-header-count {
         margin-left: auto;
-        background: rgba(255,255,255,0.22);
+        background: var(--date-veil);
         padding: 3px 12px;
         border-radius: 12px;
         font-size: 12px;
         font-weight: 500;
     }
     .date-header-edit-btn {
-        background: rgba(255,255,255,0.15);
-        color: #fff;
-        border: 1px solid rgba(255,255,255,0.35);
+        background: var(--date-btn);
+        color: var(--date-ink);
+        border: 1px solid var(--date-edge);
         border-radius: 6px;
         padding: 3px 9px;
         font-size: 13px;
@@ -161,8 +180,8 @@
         line-height: 1;
         transition: background .12s ease;
     }
-    .date-header-edit-btn:hover { background: rgba(255,255,255,0.3); }
-    .date-header-delete-btn:hover { background: #f46a6a; border-color: #f46a6a; color: #fff; }
+    .date-header-edit-btn:hover { background: var(--date-btn-hover); }
+    .date-header-delete-btn:hover { background: #e14b4b; border-color: #e14b4b; color: #fff; }
     .date-activities {
         padding: 10px;
         background: #fff;
@@ -199,8 +218,8 @@
         word-break: break-word;
     }
     /* Note-icon button states */
-    .date-note-btn.has-note { background: rgba(255, 255, 255, 0.55); color: #fff; border-color: rgba(255,255,255,0.85); }
-    .date-note-btn.has-note:hover { background: rgba(255, 255, 255, 0.78); }
+    .date-note-btn.has-note { background: rgba(255,255,255,0.62); color: #2b3242; border-color: rgba(255,255,255,0.9); }
+    .date-note-btn.has-note:hover { background: rgba(255,255,255,0.82); color: #20262f; }
 
     /* Global activity note (version-wide commentary above the timeline) */
     .global-activity-note {
@@ -330,7 +349,7 @@
         font-size: 14px;
     }
     .rest-day-marker .rest-day-tag {
-        color: #8893a8;
+        color: #6b7689;
         font-style: italic;
         font-size: 12px;
     }
@@ -446,14 +465,20 @@
        neutral when no marker is set. Keeps the rest of the date-header
        buttons visually consistent. */
     .date-header-edit-btn.date-marker-btn.has-marker {
-        color: #d18a00;
+        background: rgba(255,255,255,0.92);
+        border-color: rgba(255,255,255,0.95);
+        color: #96660a;
     }
+    .date-header-edit-btn.date-marker-btn.has-marker:hover { background: #fff; }
     .date-header-edit-btn.date-marker-btn.has-marker i {
-        color: #d18a00;
+        color: #96660a;
     }
 
     /* Flat color palette — cycled by date order (0..7) */
     .date-color-0 { --date-color: #4A90E2; } /* blue   */
+    /* Light enough that white on them is about 2.1:1, so these three
+       are written in a deep version of their own hue instead — around
+       5.5:1 — and wash themselves with black rather than white. */
     .date-color-1 { --date-color: #50C878; } /* green  */
     .date-color-2 { --date-color: #F39C12; } /* orange */
     .date-color-3 { --date-color: #9B59B6; } /* purple */
@@ -461,6 +486,14 @@
     .date-color-5 { --date-color: #E74C3C; } /* red    */
     .date-color-6 { --date-color: #5C6BC0; } /* indigo */
     .date-color-7 { --date-color: #16A085; } /* sea    */
+    .date-color-1, .date-color-2, .date-color-4 {
+        /* Dark ink wants a dark edge to sit inside; the washes are already
+           dark for everyone. */
+        --date-edge: rgba(0,0,0,0.22);
+    }
+    .date-color-1 { --date-ink: #0e3a22; } /* on green  */
+    .date-color-2 { --date-ink: #4a2e00; } /* on orange */
+    .date-color-4 { --date-ink: #06382e; } /* on teal   */
     .day-pill { display:inline-block; padding:4px 10px; margin:2px; border-radius:20px; background:#f1f1f1; cursor:pointer; font-size:12px; color:#495057; }
     .day-pill.active { background:#556ee6; color:#fff; }
     /* Lot selector chips used inside Default Groupings */
