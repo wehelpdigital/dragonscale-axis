@@ -8,15 +8,32 @@
      them was the only place in the product they existed. Default Stagger
      Days went with it: it pre-filled a group's start offset, and the
      generator asks for that per group anyway. --}}
-<div class="mb-4">
+<div class="mb-3">
     <h5 class="text-dark mb-1">Schedule Settings</h5>
     <small class="text-secondary">What this season is called, how its days are counted, and who gets the morning email. Saved straight to the client's app.</small>
 </div>
 
+{{-- Two errands, so two tabs — the same pair, under the same names, that the
+     client sees in their own Settings module. Stacked, the morning email sat
+     under a description box it has nothing to do with. --}}
+<ul class="nav sm-subtabs mb-3" id="setSubtabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#set-basic" role="tab">
+            <i class="bx bx-info-circle"></i> Basic info
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#set-notify" role="tab">
+            <i class="bx bx-envelope"></i> Notifications
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+<div class="tab-pane fade show active" id="set-basic" role="tabpanel">
+
 <div class="card border mb-3">
     <div class="card-body">
-        <h6 class="text-dark mb-3"><i class="bx bx-info-circle me-1"></i>Basic Info</h6>
-
         <div class="mb-3">
             <label class="form-label text-dark">Title <span class="text-danger">*</span></label>
             <input type="text" class="form-control" id="settingsTitle" maxlength="255" value="{{ $schedule->title }}">
@@ -48,6 +65,10 @@
         </div>
     </div>
 </div>
+
+</div>{{-- /set-basic --}}
+
+<div class="tab-pane fade" id="set-notify" role="tabpanel">
 
 {{-- Who hears about the season each morning. The client can set this from
      their own Settings module; this is the same three columns. --}}
@@ -100,3 +121,6 @@
         </div>
     </div>
 </div>
+
+</div>{{-- /set-notify --}}
+</div>{{-- /tab-content --}}
