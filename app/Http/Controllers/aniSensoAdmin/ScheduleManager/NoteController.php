@@ -72,6 +72,16 @@ class NoteController extends BaseScheduleController
         $search = mb_strtolower(trim((string) $request->query('search', '')));
         $rows = [];
 
+        // Which saved map belongs to which note, read once. A map chip should
+        // open the map, and the map is a save — the picture on the note is
+        // only its likeness.
+        $mapSaves = DB::table('as_schedule_map_saves')
+            ->where('scheduleId', $schedule->id)
+            ->where('deleteStatus', 1)
+            ->whereNotNull('noteId')
+            ->pluck('id', 'noteId')
+            ->all();
+
         try {
             foreach (self::SHELVES as $key => $spec) {
                 $notes = DB::table($spec['table'])
@@ -83,6 +93,12 @@ class NoteController extends BaseScheduleController
 
                 foreach ($notes as $n) {
                     $media = $this->mediaOf($n->media ?? null);
+                    // The notebook keeps one picture in a column of its own,
+                    // from before a note could hold several. It is an
+                    // attachment like any other and the card should say so.
+                    if (filled($n->imagePath ?? null)) {
+                        $media[] = ['type' => 'image', 'path' => (string) $n->imagePath];
+                    }
                     $body = trim(strip_tags((string) ($n->{$spec['body']} ?? '')));
                     $rows[] = [
                         'shelf' => $key,
@@ -92,6 +108,10 @@ class NoteController extends BaseScheduleController
                         'title' => $spec['title'] ? trim((string) ($n->{$spec['title']} ?? '')) : '',
                         'words' => mb_substr($body, 0, 220),
                         'attachments' => count($media),
+                        // The attachments themselves, not a tally of them: a
+                        // chip has to be pressable, and pressing one has to
+                        // know which entry on which note it is opening.
+                        'atts' => self::attsOf($media, $key, (int) $n->id, $mapSaves),
                         'noteDate' => isset($n->noteDate) ? (string) $n->noteDate : null,
                         'when' => (string) ($n->updated_at ?? $n->created_at ?? ''),
                         'sortKey' => isset($n->updated_at) ? strtotime((string) $n->updated_at) : 0,
@@ -114,6 +134,75 @@ class NoteController extends BaseScheduleController
         usort($rows, fn ($a, $b) => $b['sortKey'] <=> $a['sortKey']);
 
         return $this->jsonOk('OK', ['data' => $rows]);
+    }
+
+    /**
+     * What is attached to a note, counted by kind.
+     *
+     * The same reading the farmer app does, including how it recognises the
+     * things that predate their own labels: a map saved before there was a
+     * 'map' type is known by the filename the map save writes, and a team
+     * whiteboard by the board's. Without those, half a season's maps would
+     * be listed as loose photographs.
+     *
+     * @return array<string, int> in the order a note should read them
+     */
+    /**
+     * A note's attachments, in a form a chip can be built from and pressed.
+     *
+     * `index` is the position in the note's own media list, which is how a
+     * drawing is addressed for editing — there is no id on one. `saveId` is
+     * the map filed with this note, when there is one: without it a map chip
+     * could only show a picture of the ground, which is not the thing.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function attsOf(array $media, string $shelf, int $noteId, array $mapSaves): array
+    {
+        $out = [];
+
+        foreach ($media as $i => $m) {
+            $kind = self::kindOf($m);
+            $url = AnisystemMedia::url((string) ($m['path'] ?? ''));
+            if ($url === null && $kind !== 'map') {
+                continue;
+            }
+
+            $out[] = [
+                'type' => $kind,
+                'index' => (int) $i,
+                'shelf' => $shelf,
+                'noteId' => $noteId,
+                'url' => $url,
+                'name' => (string) ($m['title'] ?? AnisystemMedia::basename((string) ($m['path'] ?? ''))),
+                'saveId' => $kind === 'map' ? (int) ($mapSaves[$noteId] ?? 0) : 0,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * What one attachment is.
+     *
+     * The type it was filed under, or — for the ones that predate their own
+     * labels — the filename. A map save and the team board each write a name
+     * with their mark in it, and reading that is the difference between a
+     * season's maps being findable and being listed as photographs.
+     */
+    private static function kindOf(array $m): string
+    {
+        $path = (string) ($m['path'] ?? '');
+        $type = (string) ($m['type'] ?? '');
+
+        if ($type === 'map' || preg_match('~/map-[A-Za-z0-9]+\.png$~', $path)) {
+            return 'map';
+        }
+        if ($type === 'drawing' || preg_match('~/board-[A-Za-z0-9]+\.png$~', $path)) {
+            return 'drawing';
+        }
+
+        return $type === 'video' ? 'video' : 'image';
     }
 
     /** One note, with its words as written and everything attached to it. */
@@ -141,7 +230,9 @@ class NoteController extends BaseScheduleController
             'body' => (string) ($note->{$spec['body']} ?? ''),
             'noteDate' => isset($note->noteDate) ? (string) $note->noteDate : null,
             'media' => collect($this->mediaOf($note->media ?? null))->map(fn ($m) => [
-                'type' => (string) ($m['type'] ?? 'image'),
+                // The same reading the shelf does, so a note does not call
+                // something a photograph that its own card called a map.
+                'type' => self::kindOf($m),
                 'url' => AnisystemMedia::url((string) ($m['path'] ?? '')),
                 'name' => AnisystemMedia::basename((string) ($m['path'] ?? '')),
             ])->values(),

@@ -221,6 +221,13 @@
 [data-bs-theme="dark"] .ai-empty, [data-bs-theme="dark"] .cb-empty, [data-bs-theme="dark"] .rp-empty,
 [data-bs-theme="dark"] .de-empty, [data-bs-theme="dark"] .cf-empty { color: var(--sm-dim); }
 
+/* ---- what a note has on it ---- */
+[data-bs-theme="dark"] .nt-att { background: #313a5e; color: #b9c4f0; }
+[data-bs-theme="dark"] .nt-att.is-map { background: #23345c; color: #9dbcf5; }
+[data-bs-theme="dark"] .nt-att.is-draw { background: #362b52; color: #c3a8ef; }
+[data-bs-theme="dark"] .nt-att.is-video { background: #4a2a2a; color: #f0a8a8; }
+[data-bs-theme="dark"] .nt-att.is-photo { background: #1e3b31; color: #7fd3b0; }
+
 /* ---- a map, drawn ---- */
 [data-bs-theme="dark"] .mp-canvas {
     background:
