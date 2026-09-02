@@ -31,7 +31,7 @@ class InventoryController extends BaseScheduleController
 
     /** Why the stock moved. 'activity' is written by the app, never by hand. */
     public const REASONS = [
-        'open' => 'Opening stock',
+        'open' => 'Start',
         'in' => 'Stock added',
         'out' => 'Used',
         'activity' => 'Used by an activity',
@@ -74,6 +74,7 @@ class InventoryController extends BaseScheduleController
                     'says' => Units::say($have, $i->unit),
                     'lowAt' => $i->lowAt !== null ? (float) $i->lowAt : null,
                     'lowSays' => $i->lowAt !== null ? Units::say((float) $i->lowAt, $i->unit) : null,
+                    'unitPrice' => $i->unitPrice !== null ? (float) $i->unitPrice : null,
                     'note' => (string) ($i->note ?? ''),
                     'onHand' => $have,
                     'isLow' => $i->lowAt !== null && $have <= (float) $i->lowAt,
@@ -120,6 +121,7 @@ class InventoryController extends BaseScheduleController
             'kind' => ['required', Rule::in(array_keys(self::KINDS))],
             'unit' => ['required', Rule::in(array_keys(self::UNITS))],
             'lowAt' => 'nullable|numeric|min:0|max:9999999',
+            'unitPrice' => 'nullable|numeric|min:0|max:99999999',
             'note' => 'nullable|string|max:500',
             // The day the opening count was taken, and what to say about it.
             'on' => 'nullable|date',
@@ -135,6 +137,7 @@ class InventoryController extends BaseScheduleController
             'kind' => $d['kind'],
             'unit' => $d['unit'],
             'lowAt' => $d['lowAt'] ?? null,
+            'unitPrice' => $d['unitPrice'] ?? null,
             'note' => $d['note'] ?? null,
             'updated_at' => now(),
         ];

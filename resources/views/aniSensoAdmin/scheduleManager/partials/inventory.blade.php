@@ -79,6 +79,15 @@
                         <small class="text-secondary" id="ivUnitHint"></small>
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label text-dark">Price <span class="badge bg-light text-secondary ms-1" style="font-weight:500;">Optional</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8369;</span>
+                            <input type="number" step="0.01" min="0" class="form-control" id="ivUnitPrice">
+                            <span class="input-group-text" id="ivPriceUnit"></span>
+                        </div>
+                        <small class="text-secondary">Per one of what it is counted in — the expense report multiplies it by what was used.</small>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label text-dark">Say it is low at</label>
                         <div class="input-group">
                             <input type="number" step="0.001" min="0" class="form-control" id="ivLowAt">

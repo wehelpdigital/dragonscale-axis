@@ -42,7 +42,7 @@ function drawItems() {
     $('#ivBody').html(ITEMS.length ? `<div class="iv-grid">${ITEMS.map(i => `
         <div class="iv-item ${i.isLow ? 'is-low' : ''}">
             <div class="iv-name">${esc(i.icon)} ${esc(i.name)}</div>
-            <div class="iv-kind">${esc(i.kindLabel)}</div>
+            <div class="iv-kind">${esc(i.kindLabel)}${i.unitPrice != null ? ` · ₱${qty(i.unitPrice)} per ${esc(unitSays(i.unit, true))}` : ''}</div>
             <div class="iv-have">${qty(i.onHand)} <small>${esc(i.unitLabel)}</small></div>
             ${i.isLow ? `<div class="iv-low"><i class="bx bx-error"></i> at or below ${esc(i.lowSays || '')}</div>` : ''}
             <div class="iv-acts">
@@ -98,6 +98,7 @@ function openItem(i) {
     fillUnits('#ivUnit', i ? i.kind : 'granular', i ? i.unit : null);
     sayUnit();
     $('#ivLowAt').val(i && i.lowAt !== null ? i.lowAt : '');
+    $('#ivUnitPrice').val(i && i.unitPrice !== null && i.unitPrice !== undefined ? i.unitPrice : '');
     $('#ivNote').val(i ? i.note : '');
     $('#ivOpening').val('');
     // An opening count only makes sense the first time: after that the shelf
@@ -113,6 +114,7 @@ function sayUnit() {
     const u = $('#ivUnit').val();
     const many = unitSays(u, false);
     $('#ivLowUnit').text(many);
+    $('#ivPriceUnit').text('per ' + unitSays(u, true));
     $('#ivOpeningUnit').text(many);
     const first = (IV_KINDS[$('#ivKind').val()] || {}).units;
     $('#ivUnitHint').text(first && first.length ? `Usually ${unitSays(first[0], false)}.` : '');
@@ -151,6 +153,7 @@ $('#ivItemSaveBtn').on('click', function () {
             kind: $('#ivKind').val(),
             unit: $('#ivUnit').val(),
             lowAt: $('#ivLowAt').val() || null,
+            unitPrice: $('#ivUnitPrice').val() || null,
             note: $('#ivNote').val() || null,
             opening: $('#ivOpening').val() || 0,
         },
