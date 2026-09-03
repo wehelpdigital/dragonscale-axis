@@ -103,6 +103,10 @@ class InventoryController extends BaseScheduleController
                 'fromActivity' => $m->reason === 'activity',
                 'happenedOn' => $m->happenedOn ? substr((string) $m->happenedOn, 0, 10) : null,
                 'note' => (string) ($m->note ?? ''),
+                // What the hand typed, when its unit was not the book's.
+                'typedSays' => (isset($m->enteredQty, $m->enteredUnit) && $m->enteredQty !== null && $m->enteredUnit)
+                    ? Units::say((float) $m->enteredQty, $m->enteredUnit)
+                    : null,
             ])->values();
 
         return $this->jsonOk('OK', [
