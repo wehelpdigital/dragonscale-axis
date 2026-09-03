@@ -57,7 +57,9 @@ function drawMoves() {
     $('#ivMoves').html(MOVES.length ? MOVES.map(m => `
         <div class="iv-move">
             <div class="min-w-0">
-                <span class="iv-delta ${m.delta >= 0 ? 'is-in' : 'is-out'}">${m.delta >= 0 ? '+' : ''}${qty(m.delta)} ${esc(m.unit)}</span>
+                ${m.reason === 'created'
+                ? '<span class="iv-delta text-secondary">·</span>'
+                : `<span class="iv-delta ${m.delta >= 0 ? 'is-in' : 'is-out'}">${m.delta >= 0 ? '+' : ''}${qty(m.delta)} ${esc(m.unit)}</span>`}
                 <span class="text-dark ms-1">${esc(m.itemName)}</span>
                 <span class="text-secondary ms-1">· ${esc(m.reasonLabel)}${m.happenedOn ? ' · ' + esc(m.happenedOn) : ''}</span>
                 ${m.note ? `<div class="text-secondary" style="font-size:11.5px">${esc(m.note)}</div>` : ''}

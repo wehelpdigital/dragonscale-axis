@@ -36,6 +36,7 @@ class InventoryController extends BaseScheduleController
         'out' => 'Used',
         'activity' => 'Used by an activity',
         'adjust' => 'Correction',
+        'created' => 'Added to the shed',
     ];
 
     /** The shelf, with what is on hand and the last of the movements. */
