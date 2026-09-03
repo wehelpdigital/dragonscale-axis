@@ -28,23 +28,23 @@ class InventoryUnits
      * the name so that a bare number is never ambiguous on a shelf or in a log.
      */
     public const UNITS = [
-        'kg' => ['one' => 'kg', 'many' => 'kg'],
-        'g' => ['one' => 'g', 'many' => 'g'],
-        'L' => ['one' => 'L', 'many' => 'L'],
-        'ml' => ['one' => 'ml', 'many' => 'ml'],
-        'piece' => ['one' => 'piece', 'many' => 'pieces'],
-        'bag50' => ['one' => 'bag', 'many' => 'bags', 'of' => '50 kg'],
-        'bag40' => ['one' => 'bag', 'many' => 'bags', 'of' => '40 kg'],
-        'bag25' => ['one' => 'bag', 'many' => 'bags', 'of' => '25 kg'],
-        'bag20' => ['one' => 'bag', 'many' => 'bags', 'of' => '20 kg'],
-        'sack' => ['one' => 'sack', 'many' => 'sacks'],
-        'bottle1' => ['one' => 'bottle', 'many' => 'bottles', 'of' => '1 L'],
-        'bottle250' => ['one' => 'bottle', 'many' => 'bottles', 'of' => '250 ml'],
-        'jug5' => ['one' => 'jug', 'many' => 'jugs', 'of' => '5 L'],
-        'drum200' => ['one' => 'drum', 'many' => 'drums', 'of' => '200 L'],
-        'sachet' => ['one' => 'sachet', 'many' => 'sachets'],
-        'box' => ['one' => 'box', 'many' => 'boxes'],
-        'roll' => ['one' => 'roll', 'many' => 'rolls'],
+        'kg' => ['one' => 'kg', 'many' => 'kg', 'dim' => 'mass', 'factor' => 1],
+        'g' => ['one' => 'g', 'many' => 'g', 'dim' => 'mass', 'factor' => 0.001],
+        'L' => ['one' => 'L', 'many' => 'L', 'dim' => 'volume', 'factor' => 1],
+        'ml' => ['one' => 'ml', 'many' => 'ml', 'dim' => 'volume', 'factor' => 0.001],
+        'piece' => ['one' => 'piece', 'many' => 'pieces', 'dim' => 'piece', 'factor' => 1],
+        'bag50' => ['one' => 'bag', 'many' => 'bags', 'of' => '50 kg', 'dim' => 'mass', 'factor' => 50],
+        'bag40' => ['one' => 'bag', 'many' => 'bags', 'of' => '40 kg', 'dim' => 'mass', 'factor' => 40],
+        'bag25' => ['one' => 'bag', 'many' => 'bags', 'of' => '25 kg', 'dim' => 'mass', 'factor' => 25],
+        'bag20' => ['one' => 'bag', 'many' => 'bags', 'of' => '20 kg', 'dim' => 'mass', 'factor' => 20],
+        'sack' => ['one' => 'sack', 'many' => 'sacks', 'dim' => 'sack', 'factor' => 1],
+        'bottle1' => ['one' => 'bottle', 'many' => 'bottles', 'of' => '1 L', 'dim' => 'volume', 'factor' => 1],
+        'bottle250' => ['one' => 'bottle', 'many' => 'bottles', 'of' => '250 ml', 'dim' => 'volume', 'factor' => 0.25],
+        'jug5' => ['one' => 'jug', 'many' => 'jugs', 'of' => '5 L', 'dim' => 'volume', 'factor' => 5],
+        'drum200' => ['one' => 'drum', 'many' => 'drums', 'of' => '200 L', 'dim' => 'volume', 'factor' => 200],
+        'sachet' => ['one' => 'sachet', 'many' => 'sachets', 'dim' => 'sachet', 'factor' => 1],
+        'box' => ['one' => 'box', 'many' => 'boxes', 'dim' => 'box', 'factor' => 1],
+        'roll' => ['one' => 'roll', 'many' => 'rolls', 'dim' => 'roll', 'factor' => 1],
     ];
 
     /** The kinds, and the units each one is actually bought in. */
@@ -99,6 +99,22 @@ class InventoryUnits
     public static function say(float $qty, ?string $unit): string
     {
         return self::trim($qty) . ' ' . self::unitSays($unit, abs($qty) == 1.0);
+    }
+
+    /** A quantity in one unit said in another, or null across dimensions.
+        The twin of anee.io's AsInventoryItem::convert — edit together. */
+    public static function convert(float $qty, string $from, string $to): ?float
+    {
+        if ($from === $to) {
+            return $qty;
+        }
+        $a = self::UNITS[$from] ?? null;
+        $b = self::UNITS[$to] ?? null;
+        if (! $a || ! $b || $a['dim'] !== $b['dim']) {
+            return null;
+        }
+
+        return $qty * $a['factor'] / $b['factor'];
     }
 
     /** A number without the noise: 12 rather than 12.000. */
