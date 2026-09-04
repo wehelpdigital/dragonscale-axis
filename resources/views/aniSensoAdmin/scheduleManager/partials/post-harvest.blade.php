@@ -26,7 +26,7 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
     <div>
-        <h5 class="text-dark mb-1">Post-harvest</h5>
+        <h5 class="text-dark mb-1">Observations</h5>
         <small class="text-secondary">
             What came off this season and what happened to it — yield, moisture, who bought it
             and for how much, and the lessons for next year.
@@ -45,7 +45,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title mb-0" id="phModalTitle">Post-harvest record</h5>
+                <h5 class="modal-title mb-0" id="phModalTitle">Observation record</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

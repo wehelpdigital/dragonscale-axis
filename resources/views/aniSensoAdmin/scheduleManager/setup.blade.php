@@ -947,7 +947,7 @@
                     @endphp
                     <span class="badge bg-light text-dark ms-1" id="badge-protocol-doc">{{ $protoCount }}</span>
                 </a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-post-harvest"><i class="bx bx-basket me-1"></i> Post-harvest</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-post-harvest"><i class="bx bx-basket me-1"></i> Observations</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-notes"><i class="bx bx-edit me-1"></i> Notes</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-weather"><i class="bx bx-cloud me-1"></i> Weather</a></li>
                 <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-growth"><i class="bx bx-leaf me-1"></i> Growth Stages</a></li>

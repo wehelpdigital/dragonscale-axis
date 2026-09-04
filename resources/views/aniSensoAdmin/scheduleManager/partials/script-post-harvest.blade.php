@@ -67,7 +67,7 @@ function fill(d) {
     $('#phNotes').val(d.notes || '');
     $('#phExtrasHint').toggleClass('d-none', !d.id);
     $('#phDeleteBtn').toggle(!!d.id);
-    $('#phModalTitle').text(d.id ? 'Post-harvest record' : 'New post-harvest record');
+    $('#phModalTitle').text(d.id ? 'Observation record' : 'New observation record');
 }
 
 $(document).on('click', '.js-ph-open', function (e) {

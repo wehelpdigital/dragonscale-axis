@@ -46,5 +46,5 @@
     </a>
 </div>
 
-<h6 class="text-dark mb-2"><i class="bx bx-save me-1"></i>Post-harvest reports the client saved</h6>
+<h6 class="text-dark mb-2"><i class="bx bx-save me-1"></i>Saved Post Harvest Reports (module retired on the client side)</h6>
 <div id="rpBody"></div>
