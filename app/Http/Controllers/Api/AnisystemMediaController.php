@@ -138,7 +138,13 @@ class AnisystemMediaController extends Controller
     {
         $ext = $ext === 'jpeg' ? 'jpg' : $ext;
 
-        return in_array($ext, ['png', 'jpg', 'webp', 'gif', 'mp4', 'webm'], true) ? $ext : 'png';
+        // The audio family rides along since anee grew voice notes: .weba is
+        // how a voice clip tells itself apart from a .webm video by path
+        // alone, so flattening it to png silenced every recording.
+        return in_array($ext, [
+            'png', 'jpg', 'webp', 'gif', 'mp4', 'webm',
+            'weba', 'm4a', 'mp3', 'ogg', 'oga', 'wav', 'aac', 'opus',
+        ], true) ? $ext : 'png';
     }
 
     /**
