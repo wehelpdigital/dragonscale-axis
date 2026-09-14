@@ -27,17 +27,6 @@
       0 => 'Laravel\\Ui\\UiServiceProvider',
     ),
   ),
-  'livewire/livewire' => 
-  array (
-    'aliases' => 
-    array (
-      'Livewire' => 'Livewire\\Livewire',
-    ),
-    'providers' => 
-    array (
-      0 => 'Livewire\\LivewireServiceProvider',
-    ),
-  ),
   'nesbot/carbon' => 
   array (
     'providers' => 
@@ -68,41 +57,6 @@
     'providers' => 
     array (
       0 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
-    ),
-  ),
-  'yajra/laravel-datatables-buttons' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Yajra\\DataTables\\ButtonsServiceProvider',
-    ),
-  ),
-  'yajra/laravel-datatables-editor' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Yajra\\DataTables\\EditorServiceProvider',
-    ),
-  ),
-  'yajra/laravel-datatables-export' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Yajra\\DataTables\\ExportServiceProvider',
-    ),
-  ),
-  'yajra/laravel-datatables-fractal' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Yajra\\DataTables\\FractalServiceProvider',
-    ),
-  ),
-  'yajra/laravel-datatables-html' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Yajra\\DataTables\\HtmlServiceProvider',
     ),
   ),
   'yajra/laravel-datatables-oracle' => 

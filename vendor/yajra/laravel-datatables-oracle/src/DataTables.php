@@ -4,9 +4,12 @@ namespace Yajra\DataTables;
 
 use Illuminate\Contracts\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Traits\Macroable;
 use Yajra\DataTables\Exceptions\Exception;
-use Yajra\DataTables\Utilities\Config;
+use Yajra\DataTables\Utilities\Config as DataTablesConfig;
 use Yajra\DataTables\Utilities\Request;
 
 class DataTables
@@ -16,7 +19,7 @@ class DataTables
     /**
      * DataTables request object.
      */
-    protected Utilities\Request $request;
+    protected Request $request;
 
     /**
      * Make a DataTable instance from source.
@@ -38,20 +41,22 @@ class DataTables
      * @param  object  $source
      * @return DataTableAbstract
      *
-     * @throws \Yajra\DataTables\Exceptions\Exception
+     * @throws Exception
      */
     public static function make($source)
     {
-        $engines = (array) config('datatables.engines');
-        $builders = (array) config('datatables.builders');
+        $engines = Config::get('datatables.engines', []);
+        $builders = Config::get('datatables.builders', []);
 
         $args = func_get_args();
         foreach ($builders as $class => $engine) {
-            if ($source instanceof $class) {
-                $callback = [$engines[$engine], 'create'];
+            if (is_string($class) && $source instanceof $class) {
+                /** @var int|string $engineKey */
+                $engineKey = is_int($engine) || is_string($engine) ? $engine : (string) $engine;
+                $callback = [$engines[$engineKey], 'create'];
 
                 if (is_callable($callback)) {
-                    /** @var \Yajra\DataTables\DataTableAbstract $instance */
+                    /** @var DataTableAbstract $instance */
                     $instance = call_user_func_array($callback, $args);
 
                     return $instance;
@@ -65,7 +70,7 @@ class DataTables
                 $create = [$engine, 'create'];
 
                 if (is_callable($create)) {
-                    /** @var \Yajra\DataTables\DataTableAbstract $instance */
+                    /** @var DataTableAbstract $instance */
                     $instance = call_user_func_array($create, $args);
 
                     return $instance;
@@ -87,7 +92,7 @@ class DataTables
     /**
      * Get config instance.
      */
-    public function getConfig(): Config
+    public function getConfig(): DataTablesConfig
     {
         return app('datatables.config');
     }
@@ -95,12 +100,11 @@ class DataTables
     /**
      * DataTables using query builder.
      *
-     * @throws \Yajra\DataTables\Exceptions\Exception
+     * @throws Exception
      */
     public function query(QueryBuilder $builder): QueryDataTable
     {
-        /** @var string $dataTable */
-        $dataTable = config('datatables.engines.query');
+        $dataTable = (string) Config::get('datatables.engines.query');
 
         $this->validateDataTable($dataTable, QueryDataTable::class);
 
@@ -110,12 +114,11 @@ class DataTables
     /**
      * DataTables using Eloquent Builder.
      *
-     * @throws \Yajra\DataTables\Exceptions\Exception
+     * @throws Exception
      */
     public function eloquent(EloquentBuilder $builder): EloquentDataTable
     {
-        /** @var string $dataTable */
-        $dataTable = config('datatables.engines.eloquent');
+        $dataTable = (string) Config::get('datatables.engines.eloquent');
 
         $this->validateDataTable($dataTable, EloquentDataTable::class);
 
@@ -125,14 +128,13 @@ class DataTables
     /**
      * DataTables using Collection.
      *
-     * @param  \Illuminate\Support\Collection<array-key, array>|array  $collection
+     * @param  Collection<array-key, array>|array  $collection
      *
-     * @throws \Yajra\DataTables\Exceptions\Exception
+     * @throws Exception
      */
     public function collection($collection): CollectionDataTable
     {
-        /** @var string $dataTable */
-        $dataTable = config('datatables.engines.collection');
+        $dataTable = (string) Config::get('datatables.engines.collection');
 
         $this->validateDataTable($dataTable, CollectionDataTable::class);
 
@@ -142,7 +144,7 @@ class DataTables
     /**
      * DataTables using Collection.
      *
-     * @param  \Illuminate\Http\Resources\Json\AnonymousResourceCollection<array-key, array>|array  $resource
+     * @param  AnonymousResourceCollection<array-key, array>|array  $resource
      * @return ApiResourceDataTable|DataTableAbstract
      */
     public function resource($resource)
@@ -151,7 +153,7 @@ class DataTables
     }
 
     /**
-     * @throws \Yajra\DataTables\Exceptions\Exception
+     * @throws Exception
      */
     public function validateDataTable(string $engine, string $parent): void
     {
