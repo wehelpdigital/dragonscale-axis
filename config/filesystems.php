@@ -46,7 +46,29 @@ return [
          * APP_STORAGE_ROOT covers any other host, and with neither set this
          * behaves exactly as it always did.
          */
-        'public' => [
+        /*
+         * Or on a bucket, which is where they go on a host with no disk to
+         * mount at all (Laravel Cloud). MEDIA_DISK=s3 swaps this disk's
+         * driver and nothing else: every Storage::disk('public') call in the
+         * app, and every `/storage/<path>` address ever handed out, keeps
+         * working -- the fallback route below /storage sends the browser on
+         * to the bucket. The AWS_* values are the ones the host injects for
+         * its bucket; AWS_URL is the bucket's public address and may be
+         * blank for a private bucket, in which case the fallback signs a
+         * temporary link instead.
+         */
+        'public' => env('MEDIA_DISK') === 's3' ? [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('AWS_BUCKET'),
+            'url' => env('AWS_URL') ?: null,
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => (bool) env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+            'report' => true,
+        ] : [
             'driver' => 'local',
             'root' => env('APP_STORAGE_ROOT')
                 ?: (env('RAILWAY_VOLUME_MOUNT_PATH')
