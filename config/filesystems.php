@@ -63,7 +63,12 @@ return [
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION', 'auto'),
             'bucket' => env('AWS_BUCKET'),
-            'url' => env('AWS_URL') ?: null,
+            // The bucket's public address, when it has one that answers. The
+            // host injects AWS_URL the moment a bucket is attached, before
+            // public access is switched on -- and a 301 to an address that
+            // answers 530 is a broken picture. MEDIA_SIGNED_LINKS=1 ignores
+            // it and every read goes out as a signed link instead.
+            'url' => env('MEDIA_SIGNED_LINKS') ? null : (env('AWS_URL') ?: null),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => (bool) env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
