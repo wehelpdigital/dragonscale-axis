@@ -116,6 +116,12 @@
                                 <span key="t-anisenso-ai-settings">AniSystem AI</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-ads*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-ads.index') }}" class="waves-effect {{ request()->is('anisenso-ads*') ? 'active' : '' }}">
+                                <i class="bx bx-purchase-tag-alt"></i>
+                                <span key="t-anisenso-ads">Ads (free plan)</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-mail-settings*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-mail-settings.index') }}" class="waves-effect {{ request()->is('anisenso-mail-settings*') ? 'active' : '' }}">
                                 <i class="bx bx-envelope"></i>

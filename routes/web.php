@@ -462,6 +462,15 @@ Route::get('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\Anisyste
 Route::post('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'save'])->name('anisenso-ai-settings.save')->middleware('auth');
 Route::post('/anisenso-ai-settings-avatar', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'uploadAvatar'])->name('anisenso-ai-settings.avatar')->middleware('auth');
 Route::post('/anisenso-ai-settings-packs', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'savePacks'])->name('anisenso-ai-settings.packs')->middleware('auth');
+
+// AniSystem ads: what the free plan's slots carry, and whether they carry anything.
+Route::get('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'index'])->name('anisenso-ads.index')->middleware('auth');
+Route::post('/anisenso-ads-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'saveSettings'])->name('anisenso-ads.settings')->middleware('auth');
+Route::get('/anisenso-ads-create', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'create'])->name('anisenso-ads.create')->middleware('auth');
+Route::post('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'store'])->name('anisenso-ads.store')->middleware('auth');
+Route::get('/anisenso-ads-edit', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'edit'])->name('anisenso-ads.edit')->middleware('auth');
+Route::put('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'update'])->name('anisenso-ads.update')->middleware('auth');
+Route::delete('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'destroy'])->name('anisenso-ads.destroy')->middleware('auth');
 // What the technician has actually been answering: every client thread, the
 // personal ones and the Collab Room's team sessions, read-only.
 Route::get('/anisenso-ai-conversations-data', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'data'])->name('anisenso-ai-conversations.data')->middleware('auth');
