@@ -5,6 +5,8 @@ namespace App\Http\Controllers\aniSensoAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\AnisystemUser;
 use App\Models\AsAiSetting;
+use App\Models\AsSiteSetting;
+use App\Support\AiHouseCost;
 use App\Services\AniSenso\CommunityAiAnswerService;
 use App\Support\AiKeyCipher;
 use App\Support\AnisystemMedia;
@@ -46,8 +48,104 @@ class AnisystemAiSettingsController extends Controller
             ->selectRaw('COALESCE(SUM(credits),0) as credits, COALESCE(SUM(price),0) as revenue')
             ->first();
 
-        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold'))
+        [$prices, $economics] = $this->priceList($packs);
+
+        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics'))
             ->with('secretConfigured', AiKeyCipher::available());
+    }
+
+    /**
+     * Anee's price list: the flat prices, in credits, of the analyses that
+     * are not metered (anee's App\Support\AiPrices reads the same shelf),
+     * and under each what the runs of the last thirty days actually cost
+     * the house, so a margin can be read and a price moved.
+     */
+    public const PRICE_KINDS = [
+        'wtp' => 'When to Plant analysis',
+        'what' => 'What to Plant analysis',
+        'variety' => 'Variety research & comparison (searches the web)',
+        'season' => 'Anee Season Report',
+        'sofar' => 'Analyze So Far report',
+        'compare' => 'Comparison analysis',
+        'realign' => 'Realign by Anee (growth stage)',
+    ];
+
+    public const PRICE_DEFAULTS = [
+        'wtp' => 50, 'what' => 100, 'variety' => 120, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60,
+    ];
+
+    private function priceList($packs): array
+    {
+        $set = json_decode((string) AsSiteSetting::get('ai.prices', ''), true) ?: [];
+        $prices = self::PRICE_DEFAULTS;
+        foreach ($set as $k => $v) {
+            if (isset($prices[$k]) && is_numeric($v) && (int) $v >= 1) {
+                $prices[$k] = (int) $v;
+            }
+        }
+
+        // What a credit sells for: the cheapest and the dearest pack.
+        $perCredit = collect($packs)->filter(fn ($p) => (int) $p->credits > 0 && (int) ($p->isActive ?? 1) === 1)
+            ->map(fn ($p) => (float) $p->price / (int) $p->credits);
+        $low = (float) ($perCredit->min() ?? 0.75);
+        $high = (float) ($perCredit->max() ?? 0.99);
+
+        $rows = collect();
+        try {
+            $rows = DB::table('as_ai_usage')
+                ->where('created_at', '>=', now()->subDays(30))
+                ->selectRaw('kind, COUNT(*) as runs, AVG(tokensIn) as tin, AVG(tokensOut) as tout, AVG(meteredCredits) as metered, SUM(searched) as searched, MAX(provider) as provider, MAX(model) as model')
+                ->groupBy('kind')->get()->keyBy('kind');
+        } catch (\Throwable $e) {
+            // anee has not deployed the usage table yet: the list without the meter.
+        }
+
+        $economics = [];
+        foreach (self::PRICE_KINDS as $kind => $name) {
+            $r = $rows[$kind] ?? null;
+            $runs = (int) ($r->runs ?? 0);
+            $cost = $runs ? AiHouseCost::pesos($r->provider, $r->model, (int) round($r->tin), (int) round($r->tout), (int) $r->searched > 0) : null;
+            $economics[$kind] = [
+                'name' => $name,
+                'price' => $prices[$kind],
+                'default' => self::PRICE_DEFAULTS[$kind],
+                'pesoLow' => $prices[$kind] * $low,
+                'pesoHigh' => $prices[$kind] * $high,
+                'runs' => $runs,
+                'tokensIn' => $runs ? (int) round($r->tin) : null,
+                'tokensOut' => $runs ? (int) round($r->tout) : null,
+                'metered' => $runs ? (float) $r->metered : null,
+                'searched' => $runs ? (int) $r->searched : 0,
+                'houseCost' => $cost,
+                'margin' => ($cost && $cost > 0) ? ($prices[$kind] * $low) / $cost : null,
+            ];
+        }
+
+        return [$prices, $economics];
+    }
+
+    /** Save Anee's price list to the shelf anee reads. */
+    public function savePrices(Request $request)
+    {
+        $rules = [];
+        foreach (array_keys(self::PRICE_KINDS) as $k) {
+            $rules['prices.' . $k] = 'required|integer|min:1|max:100000';
+        }
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+        }
+        try {
+            $clean = [];
+            foreach (array_keys(self::PRICE_KINDS) as $k) {
+                $clean[$k] = (int) $request->input('prices.' . $k);
+            }
+            AsSiteSetting::put('ai.prices', json_encode($clean));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'The settings shelf is not there yet — anee.io has to deploy its migration first.'], 422);
+        }
+
+        return response()->json(['success' => true, 'message' => "Anee's price list saved. anee.io reads it on the next run."]);
     }
 
     /**

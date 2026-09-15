@@ -58,6 +58,11 @@
                 <i class="bx bx-cog me-1"></i> Settings
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#aiPricesTab" role="tab">
+                <i class="bx bx-purchase-tag me-1"></i> Anee's price list
+            </a>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -315,6 +320,64 @@
         </div>
     </div>
     </div>{{-- /#aiSettingsTab --}}
+
+    {{-- ============================================ Anee's price list ===== --}}
+    <div class="tab-pane" id="aiPricesTab" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">Anee's price list</h5>
+                        <p class="text-secondary mb-0">The analyses that are not metered: one flat price, in credits, said before the run and charged exactly. The chat is metered by the rates on the Settings tab. Under each price: what the runs of the last 30 days actually cost the house, from the provider's list prices (₱{{ number_format(\App\Support\AiHouseCost::PHP_PER_USD, 0) }} per dollar) — and the margin, at the cheapest pack's rate per credit. A healthy analysis earns its tokens several times over; a margin near 1× means the price is too low.</p>
+                    </div>
+                </div>
+                <form id="pricesForm">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-3">
+                            <thead>
+                                <tr>
+                                    <th>Analysis</th>
+                                    <th style="width:9rem">Price (credits)</th>
+                                    <th>Sells for</th>
+                                    <th>Runs (30d)</th>
+                                    <th>Tokens in / out</th>
+                                    <th>Meter would say</th>
+                                    <th>House cost</th>
+                                    <th>Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach ($economics as $kind => $e)
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ $e['name'] }}</div>
+                                        <div class="text-muted font-size-12">default {{ $e['default'] }}</div>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm js-price-in" data-kind="{{ $kind }}" name="prices[{{ $kind }}]" value="{{ $e['price'] }}" min="1" max="100000" step="1">
+                                    </td>
+                                    <td class="text-nowrap">₱{{ number_format($e['pesoLow'], 0) }}–{{ number_format($e['pesoHigh'], 0) }}</td>
+                                    <td>{{ $e['runs'] ?: '—' }}</td>
+                                    <td class="text-nowrap">{{ $e['runs'] ? number_format($e['tokensIn']) . ' / ' . number_format($e['tokensOut']) : '—' }}{!! $e['searched'] ? ' <span class="badge bg-info-subtle text-info">' . $e['searched'] . ' searched</span>' : '' !!}</td>
+                                    <td>{{ $e['runs'] ? number_format($e['metered'], 0) . ' credits' : '—' }}</td>
+                                    <td class="text-nowrap">{{ $e['houseCost'] !== null ? '₱' . number_format($e['houseCost'], 2) : '—' }}</td>
+                                    <td>
+                                        @if ($e['margin'] !== null)
+                                            <span class="badge {{ $e['margin'] >= 4 ? 'bg-success' : ($e['margin'] >= 2 ? 'bg-warning text-dark' : 'bg-danger') }}">{{ number_format($e['margin'], 1) }}×</span>
+                                        @else
+                                            <span class="text-muted">no runs yet</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="mdi mdi-content-save"></i> Save price list</button>
+                </form>
+            </div>
+        </div>
+    </div>{{-- /#aiPricesTab --}}
     </div>{{-- /.tab-content --}}
 
     {{-- One thread, turn by turn. --}}
@@ -534,6 +597,19 @@ $(function () {
         const credits = parseFloat($row.find('.js-credits').val()) || 0;
         const price = parseFloat($row.find('.js-price').val()) || 0;
         $row.find('.js-per').text('₱' + (credits > 0 ? (price / credits).toFixed(2) : '0.00') + ' per credit');
+    });
+
+    $('#pricesForm').on('submit', function (e) {
+        e.preventDefault();
+        const prices = {};
+        $('.js-price-in').each(function () { prices[$(this).data('kind')] = $(this).val(); });
+        $.ajax({
+            url: "{{ route('anisenso-ai-settings.prices') }}",
+            method: 'POST',
+            data: { _token: "{{ csrf_token() }}", prices: prices },
+            success: function (res) { toastr.success(res.message); },
+            error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Could not save.'); },
+        });
     });
 
     $('#packsForm').on('submit', function (e) {
