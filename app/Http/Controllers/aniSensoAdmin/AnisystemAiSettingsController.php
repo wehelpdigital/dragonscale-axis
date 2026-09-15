@@ -64,6 +64,7 @@ class AnisystemAiSettingsController extends Controller
         'wtp' => 'When to Plant analysis',
         'what' => 'What to Plant analysis',
         'variety' => 'Variety research & comparison (searches the web)',
+        'protocol' => 'Crop Protocol (season plan by growth stage, searches the web)',
         'season' => 'Anee Season Report',
         'sofar' => 'Analyze So Far report',
         'compare' => 'Comparison analysis',
@@ -71,7 +72,7 @@ class AnisystemAiSettingsController extends Controller
     ];
 
     public const PRICE_DEFAULTS = [
-        'wtp' => 50, 'what' => 100, 'variety' => 120, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60,
+        'wtp' => 50, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60,
     ];
 
     private function priceList($packs): array
