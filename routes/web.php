@@ -471,6 +471,9 @@ Route::post('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsCon
 Route::get('/anisenso-ads-edit', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'edit'])->name('anisenso-ads.edit')->middleware('auth');
 Route::put('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'update'])->name('anisenso-ads.update')->middleware('auth');
 Route::delete('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'destroy'])->name('anisenso-ads.destroy')->middleware('auth');
+// AniSystem > Search indexing: whether search engines may index anee.io's public site.
+Route::get('/anisenso-seo', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoController::class, 'index'])->name('anisenso-seo.index')->middleware('auth');
+Route::post('/anisenso-seo', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoController::class, 'save'])->name('anisenso-seo.save')->middleware('auth');
 // What the technician has actually been answering: every client thread, the
 // personal ones and the Collab Room's team sessions, read-only.
 Route::get('/anisenso-ai-conversations-data', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'data'])->name('anisenso-ai-conversations.data')->middleware('auth');

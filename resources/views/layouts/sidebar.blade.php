@@ -122,6 +122,12 @@
                                 <span key="t-anisenso-ads">Ads (free plan)</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-seo*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-seo.index') }}" class="waves-effect {{ request()->is('anisenso-seo*') ? 'active' : '' }}">
+                                <i class="bx bx-search-alt"></i>
+                                <span key="t-anisenso-seo">Search indexing</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-mail-settings*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-mail-settings.index') }}" class="waves-effect {{ request()->is('anisenso-mail-settings*') ? 'active' : '' }}">
                                 <i class="bx bx-envelope"></i>
