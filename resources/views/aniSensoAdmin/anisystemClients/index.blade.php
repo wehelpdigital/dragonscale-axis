@@ -240,7 +240,7 @@ $(document).ready(function() {
             { data: 'roles', orderable: false, searchable: false, render: function(d) { return rolesBadges(d); } },
             { data: 'phone', name: 'anisystem_users.phone', orderable: false, render: function(d) { return esc(d || '—'); } },
             // Where the farm is (2026-09-16): the flag drawn from the ISO code, the code beside it.
-            { data: 'country', name: 'anisystem_users.country', render: function(d) { const c = String(d || 'PH').toUpperCase(); const flag = /^[A-Z]{2}$/.test(c) ? String.fromCodePoint(...[...c].map((ch) => 0x1F1E6 + ch.charCodeAt(0) - 65)) : '🌐'; return '<span title="' + esc(c) + '">' + flag + ' <small class="text-muted">' + esc(c) + '</small></span>'; } },
+            { data: 'country', name: 'anisystem_users.country', render: function(d) { const c = String(d || 'PH').toUpperCase(); const flag = (/^[A-Z]{2}$/.test(c) && !/Windows/i.test(navigator.userAgent)) ? String.fromCodePoint(...[...c].map((ch) => 0x1F1E6 + ch.charCodeAt(0) - 65)) : ''; return '<span title="' + esc(c) + '">' + flag + ' <small class="text-muted">' + esc(c) + '</small></span>'; } },
             { data: null, orderable: false, searchable: false, render: function() { return '<span class="badge system-badge">AniSystem</span>'; } },
             { data: 'subPlanName', name: 'sub.planName', orderable: false,
                 render: function(d, t, row) {
