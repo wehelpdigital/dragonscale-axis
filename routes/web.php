@@ -463,6 +463,7 @@ Route::post('/anisenso-ai-settings', [App\Http\Controllers\aniSensoAdmin\Anisyst
 Route::post('/anisenso-ai-settings-avatar', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'uploadAvatar'])->name('anisenso-ai-settings.avatar')->middleware('auth');
 Route::post('/anisenso-ai-settings-packs', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'savePacks'])->name('anisenso-ai-settings.packs')->middleware('auth');
 Route::post('/anisenso-ai-settings-prices', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'savePrices'])->name('anisenso-ai-settings.prices')->middleware('auth');
+Route::post('/anisenso-ai-settings-usd', [App\Http\Controllers\aniSensoAdmin\AnisystemAiSettingsController::class, 'saveUsd'])->name('anisenso-ai-settings.usd')->middleware('auth');
 
 // AniSystem ads: what the free plan's slots carry, and whether they carry anything.
 Route::get('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'index'])->name('anisenso-ads.index')->middleware('auth');

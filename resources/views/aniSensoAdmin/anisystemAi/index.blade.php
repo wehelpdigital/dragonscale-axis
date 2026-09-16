@@ -377,6 +377,92 @@
                 </form>
             </div>
         </div>
+
+        {{-- THE INTERNATIONAL FACE: what anee.io charges outside the
+             Philippines, in US dollars, and where the money goes (PayPal).
+             Saved to the shared shelf (as_site_settings `prices.usd` and
+             `pay.paypal`); anee.io reads them on the next page. --}}
+        <div class="card" id="usdCard">
+            <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">International prices (US dollars) &amp; PayPal</h5>
+                        <p class="text-secondary mb-0">Every farmer outside the Philippines sees these instead of the peso prices, and pays through PayPal instead of GCash — the same manual verification. Leave a price empty to fall back to the peso price at the rate below.</p>
+                    </div>
+                </div>
+                <form id="usdForm">
+                    <div class="row g-3">
+                        <div class="col-lg-4">
+                            <h6 class="fw-semibold mb-2">Plans (tiers)</h6>
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Tier</th><th style="width:7rem">$ / month</th><th style="width:7rem">$ / year</th></tr></thead>
+                                <tbody>
+                                @foreach (['solo' => 'Solo Farmer', 'owner' => 'Farm Owner'] as $tk => $tn)
+                                    <tr>
+                                        <td>{{ $tn }}</td>
+                                        <td><input type="number" class="form-control form-control-sm" name="usd[tiers][{{ $tk }}][month]" value="{{ $usd['tiers'][$tk]['month'] ?? '' }}" min="0" step="0.01"></td>
+                                        <td><input type="number" class="form-control form-control-sm" name="usd[tiers][{{ $tk }}][year]" value="{{ $usd['tiers'][$tk]['year'] ?? '' }}" min="0" step="0.01"></td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                            <h6 class="fw-semibold mb-2 mt-3">Legacy plans</h6>
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Plan</th><th>₱</th><th style="width:7rem">$</th></tr></thead>
+                                <tbody>
+                                @foreach ($plans as $plan)
+                                    <tr>
+                                        <td>{{ $plan->planName }} <span class="text-muted font-size-12">· {{ $plan->planKey }}</span></td>
+                                        <td class="text-nowrap">₱{{ number_format((float) $plan->price, 0) }}</td>
+                                        <td><input type="number" class="form-control form-control-sm" name="usd[plans][{{ $plan->planKey }}]" value="{{ $usd['plans'][$plan->planKey] ?? '' }}" min="0" step="0.01"></td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-lg-4">
+                            <h6 class="fw-semibold mb-2">Credit packs</h6>
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Pack</th><th>₱</th><th style="width:7rem">$</th></tr></thead>
+                                <tbody>
+                                @foreach ($packs as $pack)
+                                    <tr>
+                                        <td>{{ $pack->packName }} <span class="text-muted font-size-12">· {{ number_format((int) $pack->credits) }} cr</span></td>
+                                        <td class="text-nowrap">₱{{ number_format((float) $pack->price, 0) }}</td>
+                                        <td><input type="number" class="form-control form-control-sm" name="usd[packs][{{ $pack->packKey }}]" value="{{ $usd['packs'][$pack->packKey] ?? '' }}" min="0" step="0.01"></td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                            <div class="mt-3">
+                                <label class="form-label font-size-12 mb-1">Fallback rate (₱ per $) for anything left empty</label>
+                                <input type="number" class="form-control form-control-sm" name="usd[rate]" value="{{ $usd['rate'] ?? 58 }}" min="1" step="0.01" style="max-width:9rem">
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <h6 class="fw-semibold mb-2">PayPal account (shown on the payment page)</h6>
+                            <div class="mb-2">
+                                <label class="form-label font-size-12 mb-1">PayPal email</label>
+                                <input type="email" class="form-control form-control-sm" name="paypal[email]" value="{{ $paypal['email'] ?? '' }}" placeholder="payments@anee.io">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label font-size-12 mb-1">PayPal.me link (optional)</label>
+                                <input type="url" class="form-control form-control-sm" name="paypal[link]" value="{{ $paypal['link'] ?? '' }}" placeholder="https://paypal.me/anee">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label font-size-12 mb-1">Account name</label>
+                                <input type="text" class="form-control form-control-sm" name="paypal[name]" value="{{ $paypal['name'] ?? '' }}" placeholder="anee.io">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label font-size-12 mb-1">Instructions (optional)</label>
+                                <textarea class="form-control form-control-sm" name="paypal[instructions]" rows="3" placeholder="e.g. Send as Friends &amp; Family, and put your anee.io email in the note.">{{ $paypal['instructions'] ?? '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary mt-3">Save international prices</button>
+                </form>
+            </div>
+        </div>
     </div>{{-- /#aiPricesTab --}}
     </div>{{-- /.tab-content --}}
 
@@ -607,6 +693,17 @@ $(function () {
             url: "{{ route('anisenso-ai-settings.prices') }}",
             method: 'POST',
             data: { _token: "{{ csrf_token() }}", prices: prices },
+            success: function (res) { toastr.success(res.message); },
+            error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Could not save.'); },
+        });
+    });
+
+    $('#usdForm').on('submit', function (e) {
+        e.preventDefault();
+        $.ajax({
+            url: "{{ route('anisenso-ai-settings.usd') }}",
+            method: 'POST',
+            data: $(this).serialize() + '&_token=' + encodeURIComponent("{{ csrf_token() }}"),
             success: function (res) { toastr.success(res.message); },
             error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Could not save.'); },
         });

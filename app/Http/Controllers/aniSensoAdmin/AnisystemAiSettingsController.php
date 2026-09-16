@@ -50,7 +50,33 @@ class AnisystemAiSettingsController extends Controller
 
         [$prices, $economics] = $this->priceList($packs);
 
-        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics'))
+        // The international face: dollar prices and the PayPal account.
+        $plans = DB::table('anisystem_plans')->where('deleteStatus', 1)->orderBy('sortOrder')->get();
+        $usd = self::USD_DEFAULTS;
+        try {
+            $set = json_decode((string) AsSiteSetting::get('prices.usd', ''), true) ?: [];
+            foreach (['tiers', 'plans', 'packs'] as $g) {
+                foreach ((array) ($set[$g] ?? []) as $k => $v) {
+                    if (is_array($v)) {
+                        foreach ($v as $kk => $vv) {
+                            if (is_numeric($vv)) {
+                                $usd[$g][$k][$kk] = (float) $vv;
+                            }
+                        }
+                    } elseif (is_numeric($v)) {
+                        $usd[$g][$k] = (float) $v;
+                    }
+                }
+            }
+            if (is_numeric($set['rate'] ?? null)) {
+                $usd['rate'] = (float) $set['rate'];
+            }
+            $paypal = json_decode((string) AsSiteSetting::get('pay.paypal', ''), true) ?: [];
+        } catch (\Throwable $e) {
+            $paypal = [];
+        }
+
+        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics', 'plans', 'usd', 'paypal'))
             ->with('secretConfigured', AiKeyCipher::available());
     }
 
@@ -69,6 +95,18 @@ class AnisystemAiSettingsController extends Controller
         'sofar' => 'Analyze So Far report',
         'compare' => 'Comparison analysis',
         'realign' => 'Realign by Anee (growth stage)',
+    ];
+
+    /**
+     * The international face's prices, in US dollars (anee.io shows them
+     * to every farmer outside the Philippines). Keyed like anee.io's
+     * config/regions.php `usd`; saved to the shelf as `prices.usd`.
+     */
+    public const USD_DEFAULTS = [
+        'tiers' => ['solo' => ['month' => 5, 'year' => 45], 'owner' => ['month' => 12, 'year' => 120]],
+        'plans' => ['monthly' => 9.99, 'season' => 24.99, 'annual' => 69.99],
+        'packs' => ['starter' => 1.99, 'farmer' => 5.99, 'season' => 14.99],
+        'rate' => 58,
     ];
 
     public const PRICE_DEFAULTS = [
@@ -147,6 +185,66 @@ class AnisystemAiSettingsController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => "Anee's price list saved. anee.io reads it on the next run."]);
+    }
+
+    /**
+     * Save the international prices (US dollars) and the PayPal account
+     * anee.io shows farmers outside the Philippines.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function saveUsd(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'usd' => 'required|array',
+            'usd.tiers' => 'nullable|array',
+            'usd.tiers.*.month' => 'nullable|numeric|min:0|max:100000',
+            'usd.tiers.*.year' => 'nullable|numeric|min:0|max:100000',
+            'usd.plans' => 'nullable|array',
+            'usd.plans.*' => 'nullable|numeric|min:0|max:100000',
+            'usd.packs' => 'nullable|array',
+            'usd.packs.*' => 'nullable|numeric|min:0|max:100000',
+            'usd.rate' => 'nullable|numeric|min:1|max:1000',
+            'paypal' => 'nullable|array',
+            'paypal.email' => 'nullable|email|max:190',
+            'paypal.link' => 'nullable|url|max:500',
+            'paypal.name' => 'nullable|string|max:190',
+            'paypal.instructions' => 'nullable|string|max:2000',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+        }
+        try {
+            $usd = ['tiers' => [], 'plans' => [], 'packs' => []];
+            foreach ((array) $request->input('usd.tiers', []) as $tier => $row) {
+                foreach (['month', 'year'] as $period) {
+                    if (is_numeric($row[$period] ?? null)) {
+                        $usd['tiers'][preg_replace('/[^a-z0-9_-]/i', '', $tier)][$period] = round((float) $row[$period], 2);
+                    }
+                }
+            }
+            foreach (['plans', 'packs'] as $g) {
+                foreach ((array) $request->input('usd.' . $g, []) as $k => $v) {
+                    if (is_numeric($v)) {
+                        $usd[$g][preg_replace('/[^a-z0-9_-]/i', '', $k)] = round((float) $v, 2);
+                    }
+                }
+            }
+            if (is_numeric($request->input('usd.rate'))) {
+                $usd['rate'] = round((float) $request->input('usd.rate'), 2);
+            }
+            AsSiteSetting::put('prices.usd', json_encode($usd));
+            $paypal = [];
+            foreach (['email', 'link', 'name', 'instructions'] as $k) {
+                $paypal[$k] = trim((string) $request->input('paypal.' . $k, ''));
+            }
+            AsSiteSetting::put('pay.paypal', json_encode($paypal));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Could not save: ' . $e->getMessage()], 422);
+        }
+
+        return response()->json(['success' => true, 'message' => 'International prices saved. anee.io reads them on the next page.']);
     }
 
     /**
