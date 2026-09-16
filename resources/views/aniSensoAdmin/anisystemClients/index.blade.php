@@ -65,6 +65,7 @@
                                     <th>Email</th>
                                     <th>Roles</th>
                                     <th>Phone</th>
+                                    <th>Country</th>
                                     <th>System</th>
                                     <th>Plan</th>
                                     <th>Status</th>
@@ -238,6 +239,8 @@ $(document).ready(function() {
             { data: 'email', name: 'anisystem_users.email', render: function(d) { return esc(d); } },
             { data: 'roles', orderable: false, searchable: false, render: function(d) { return rolesBadges(d); } },
             { data: 'phone', name: 'anisystem_users.phone', orderable: false, render: function(d) { return esc(d || '—'); } },
+            // Where the farm is (2026-09-16): the flag drawn from the ISO code, the code beside it.
+            { data: 'country', name: 'anisystem_users.country', render: function(d) { const c = String(d || 'PH').toUpperCase(); const flag = /^[A-Z]{2}$/.test(c) ? String.fromCodePoint(...[...c].map((ch) => 0x1F1E6 + ch.charCodeAt(0) - 65)) : '🌐'; return '<span title="' + esc(c) + '">' + flag + ' <small class="text-muted">' + esc(c) + '</small></span>'; } },
             { data: null, orderable: false, searchable: false, render: function() { return '<span class="badge system-badge">AniSystem</span>'; } },
             { data: 'subPlanName', name: 'sub.planName', orderable: false,
                 render: function(d, t, row) {
@@ -379,6 +382,7 @@ $(document).ready(function() {
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Client</div><div class="fw-semibold text-dark">' + esc(c.fullName) + ' <span class="badge system-badge ms-1">AniSystem</span></div></div>';
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Email</div><div class="text-dark">' + esc(c.email) + '</div></div>';
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Phone</div><div class="text-dark">' + esc(c.phone || '—') + '</div></div>';
+        html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Country</div><div class="text-dark">' + esc(String(c.country || 'PH').toUpperCase()) + '</div></div>';
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Account Status</div>' + (c.status === 'disabled' ? '<span class="badge bg-danger">Disabled</span>' : '<span class="badge bg-success">Active</span>') + '</div>';
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Registered</div><div class="text-dark">' + esc(c.registeredAt || '—') + '</div></div>';
         html += '</div>';
