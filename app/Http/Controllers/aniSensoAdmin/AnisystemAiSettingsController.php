@@ -110,7 +110,7 @@ class AnisystemAiSettingsController extends Controller
     ];
 
     public const PRICE_DEFAULTS = [
-        'wtp' => 50, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60,
+        'wtp' => 100, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60,
     ];
 
     private function priceList($packs): array
