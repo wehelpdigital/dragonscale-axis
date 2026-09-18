@@ -397,7 +397,7 @@
                             <table class="table table-sm align-middle mb-0">
                                 <thead><tr><th>Tier</th><th style="width:7rem">$ / month</th><th style="width:7rem">$ / year</th></tr></thead>
                                 <tbody>
-                                @foreach (['solo' => 'Solo Farmer', 'owner' => 'Farm Owner'] as $tk => $tn)
+                                @foreach (['libreAnee' => 'Libre + Anee', 'solo' => 'Solo Farmer', 'owner' => 'Farm Owner'] as $tk => $tn)
                                     <tr>
                                         <td>{{ $tn }}</td>
                                         <td><input type="number" class="form-control form-control-sm" name="usd[tiers][{{ $tk }}][month]" value="{{ $usd['tiers'][$tk]['month'] ?? '' }}" min="0" step="0.01"></td>

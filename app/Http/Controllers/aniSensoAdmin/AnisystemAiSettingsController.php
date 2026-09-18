@@ -103,7 +103,7 @@ class AnisystemAiSettingsController extends Controller
      * config/regions.php `usd`; saved to the shelf as `prices.usd`.
      */
     public const USD_DEFAULTS = [
-        'tiers' => ['solo' => ['month' => 5, 'year' => 45], 'owner' => ['month' => 12, 'year' => 120]],
+        'tiers' => ['libreAnee' => ['month' => 1.49, 'year' => 14.99], 'solo' => ['month' => 5, 'year' => 45], 'owner' => ['month' => 12, 'year' => 120]],
         'plans' => ['monthly' => 9.99, 'season' => 24.99, 'annual' => 69.99],
         'packs' => ['starter' => 1.99, 'farmer' => 5.99, 'season' => 14.99],
         'rate' => 58,
