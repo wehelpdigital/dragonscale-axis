@@ -51,12 +51,21 @@ class AniSensoEmailBuilderController extends Controller
 
         $blocks = $this->cleanBlocks($data['blocks'] ?? '[]');
 
+        // An empty layout would go out as a blank card with a header on it.
+        if (! $blocks) {
+            return back()->withInput()->withErrors(['blocks' => 'Add at least one block — an email with nothing in it would go out blank.']);
+        }
+
         $template->templateName = $data['templateName'];
         $template->subject = $data['subject'];
         $template->blocks = $blocks;
-        // What actually gets sent. Rendered here, once, so the sending app
-        // never has to know what a block is.
-        $template->bodyHtml = EmailBlocks::wrap(EmailBlocks::render($blocks), '{{app_name}}');
+        /* What actually gets sent. Rendered here, once, so the sending app
+         * never has to know what a block is. The blocks are only the WORDS:
+         * they go inside the anee.io frame this template already wears (its
+         * masthead, Anee's face, the footer), or inside the anee.io default's
+         * frame when the current body is older than that design. */
+        $frame = EmailBlocks::hasFrame($template->bodyHtml) ? $template->bodyHtml : ($template->defaultBodyHtml ?? null);
+        $template->bodyHtml = EmailBlocks::wrap(EmailBlocks::render($blocks), 'anee.io', $frame);
         $template->save();
 
         return redirect()

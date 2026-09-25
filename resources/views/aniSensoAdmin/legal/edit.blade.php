@@ -21,8 +21,15 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Content</label>
-                    <textarea name="body" class="form-control" rows="18" placeholder="Basic HTML allowed: headings (h3/h4), paragraphs, lists, bold, links.">{{ old('body', $page->body) }}</textarea>
-                    <div class="form-text">Allowed tags are sanitised on display (p, h3, h4, ul/ol/li, b/strong, i/em, a, blockquote).</div>
+                    <textarea name="body" class="form-control" rows="28" spellcheck="true" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;" placeholder="Basic HTML allowed: headings (h3/h4), paragraphs, lists, bold, links.">{{ old('body', $page->body) }}</textarea>
+                    <div class="form-text">Allowed tags are sanitised on display (p, br, h3, h4, ul/ol/li, b/strong, i/em, a, blockquote).</div>
+                    <div class="form-text">
+                        How anee.io lays it out:
+                        each <code>&lt;h3&gt;</code> is a section and is listed under "On this page" (start it with "1.", "2." to number the list);
+                        <code>&lt;h4&gt;</code> is a smaller heading inside a section;
+                        a <code>&lt;blockquote&gt;</code> becomes the green "short version" box.
+                        Saving changes the page's "Last updated" date.
+                    </div>
                 </div>
             </div></div></div>
 

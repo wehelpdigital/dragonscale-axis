@@ -33,7 +33,7 @@ class AnisystemResend
 
     public static function from(): string
     {
-        return (string) (env('RESEND_FROM') ?: 'AniSystem <onboarding@resend.dev>');
+        return (string) (env('RESEND_FROM') ?: 'anee.io <onboarding@resend.dev>');
     }
 
     public static function configured(): bool
@@ -81,6 +81,8 @@ class AnisystemResend
                     'to' => [$task->toEmail],
                     'subject' => $task->subject,
                     'html' => $task->bodyHtml,
+                    // The plain-text twin: the words and every link, no stylesheet.
+                    'text' => EmailBlocks::toText((string) $task->bodyHtml),
                 ]);
 
             if ($res->successful() && $res->json('id')) {
@@ -183,9 +185,12 @@ class AnisystemResend
             return false;
         }
 
+        $list = self::list($activities, $today, $tomorrow, $schedule);
         $tags = [
-            'siteName' => 'AniSystem',
-            'app_name' => 'AniSystem',
+            // What the reader knows the app as (the group key keeps the old name).
+            'siteName' => 'anee.io',
+            'app_name' => 'anee.io',
+            'loginUrl' => 'https://anee.io/login',
             'recipient_name' => $name,
             'workerName' => $name,
             'schedule_title' => (string) $schedule->title,
@@ -195,9 +200,9 @@ class AnisystemResend
             'dateLabel' => $today->format('l, M j'),
             'today_count' => (string) $activities->where('targetDate', $today->toDateString())->count(),
             'tomorrow_count' => (string) $activities->where('targetDate', $tomorrow->toDateString())->count(),
-            'activities_list' => self::list($activities, $today, $tomorrow),
-            'tasksTable' => self::list($activities, $today, $tomorrow),
-            'sentBy' => 'AniSystem',
+            'activities_list' => $list,
+            'tasksTable' => $list,
+            'sentBy' => 'anee.io',
         ];
 
         $subject = $template->subject;
@@ -206,6 +211,9 @@ class AnisystemResend
             $subject = str_replace('{{' . $k . '}}', (string) $v, $subject);
             $body = str_replace('{{' . $k . '}}', (string) $v, $body);
         }
+        // Nothing the reader should see: a tag this sender has no value for.
+        $subject = trim(preg_replace('~\{\{\s*[A-Za-z0-9_]+\s*\}\}~', '', $subject) ?? $subject);
+        $body = preg_replace('~\{\{\s*[A-Za-z0-9_]+\s*\}\}~', '', $body) ?? $body;
 
         AsEmailTask::create([
             'groupKey' => 'AniSystem',
@@ -224,27 +232,46 @@ class AnisystemResend
         return true;
     }
 
-    /** The work itself, as a table an email client will actually draw. */
-    private static function list($activities, Carbon $today, Carbon $tomorrow): string
+    /**
+     * The work itself, as a table an email client will actually draw — the
+     * same rows anee.io's EmailSkin::taskRow() draws (a gold Today / Tomorrow
+     * badge, the title, the lots, a short description), and the way to the
+     * schedule's public page when it has one.
+     */
+    private static function list($activities, Carbon $today, Carbon $tomorrow, ?AsCroppingSchedule $schedule = null): string
     {
         $rows = '';
         foreach ($activities as $a) {
-            $when = (string) $a->targetDate === $today->toDateString() ? 'Today'
-                : ((string) $a->targetDate === $tomorrow->toDateString() ? 'Tomorrow' : '');
+            $date = \Illuminate\Support\Carbon::parse($a->targetDate)->toDateString();
+            $when = $date === $today->toDateString() ? 'Today'
+                : ($date === $tomorrow->toDateString() ? 'Tomorrow' : '');
             $lots = $a->lots->pluck('lotName')->filter()->implode(', ');
-            $meta = trim($when . ($lots ? ' · ' . $lots : ''));
 
-            $rows .= '<tr><td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">'
-                . '<div style="font-size:15px;font-weight:700;color:#1f2937;">' . e((string) $a->activityTitle) . '</div>'
-                . ($meta ? '<div style="margin-top:3px;font-size:12.5px;color:#6b7280;">' . e($meta) . '</div>' : '')
+            $rows .= '<tr><td class="ae-line ae-task" style="padding:14px 0 14px 14px;border-bottom:1px solid #e3eadb;border-left:3px solid #87B84C;">'
+                . ($when !== '' ? '<span style="display:inline-block;margin:0 8px 4px 0;padding:2px 9px;border-radius:999px;background:#E8BE1C;'
+                    . 'font-size:11px;line-height:16px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#2B3A1C;">' . $when . '</span>' : '')
+                . '<div class="ae-ink" style="font-size:16px;line-height:1.4;font-weight:700;color:#1f2a17;">' . e((string) $a->activityTitle) . '</div>'
+                . ($lots ? '<div class="ae-muted" style="margin-top:4px;font-size:13px;line-height:1.5;color:#5f6b55;">' . e($lots) . '</div>' : '')
                 . (filled($a->description)
-                    ? '<div style="margin-top:6px;font-size:13.5px;color:#1f2937;">'
+                    ? '<div style="margin-top:6px;font-size:14px;line-height:1.55;">'
                         . e(\Illuminate\Support\Str::limit(strip_tags((string) $a->description), 220)) . '</div>'
                     : '')
                 . '</td></tr>';
         }
 
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0;">'
+        $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 18px;">'
             . $rows . '</table>';
+
+        $token = $schedule ? (string) ($schedule->shareToken ?? '') : '';
+        if ($token !== '') {
+            $url = e('https://anee.io/s/' . $token);
+            $html .= '<table role="presentation" class="ae-btn" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">'
+                . '<tr><td align="center" bgcolor="#E8BE1C" style="background:#E8BE1C;border-radius:999px;">'
+                . '<a href="' . $url . '" target="_blank" style="display:inline-block;padding:15px 30px;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;'
+                . 'font-size:16px;line-height:20px;font-weight:800;color:#2B3A1C;text-decoration:none;border-radius:999px;">'
+                . '<span style="color:#2B3A1C;">See the whole plan</span></a></td></tr></table>';
+        }
+
+        return $html;
     }
 }

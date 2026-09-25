@@ -24,8 +24,11 @@ use PHPMailer\PHPMailer\Exception as PHPMailerException;
 class AnisystemSubscriptionService
 {
     public const MAIL_GROUP = 'AniSystem';
-    public const SITE_NAME = 'AniSystem';
-    public const LOGIN_URL = 'http://anisystem.test/login';
+    // What a client reads in the email. The group key above keeps the old
+    // spelling because it names rows; the product the client knows is anee.io,
+    // and its login is on the live site whichever machine sends the mail.
+    public const SITE_NAME = 'anee.io';
+    public const LOGIN_URL = 'https://anee.io/login';
 
     /* ------------------------------------------------------------------
      |  Admin actions (Clients module)
@@ -337,6 +340,8 @@ class AnisystemSubscriptionService
                 'expiresAt' => ($subscription && $subscription->expiresAt)
                     ? Carbon::parse($subscription->expiresAt)->timezone('Asia/Manila')->format('M j, Y')
                     : '',
+                // Their own money sign: a member abroad paid in dollars.
+                'currency' => strtoupper((string) ($user->country ?? 'PH')) === 'PH' || blank($user->country ?? null) ? '₱' : '$',
             ], $extraTags);
 
             $template = AsEmailTemplate::active()
@@ -352,8 +357,11 @@ class AnisystemSubscriptionService
                 return false;
             }
 
-            $subject = AsEmailTemplate::renderTags($template->subject, $tags);
-            $body = AsEmailTemplate::renderTags($template->bodyHtml, $tags);
+            // A tag with nothing to say is emptied: a client should never
+            // read "{{planName}}" in their inbox.
+            $leftover = '~\{\{\s*[A-Za-z0-9_]+\s*\}\}~';
+            $subject = trim(preg_replace($leftover, '', AsEmailTemplate::renderTags($template->subject, $tags)) ?? '');
+            $body = preg_replace($leftover, '', AsEmailTemplate::renderTags($template->bodyHtml, $tags)) ?? '';
 
             return $this->sendViaGroupSmtp(self::MAIL_GROUP, $user->email, $subject, $body, $user->fullName);
         } catch (\Throwable $e) {
@@ -409,7 +417,8 @@ class AnisystemSubscriptionService
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body = $body;
-            $mail->AltBody = strip_tags($body);
+            // The words, not the stylesheet the anee.io design carries.
+            $mail->AltBody = \App\Support\EmailBlocks::toText($body);
 
             $mail->send();
 

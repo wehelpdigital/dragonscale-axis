@@ -25,7 +25,18 @@
         word-break: break-all;
     }
     .form-switch .form-check-input { cursor: pointer; }
-    #templateBodyHtml { font-family: monospace; font-size: 12px; }
+    #templateBodyHtml { font-family: monospace; font-size: 12px; min-height: 520px; }
+    .tpl-badge { display: inline-block; margin-top: 3px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .tpl-badge-house { background: #eef6e4; color: #3d6b22; border: 1px solid #cfe3b6; }
+    .tpl-badge-own { background: #fdf6dc; color: #7a5d00; border: 1px solid #efd98a; }
+    .tpl-preview-wrap { background: #eef2e8; border: 1px solid #e3eadb; border-radius: 10px; padding: 10px; }
+    .tpl-preview { display: block; width: 100%; max-width: 640px; height: 560px; margin: 0 auto; border: 0; border-radius: 8px; background: #eef2e8;
+        transition: max-width .28s cubic-bezier(.22,1,.36,1); }
+    .tpl-preview.is-phone { max-width: 400px; }
+    .tpl-size .btn { padding: 1px 10px; font-size: 12px; }
+    #restoreTemplateNote { opacity: 0; transition: opacity .28s cubic-bezier(.22,1,.36,1); }
+    #restoreTemplateNote.show { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) { .tpl-preview, #restoreTemplateNote { transition: none; } }
 </style>
 @endsection
 
@@ -172,7 +183,9 @@
                         {{-- ============ TEMPLATES TAB ============ --}}
                         <div class="tab-pane fade {{ $activeTab === 'templates' ? 'show active' : '' }}" id="templates" role="tabpanel">
                             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                                <p class="text-secondary mb-0">Templates use <code>@{{tag}}</code> placeholders replaced at send time. Grouped per mail group.</p>
+                                <p class="text-secondary mb-0">Templates use <code>@{{tag}}</code> placeholders replaced at send time. Grouped per mail group.
+                                    Every anee.io email wears the anee.io design; one you have changed says <span class="tpl-badge tpl-badge-own">Your own words</span>
+                                    and a new anee.io design will never overwrite it.</p>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="reloadTemplatesBtn">
                                     <i class="bx bx-refresh me-1"></i> Reload
                                 </button>
@@ -226,9 +239,25 @@
                             <label for="templateSubject" class="form-label text-dark">Subject <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="templateSubject">
                         </div>
-                        <div class="mb-3">
-                            <label for="templateBodyHtml" class="form-label text-dark">Body (HTML) <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="templateBodyHtml" rows="16"></textarea>
+                        <div class="row g-3 mb-3">
+                            <div class="col-lg-6">
+                                <label for="templateBodyHtml" class="form-label text-dark">Body (HTML) <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="templateBodyHtml" rows="22" spellcheck="false"></textarea>
+                                <small class="text-secondary d-block mt-1">The words sit between the two <code>The words start / end here</code> comments; everything around them is the anee.io frame.</small>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <label class="form-label text-dark mb-0">Preview</label>
+                                    <div class="btn-group tpl-size" role="group" aria-label="Preview width">
+                                        <button type="button" class="btn btn-outline-secondary active" data-tpl-size="desk">Desktop</button>
+                                        <button type="button" class="btn btn-outline-secondary" data-tpl-size="phone">Phone</button>
+                                    </div>
+                                </div>
+                                <div class="tpl-preview-wrap">
+                                    <iframe class="tpl-preview" id="templatePreview" title="Email preview" sandbox></iframe>
+                                </div>
+                                <small class="text-secondary d-block mt-1">Tags such as <code>@{{firstName}}</code> are filled in when the email is sent.</small>
+                            </div>
                         </div>
                         <div class="mb-0">
                             <label class="form-label text-dark mb-1">Available Tags</label>
@@ -237,6 +266,10 @@
                     </form>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-success me-auto d-none" id="restoreTemplateBtn" title="Put back the subject and body anee.io ships for this email">
+                        <i class="bx bx-reset me-1"></i> Restore the anee.io design
+                    </button>
+                    <small class="text-secondary me-2" id="restoreTemplateNote">Filled in — press Save to keep it.</small>
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveTemplateBtn">
                         <i class="bx bx-save me-1"></i> Save Template
@@ -367,7 +400,13 @@ $(document).ready(function() {
                 html += '<tr class="template-group-header"><td colspan="6"><i class="bx bx-folder me-1"></i>' + esc(currentGroup) + '</td></tr>';
             }
             html += '<tr data-id="' + t.id + '">' +
-                '<td class="fw-semibold text-dark">' + esc(t.templateName) + '</td>' +
+                '<td class="fw-semibold text-dark">' + esc(t.templateName) +
+                    (t.defaultBodyHtml
+                        ? (t.isCustomised
+                            ? '<br><span class="tpl-badge tpl-badge-own" title="Changed here. A new anee.io design will not overwrite it.">Your own words</span>'
+                            : '<br><span class="tpl-badge tpl-badge-house">anee.io design</span>')
+                        : '') +
+                '</td>' +
                 '<td><span class="template-key">' + esc(t.templateKey) + '</span></td>' +
                 '<td class="text-dark">' + esc(t.subject) + '</td>' +
                 '<td><div class="form-check form-switch mb-0">' +
@@ -397,7 +436,47 @@ $(document).ready(function() {
         $('#templateSubject').val(t.subject);
         $('#templateBodyHtml').val(t.bodyHtml);
         $('#templateTagsHint').text(t.availableTags || 'No tag list recorded for this template.');
+        $('#restoreTemplateNote').removeClass('show');
+        syncRestore();
+        paintPreview();
         $('#editTemplateModal').modal('show');
+    });
+
+    /* The preview draws exactly what is in the box, in a sandboxed frame (no
+       scripts, no access to this page), a moment after typing stops. */
+    let previewTimer = null;
+    function paintPreview() {
+        document.getElementById('templatePreview').srcdoc = $('#templateBodyHtml').val() || '';
+    }
+    $('#templateBodyHtml').on('input', function() {
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(paintPreview, 250);
+        syncRestore();
+    });
+    $('#templateSubject').on('input', syncRestore);
+    $('[data-tpl-size]').on('click', function() {
+        $('[data-tpl-size]').removeClass('active');
+        $(this).addClass('active');
+        $('#templatePreview').toggleClass('is-phone', $(this).data('tpl-size') === 'phone');
+    });
+
+    // "Restore" only shows while the box differs from what anee.io ships.
+    function syncRestore() {
+        const t = templatesCache[$('#templateId').val()];
+        const norm = (v) => String(v == null ? '' : v).replace(/\r\n/g, '\n').trim();
+        const differs = t && t.defaultBodyHtml
+            && (norm($('#templateBodyHtml').val()) !== norm(t.defaultBodyHtml)
+                || norm($('#templateSubject').val()) !== norm(t.defaultSubject));
+        $('#restoreTemplateBtn').toggleClass('d-none', !differs);
+    }
+    $('#restoreTemplateBtn').on('click', function() {
+        const t = templatesCache[$('#templateId').val()];
+        if (!t || !t.defaultBodyHtml) return;
+        $('#templateSubject').val(t.defaultSubject || t.subject);
+        $('#templateBodyHtml').val(t.defaultBodyHtml);
+        paintPreview();
+        syncRestore();
+        $('#restoreTemplateNote').addClass('show');
     });
 
     $('#saveTemplateBtn').on('click', function() {
@@ -406,7 +485,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Saving...');
 
         $.ajax({
-            url: '{{ url('/anisenso-mail-settings-templates') }}/' + id,
+            url: '{{ route('anisenso-mail-settings.templates.update') }}?id=' + encodeURIComponent(id),
             type: 'PUT',
             data: {
                 templateName: $('#templateName').val(),
@@ -435,7 +514,7 @@ $(document).ready(function() {
     $('#templatesTable').on('change', '.template-toggle', function() {
         const id = $(this).data('id');
         const $toggle = $(this);
-        $.post('{{ url('/anisenso-mail-settings-templates') }}/' + id + '/toggle')
+        $.post('{{ route('anisenso-mail-settings.templates.toggle') }}?id=' + encodeURIComponent(id))
             .done(function(res) {
                 if (res.success) {
                     toastr.success(res.message);
@@ -466,7 +545,7 @@ $(document).ready(function() {
         const $btn = $(this);
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i> Sending...');
 
-        $.post('{{ url('/anisenso-mail-settings-templates') }}/' + id + '/test', {
+        $.post('{{ route('anisenso-mail-settings.templates.test') }}?id=' + encodeURIComponent(id), {
             testEmail: $('#testTemplateEmail').val()
         }).done(function(res) {
             if (res.success) {

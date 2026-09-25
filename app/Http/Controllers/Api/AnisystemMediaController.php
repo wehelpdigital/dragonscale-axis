@@ -32,7 +32,7 @@ class AnisystemMediaController extends Controller
         // What the app sends today, folder by folder.
         'schedule-notes', 'schedule-activities', 'schedule-attachments',
         'schedule-doc-entries', 'schedule-post-harvest', 'schedule-protocols',
-        'ai-photos', 'community', 'avatars', 'post-harvest',
+        'ai-photos', 'community', 'avatars', 'post-harvest', 'protocol-files',
     ];
 
     private const MAX_BYTES = 20_000_000;   // 20MB — far above any camera photo we accept
@@ -141,9 +141,13 @@ class AnisystemMediaController extends Controller
         // The audio family rides along since anee grew voice notes: .weba is
         // how a voice clip tells itself apart from a .webm video by path
         // alone, so flattening it to png silenced every recording.
+        // So does the document family since the Protocol Builder keeps files
+        // beside a protocol (and the season's doc entries take them too): a
+        // PDF renamed .png is a file nobody can open.
         return in_array($ext, [
             'png', 'jpg', 'webp', 'gif', 'mp4', 'webm',
             'weba', 'm4a', 'mp3', 'ogg', 'oga', 'wav', 'aac', 'opus',
+            'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv',
         ], true) ? $ext : 'png';
     }
 

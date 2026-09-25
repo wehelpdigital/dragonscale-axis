@@ -24,6 +24,7 @@
         font-size: .74rem; font-family: ui-monospace, Menlo, Consolas, monospace; color: #334155; cursor: pointer; }
     .eb-field:hover { background: #e0f2fe; border-color: #7dd3fc; }
     .eb-note { font-size: .78rem; color: #6b7280; }
+    .eb-preview { width: 100%; height: 560px; border: 1px solid #e5e7eb; border-radius: .6rem; background: #eef2e8; }
 </style>
 @endsection
 
@@ -35,6 +36,15 @@
     @endcomponent
 
     @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if ($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+    @if (! (is_array($template->blocks) && count($template->blocks)))
+        <div class="alert alert-warning">
+            <strong>This email is written in HTML, not blocks yet.</strong>
+            Building it here replaces its words — the anee.io frame (the green header, Anee's face and the footer)
+            stays as it is. To change a word or two instead, edit it under
+            <a href="{{ route('anisenso-mail-settings.index', ['tab' => 'templates']) }}">Mail Settings → Email Templates</a>.
+        </div>
+    @endif
 
     <form method="POST" action="{{ route('anisenso-email-builder.update', ['id' => $template->id]) }}" id="ebForm">
         @csrf
@@ -117,6 +127,11 @@
                     @endif
 
                     <hr>
+                    <h6 class="text-dark">What is sent now</h6>
+                    <p class="eb-note mb-2">The saved version, as it arrives. Save to see your changes here.</p>
+                    <iframe class="eb-preview" title="The saved email" sandbox srcdoc="{{ $template->bodyHtml }}"></iframe>
+
+                    <hr>
                     <h6 class="text-dark">The day's activities</h6>
                     <p class="eb-note mb-0">Add the <strong>The day's activities</strong> block where the list of
                         work should appear. It is the one block the layout cannot fill in itself — the app expands
@@ -168,6 +183,8 @@
                     </div>`;
             case 'activities':
                 return '<p class="eb-note mb-0">The list of today\'s and tomorrow\'s work, filled in per recipient when the email is sent.</p>';
+            case 'note':
+                return `<textarea class="form-control" rows="2" data-f="text" placeholder="Small grey words — who sent this, how to stop it">${esc(b.text)}</textarea>`;
             case 'spacer':
                 return '<p class="eb-note mb-0">A gap.</p>';
         }

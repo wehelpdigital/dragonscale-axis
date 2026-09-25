@@ -268,6 +268,13 @@ class MailSettingsController extends Controller
             }
 
             $templates = $query->get()->map(function ($t) {
+                /* The version anee.io last shipped for this email, kept on the
+                 * row by its seeder. It is what "Restore the anee.io design"
+                 * puts back, and a body that differs from it is the owner's
+                 * own — which anee.io's next design will never overwrite. */
+                $same = fn ($a, $b) => trim(str_replace("\r\n", "\n", (string) $a)) === trim(str_replace("\r\n", "\n", (string) $b));
+                $default = $t->defaultBodyHtml ?? null;
+
                 return [
                     'id' => $t->id,
                     'groupKey' => $t->groupKey,
@@ -277,6 +284,10 @@ class MailSettingsController extends Controller
                     'bodyHtml' => $t->bodyHtml,
                     'availableTags' => $t->availableTags,
                     'isActive' => (bool) $t->isActive,
+                    'defaultSubject' => $t->defaultSubject ?? null,
+                    'defaultBodyHtml' => $default,
+                    'isCustomised' => $default !== null
+                        && (! $same($t->bodyHtml, $default) || ! $same($t->subject, $t->defaultSubject ?? '')),
                     'updatedAt' => $t->updated_at ? $t->updated_at->format('M j, Y g:i A') : null,
                 ];
             })->values();
@@ -440,18 +451,44 @@ class MailSettingsController extends Controller
                 'lastName' => 'Dela Cruz',
                 'email' => $testEmail,
                 'phone' => '09171234567',
-                'siteName' => 'AniSystem',
+                'siteName' => AnisystemSubscriptionService::SITE_NAME,
                 'loginUrl' => AnisystemSubscriptionService::LOGIN_URL,
+                'currency' => '₱',
                 'planName' => 'Sample Plan (12 Months)',
                 'price' => number_format(1999, 2),
                 'orderNumber' => 'ANI-' . $now->format('Ymd') . '-TEST',
                 'expiresAt' => $now->copy()->addDays(365)->format('M j, Y'),
                 'startsAt' => $now->format('M j, Y'),
                 'daysRemaining' => '7',
-                'resetUrl' => 'http://anisystem.test/reset-password/sample-token',
+                'resetUrl' => 'https://anee.io/reset-password/sample-token',
                 'name' => 'Juan Dela Cruz',
                 'subject' => 'Sample inquiry subject',
                 'message' => 'This is a sample contact message body.',
+                // The tags anee.io's own emails carry.
+                'verifyUrl' => 'https://anee.io/verify-email/sample',
+                'thanks' => 'Salamat',
+                'workerName' => 'Nena Cruz',
+                'bossName' => 'Mang Pedro',
+                'inviteUrl' => 'https://anee.io/worker-invite/sample',
+                'scheduleTitle' => 'Wet Season Palay',
+                'schedule_title' => 'Wet Season Palay',
+                'dateLabel' => $now->format('l, M j, Y'),
+                'today_date' => $now->format('l, M j'),
+                'tomorrow_date' => $now->copy()->addDay()->format('l, M j'),
+                'recipient_name' => 'Nena',
+                'today_count' => '2',
+                'tomorrow_count' => '1',
+                'app_name' => AnisystemSubscriptionService::SITE_NAME,
+                'activityTitle' => 'Spray fungicide on Lot 2',
+                'sentBy' => 'Pedro Santos',
+                'tasksTable' => '<p><strong>Spray fungicide</strong> · Lot 2<br><strong>Check the water level</strong> · Lot 1</p>',
+                'activityBody' => '<p><strong>Where:</strong> Lot 2 · <strong>Bring:</strong> knapsack sprayer</p>',
+                'activities_list' => '<p><strong>Today:</strong> Spray fungicide · Lot 2<br><strong>Tomorrow:</strong> Top-dress urea · Lot 1</p>',
+                'ticketNumber' => 'T-000123',
+                'ticketSubject' => 'Cannot add a second lot',
+                'replyBody' => 'A second lot is added from the season hub: Lots → Add a lot.',
+                'adminName' => 'Maria',
+                'ticketUrl' => 'https://anee.io/app/support/123',
             ];
 
             $subject = AsEmailTemplate::renderTags($template->subject, $sampleTags);
