@@ -69,7 +69,7 @@ class AniSensoEmailBuilderController extends Controller
         $template->save();
 
         return redirect()
-            ->route('anisenso-email-builder.edit', $template->id)
+            ->route('anisenso-email-builder.index', ['id' => $template->id])
             ->with('success', 'Layout saved. The next email uses it.');
     }
 
