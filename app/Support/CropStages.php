@@ -71,6 +71,38 @@ class CropStages
                 [105, 'Ripening & harvest', 'Straw yellows, grain hardens.', 'Harvest at 80–85% golden grains.'],
             ],
         ],
+        // The two direct-seeded rice crops (anee.io's CropStages::DSR_WET /
+        // DSR_DRY): DAS only, their own calendars.
+        'rice_dsr_wet' => [
+            'label' => 'Rice — Direct Seeded Wet (Palay)',
+            'icon' => '🌾',
+            'counter' => 'DAS',
+            'stages' => [
+                [0, 'Germination & emergence', 'The seed sprouts where it will stand.', 'Keep the bed saturated, not flooded. Guard against birds.'],
+                [8, 'Seedling establishment', 'Roots anchor and the first leaves open.', 'Shallow water once anchored. Weed early — DSR fights weeds.'],
+                [21, 'Active tillering', 'Tillers build the panicle count.', 'First and second nitrogen. Keep 3–5 cm of water.'],
+                [40, 'Panicle initiation', 'The panicle forms inside the stem.', 'The season\'s biggest fertiliser goes on here.'],
+                [55, 'Booting & heading', 'The flag leaf swells; panicles push out.', 'Never let the field dry. Watch for stem borer.'],
+                [70, 'Flowering', 'Pollination — a few days that set the grain.', 'Keep water on. Do not spray at midday.'],
+                [85, 'Grain filling', 'Grains fill from milk to dough.', 'Water to the dough stage. Guard against rats and birds.'],
+                [105, 'Ripening & harvest', 'Grain hardens and the straw turns.', 'Drain 7–10 days before cutting.'],
+            ],
+        ],
+        'rice_dsr_dry' => [
+            'label' => 'Rice — Direct Seeded Dry (Palay)',
+            'icon' => '🌾',
+            'counter' => 'DAS',
+            'stages' => [
+                [0, 'Germination & emergence', 'The dry seed waits for moisture, then sprouts in the row.', 'Sow into moist soil, or water or wait for rain right after. Guard against ants and birds.'],
+                [10, 'Seedling establishment', 'Roots anchor in unpuddled soil; the first leaves open.', 'Keep the soil moist, not flooded. Weed now — a dry-seeded field weeds hardest.'],
+                [25, 'Active tillering', 'Tillers build the panicle count.', 'First and second nitrogen. Bring water on where it can be held.'],
+                [42, 'Panicle initiation', 'The panicle forms inside the stem.', 'The season\'s biggest fertiliser goes on here. Do not let it go dry.'],
+                [58, 'Booting & heading', 'The flag leaf swells; panicles push out.', 'Water without fail. Watch for stem borer and blast.'],
+                [72, 'Flowering', 'Pollination — a few days that set the grain.', 'Drought here costs the most. Do not spray at midday.'],
+                [88, 'Grain filling', 'Grains fill from milk to dough.', 'Keep moisture to the dough stage. Guard against rats and birds.'],
+                [108, 'Ripening & harvest', 'Grain hardens and the straw turns.', 'Let the field dry down 7–10 days before cutting.'],
+            ],
+        ],
         'corn' => [
             'label' => 'Corn (Mais)',
             'icon' => '🌽',
