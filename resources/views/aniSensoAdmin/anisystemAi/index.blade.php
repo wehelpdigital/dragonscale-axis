@@ -569,7 +569,9 @@ $(function () {
         $('#convModalBody').html('<div class="conv-empty"><i class="bx bx-loader-alt bx-spin fs-3"></i></div>');
         $('#convModal').modal('show');
 
-        $.get('{{ url('/anisenso-ai-conversations') }}/' + id, { kind: kind }, function (res) {
+        // One segment, the id after the question mark (QueryRouteParams): the
+        // old /anisenso-ai-conversations/{id} path answered 404.
+        $.get('{{ route('anisenso-ai-conversations.show') }}', { id: id, kind: kind }, function (res) {
             if (!res.success) { $('#convModalBody').html('<div class="conv-empty">' + escConv(res.message || 'Not found.') + '</div>'); return; }
             const head = res.data.head, turns = res.data.turns || [];
             $('#convModalTitle').text(head.title || 'Untitled');

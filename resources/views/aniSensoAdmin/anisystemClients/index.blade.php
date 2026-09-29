@@ -342,7 +342,7 @@ $(document).ready(function() {
         const id = $('#creditsClientId').val();
 
         $.ajax({
-            url: "{{ url('anisenso-clients') }}/" + id + "/ai-credits",
+            url: "{{ route('anisenso-clients.ai-credits') }}?id=" + encodeURIComponent(id),
             method: 'POST',
             data: {
                 _token: "{{ csrf_token() }}",
@@ -366,7 +366,7 @@ $(document).ready(function() {
         $('#clientDetailsBody').html('<div class="text-center py-4"><i class="bx bx-loader-alt bx-spin fs-2 text-primary"></i><p class="text-secondary mb-0 mt-2">Loading...</p></div>');
         $('#clientDetailsModal').modal('show');
 
-        $.get('{{ url('/anisenso-clients') }}/' + id, function(res) {
+        $.get('{{ route('anisenso-clients.index') }}', { id: id }, function(res) {
             if (!res.success) { $('#clientDetailsBody').html('<div class="alert alert-danger mb-0">' + esc(res.message) + '</div>'); return; }
             renderClientDetails(res.data);
         }).fail(function(xhr) {
@@ -455,6 +455,15 @@ $(document).ready(function() {
         }
     };
 
+    // Admin addresses are one segment with the id after the question mark
+    // (see QueryRouteParams); the old /anisenso-clients/{id}/{action} paths
+    // answered 404, so none of these buttons did anything.
+    const ACTION_URL = {
+        suspend: "{{ route('anisenso-clients.suspend') }}",
+        unsuspend: "{{ route('anisenso-clients.unsuspend') }}",
+        cancel: "{{ route('anisenso-clients.cancel') }}",
+    };
+
     let pendingAction = null;
 
     $('#clientsTable').on('click', '.client-action-btn', function() {
@@ -479,7 +488,7 @@ $(document).ready(function() {
         $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Working...');
 
         $.ajax({
-            url: '{{ url('/anisenso-clients') }}/' + pendingAction.id + '/' + pendingAction.action,
+            url: ACTION_URL[pendingAction.action] + '?id=' + encodeURIComponent(pendingAction.id),
             type: 'PUT',
             success: function(res) {
                 if (res.success) {

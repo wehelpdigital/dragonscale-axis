@@ -23,13 +23,16 @@ class AniSensoReviewController extends Controller
         $stars = (int) $request->query('stars', 0);
         $onlyWritten = $request->boolean('written');
 
+        // The reviewer is an AniSystem grower (anisystem_users), not one of
+        // this app's own admins in `users`: joined there, every review wore
+        // an admin's name or none at all.
         $q = DB::table('as_app_reviews as r')
-            ->leftJoin('users as u', 'u.id', '=', 'r.userId')
+            ->leftJoin('anisystem_users as u', 'u.id', '=', 'r.userId')
             ->where('r.deleteStatus', 1)
             ->where('r.rating', '>', 0)
             ->select([
                 'r.id', 'r.rating', 'r.review', 'r.device', 'r.created_at', 'r.updated_at',
-                'u.email', 'u.name',
+                'u.email', DB::raw("TRIM(CONCAT(COALESCE(u.firstName, ''), ' ', COALESCE(u.lastName, ''))) as name"),
             ]);
 
         if ($stars >= 1 && $stars <= 5) {
