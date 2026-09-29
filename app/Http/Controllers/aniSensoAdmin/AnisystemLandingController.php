@@ -59,6 +59,18 @@ class AnisystemLandingController extends Controller
         'anee-chat-hand' => ['Anee on a phone in the field (photo)', 'lp/anee-chat-hand.webp'],
     ];
 
+    /** The photos a loss card may wear (files on anee, public/images/site/lp/loss). */
+    public const LOSS_PHOTOS = [
+        'palay-heads' => ['Ripening palay heads', 'lp/loss/palay-heads.webp'],
+        'sacks' => ['A farmer among fertilizer sacks', 'lp/loss/sacks.webp'],
+        'palay-phone' => ['A farmer with his phone in the palay', 'lp/loss/palay-phone.webp'],
+        'sacks-shed' => ['A farmer reading in the fertilizer shed', 'lp/loss/sacks-shed.webp'],
+        'transplant' => ['Transplanting day in the paddies', 'lp/loss/transplant.webp'],
+        'storm-paddies' => ['Paddies under a grey sky', 'lp/loss/storm-paddies.webp'],
+        'farmer-hijab' => ['A farmer checking her phone in the field', 'lp/loss/farmer-hijab.webp'],
+        'hero-planting' => ['Planting by hand in the paddy', 'lp/loss/hero-planting.webp'],
+    ];
+
     /** Words that fill themselves in on the page, so it cannot drift from the app. */
     public const TOKENS = [
         '{farmers}' => 'the country\'s word for its farmers ("Filipino farmers")',
@@ -67,6 +79,8 @@ class AnisystemLandingController extends Controller
         '{signupWays}' => '"just your email", or with Google once Google sign-in is on',
         '{libreAnee}' => 'the Libre + Anee monthly price',
         '{solo}' => 'the Solo Farmer monthly price',
+        '{cropResearch}' => '"Philippine rice" on the Philippine page, "published crop" on the other',
+        '{pesoBasis}' => 'what the peso ranges assume (a palay hectare grossing ₱85,000–₱100,000), on the Philippine page only',
     ];
 
     public function index()
@@ -173,10 +187,14 @@ class AnisystemLandingController extends Controller
             ],
             'losses' => [
                 'headline' => $this->text($request, 'losses.headline'),
+                'sub' => $this->text($request, 'losses.sub'),
                 'items' => $this->rows($request, 'losses.items', fn ($k) => [
                     'n' => max(0, min(100, (int) $request->input("losses.items.$k.n"))),
                     'title' => $this->text($request, "losses.items.$k.title"),
                     'text' => $this->text($request, "losses.items.$k.text"),
+                    'peso' => $this->text($request, "losses.items.$k.peso", 40),
+                    'image' => array_key_exists((string) $request->input("losses.items.$k.image"), self::LOSS_PHOTOS) ? (string) $request->input("losses.items.$k.image") : 'palay-heads',
+                    'upload' => $this->picture($request, "losses.items.$k.upload"),
                 ]),
                 'note' => $this->text($request, 'losses.note'),
             ],

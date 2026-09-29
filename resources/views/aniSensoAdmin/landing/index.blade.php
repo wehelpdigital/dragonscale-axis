@@ -298,13 +298,16 @@
                     <p class="lp-lead">The dark band after the problem: how much of a harvest late, early or wrong work can cost, as "up to" figures that count up as they appear. Keep them defensible: say where the numbers come from in the note.</p>
                     <div class="row g-3 mb-2">
                         @include('aniSensoAdmin.landing.field', ['name' => 'losses[headline]', 'label' => 'Headline', 'value' => $page['losses']['headline'], 'default' => $d['losses']['headline']])
+                        @isset($page['losses']['sub'])
+                            @include('aniSensoAdmin.landing.field', ['name' => 'losses[sub]', 'label' => 'Line under it', 'value' => $page['losses']['sub'], 'default' => $d['losses']['sub'] ?? '', 'type' => 'textarea', 'rows' => 2])
+                        @endisset
                     </div>
-                    <div class="lp-list" data-list="losses" data-max="6">
+                    <div class="lp-list" data-list="losses" data-max="12">
                         @foreach ($page['losses']['items'] as $i => $l)
                             @include('aniSensoAdmin.landing.row-loss', ['k' => 'l' . $i, 'l' => $l])
                         @endforeach
                     </div>
-                    <template data-tpl="losses">@include('aniSensoAdmin.landing.row-loss', ['k' => '__K__', 'l' => ['n' => '', 'title' => '', 'text' => '']])</template>
+                    <template data-tpl="losses">@include('aniSensoAdmin.landing.row-loss', ['k' => '__K__', 'l' => isset($page['losses']['sub']) ? ['n' => '', 'title' => '', 'text' => '', 'peso' => '', 'image' => 'palay-heads', 'upload' => ''] : ['n' => '', 'title' => '', 'text' => ''], 'base' => $base])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="losses"><i class="bx bx-plus"></i> Add a figure</button>
                     <div class="row g-3 mt-1">
                         @include('aniSensoAdmin.landing.field', ['name' => 'losses[note]', 'label' => 'The source note under the figures', 'value' => $page['losses']['note'], 'default' => $d['losses']['note'], 'type' => 'textarea', 'rows' => 2])
