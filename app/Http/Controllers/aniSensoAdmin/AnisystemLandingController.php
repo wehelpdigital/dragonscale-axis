@@ -176,6 +176,18 @@ class AnisystemLandingController extends Controller
                 'upload' => $this->picture($request, "pillars.$k.upload"),
                 'frame' => $request->input("pillars.$k.frame") === 'photo' ? 'photo' : 'phone',
             ]),
+            'reality' => [
+                'kicker' => $this->text($request, 'reality.kicker'),
+                'headline' => $this->text($request, 'reality.headline'),
+                'sub' => $this->text($request, 'reality.sub'),
+                'items' => $this->rows($request, 'reality.items', fn ($k) => [
+                    'figure' => $this->text($request, "reality.items.$k.figure", 24),
+                    'label' => $this->text($request, "reality.items.$k.label", 120),
+                    'text' => $this->text($request, "reality.items.$k.text", 300),
+                    'source' => $this->text($request, "reality.items.$k.source", 120),
+                ]),
+                'note' => $this->text($request, 'reality.note'),
+            ],
             'costs' => [
                 'helpsLabel' => $this->text($request, 'costs.helpsLabel', 60),
                 'items' => $this->rows($request, 'costs.items', fn ($k) => [
