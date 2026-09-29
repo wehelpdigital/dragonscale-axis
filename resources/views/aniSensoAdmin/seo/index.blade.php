@@ -40,6 +40,7 @@
                     </div>
                     <div class="form-text">
                         Off, and the whole domain says <code>noindex, nofollow</code> — in <code>robots.txt</code> (<code>Disallow: /</code>), in an <code>X-Robots-Tag</code> header on every response, and in the robots meta of every page. On, and only the public pages open; <code>robots.txt</code> lists everything behind the login as disallowed.
+                        Either way, Facebook's link readers (<code>facebookexternalhit</code>, <code>Facebot</code>) may read the public pages: they index nothing, and they need to for link previews, ad reviews and domain verification.
                     </div>
                 </div>
                 <div class="col-md-6 d-flex align-items-center gap-2">
@@ -56,6 +57,7 @@
             <li>Login, signup and password pages: <strong>noindex, nofollow</strong></li>
             <li>Shared plans, shared posts and worker invitations (token links): <strong>noindex, nofollow</strong></li>
             <li>Everything behind the login (<code>/app/…</code>, <code>/admin/…</code>, account, purchase): <strong>noindex, nofollow</strong></li>
+            <li>Facebook's link readers: <strong>always allowed on the public pages</strong> (previews, ad reviews, domain verification); never behind the login</li>
         </ul>
     </div></div></div></div>
 @endsection
