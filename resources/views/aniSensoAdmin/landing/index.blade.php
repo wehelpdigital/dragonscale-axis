@@ -78,7 +78,8 @@
     @endif
 
     @php
-        $live = $base . '/ph/start';
+        // The Philippine face lives at anee.io's root (2026-09-30); /en is the international one.
+        $live = $base . '/start';
         $shots = \App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::SHOTS;
         $photos = \App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::PHOTOS;
         $d = $defaults ?? [];
@@ -590,7 +591,8 @@
             const q = new URLSearchParams({ utm_source: src, utm_medium: src === 'google' ? 'cpc' : 'paid_social' });
             if (slug(val('campaign'))) q.set('utm_campaign', slug(val('campaign')));
             if (slug(val('content'))) q.set('utm_content', slug(val('content')));
-            out.textContent = maker.dataset.base + '/' + val('face') + '/start?' + q.toString();
+            // The Philippine page is at the root; the international one under /en.
+            out.textContent = maker.dataset.base + (val('face') === 'en' ? '/en' : '') + '/start?' + q.toString();
         };
         maker.addEventListener('input', paint);
         maker.addEventListener('change', paint);
