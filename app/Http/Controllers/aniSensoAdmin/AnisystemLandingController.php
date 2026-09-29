@@ -42,6 +42,8 @@ class AnisystemLandingController extends Controller
     public const SHOTS = [
         'board' => ['The season board (phone)', 'lp/board.webp'],
         'growth' => ['Growth stages (phone)', 'lp/growth.webp'],
+        'weather' => ['Weather forecast (phone)', 'lp/weather.webp'],
+        'hub' => ['The season\'s modules (phone)', 'lp/hub.webp'],
         'report-top' => ['Season report, the top (phone)', 'lp/report-top.webp'],
         'report-money' => ['Season report, the money (phone)', 'lp/report-money.webp'],
         'datediff' => ['Date difference (phone)', 'lp/datediff.webp'],
@@ -147,9 +149,31 @@ class AnisystemLandingController extends Controller
                 'upload' => $this->picture($request, "pillars.$k.upload"),
                 'frame' => $request->input("pillars.$k.frame") === 'photo' ? 'photo' : 'phone',
             ]),
+            'losses' => [
+                'headline' => $this->text($request, 'losses.headline'),
+                'items' => $this->rows($request, 'losses.items', fn ($k) => [
+                    'n' => max(0, min(100, (int) $request->input("losses.items.$k.n"))),
+                    'title' => $this->text($request, "losses.items.$k.title"),
+                    'text' => $this->text($request, "losses.items.$k.text"),
+                ]),
+                'note' => $this->text($request, 'losses.note'),
+            ],
+            'precision' => [
+                'kicker' => $this->text($request, 'precision.kicker'),
+                'headline' => $this->text($request, 'precision.headline'),
+                'sub' => $this->text($request, 'precision.sub'),
+                'items' => $this->rows($request, 'precision.items', fn ($k) => [
+                    'icon' => $this->text($request, "precision.items.$k.icon", 16),
+                    'title' => $this->text($request, "precision.items.$k.title"),
+                    'text' => $this->text($request, "precision.items.$k.text"),
+                ]),
+            ],
             'more' => [
                 'headline' => $this->text($request, 'more.headline'),
+                'sub' => $this->text($request, 'more.sub'),
+                'image' => $this->picture($request, 'more.image'),
                 'items' => $this->rows($request, 'more.items', fn ($k) => [
+                    'group' => $this->text($request, "more.items.$k.group", 40),
                     'icon' => $this->text($request, "more.items.$k.icon", 16),
                     'title' => $this->text($request, "more.items.$k.title"),
                     'text' => $this->text($request, "more.items.$k.text"),

@@ -84,7 +84,8 @@
         $sections = [
             'meta' => ['Title & link preview', null],
             'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['Problem & 3 steps', 3],
-            'pillars' => ['Feature pillars', 4], 'more' => ['More tiles', null], 'testimonials' => ['Testimonials', 5],
+            'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null],
+            'pillars' => ['Feature pillars', 4], 'more' => ['Everything in one app', null], 'testimonials' => ['Testimonials', 5],
             'faq' => ['Questions (FAQ)', 6], 'closer' => ['The closer', 7],
             'tracking' => ['Ad tracking', null], 'signups' => ['Signups from ads', null],
         ];
@@ -183,7 +184,7 @@
                     <div class="row g-3">
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[kicker]', 'label' => 'Small badge above the headline', 'value' => $page['hero']['kicker'], 'default' => $d['hero']['kicker'], 'col' => 'col-md-6'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[cta]', 'label' => 'Button', 'value' => $page['hero']['cta'], 'default' => $d['hero']['cta'], 'col' => 'col-md-6', 'max' => 60, 'help' => 'Also used by the middle button and the phone\'s bottom bar.'])
-                        @include('aniSensoAdmin.landing.field', ['name' => 'hero[headline]', 'label' => 'Headline', 'value' => $page['hero']['headline'], 'default' => $d['hero']['headline'], 'max' => 160, 'help' => 'The benefit, in the farmer\'s words. Short wins.'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'hero[headline]', 'label' => 'Headline', 'value' => $page['hero']['headline'], 'default' => $d['hero']['headline'], 'max' => 160, 'help' => 'The benefit, in the farmer\'s words. Short wins. Wrap words in *stars* to mark them in yellow.'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[sub]', 'label' => 'Sub-headline', 'value' => $page['hero']['sub'], 'default' => $d['hero']['sub'], 'type' => 'textarea', 'rows' => 3])
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[note]', 'label' => 'Ticks under the email box', 'value' => $page['hero']['note'], 'default' => $d['hero']['note'], 'help' => 'Each sentence (ending with a full stop) becomes one tick.'])
                         <div class="col-12">
@@ -251,6 +252,49 @@
                     </div>
                 </div></div>
 
+                {{-- ===== What guessing costs (the dark band of "up to" figures) =====
+                     Both new sections are skipped while anee's published
+                     defaults are an older page that has no such section. --}}
+                @isset($page['losses'])
+                <div class="card lp-sec" id="sec-losses"><div class="card-body">
+                    <h4 class="card-title">What guessing costs</h4>
+                    <p class="lp-lead">The dark band after the problem: how much of a harvest late, early or wrong work can cost, as "up to" figures that count up as they appear. Keep them defensible: say where the numbers come from in the note.</p>
+                    <div class="row g-3 mb-2">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'losses[headline]', 'label' => 'Headline', 'value' => $page['losses']['headline'], 'default' => $d['losses']['headline']])
+                    </div>
+                    <div class="lp-list" data-list="losses" data-max="6">
+                        @foreach ($page['losses']['items'] as $i => $l)
+                            @include('aniSensoAdmin.landing.row-loss', ['k' => 'l' . $i, 'l' => $l])
+                        @endforeach
+                    </div>
+                    <template data-tpl="losses">@include('aniSensoAdmin.landing.row-loss', ['k' => '__K__', 'l' => ['n' => '', 'title' => '', 'text' => '']])</template>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="losses"><i class="bx bx-plus"></i> Add a figure</button>
+                    <div class="row g-3 mt-1">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'losses[note]', 'label' => 'The source note under the figures', 'value' => $page['losses']['note'], 'default' => $d['losses']['note'], 'type' => 'textarea', 'rows' => 2])
+                    </div>
+                </div></div>
+                @endisset
+
+                {{-- ===== Precision agriculture: the four "rights" ===== --}}
+                @isset($page['precision'])
+                <div class="card lp-sec" id="sec-precision"><div class="card-body">
+                    <h4 class="card-title">Precision agriculture</h4>
+                    <p class="lp-lead">The answer to the problem, in the words precision agriculture is built on, before the three steps.</p>
+                    <div class="row g-3 mb-2">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'precision[kicker]', 'label' => 'Small line', 'value' => $page['precision']['kicker'], 'default' => $d['precision']['kicker'], 'col' => 'col-md-4'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'precision[headline]', 'label' => 'Headline', 'value' => $page['precision']['headline'], 'default' => $d['precision']['headline'], 'col' => 'col-md-8'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'precision[sub]', 'label' => 'Line under it', 'value' => $page['precision']['sub'], 'default' => $d['precision']['sub'], 'type' => 'textarea', 'rows' => 2])
+                    </div>
+                    <div class="lp-list" data-list="precision" data-max="6">
+                        @foreach ($page['precision']['items'] as $i => $r)
+                            @include('aniSensoAdmin.landing.row-right', ['k' => 'r' . $i, 'r' => $r])
+                        @endforeach
+                    </div>
+                    <template data-tpl="precision">@include('aniSensoAdmin.landing.row-right', ['k' => '__K__', 'r' => ['icon' => '', 'title' => '', 'text' => '']])</template>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="precision"><i class="bx bx-plus"></i> Add a card</button>
+                </div></div>
+                @endisset
+
                 {{-- ===== 4. Pillars ===== --}}
                 <div class="card lp-sec" id="sec-pillars"><div class="card-body">
                     <h4 class="card-title"><span class="n">4</span> Feature pillars</h4>
@@ -264,19 +308,27 @@
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="pillars"><i class="bx bx-plus"></i> Add a pillar</button>
                 </div></div>
 
-                {{-- ===== More tiles ===== --}}
+                {{-- ===== Everything in one app ===== --}}
                 <div class="card lp-sec" id="sec-more"><div class="card-body">
-                    <h4 class="card-title">More tiles</h4>
-                    <p class="lp-lead">The small cards after the pillars: the rest of the app at a glance.</p>
+                    <h4 class="card-title">Everything in one app</h4>
+                    <p class="lp-lead">Every tool the farm gets, in groups (Plan, Grow, Manage, Measure), beside a phone showing the season's modules. Tiles with the same group sit together under its name, in the order below.</p>
                     <div class="row g-3 mb-2">
                         @include('aniSensoAdmin.landing.field', ['name' => 'more[headline]', 'label' => 'Headline', 'value' => $page['more']['headline'], 'default' => $d['more']['headline']])
+                        @isset($page['more']['sub'])
+                            @include('aniSensoAdmin.landing.field', ['name' => 'more[sub]', 'label' => 'Line under it', 'value' => $page['more']['sub'], 'default' => $d['more']['sub'] ?? '', 'type' => 'textarea', 'rows' => 2])
+                            <div class="col-12">
+                                <label class="form-label">The phone</label>
+                                @include('aniSensoAdmin.landing.picture', ['prefix' => 'more', 'field' => 'image', 'current' => $page['more']['image'] ?? '', 'builtIn' => 'lp/hub.webp', 'shape' => 'phone', 'base' => $base,
+                                    'hint' => 'A phone screenshot, tall (about 780 × 1600). JPG, PNG or WebP, up to 6 MB.'])
+                            </div>
+                        @endisset
                     </div>
-                    <div class="lp-list" data-list="more" data-max="9">
+                    <div class="lp-list" data-list="more" data-max="24">
                         @foreach ($page['more']['items'] as $i => $t)
                             @include('aniSensoAdmin.landing.row-tile', ['k' => 'm' . $i, 't' => $t])
                         @endforeach
                     </div>
-                    <template data-tpl="more">@include('aniSensoAdmin.landing.row-tile', ['k' => '__K__', 't' => ['icon' => '', 'title' => '', 'text' => '']])</template>
+                    <template data-tpl="more">@include('aniSensoAdmin.landing.row-tile', ['k' => '__K__', 't' => ['group' => '', 'icon' => '', 'title' => '', 'text' => '']])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="more"><i class="bx bx-plus"></i> Add a tile</button>
                 </div></div>
 
@@ -317,7 +369,7 @@
                     <h4 class="card-title"><span class="n">7</span> The closer</h4>
                     <p class="lp-lead">The last push: the offer again, the email box, and why there is nothing to lose.</p>
                     <div class="row g-3">
-                        @include('aniSensoAdmin.landing.field', ['name' => 'closer[headline]', 'label' => 'Headline', 'value' => $page['closer']['headline'], 'default' => $d['closer']['headline'], 'col' => 'col-md-6'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'closer[headline]', 'label' => 'Headline', 'value' => $page['closer']['headline'], 'default' => $d['closer']['headline'], 'col' => 'col-md-6', 'help' => 'Wrap words in *stars* to mark them.'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'closer[cta]', 'label' => 'Button', 'value' => $page['closer']['cta'], 'default' => $d['closer']['cta'], 'col' => 'col-md-6', 'max' => 60])
                         @include('aniSensoAdmin.landing.field', ['name' => 'closer[sub]', 'label' => 'Line under it', 'value' => $page['closer']['sub'], 'default' => $d['closer']['sub'], 'type' => 'textarea', 'rows' => 2])
                         @include('aniSensoAdmin.landing.field', ['name' => 'closer[risk]', 'label' => 'The no-risk line', 'value' => $page['closer']['risk'], 'default' => $d['closer']['risk'], 'help' => 'Under the button: why signing up costs nothing.'])
