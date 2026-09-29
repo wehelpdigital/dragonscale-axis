@@ -186,6 +186,16 @@
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[cta]', 'label' => 'Button', 'value' => $page['hero']['cta'], 'default' => $d['hero']['cta'], 'col' => 'col-md-6', 'max' => 60, 'help' => 'Also used by the middle button and the phone\'s bottom bar.'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[headline]', 'label' => 'Headline', 'value' => $page['hero']['headline'], 'default' => $d['hero']['headline'], 'max' => 160, 'help' => 'The benefit, in the farmer\'s words. Short wins. Wrap words in *stars* to mark them in yellow.'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[sub]', 'label' => 'Sub-headline', 'value' => $page['hero']['sub'], 'default' => $d['hero']['sub'], 'type' => 'textarea', 'rows' => 3])
+                        @isset($page['hero']['align'])
+                            <div class="col-md-6">
+                                <label class="form-label" for="lpHeroAlign">Words beside the phone, on a computer</label>
+                                <select class="form-select" name="hero[align]" id="lpHeroAlign">
+                                    <option value="right" {{ $page['hero']['align'] !== 'left' ? 'selected' : '' }}>Right-aligned, against the phone</option>
+                                    <option value="left" {{ $page['hero']['align'] === 'left' ? 'selected' : '' }}>Left-aligned</option>
+                                </select>
+                                <div class="form-text">On a phone the words always read from the left.</div>
+                            </div>
+                        @endisset
                         @include('aniSensoAdmin.landing.field', ['name' => 'hero[note]', 'label' => 'Ticks under the email box', 'value' => $page['hero']['note'], 'default' => $d['hero']['note'], 'help' => 'Each sentence (ending with a full stop) becomes one tick.'])
                         <div class="col-12">
                             <label class="form-label">The phone</label>

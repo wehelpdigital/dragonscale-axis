@@ -115,6 +115,7 @@ class AnisystemLandingController extends Controller
                 'sub' => $this->text($request, 'hero.sub'),
                 'cta' => $this->text($request, 'hero.cta'),
                 'note' => $this->text($request, 'hero.note'),
+                'align' => $request->input('hero.align') === 'left' ? 'left' : 'right',
                 'image' => $this->picture($request, 'hero.image'),
                 'chips' => $this->rows($request, 'hero.chips', fn ($k) => [
                     'icon' => $this->text($request, "hero.chips.$k.icon", 16),
