@@ -249,7 +249,7 @@
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[headline]', 'label' => 'Headline', 'value' => $page['problem']['headline'], 'default' => $d['problem']['headline'], 'col' => 'col-md-8'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[bullets]', 'label' => 'The pains, one per line', 'value' => implode("\n", $page['problem']['bullets']), 'type' => 'textarea', 'rows' => 4, 'max' => 2000])
                         @isset($page['problem']['fixes'])
-                            @include('aniSensoAdmin.landing.field', ['name' => 'problem[fixes]', 'label' => 'How anee.io helps, one per line (green ticks)', 'value' => implode("\n", $page['problem']['fixes']), 'type' => 'textarea', 'rows' => 3, 'max' => 2000])
+                            @include('aniSensoAdmin.landing.field', ['name' => 'problem[fixes]', 'label' => 'How anee.io helps, one per line (green ticks)', 'help' => 'Keep each to about 36 characters: every tick shows on one line, even on a phone, and a longer one is cut short with …', 'value' => implode("\n", $page['problem']['fixes']), 'type' => 'textarea', 'rows' => 3, 'max' => 2000])
                         @endisset
                         <div class="col-12">
                             <label class="form-label">The photo</label>
