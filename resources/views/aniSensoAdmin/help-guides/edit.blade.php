@@ -72,8 +72,14 @@
                 <div class="card"><div class="card-body">
                     <h5 class="text-dark">This page</h5>
                     <p class="text-secondary small mb-2">
-                        Read by people on <strong>{{ \App\Models\AsTutorialPage::DEVICE_LABELS[$device] }}</strong>
-                        in the <strong>{{ \App\Models\AsTutorialPage::moduleLabel($module) }}</strong> module.
+                        @if ($module === 'anee-chat')
+                            Read by people on <strong>{{ \App\Models\AsTutorialPage::DEVICE_LABELS[$device] }}</strong>
+                            who tap <strong>Check this for a complete guide</strong> on the how-to-ask card in any of Anee's chats.
+                            It opens full screen. A device with no page of its own reads the Phone page.
+                        @else
+                            Read by people on <strong>{{ \App\Models\AsTutorialPage::DEVICE_LABELS[$device] }}</strong>
+                            in the <strong>{{ \App\Models\AsTutorialPage::moduleLabel($module) }}</strong> module.
+                        @endif
                     </p>
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         @foreach (\App\Models\AsTutorialPage::DEVICES as $d)

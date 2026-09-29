@@ -116,6 +116,15 @@
                                 <span key="t-anisenso-ai-settings">AniSystem AI</span>
                             </a>
                         </li>
+                        {{-- The guide behind "Check this for a complete guide" in
+                             Anee's chats: a How-to Guide page, opened straight
+                             in the block builder. --}}
+                        <li class="{{ request()->is('anisenso-help-guides*') && request('module') === 'anee-chat' ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-help-guides.index', ['module' => 'anee-chat', 'device' => 'mobile']) }}" class="waves-effect {{ request()->is('anisenso-help-guides*') && request('module') === 'anee-chat' ? 'active' : '' }}">
+                                <i class="bx bx-book-reader"></i>
+                                <span key="t-anisenso-chat-guide">Anee chat guide</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-ads*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-ads.index') }}" class="waves-effect {{ request()->is('anisenso-ads*') ? 'active' : '' }}">
                                 <i class="bx bx-purchase-tag-alt"></i>

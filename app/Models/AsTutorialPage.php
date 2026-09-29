@@ -75,6 +75,9 @@ class AsTutorialPage extends Model
         'community-saved' => 'Community — Saved',
         'community-messages' => 'Community — Messages',
         'community-profile' => 'Community — Your profile',
+        // Not a module's "?": the full guide behind "Check this for a complete
+        // guide" on the how-to-ask card in every Anee chat. 2026-09-29.
+        'anee-chat' => 'Chatting with Anee',
     ];
 
     /** What the builder can drag onto a page. */
