@@ -50,6 +50,15 @@ class AnisystemLandingController extends Controller
         'anee-chat-hand' => ['Anee on a phone in the field (photo)', 'lp/anee-chat-hand.webp'],
     ];
 
+    /** The built-in photos a cost row may show (files on anee, public/images/site/lp). */
+    public const PHOTOS = [
+        'tractor' => ['A diesel hand tractor in a paddy (photo)', 'lp/tractor.webp'],
+        'sacks' => ['A farmer among fertilizer sacks (photo)', 'lp/sacks.webp'],
+        'storm' => ['Paddies under a grey, rainy sky (photo)', 'lp/storm.webp'],
+        'palay-phone' => ['A farmer with his phone in the palay (photo)', 'lp/palay-phone.webp'],
+        'anee-chat-hand' => ['Anee on a phone in the field (photo)', 'lp/anee-chat-hand.webp'],
+    ];
+
     /** Words that fill themselves in on the page, so it cannot drift from the app. */
     public const TOKENS = [
         '{farmers}' => 'the country\'s word for its farmers ("Filipino farmers")',
@@ -133,6 +142,7 @@ class AnisystemLandingController extends Controller
                 'headline' => $this->text($request, 'problem.headline'),
                 'image' => $this->picture($request, 'problem.image'),
                 'bullets' => $this->lines($request, 'problem.bullets'),
+                'fixes' => $this->lines($request, 'problem.fixes'),
                 'solutionKicker' => $this->text($request, 'problem.solutionKicker'),
                 'solutionHeadline' => $this->text($request, 'problem.solutionHeadline'),
                 'steps' => $this->rows($request, 'problem.steps', fn ($k) => [
@@ -150,6 +160,17 @@ class AnisystemLandingController extends Controller
                 'upload' => $this->picture($request, "pillars.$k.upload"),
                 'frame' => $request->input("pillars.$k.frame") === 'photo' ? 'photo' : 'phone',
             ]),
+            'costs' => [
+                'helpsLabel' => $this->text($request, 'costs.helpsLabel', 60),
+                'items' => $this->rows($request, 'costs.items', fn ($k) => [
+                    'kicker' => $this->text($request, "costs.items.$k.kicker"),
+                    'headline' => $this->text($request, "costs.items.$k.headline"),
+                    'text' => $this->text($request, "costs.items.$k.text", 1200),
+                    'fixes' => $this->lines($request, "costs.items.$k.fixes"),
+                    'image' => array_key_exists((string) $request->input("costs.items.$k.image"), self::PHOTOS) ? (string) $request->input("costs.items.$k.image") : 'tractor',
+                    'upload' => $this->picture($request, "costs.items.$k.upload"),
+                ]),
+            ],
             'losses' => [
                 'headline' => $this->text($request, 'losses.headline'),
                 'items' => $this->rows($request, 'losses.items', fn ($k) => [

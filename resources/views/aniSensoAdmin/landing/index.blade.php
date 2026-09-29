@@ -80,10 +80,12 @@
     @php
         $live = $base . '/ph/start';
         $shots = \App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::SHOTS;
+        $photos = \App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::PHOTOS;
         $d = $defaults ?? [];
         $sections = [
             'meta' => ['Title & link preview', null],
-            'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['Problem & 3 steps', 3],
+            'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['The weather & 3 steps', 2],
+            'costs' => ['Fuel & fertilizer', 2],
             'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null],
             'pillars' => ['Feature pillars', 4], 'more' => ['Everything in one app', null], 'testimonials' => ['Testimonials', 5],
             'faq' => ['Questions (FAQ)', 6], 'closer' => ['The closer', 7],
@@ -103,6 +105,8 @@
         <div class="col-xl-3 d-none d-xl-block">
             <nav class="lp-nav card"><div class="card-body p-2">
                 @foreach ($sections as $id => [$label, $n])
+                    {{-- A section anee's page no longer has (or does not have yet) is not listed. --}}
+                    @continue(! in_array($id, ['meta', 'tracking', 'signups'], true) && ! isset($page[$id]))
                     <a href="#sec-{{ $id }}" data-nav="{{ $id }}">{{ $label }} @if ($n)<small>{{ $n }}</small>@endif</a>
                 @endforeach
             </div></nav>
@@ -216,7 +220,8 @@
                     </div>
                 </div></div>
 
-                {{-- ===== 2. Proof ===== --}}
+                {{-- ===== 2. Proof (taken off the page 2026-09-30; kept while older defaults have it) ===== --}}
+                @isset($page['proof'])
                 <div class="card lp-sec" id="sec-proof"><div class="card-body">
                     <h4 class="card-title"><span class="n">2</span> Proof strip</h4>
                     <p class="lp-lead">The thin band right under the hero.</p>
@@ -233,18 +238,22 @@
                         </div>
                     </div>
                 </div></div>
+                @endisset
 
                 {{-- ===== 3. Problem & steps ===== --}}
                 <div class="card lp-sec" id="sec-problem"><div class="card-body">
-                    <h4 class="card-title"><span class="n">3</span> Problem &amp; 3 steps</h4>
-                    <p class="lp-lead">Name the pain, then show the way out in three steps.</p>
+                    <h4 class="card-title"><span class="n">2</span> The weather &amp; 3 steps</h4>
+                    <p class="lp-lead">The first problem row, under the hero: the weather nobody can predict and the pests and diseases it brings (photo on the left), then how anee.io helps. The three steps sit further down, after precision agriculture.</p>
                     <div class="row g-3">
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[kicker]', 'label' => 'Small line', 'value' => $page['problem']['kicker'], 'default' => $d['problem']['kicker'], 'col' => 'col-md-4'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[headline]', 'label' => 'Headline', 'value' => $page['problem']['headline'], 'default' => $d['problem']['headline'], 'col' => 'col-md-8'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[bullets]', 'label' => 'The pains, one per line', 'value' => implode("\n", $page['problem']['bullets']), 'type' => 'textarea', 'rows' => 4, 'max' => 2000])
+                        @isset($page['problem']['fixes'])
+                            @include('aniSensoAdmin.landing.field', ['name' => 'problem[fixes]', 'label' => 'How anee.io helps, one per line (green ticks)', 'value' => implode("\n", $page['problem']['fixes']), 'type' => 'textarea', 'rows' => 3, 'max' => 2000])
+                        @endisset
                         <div class="col-12">
                             <label class="form-label">The photo</label>
-                            @include('aniSensoAdmin.landing.picture', ['prefix' => 'problem', 'field' => 'image', 'current' => $page['problem']['image'], 'builtIn' => 'lp/sacks.webp', 'base' => $base,
+                            @include('aniSensoAdmin.landing.picture', ['prefix' => 'problem', 'field' => 'image', 'current' => $page['problem']['image'], 'builtIn' => isset($page['costs']) ? 'lp/storm.webp' : 'lp/sacks.webp', 'base' => $base,
                                 'hint' => 'A real photo, landscape (4:3 works best). JPG, PNG or WebP, up to 6 MB.'])
                         </div>
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[solutionKicker]', 'label' => 'Small line over the steps', 'value' => $page['problem']['solutionKicker'], 'default' => $d['problem']['solutionKicker'], 'col' => 'col-md-4'])
@@ -261,6 +270,24 @@
                         </div>
                     </div>
                 </div></div>
+
+                {{-- ===== Fuel & fertilizer: the cost rows after the weather ===== --}}
+                @isset($page['costs'])
+                <div class="card lp-sec" id="sec-costs"><div class="card-body">
+                    <h4 class="card-title"><span class="n">2</span> Fuel &amp; fertilizer</h4>
+                    <p class="lp-lead">The problem rows after the weather, one per rising cost. Their photos alternate sides: the first on the right, the next on the left, and so on. Each says what goes wrong, then how anee.io helps.</p>
+                    <div class="row g-3 mb-2">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'costs[helpsLabel]', 'label' => 'The label over every green-tick list', 'value' => $page['costs']['helpsLabel'], 'default' => $d['costs']['helpsLabel'], 'col' => 'col-md-6', 'max' => 60])
+                    </div>
+                    <div class="lp-list" data-list="costs" data-max="4">
+                        @foreach ($page['costs']['items'] as $i => $c)
+                            @include('aniSensoAdmin.landing.row-cost', ['k' => 'c' . $i, 'c' => $c, 'photos' => $photos, 'base' => $base])
+                        @endforeach
+                    </div>
+                    <template data-tpl="costs">@include('aniSensoAdmin.landing.row-cost', ['k' => '__K__', 'c' => ['kicker' => '', 'headline' => '', 'text' => '', 'fixes' => [], 'image' => 'tractor', 'upload' => ''], 'photos' => $photos, 'base' => $base])</template>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="costs"><i class="bx bx-plus"></i> Add a cost row</button>
+                </div></div>
+                @endisset
 
                 {{-- ===== What guessing costs (the dark band of "up to" figures) =====
                      Both new sections are skipped while anee's published
