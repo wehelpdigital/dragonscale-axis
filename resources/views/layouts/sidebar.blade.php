@@ -131,6 +131,12 @@
                                 <span key="t-anisenso-ads">Ads (free plan)</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-landing*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-landing.index') }}" class="waves-effect {{ request()->is('anisenso-landing*') ? 'active' : '' }}">
+                                <i class="bx bx-rocket"></i>
+                                <span key="t-anisenso-landing">Landing page</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-seo*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-seo.index') }}" class="waves-effect {{ request()->is('anisenso-seo*') ? 'active' : '' }}">
                                 <i class="bx bx-search-alt"></i>
