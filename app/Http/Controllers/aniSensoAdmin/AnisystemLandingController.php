@@ -152,6 +152,8 @@ class AnisystemLandingController extends Controller
                 'stats' => $request->input('proof.stats') === 'hide' ? 'hide' : 'show',
             ],
             'problem' => [
+                'sectionTitle' => $this->text($request, 'problem.sectionTitle'),
+                'sectionSub' => $this->text($request, 'problem.sectionSub'),
                 'kicker' => $this->text($request, 'problem.kicker'),
                 'headline' => $this->text($request, 'problem.headline'),
                 'image' => $this->picture($request, 'problem.image'),

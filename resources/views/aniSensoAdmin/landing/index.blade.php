@@ -246,6 +246,10 @@
                     <h4 class="card-title"><span class="n">2</span> The weather &amp; 3 steps</h4>
                     <p class="lp-lead">The first problem row, under the hero: the weather nobody can predict and the pests and diseases it brings (photo on the left), then how anee.io helps. The three steps sit further down, after precision agriculture.</p>
                     <div class="row g-3">
+                        @isset($page['problem']['sectionTitle'])
+                            @include('aniSensoAdmin.landing.field', ['name' => 'problem[sectionTitle]', 'label' => 'Title over all the problem rows (centered)', 'value' => $page['problem']['sectionTitle'], 'default' => $d['problem']['sectionTitle'] ?? '', 'col' => 'col-md-6', 'max' => 120])
+                            @include('aniSensoAdmin.landing.field', ['name' => 'problem[sectionSub]', 'label' => 'Line under that title', 'value' => $page['problem']['sectionSub'], 'default' => $d['problem']['sectionSub'] ?? '', 'col' => 'col-md-6', 'max' => 200])
+                        @endisset
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[kicker]', 'label' => 'Small line', 'value' => $page['problem']['kicker'], 'default' => $d['problem']['kicker'], 'col' => 'col-md-4'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[headline]', 'label' => 'Headline', 'value' => $page['problem']['headline'], 'default' => $d['problem']['headline'], 'col' => 'col-md-8'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'problem[bullets]', 'label' => 'The pains, one per line', 'value' => implode("\n", $page['problem']['bullets']), 'type' => 'textarea', 'rows' => 4, 'max' => 2000])
