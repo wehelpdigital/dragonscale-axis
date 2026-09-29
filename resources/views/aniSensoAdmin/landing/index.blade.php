@@ -85,7 +85,7 @@
         $d = $defaults ?? [];
         $sections = [
             'meta' => ['Title & link preview', null],
-            'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'reality' => ['Farming reality (figures)', 2], 'problem' => ['The weather & 3 steps', 2],
+            'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['The weather & 3 steps', 2],
             'costs' => ['Fuel & fertilizer', 2],
             'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null],
             'pillars' => ['Feature pillars', 4], 'more' => ['Everything in one app', null], 'testimonials' => ['Testimonials', 5],
@@ -241,35 +241,15 @@
                 </div></div>
                 @endisset
 
-                {{-- ===== The current reality of Filipino farming (sourced figures) ===== --}}
-                @isset($page['reality'])
-                <div class="card lp-sec" id="sec-reality"><div class="card-body">
-                    <h4 class="card-title"><span class="n">2</span> Farming reality (figures)</h4>
-                    <p class="lp-lead">The figures right under the hero, above "Traditional Method…". Shown on the Philippine page only. Keep every figure sourced and dated: a number nobody can check costs more trust than it earns.</p>
-                    <div class="row g-3 mb-2">
-                        @include('aniSensoAdmin.landing.field', ['name' => 'reality[kicker]', 'label' => 'Small line', 'value' => $page['reality']['kicker'], 'default' => $d['reality']['kicker'] ?? '', 'col' => 'col-md-4'])
-                        @include('aniSensoAdmin.landing.field', ['name' => 'reality[headline]', 'label' => 'Headline', 'value' => $page['reality']['headline'], 'default' => $d['reality']['headline'] ?? '', 'col' => 'col-md-8'])
-                        @include('aniSensoAdmin.landing.field', ['name' => 'reality[sub]', 'label' => 'Line under it', 'value' => $page['reality']['sub'], 'default' => $d['reality']['sub'] ?? '', 'type' => 'textarea', 'rows' => 2])
-                    </div>
-                    <div class="lp-list" data-list="reality" data-max="9">
-                        @foreach ($page['reality']['items'] as $i => $st)
-                            @include('aniSensoAdmin.landing.row-stat', ['k' => 'r' . $i, 'st' => $st])
-                        @endforeach
-                    </div>
-                    <template data-tpl="reality">@include('aniSensoAdmin.landing.row-stat', ['k' => '__K__', 'st' => ['figure' => '', 'label' => '', 'text' => '', 'source' => '']])</template>
-                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="reality"><i class="bx bx-plus"></i> Add a figure</button>
-                    <div class="row g-3 mt-1">
-                        @include('aniSensoAdmin.landing.field', ['name' => 'reality[note]', 'label' => 'Sources line under the figures', 'value' => $page['reality']['note'], 'default' => $d['reality']['note'] ?? ''])
-                    </div>
-                </div></div>
-                @endisset
-
                 {{-- ===== 3. Problem & steps ===== --}}
                 <div class="card lp-sec" id="sec-problem"><div class="card-body">
                     <h4 class="card-title"><span class="n">2</span> The weather &amp; 3 steps</h4>
                     <p class="lp-lead">The first problem row, under the hero: the weather nobody can predict and the pests and diseases it brings (photo on the left), then how anee.io helps. The three steps sit further down, after precision agriculture.</p>
                     <div class="row g-3">
                         @isset($page['problem']['sectionTitle'])
+                            @isset($page['problem']['sectionKicker'])
+                                @include('aniSensoAdmin.landing.field', ['name' => 'problem[sectionKicker]', 'label' => 'Small green line over that title', 'value' => $page['problem']['sectionKicker'], 'default' => $d['problem']['sectionKicker'] ?? '', 'col' => 'col-md-4', 'max' => 60])
+                            @endisset
                             @include('aniSensoAdmin.landing.field', ['name' => 'problem[sectionTitle]', 'label' => 'Title over all the problem rows (centered)', 'value' => $page['problem']['sectionTitle'], 'default' => $d['problem']['sectionTitle'] ?? '', 'col' => 'col-md-6', 'max' => 120])
                             @include('aniSensoAdmin.landing.field', ['name' => 'problem[sectionSub]', 'label' => 'Line under that title', 'value' => $page['problem']['sectionSub'], 'default' => $d['problem']['sectionSub'] ?? '', 'col' => 'col-md-6', 'max' => 200])
                         @endisset
