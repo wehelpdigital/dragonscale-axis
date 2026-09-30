@@ -498,6 +498,14 @@ Route::get('/anisenso-site-pages-data', [App\Http\Controllers\aniSensoAdmin\Anis
 Route::get('/anisenso-site-pages-token', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'previewToken'])->name('anisenso-site-pages.token')->middleware('auth');
 Route::post('/anisenso-site-pages-save', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'save'])->name('anisenso-site-pages.save')->middleware('auth');
 Route::post('/anisenso-site-pages-upload', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'upload'])->name('anisenso-site-pages.upload')->middleware('auth');
+Route::post('/anisenso-site-pages-write', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'write'])->name('anisenso-site-pages.write')->middleware('auth');
+Route::get('/anisenso-site-pages-write-state', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'writeState'])->name('anisenso-site-pages.write-state')->middleware('auth');
+Route::get('/anisenso-site-pages-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'keywords'])->name('anisenso-site-pages.keywords')->middleware('auth');
+// SEO keywords (as_seo_keywords): the list anee.io writes toward, grown here.
+Route::get('/anisenso-seo-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoKeywordsController::class, 'index'])->name('anisenso-seo-keywords.index')->middleware('auth');
+Route::post('/anisenso-seo-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoKeywordsController::class, 'store'])->name('anisenso-seo-keywords.store')->middleware('auth');
+Route::post('/anisenso-seo-keywords-import', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoKeywordsController::class, 'import'])->name('anisenso-seo-keywords.import')->middleware('auth');
+Route::post('/anisenso-seo-keywords-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoKeywordsController::class, 'destroy'])->name('anisenso-seo-keywords.destroy')->middleware('auth');
 Route::post('/anisenso-site-pages-toggle', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'toggle'])->name('anisenso-site-pages.toggle')->middleware('auth');
 Route::post('/anisenso-site-pages-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'destroy'])->name('anisenso-site-pages.destroy')->middleware('auth');
 Route::post('/anisenso-site-pages-reset', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'reset'])->name('anisenso-site-pages.reset')->middleware('auth');

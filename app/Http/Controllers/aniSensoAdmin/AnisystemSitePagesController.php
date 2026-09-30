@@ -32,6 +32,15 @@ class AnisystemSitePagesController extends Controller
         'problems' => 'Crop problems',
         'blog' => 'Blog',
         'features' => 'Features',
+        // Try and Ask Anee's answers, written by anee.io at /question/{slug}.
+        'questions' => "Farmers' questions",
+    ];
+
+    /** Where a blog post is shown (as_site_pages.showIn). */
+    public const SHOW_IN = [
+        'both' => 'Public blog and Technician\'s Blog',
+        'public' => 'Public blog only',
+        'tech' => 'Technician\'s Blog only (members)',
     ];
 
     /** The kinds of block, in the order the builder offers them. */
@@ -58,7 +67,8 @@ class AnisystemSitePagesController extends Controller
         try {
             $rows = DB::table('as_site_pages')->where('deleteStatus', 1)
                 ->orderBy('section')->orderBy('sortOrder')->orderBy('title')
-                ->get(['id', 'section', 'slug', 'lang', 'category', 'title', 'focusKeyword', 'status', 'blocks', 'excerpt', 'editedAt', 'editedBy', 'updated_at']);
+                ->get(array_merge(['id', 'section', 'slug', 'lang', 'category', 'title', 'focusKeyword', 'status', 'blocks', 'excerpt', 'editedAt', 'editedBy', 'updated_at'],
+                    \Illuminate\Support\Facades\Schema::hasColumn('as_site_pages', 'showIn') ? ['showIn'] : []));
         } catch (\Throwable $e) {
             $ready = false;
         }
@@ -121,6 +131,7 @@ class AnisystemSitePagesController extends Controller
             'page' => $page,
             'kinds' => self::BLOCKS,
             'sections' => self::SECTIONS,
+            'showIn' => self::SHOW_IN,
             'preview' => $this->previewAddress(),
             'liveUrl' => self::liveUrl($page->section, $page->slug),
             'hasSeed' => filled($page->seedJson),
@@ -170,6 +181,9 @@ class AnisystemSitePagesController extends Controller
             'blocks' => json_encode(self::clean((array) ($in['blocks'] ?? [])), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'status' => $status,
             'publishedAt' => $status === 'published' ? ($p->publishedAt ?? now()) : $p->publishedAt,
+        ] + (property_exists($p, 'showIn') ? [
+            'showIn' => isset(self::SHOW_IN[$in['showIn'] ?? '']) ? $in['showIn'] : ($p->showIn ?? 'both'),
+        ] : []) + [
             'editedAt' => now(),
             'editedBy' => $this->who(),
             'updated_at' => now(),
@@ -290,7 +304,78 @@ class AnisystemSitePagesController extends Controller
 
     public static function liveUrl(string $section, string $slug): string
     {
-        return rtrim((string) config('anisystem.url'), '/') . '/' . $section . '/' . $slug;
+        // One answered question lives at /question/{slug}.
+        $path = $section === 'questions' ? 'question' : $section;
+
+        return rtrim((string) config('anisystem.url'), '/') . '/' . $path . '/' . $slug;
+    }
+
+    /*
+     | Write with Anee. anee.io writes the page (App\Services\PageWriter there):
+     | the house rules, the Yoast checks, the keywords, links only to pages
+     | that exist. A page takes a minute or two, so it is a job: write starts
+     | it and answers with its id, writeState is asked until the page is there.
+     | Nothing is saved: the builder loads the page and the editor saves it.
+     */
+    public function write(Request $request)
+    {
+        $p = $this->page($request);
+        $in = $request->validate([
+            'topic' => 'required|string|max:300',
+            'focusKeyword' => 'nullable|string|max:120',
+            'keywords' => 'nullable|array|max:20',
+            'keywords.*' => 'string|max:190',
+            'lang' => 'nullable|in:en,tl',
+            'notes' => 'nullable|string|max:2000',
+            'research' => 'nullable|boolean',
+            'mode' => 'required|in:new,improve',
+            'current' => 'nullable|array',
+        ]);
+
+        return $this->anee('post', '/mother-api/writer', [
+            'section' => $p->section,
+            'topic' => $in['topic'],
+            'focusKeyword' => $in['focusKeyword'] ?? null,
+            'keywords' => $in['keywords'] ?? [],
+            'lang' => $in['lang'] ?? 'en',
+            'notes' => $in['notes'] ?? null,
+            'research' => (bool) ($in['research'] ?? true),
+            'current' => $in['mode'] === 'improve' ? ($in['current'] ?? null) : null,
+            'pageId' => (int) $p->id,
+            'admin' => $this->who(),
+        ], 60);
+    }
+
+    public function writeState(Request $request)
+    {
+        return $this->anee('get', '/mother-api/writer/' . (int) $request->query('job'), [], 20);
+    }
+
+    /** The keywords nearest a topic (anee.io's as_seo_keywords), for the picker. */
+    public function keywords(Request $request)
+    {
+        return $this->anee('get', '/mother-api/keywords', ['text' => mb_substr((string) $request->query('text', ''), 0, 300)], 20);
+    }
+
+    private function anee(string $method, string $path, array $data, int $timeout)
+    {
+        $token = (string) config('services.anisystem_media.token');
+        $base = rtrim((string) config('anisystem.url'), '/');
+        if ($token === '' || $base === '') {
+            return response()->json(['success' => false, 'message' => 'This app is not linked to anee.io (ANISYSTEM_URL / ANISYSTEM_MEDIA_TOKEN).'], 422);
+        }
+        try {
+            $http = \Illuminate\Support\Facades\Http::timeout($timeout)->acceptJson()->withHeaders(['X-Anee-Token' => $token]);
+            $res = $method === 'post' ? $http->post($base . $path, $data) : $http->get($base . $path, $data);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'anee.io could not be reached: ' . $e->getMessage()], 502);
+        }
+        $json = $res->json() ?? [];
+        if (! $res->successful() && empty($json['message'])) {
+            $json = ['success' => false, 'message' => 'anee.io answered ' . $res->status() . '.'];
+        }
+
+        return response()->json($json, $res->successful() ? 200 : 422);
     }
 
     private static function shape(object $p): array
@@ -310,6 +395,7 @@ class AnisystemSitePagesController extends Controller
             'heroImage' => json_decode((string) $p->heroImage, true) ?: ['src' => '', 'alt' => '', 'credit' => ''],
             'blocks' => json_decode((string) $p->blocks, true) ?: [],
             'status' => $p->status,
+            'showIn' => $p->showIn ?? 'both',
             'editedAt' => $p->editedAt,
             'editedBy' => $p->editedBy,
             'updatedAt' => $p->updated_at,

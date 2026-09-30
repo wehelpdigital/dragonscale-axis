@@ -84,6 +84,22 @@
     #spb .pvwrap iframe { position: absolute; top: 0; left: 0; border: 0; background: #fff; transform-origin: 0 0; transition: transform .28s var(--e), width .28s var(--e); }
     #spb .pvscale { font-size: .72rem; color: var(--bs-secondary-color); }
     #spb .pvnote { font-size: .72rem; color: var(--bs-secondary-color); margin-top: .35rem; }
+    /* Write with Anee */
+    #spb .tabs button[data-view="ai"] { background: linear-gradient(135deg, #fff4cc, #ffe38a); color: #5c4200; }
+    #spb .tabs button[data-view="ai"].is-on { background: linear-gradient(135deg, #f5c518, #e0a800); color: #2b2000; }
+    #spb .ai-intro { display: flex; gap: .8rem; align-items: flex-start; padding: .8rem .9rem; border-radius: .8rem; background: var(--bs-success-bg-subtle); margin-bottom: 1rem; }
+    #spb .ai-intro img { width: 2.6rem; height: 2.6rem; border-radius: 999px; object-fit: cover; flex: none; }
+    #spb .ai-intro p { margin: 0; font-size: .86rem; }
+    #spb .kws { display: flex; flex-wrap: wrap; gap: .35rem; }
+    #spb .kw { border: 1px solid var(--bs-border-color); background: var(--bs-body-bg); border-radius: 999px; padding: .25rem .6rem; font-size: .8rem;
+        transition: background .28s var(--e), border-color .28s var(--e), color .28s var(--e); }
+    #spb .kw small { margin-left: .3rem; color: var(--bs-secondary-color); }
+    #spb .kw.is-on { background: var(--bs-primary); border-color: var(--bs-primary); color: #fff; }
+    #spb .kw.is-on small { color: rgb(255 255 255 / .75); }
+    #spb .ai-run { margin-top: 1rem; padding: .9rem; border-radius: .8rem; border: 1px solid var(--bs-border-color); }
+    #spb .ai-bar { height: .5rem; border-radius: 999px; background: var(--bs-tertiary-bg); overflow: hidden; }
+    #spb .ai-bar span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6b9f3d, #f5c518); transition: width .6s var(--e); }
+    #spb .ai-done { margin-top: 1rem; padding: .9rem; border-radius: .8rem; background: var(--bs-success-bg-subtle); }
     @media (prefers-reduced-motion: reduce) { #spb * { animation: none !important; transition: none !important; } }
 </style>
 @include('aniSensoAdmin.partials.dark')
@@ -117,6 +133,7 @@
                         <button type="button" class="is-on" data-view="blocks"><i class="bx bx-layer"></i> Blocks</button>
                         <button type="button" data-view="page"><i class="bx bx-cog"></i> Page and SEO</button>
                         <button type="button" data-view="check"><i class="bx bx-check-shield"></i> SEO check <span class="score" id="spbScore">…</span></button>
+                        <button type="button" data-view="ai"><i class="bx bxs-magic-wand"></i> Write with Anee</button>
                     </div>
 
                     {{-- Blocks --}}
@@ -143,6 +160,13 @@
                                 <label class="form-label">Address</label>
                                 <input class="form-control" data-f="slug" maxlength="120">
                                 <div class="form-text" id="spbUrl"></div>
+                            </div>
+                            <div class="col-12" id="spbShowInRow">
+                                <label class="form-label">Show this post in</label>
+                                <select class="form-select" data-f="showIn">
+                                    @foreach ($showIn as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach
+                                </select>
+                                <div class="form-text">The public blog is anee.io/blog. The Technician's Blog is the members' blog inside the app.</div>
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label">Language</label>
@@ -198,6 +222,62 @@
                         </div>
                     </div>
 
+                    {{-- Write with Anee --}}
+                    <div class="view" data-view="ai">
+                        <div class="ai-intro">
+                            <img src="{{ rtrim((string) config('anisystem.url'), '/') }}/images/anee/avatar-160.jpg" alt="">
+                            <p>Anee writes the page by the site's rules: plain words, the Yoast checks, keywords from your SEO list, and links only to pages that exist. Nothing is saved until you press Save.</p>
+                        </div>
+                        <div class="btn-group btn-group-sm mb-3" id="aiMode" role="group">
+                            <button type="button" class="btn btn-outline-primary active" data-mode="new"><i class="bx bx-file-blank"></i> Write a new draft</button>
+                            <button type="button" class="btn btn-outline-primary" data-mode="improve"><i class="bx bx-edit-alt"></i> Improve this page</button>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">What is the page about?</label>
+                                <input class="form-control" id="aiTopic" maxlength="300" placeholder="e.g. How much urea to apply on corn, and when">
+                            </div>
+                            <div class="col-sm-7">
+                                <label class="form-label">Focus keyphrase</label>
+                                <input class="form-control" id="aiFocus" maxlength="120" list="aiKwList" placeholder="Leave empty and Anee picks one">
+                                <datalist id="aiKwList"></datalist>
+                            </div>
+                            <div class="col-sm-5">
+                                <label class="form-label">Language</label>
+                                <select class="form-select" id="aiLang"><option value="en">English</option><option value="tl">Tagalog</option></select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label d-flex align-items-center gap-2">Keywords to use
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-auto" id="aiFind"><i class="bx bx-refresh"></i> Find keywords for this topic</button></label>
+                                <div class="kws" id="aiKws"><span class="text-secondary small">Type the topic, then find keywords.</span></div>
+                                <div class="form-text">From AniSystem › SEO keywords, nearest to the topic first. Tap to choose. Anee uses the ones that read naturally.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notes for Anee <span class="text-secondary">(optional)</span></label>
+                                <textarea class="form-control" rows="2" id="aiNotes" maxlength="2000" placeholder="e.g. Mention the wet season. Keep it for small farms."></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="aiResearch" checked>
+                                    <label class="form-check-label" for="aiResearch">Read the web first <span class="text-secondary">(slower, better facts and sources)</span></label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary" id="aiGo"><i class="bx bxs-magic-wand"></i> Write with Anee</button>
+                            </div>
+                        </div>
+                        <div class="ai-run" id="aiRun" hidden>
+                            <div class="d-flex justify-content-between small mb-2"><b id="aiPhase">Starting</b><span id="aiClock">0:00</span></div>
+                            <div class="ai-bar"><span id="aiBar"></span></div>
+                            <div class="small text-secondary mt-2">This takes one to three minutes. You can keep working on the other tabs.</div>
+                        </div>
+                        <div class="ai-done" id="aiDone" hidden>
+                            <b>Anee's page is in the builder.</b>
+                            <div class="small">Read it in the preview and the SEO check, change what you like, then Save.</div>
+                            <button type="button" class="btn btn-light btn-sm mt-2" id="aiUndo"><i class="bx bx-undo"></i> Put back the page as it was</button>
+                        </div>
+                    </div>
+
                     {{-- SEO check --}}
                     <div class="view" data-view="check">
                         <p class="text-secondary small">Checked live as you write, by the rules the site's pages were written to: Yoast's SEO and readability rules, the owner's banned phrases, and no dashes.</p>
@@ -240,6 +320,9 @@
         save: "{{ route('anisenso-site-pages.save') }}?id=" + ID,
         upload: "{{ route('anisenso-site-pages.upload') }}?id=" + ID,
         reset: "{{ route('anisenso-site-pages.reset') }}?id=" + ID,
+        write: "{{ route('anisenso-site-pages.write') }}?id=" + ID,
+        writeState: "{{ route('anisenso-site-pages.write-state') }}?id=" + ID,
+        keywords: "{{ route('anisenso-site-pages.keywords') }}?id=" + ID,
         token: "{{ route('anisenso-site-pages.token') }}",
         site: @json(rtrim((string) config('anisystem.url'), '/')),
     };
@@ -353,14 +436,16 @@
     function fillPage() {
         $$('[data-f]', $('.view[data-view="page"]')).forEach((el) => {
             const f = el.dataset.f;
-            const v = f.startsWith('hero.') ? (PAGE.heroImage || {})[f.slice(5)] : (f === 'keywords' ? (PAGE.keywords || []).join(', ') : PAGE[f]);
+            const v = f.startsWith('hero.') ? (PAGE.heroImage || {})[f.slice(5)] : (f === 'keywords' ? (PAGE.keywords || []).join(', ') : (f === 'showIn' ? (PAGE.showIn || 'both') : PAGE[f]));
             el.value = v ?? '';
         });
         paintPageBits();
     }
     function paintPageBits() {
         $('#spbName').textContent = PAGE.title || 'Untitled';
-        $('#spbUrl').textContent = U.site + '/' + PAGE.section + '/' + PAGE.slug;
+        const path = (PAGE.section === 'questions' ? 'question' : PAGE.section) + '/' + PAGE.slug;
+        $('#spbUrl').textContent = U.site + '/' + path;
+        $('#spbShowInRow').hidden = PAGE.section !== 'blog';
         $('#spbHeroImg').src = img((PAGE.heroImage || {}).src) || '';
         const mt = (PAGE.metaTitle || '').length, md = (PAGE.metaDescription || '').length;
         $('#cMt').textContent = mt + ' / 60'; $('#cMt').className = 'count ' + (mt && mt <= 60 ? 'ok' : 'bad');
@@ -678,12 +763,135 @@
             .map((o) => `<div class="${o.lvl}"><i class="d"></i><span>${esc(o.say)}${o.why ? `<small>${esc(o.why)}</small>` : ''}</span></div>`).join('');
     }
 
+    // ---------- Write with Anee ----------
+    let aiMode = 'new', aiPicked = new Set(), aiBackup = null, aiT0 = 0, aiTick = null, aiOpened = false;
+    const post = async (url, body) => {
+        const res = await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, Accept: 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || j.success === false) throw new Error(j.message || 'anee.io did not answer.');
+        return j;
+    };
+    const getJ = async (url) => {
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || j.success === false) { const e = new Error(j.message || 'anee.io did not answer.'); e.failed = (j.data || {}).status === 'failed'; throw e; }
+        return j;
+    };
+    function aiOpen() {
+        if (aiOpened) return;
+        aiOpened = true;
+        $('#aiTopic').value = PAGE.title || '';
+        $('#aiFocus').value = PAGE.focusKeyword || '';
+        $('#aiLang').value = PAGE.lang === 'tl' ? 'tl' : 'en';
+        (PAGE.keywords || []).forEach((k) => aiPicked.add(k));
+        // A page with words already on it is improved by default.
+        const filled = (PAGE.blocks || []).length > 2;
+        aiMode = filled ? 'improve' : 'new';
+        $$('#aiMode [data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === aiMode));
+        if ($('#aiTopic').value.trim()) aiFind();
+    }
+    async function aiFind() {
+        const text = ($('#aiTopic').value + ' ' + $('#aiFocus').value).trim();
+        if (!text) { toastr.info('Type the topic first.'); return; }
+        $('#aiKws').innerHTML = '<span class="text-secondary small"><i class="bx bx-loader-alt bx-spin"></i> Finding keywords…</span>';
+        try {
+            const j = await getJ(U.keywords + '&text=' + encodeURIComponent(text));
+            const list = (j.data || {}).keywords || [];
+            $('#aiKwList').innerHTML = list.map((k) => `<option value="${esc(k.keyword)}">`).join('');
+            const all = [...new Set([...aiPicked, ...list.map((k) => k.keyword)])];
+            const vol = Object.fromEntries(list.map((k) => [k.keyword, k.volume]));
+            $('#aiKws').innerHTML = all.length ? all.map((k) => `<button type="button" class="kw ${aiPicked.has(k) ? 'is-on' : ''}" data-kw="${esc(k)}">${esc(k)}${vol[k] ? `<small>${Number(vol[k]).toLocaleString()}</small>` : ''}</button>`).join('')
+                : '<span class="text-secondary small">No keywords near that topic yet. Add some in SEO keywords.</span>';
+        } catch (err) { $('#aiKws').innerHTML = `<span class="text-danger small">${esc(err.message)}</span>`; }
+    }
+    $('#aiFind').addEventListener('click', aiFind);
+    $('#aiKws').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-kw]');
+        if (!b) return;
+        const k = b.dataset.kw;
+        aiPicked.has(k) ? aiPicked.delete(k) : aiPicked.add(k);
+        b.classList.toggle('is-on', aiPicked.has(k));
+    });
+    $('#aiMode').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-mode]');
+        if (!b) return;
+        aiMode = b.dataset.mode;
+        $$('#aiMode [data-mode]').forEach((x) => x.classList.toggle('active', x === b));
+    });
+    const AI_PHASES = { start: ['Getting started', 2, 8, 12], research: ['Reading the web', 8, 50, 110], document: ['Writing the page', 50, 92, 90], 'document-json': ['Tidying the page', 92, 97, 30] };
+    let aiPct = 0, aiPhase = 'start', aiPhaseAt = 0;
+    function aiPaint() {
+        const [label, lo, hi, tau] = AI_PHASES[aiPhase] || AI_PHASES.start;
+        const t = (Date.now() - aiPhaseAt) / 1000;
+        aiPct = Math.max(aiPct, lo + (hi - lo) * (1 - Math.exp(-t / tau)));
+        $('#aiBar').style.width = Math.round(aiPct) + '%';
+        $('#aiPhase').textContent = label + '…';
+        const s = Math.round((Date.now() - aiT0) / 1000);
+        $('#aiClock').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
+    function aiApply(p) {
+        aiBackup = JSON.parse(JSON.stringify(PAGE));
+        ['title', 'metaTitle', 'metaDescription', 'focusKeyword', 'excerpt', 'lang'].forEach((k) => { if (p[k]) PAGE[k] = p[k]; });
+        if (p.category && !PAGE.category) PAGE.category = p.category;
+        if (Array.isArray(p.keywords)) PAGE.keywords = p.keywords;
+        if (Array.isArray(p.blocks) && p.blocks.length) PAGE.blocks = p.blocks;
+        // A live page keeps its address: moving it breaks every link to it.
+        if (p.slug && PAGE.status !== 'published' && aiMode === 'new') PAGE.slug = p.slug;
+        fillPage();
+        changed(true);
+        $('#aiDone').hidden = false;
+    }
+    $('#aiUndo').addEventListener('click', () => {
+        if (!aiBackup) return;
+        PAGE = aiBackup; aiBackup = null;
+        fillPage(); changed(true);
+        $('#aiDone').hidden = true;
+        toastr.info('The page is back as it was.');
+    });
+    $('#aiGo').addEventListener('click', async () => {
+        const topic = $('#aiTopic').value.trim();
+        if (!topic) { toastr.error('Say what the page is about.'); $('#aiTopic').focus(); return; }
+        if (aiMode === 'new' && (PAGE.blocks || []).length > 2 && !confirm('Anee writes a whole new page, and it replaces the words on this one (you can put them back). Go on?')) return;
+        const go = $('#aiGo');
+        go.disabled = true;
+        $('#aiDone').hidden = true;
+        $('#aiRun').hidden = false;
+        aiT0 = Date.now(); aiPhaseAt = Date.now(); aiPhase = 'start'; aiPct = 0;
+        clearInterval(aiTick); aiTick = setInterval(aiPaint, 700); aiPaint();
+        try {
+            let j = await post(U.write, {
+                mode: aiMode, topic, focusKeyword: $('#aiFocus').value.trim() || null, keywords: [...aiPicked],
+                lang: $('#aiLang').value, notes: $('#aiNotes').value.trim() || null, research: $('#aiResearch').checked,
+                current: aiMode === 'improve' ? { title: PAGE.title, excerpt: PAGE.excerpt, metaTitle: PAGE.metaTitle, metaDescription: PAGE.metaDescription, focusKeyword: PAGE.focusKeyword, blocks: PAGE.blocks } : null,
+            });
+            let d = j.data || {};
+            const job = d.id;
+            for (let i = 0; d.status !== 'ready' && i < 200; i++) {
+                await new Promise((r) => setTimeout(r, 4000));
+                try { d = (await getJ(U.writeState + '&job=' + job)).data || {}; }
+                catch (err) { if (err.failed) throw err; continue; }
+                if (d.phase && d.phase !== aiPhase) { aiPhase = d.phase; aiPhaseAt = Date.now(); }
+            }
+            if (d.status !== 'ready' || !d.page) throw new Error('Anee is still writing. Try again in a minute.');
+            aiPct = 100; aiPaint();
+            aiApply(d.page);
+            toastr.success('Anee wrote the page. Check it, then Save.');
+        } catch (err) {
+            toastr.error(err.message || 'Anee could not write that page.');
+        } finally {
+            clearInterval(aiTick);
+            go.disabled = false;
+            setTimeout(() => { $('#aiRun').hidden = true; }, 600);
+        }
+    });
+
     // ---------- tabs ----------
     $('#spbTabs').addEventListener('click', (e) => {
         const b = e.target.closest('[data-view]');
         if (!b) return;
         $$('#spbTabs button').forEach((x) => x.classList.toggle('is-on', x === b));
         $$('#spb .view').forEach((v) => v.classList.toggle('is-on', v.dataset.view === b.dataset.view));
+        if (b.dataset.view === 'ai') aiOpen();
     });
 
     // ---------- saving ----------

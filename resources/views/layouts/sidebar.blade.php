@@ -149,8 +149,14 @@
                                 <span key="t-anisenso-site-pages">Website pages</span>
                             </a>
                         </li>
-                        <li class="{{ request()->is('anisenso-seo*') ? 'mm-active' : '' }}">
-                            <a href="{{ route('anisenso-seo.index') }}" class="waves-effect {{ request()->is('anisenso-seo*') ? 'active' : '' }}">
+                        <li class="{{ request()->is('anisenso-seo-keywords*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-seo-keywords.index') }}" class="waves-effect {{ request()->is('anisenso-seo-keywords*') ? 'active' : '' }}">
+                                <i class="bx bx-purchase-tag-alt"></i>
+                                <span key="t-anisenso-seo-keywords">SEO keywords</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('anisenso-seo') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-seo.index') }}" class="waves-effect {{ request()->is('anisenso-seo') ? 'active' : '' }}">
                                 <i class="bx bx-search-alt"></i>
                                 <span key="t-anisenso-seo">Search indexing</span>
                             </a>

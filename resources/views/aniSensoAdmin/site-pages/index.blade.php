@@ -68,13 +68,18 @@
                         <div class="t"><a href="{{ route('anisenso-site-pages.build', ['id' => $r->id]) }}">{{ $r->title }}</a></div>
                         <div class="acts">
                             <span class="badge {{ $r->status === 'published' ? 'bg-success' : 'bg-secondary' }} align-self-center" data-badge>{{ $r->status === 'published' ? 'Live' : 'Draft' }}</span>
+                            @if ($r->section === 'blog')
+                                @php $shown = $r->showIn ?? 'both'; @endphp
+                                <span class="badge align-self-center {{ $shown === 'tech' ? 'bg-info-subtle text-info' : ($shown === 'public' ? 'bg-light text-secondary' : 'bg-primary-subtle text-primary') }}"
+                                      title="Where this post is shown">{{ $shown === 'tech' ? "Technician's Blog" : ($shown === 'public' ? 'Public blog' : "Blog + Technician's Blog") }}</span>
+                            @endif
                             <a class="btn btn-sm btn-primary" href="{{ route('anisenso-site-pages.build', ['id' => $r->id]) }}"><i class="bx bx-customize"></i> Build</a>
                             <a class="btn btn-sm btn-light" href="{{ $r->liveUrl }}" target="_blank" rel="noopener" title="Open on anee.io"><i class="bx bx-link-external"></i></a>
                             <button type="button" class="btn btn-sm btn-light" data-toggle title="Publish or take down"><i class="bx {{ $r->status === 'published' ? 'bx-hide' : 'bx-show' }}"></i></button>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-del title="Remove"><i class="bx bx-trash"></i></button>
                         </div>
                         <div class="s">
-                            /{{ $r->section }}/{{ $r->slug }} · {{ $r->category ?: 'No category' }} · {{ number_format($r->words) }} words
+                            /{{ $r->section === 'questions' ? 'question' : $r->section }}/{{ $r->slug }} · {{ $r->category ?: 'No category' }} · {{ number_format($r->words) }} words
                             @if ($r->focusKeyword) · <span class="sp-kw">{{ $r->focusKeyword }}</span>@endif
                             @if ($r->lang === 'tl') · Tagalog @endif
                             @if ($r->editedAt) · edited by {{ $r->editedBy ?: 'an admin' }} @endif
