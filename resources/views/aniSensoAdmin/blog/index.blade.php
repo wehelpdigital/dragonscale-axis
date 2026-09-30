@@ -21,6 +21,7 @@
                         <div>
                             <h4 class="card-title mb-1 text-dark">Articles</h4>
                             <p class="text-secondary mb-0">Publish guides for the community. Publishing notifies every member.</p>
+                            <p class="text-secondary mb-0 small">Articles marked <span class="badge bg-primary-subtle text-primary">Website page</span> are the public site's guides and blog, copied in by anee.io. Change them in <a href="{{ route('anisenso-site-pages.index') }}">Website pages</a> and the article follows.</p>
                         </div>
                         <a href="{{ route('anisenso-blog.create') }}" class="btn btn-primary"><i class="bx bx-plus"></i> New article</a>
                     </div>
@@ -33,7 +34,9 @@
                             <tbody>
                             @forelse($posts as $post)
                                 <tr data-row="{{ $post->id }}">
-                                    <td class="text-dark fw-semibold">{{ $post->title }}</td>
+                                    <td class="text-dark fw-semibold">{{ $post->title }}
+                                        @if($post->sitePageId)<span class="badge bg-primary-subtle text-primary ms-1">Website page</span>@endif
+                                    </td>
                                     <td class="text-secondary">{{ $post->authorName ?: '—' }}</td>
                                     <td>
                                         @if($post->isPublished)<span class="badge bg-success">Published</span>
@@ -49,9 +52,13 @@
                                     </td>
                                     <td class="text-secondary">{{ $post->publishedAt ? $post->publishedAt->format('M j, Y') : '—' }}</td>
                                     <td class="text-end">
+                                        @if($post->sitePageId)
+                                            <a href="{{ route('anisenso-site-pages.build', ['id' => $post->sitePageId]) }}" class="btn btn-sm btn-outline-primary" title="Edit the website page this article follows"><i class="bx bx-globe"></i> Edit page</a>
+                                        @else
                                         <a href="{{ route('anisenso-blog.edit', ['id' => $post->id]) }}" class="btn btn-sm btn-soft-primary"><i class="bx bx-edit"></i></a>
                                     <a href="{{ route('anisenso-blog.build', ['id' => $post->id]) }}" class="btn btn-sm btn-outline-primary" title="Build the article"><i class="bx bx-layer"></i></a>
                                         <button type="button" class="btn btn-sm btn-soft-danger btn-del" data-id="{{ $post->id }}"><i class="bx bx-trash"></i></button>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

@@ -43,6 +43,10 @@ class AniSensoBlogBuilderController extends Controller
     public function page(Request $request)
     {
         $post = $this->post($request);
+        // Written from its website page on anee.io (TechBlog), not here.
+        if ($post->sitePageId) {
+            return redirect()->route('anisenso-site-pages.build', ['id' => $post->sitePageId]);
+        }
 
         return view('aniSensoAdmin.blog.build', [
             'post' => $post,

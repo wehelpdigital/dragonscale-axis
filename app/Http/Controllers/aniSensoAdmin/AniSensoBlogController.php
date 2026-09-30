@@ -36,6 +36,12 @@ class AniSensoBlogController extends Controller
     public function edit($id)
     {
         $post = AsCommunityBlogPost::active()->where('id', $id)->firstOrFail();
+        // An article that follows a website page is written from the page
+        // (anee.io's TechBlog redraws it); an edit here would be undone.
+        if ($post->sitePageId) {
+            return redirect()->route('anisenso-site-pages.build', ['id' => $post->sitePageId])
+                ->with('success', 'This article follows a website page. Edit the page and the article follows it.');
+        }
 
         return view('aniSensoAdmin.blog.form', ['post' => $post, 'mode' => 'edit']);
     }
