@@ -78,10 +78,51 @@ class AniSensoAiClient
             return [];
         }
 
-        return isset($image['mime']) ? [$image] : array_values(array_filter(
+        $list = isset($image['mime']) ? [$image] : array_values(array_filter(
             $image,
             fn ($p) => is_array($p) && isset($p['mime'], $p['data'])
         ));
+
+        return array_map(fn ($p) => self::fitted($p), $list);
+    }
+
+    /**
+     * A picture at a size the model takes: no longer than 1568 px on its long
+     * side, re-encoded as JPEG when it came big. A client's 8 MB phone photo
+     * in a thread was a request the provider refused. The twin of anee.io's
+     * App\Support\ModelImage::fitEncoded; anything GD cannot read goes as it is.
+     *
+     * @param  array{mime:string,data:string}  $p
+     * @return array{mime:string,data:string}
+     */
+    private static function fitted(array $p): array
+    {
+        $mime = (string) ($p['mime'] ?? '');
+        $data = (string) ($p['data'] ?? '');
+        if (! str_starts_with($mime, 'image/') || ! function_exists('imagecreatefromstring')) {
+            return $p;
+        }
+        $binary = base64_decode($data, true);
+        $size = $binary !== false ? @getimagesizefromstring($binary) : false;
+        if (! $size || (strlen($binary) <= 1_500_000 && max($size[0], $size[1]) <= 1568)) {
+            return $p;
+        }
+        $src = @imagecreatefromstring($binary);
+        if (! $src) {
+            return $p;
+        }
+        [$w, $h] = [imagesx($src), imagesy($src)];
+        $scale = min(1, 1568 / max($w, $h));
+        $dst = imagecreatetruecolor(max(1, (int) round($w * $scale)), max(1, (int) round($h * $scale)));
+        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), $w, $h);
+        imagedestroy($src);
+        ob_start();
+        imagejpeg($dst, null, 85);
+        $out = (string) ob_get_clean();
+        imagedestroy($dst);
+
+        return $out !== '' ? ['mime' => 'image/jpeg', 'data' => base64_encode($out)] : $p;
     }
 
     private function askClaude(AsAiSetting $s, string $key, array $history, string $prompt, array $images): array
