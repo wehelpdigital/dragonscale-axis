@@ -131,6 +131,12 @@
                                 <span key="t-anisenso-ads">Ads (free plan)</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-orders*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-orders.index') }}" class="waves-effect {{ request()->is('anisenso-orders*') ? 'active' : '' }}">
+                                <i class="bx bx-receipt"></i>
+                                <span key="t-anisenso-orders">Orders</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-landing*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-landing.index') }}" class="waves-effect {{ request()->is('anisenso-landing*') ? 'active' : '' }}">
                                 <i class="bx bx-rocket"></i>

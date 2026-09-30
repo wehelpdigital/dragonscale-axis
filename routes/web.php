@@ -480,6 +480,14 @@ Route::post('/anisenso-seo', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoCon
 Route::get('/anisenso-landing', [App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::class, 'index'])->name('anisenso-landing.index')->middleware('auth');
 Route::post('/anisenso-landing', [App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::class, 'save'])->name('anisenso-landing.save')->middleware('auth');
 Route::post('/anisenso-landing-reset', [App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::class, 'reset'])->name('anisenso-landing.reset')->middleware('auth');
+// AniSystem > Orders: anee.io purchases paid by hand (GCash, bank, PayPal). Read
+// here from the shared database; decided by anee.io through /mother-api/orders.
+Route::get('/anisenso-orders', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'index'])->name('anisenso-orders.index')->middleware('auth');
+Route::get('/anisenso-orders-data', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'data'])->name('anisenso-orders.data')->middleware('auth');
+Route::get('/anisenso-orders-one', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'one'])->name('anisenso-orders.one')->middleware('auth');
+Route::get('/anisenso-orders-file', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'file'])->name('anisenso-orders.file')->middleware('auth');
+Route::post('/anisenso-orders-act', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'act'])->name('anisenso-orders.act')->middleware('auth');
+Route::post('/anisenso-orders-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'saveSettings'])->name('anisenso-orders.settings')->middleware('auth');
 // What the technician has actually been answering: every client thread, the
 // personal ones and the Collab Room's team sessions, read-only.
 Route::get('/anisenso-ai-conversations-data', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'data'])->name('anisenso-ai-conversations.data')->middleware('auth');
