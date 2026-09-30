@@ -392,13 +392,13 @@ function loadDrawings(failed) {
                         : '<div class="dw-gone"><i class="bx bx-image-alt"></i></div>'}
                 <div class="dw-body">
                     <div class="dw-title">${esc(r.noteTitle || 'Untitled note')}</div>
-                    <div class="dw-meta">${r.team ? 'Team board' : 'Drawing pad'}${r.when ? ' · ' + esc(r.when) : ''}</div>
+                    <div class="dw-meta">${r.team ? 'Team board' : (r.shelf === 'own' ? 'Their own drawing (Draw)' : 'Drawing pad')}${r.when ? ' · ' + esc(r.when) : ''}</div>
                     <div class="dw-acts">
                         <button class="btn btn-sm btn-primary js-dw-edit"
                                 data-shelf="${esc(r.shelf)}" data-note="${r.noteId}" data-index="${r.index}"
                                 data-title="${esc(r.noteTitle || '')}" data-team="${r.team ? 1 : 0}"
                                 title="Open it in the drawing pad"><i class="bx bx-edit-alt"></i> Edit</button>
-                        <button class="btn btn-sm btn-light js-dw-note" data-shelf="${esc(r.shelf)}" data-id="${r.noteId}">Its note</button>
+                        ${r.shelf === 'own' ? '' : `<button class="btn btn-sm btn-light js-dw-note" data-shelf="${esc(r.shelf)}" data-id="${r.noteId}">Its note</button>`}
                         <button class="btn btn-sm btn-outline-danger js-dw-del"
                                 data-shelf="${esc(r.shelf)}" data-note="${r.noteId}" data-index="${r.index}"><i class="bx bx-trash"></i></button>
                     </div>

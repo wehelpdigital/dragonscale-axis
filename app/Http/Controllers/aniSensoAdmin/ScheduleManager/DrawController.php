@@ -34,6 +34,9 @@ class DrawController extends BaseScheduleController
         'note' => ['table' => 'as_schedule_notes', 'title' => 'title', 'body' => 'body'],
         'inline' => ['table' => 'as_inline_notes', 'title' => 'title', 'body' => 'content'],
         'date' => ['table' => 'as_schedule_date_notes', 'title' => null, 'body' => 'noteContent'],
+        // The grower's own drawings: anee's Draw (Global and Quick Tools)
+        // keeps a new drawing as a note of theirs in no season.
+        'own' => ['table' => 'as_schedule_notes', 'title' => 'title', 'body' => 'body'],
     ];
 
     /** A drawing this size is a mistake somewhere, not a drawing. */
@@ -45,7 +48,7 @@ class DrawController extends BaseScheduleController
     public function one(Request $request)
     {
         $schedule = $this->scheduleFromRequest($request);
-        [$spec, $note] = $this->holder($request, $schedule->id);
+        [$spec, $note] = $this->holder($request, $schedule);
         if (! $note) {
             return $this->jsonFail('That drawing is no longer here.', 404);
         }
@@ -93,7 +96,7 @@ class DrawController extends BaseScheduleController
     public function picture(Request $request)
     {
         $schedule = $this->scheduleFromRequest($request);
-        [$spec, $note] = $this->holder($request, $schedule->id);
+        [$spec, $note] = $this->holder($request, $schedule);
         if (! $note) {
             abort(404);
         }
@@ -154,7 +157,7 @@ class DrawController extends BaseScheduleController
     public function save(Request $request)
     {
         $schedule = $this->scheduleFromRequest($request);
-        [$spec, $note] = $this->holder($request, $schedule->id);
+        [$spec, $note] = $this->holder($request, $schedule);
         if (! $note) {
             return $this->jsonFail('That drawing is no longer here.', 404);
         }
@@ -219,7 +222,7 @@ class DrawController extends BaseScheduleController
      *
      * @return array{0: array, 1: ?object}
      */
-    private function holder(Request $request, int $scheduleId): array
+    private function holder(Request $request, $schedule): array
     {
         $shelf = (string) ($request->input('shelf') ?: $request->query('shelf'));
         if (! isset(self::SHELVES[$shelf])) {
@@ -229,7 +232,9 @@ class DrawController extends BaseScheduleController
 
         $note = DB::table($spec['table'])
             ->where('id', (int) ($request->input('noteId') ?: $request->query('noteId')))
-            ->where('croppingScheduleId', $scheduleId)
+            ->when($shelf === 'own',
+                fn ($q) => $q->where('croppingScheduleId', 0)->where('userId', (int) ($schedule->anisystemUserId ?? -1)),
+                fn ($q) => $q->where('croppingScheduleId', $schedule->id))
             ->where('deleteStatus', 1)
             ->first();
 

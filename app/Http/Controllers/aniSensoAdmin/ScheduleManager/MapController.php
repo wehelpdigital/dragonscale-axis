@@ -181,9 +181,9 @@ class MapController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
-        $saves = DB::table('as_schedule_map_saves')
-            ->where('scheduleId', $schedule->id)
-            ->where('deleteStatus', 1)
+        // A season's maps are linked to it now, and the grower's own maps
+        // count too (anee moved Maps to Global and Quick Tools).
+        $saves = \App\Support\AnisystemMaps::forSeason($schedule)
             ->orderByDesc('updated_at')
             ->limit(120)
             ->get(['id', 'title', 'source', 'objects', 'noteId', 'updated_at'])
@@ -246,10 +246,8 @@ class MapController extends BaseScheduleController
         ];
 
         $existing = $request->filled('saveId')
-            ? DB::table('as_schedule_map_saves')
-                ->where('scheduleId', $schedule->id)
+            ? \App\Support\AnisystemMaps::forSeason($schedule)
                 ->where('id', (int) $request->input('saveId'))
-                ->where('deleteStatus', 1)
                 ->first()
             : null;
 
@@ -257,14 +255,20 @@ class MapController extends BaseScheduleController
             DB::table('as_schedule_map_saves')->where('id', $existing->id)->update($payload);
             $id = (int) $existing->id;
         } else {
+            // A map drawn here is the GROWER's, like every map on anee now:
+            // it lands in their Maps (scheduleId 0, their userId), remembers
+            // it was drawn in this season, and is linked to it.
+            $owner = (int) ($schedule->anisystemUserId ?? 0);
             $id = (int) DB::table('as_schedule_map_saves')->insertGetId($payload + [
-                'scheduleId' => $schedule->id,
-                'userId' => AniSensoTechnician::id(),
+                'scheduleId' => $owner > 0 ? 0 : $schedule->id,
+                'originScheduleId' => $schedule->id,
+                'userId' => $owner > 0 ? $owner : AniSensoTechnician::id(),
                 'source' => 'solo',
                 'deleteStatus' => 1,
                 'created_at' => now(),
             ]);
         }
+        \App\Support\AnisystemMaps::link($id, (int) $schedule->id);
 
         return $this->jsonOk('Map saved.', ['data' => ['id' => $id, 'title' => $title, 'shapes' => count($objects)]]);
     }
@@ -279,10 +283,8 @@ class MapController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
-        $save = DB::table('as_schedule_map_saves')
-            ->where('scheduleId', $schedule->id)
+        $save = \App\Support\AnisystemMaps::forSeason($schedule)
             ->where('id', (int) $request->input('id'))
-            ->where('deleteStatus', 1)
             ->first();
         if (! $save) {
             return $this->jsonFail('That saved map no longer exists.', 404);

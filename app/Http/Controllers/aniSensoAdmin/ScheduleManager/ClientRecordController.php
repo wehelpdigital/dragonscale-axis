@@ -44,9 +44,8 @@ class ClientRecordController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
-        $rows = DB::table('as_schedule_map_saves')
-            ->where('scheduleId', $schedule->id)
-            ->where('deleteStatus', 1)
+        // Linked to the season, or the grower's own (anee's Maps are global).
+        $rows = \App\Support\AnisystemMaps::forSeason($schedule)
             ->orderByDesc('updated_at')
             ->limit(300)
             ->get()
@@ -86,10 +85,8 @@ class ClientRecordController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
-        $map = DB::table('as_schedule_map_saves')
+        $map = \App\Support\AnisystemMaps::forSeason($schedule)
             ->where('id', $this->queryId($request))
-            ->where('scheduleId', $schedule->id)
-            ->where('deleteStatus', 1)
             ->first();
 
         if (! $map) {
@@ -122,8 +119,7 @@ class ClientRecordController extends BaseScheduleController
         $schedule = $this->scheduleFromRequest($request);
         $id = $this->queryId($request);
 
-        $map = DB::table('as_schedule_map_saves')
-            ->where('id', $id)->where('scheduleId', $schedule->id)->where('deleteStatus', 1)->first();
+        $map = \App\Support\AnisystemMaps::forSeason($schedule)->where('id', $id)->first();
         if (! $map) {
             return $this->jsonFail('That map is gone.', 404);
         }
@@ -201,10 +197,8 @@ class ClientRecordController extends BaseScheduleController
             return $this->jsonFail('That description is too long.', 422);
         }
 
-        $map = DB::table('as_schedule_map_saves')
+        $map = \App\Support\AnisystemMaps::forSeason($schedule)
             ->where('id', $this->queryId($request))
-            ->where('scheduleId', $schedule->id)
-            ->where('deleteStatus', 1)
             ->first();
         if (! $map) {
             return $this->jsonFail('That map is gone.', 404);
@@ -283,12 +277,17 @@ class ClientRecordController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
-        $hit = DB::table('as_schedule_map_saves')
-            ->where('id', $this->queryId($request))
-            ->where('scheduleId', $schedule->id)
-            ->update(['deleteStatus' => 0, 'updated_at' => now()]);
+        $map = \App\Support\AnisystemMaps::forSeason($schedule)->where('id', $this->queryId($request))->first();
+        if (! $map) {
+            return $this->jsonFail('That map is gone.', 404);
+        }
+        // The map is the grower's and may be worn elsewhere; removing it
+        // takes it off every lot and season, as anee's own delete does.
+        DB::table('as_schedule_map_saves')->where('id', $map->id)->update(['deleteStatus' => 0, 'updated_at' => now()]);
+        DB::table('as_schedule_lots')->where('mapSaveId', $map->id)->update(['mapSaveId' => null]);
+        DB::table('as_schedule_map_links')->where('saveId', $map->id)->delete();
 
-        return $hit ? $this->jsonOk('Map removed.') : $this->jsonFail('That map is gone.', 404);
+        return $this->jsonOk('Map removed.');
     }
 
     // ------------------------------------------------------------ drawings --
@@ -350,6 +349,31 @@ class ClientRecordController extends BaseScheduleController
             }
         }
 
+        // And the grower's own drawings: anee's Draw keeps a new drawing
+        // as a note of the grower's own (croppingScheduleId 0), in no season.
+        $owner = (int) ($schedule->anisystemUserId ?? 0);
+        if ($owner > 0) {
+            foreach (DB::table('as_schedule_notes')->where('deleteStatus', 1)->where('croppingScheduleId', 0)->where('userId', $owner)
+                ->where('media', 'like', '%"drawing"%')->orderByDesc('id')->limit(300)->get() as $note) {
+                foreach ($this->mediaOf($note->media) as $i => $m) {
+                    $path = (string) ($m['path'] ?? '');
+                    if ($path === '' || ($m['type'] ?? '') !== 'drawing') {
+                        continue;
+                    }
+                    $rows[] = [
+                        'shelf' => 'own',
+                        'noteId' => (int) $note->id,
+                        'index' => (int) $i,
+                        'noteTitle' => trim((string) ($note->title ?? '')),
+                        'team' => false,
+                        'url' => AnisystemMedia::url($path),
+                        'when' => (string) ($note->updated_at ?? ''),
+                        'sortKey' => isset($note->updated_at) ? strtotime((string) $note->updated_at) : 0,
+                    ];
+                }
+            }
+        }
+
         usort($rows, fn ($a, $b) => $b['sortKey'] <=> $a['sortKey']);
 
         return $this->jsonOk('OK', ['data' => array_values($rows)]);
@@ -366,15 +390,18 @@ class ClientRecordController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
         $shelf = (string) $request->query('shelf', '');
-        if (! isset(self::NOTE_SHELVES[$shelf])) {
+        $own = $shelf === 'own';   // the grower's own drawing (anee's Draw)
+        if (! $own && ! isset(self::NOTE_SHELVES[$shelf])) {
             return $this->jsonFail('Unknown note shelf.', 422);
         }
-        $table = self::NOTE_SHELVES[$shelf]['table'];
+        $table = $own ? 'as_schedule_notes' : self::NOTE_SHELVES[$shelf]['table'];
         $index = (int) $request->query('index', -1);
 
         $note = DB::table($table)
             ->where('id', (int) $request->query('noteId'))
-            ->where('croppingScheduleId', $schedule->id)
+            ->when($own,
+                fn ($q) => $q->where('croppingScheduleId', 0)->where('userId', (int) ($schedule->anisystemUserId ?? 0)),
+                fn ($q) => $q->where('croppingScheduleId', $schedule->id))
             ->where('deleteStatus', 1)
             ->first();
         if (! $note) {

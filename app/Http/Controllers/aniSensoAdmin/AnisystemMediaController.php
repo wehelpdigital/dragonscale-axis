@@ -450,9 +450,11 @@ class AnisystemMediaController extends Controller
     public function mapsData(Request $request)
     {
         try {
+            // A map is its owner's now (scheduleId 0); the season shown is
+            // the one it was drawn in.
             $query = DB::table('as_schedule_map_saves as m')
                 ->leftJoin('anisystem_users as u', 'u.id', '=', 'm.userId')
-                ->leftJoin('as_cropping_schedules as s', 's.id', '=', 'm.scheduleId')
+                ->leftJoin('as_cropping_schedules as s', 's.id', '=', DB::raw('COALESCE(NULLIF(m.scheduleId, 0), m.originScheduleId)'))
                 ->where('m.deleteStatus', 1)
                 ->selectRaw("
                     m.id, m.title, m.source, m.objects, m.noteId, m.created_at, m.updated_at,
@@ -463,7 +465,12 @@ class AnisystemMediaController extends Controller
             $this->applyCommonFilters($query, $request, 'm.updated_at', [
                 'm.title', 'u.firstName', 'u.lastName', 'u.email', 's.title',
             ]);
-            $this->onlySchedule($query, $request, 'm.scheduleId');
+            // One season's maps: drawn there, or linked to it.
+            if ($request->filled('scheduleId')) {
+                $sid = (int) $request->query('scheduleId');
+                $query->where(fn ($w) => $w->where('m.scheduleId', $sid)->orWhere('m.originScheduleId', $sid)
+                    ->orWhereIn('m.id', DB::table('as_schedule_map_links')->where('scheduleId', $sid)->select('saveId')));
+            }
 
             if ($request->filled('source')) {
                 $query->where('m.source', $request->query('source'));
@@ -490,7 +497,7 @@ class AnisystemMediaController extends Controller
     {
         $map = DB::table('as_schedule_map_saves as m')
             ->leftJoin('anisystem_users as u', 'u.id', '=', 'm.userId')
-            ->leftJoin('as_cropping_schedules as s', 's.id', '=', 'm.scheduleId')
+            ->leftJoin('as_cropping_schedules as s', 's.id', '=', DB::raw('COALESCE(NULLIF(m.scheduleId, 0), m.originScheduleId)'))
             ->where('m.id', (int) $request->query('id'))->where('m.deleteStatus', 1)
             ->selectRaw("m.*, TRIM(CONCAT(COALESCE(u.firstName,''),' ',COALESCE(u.lastName,''))) as clientName, u.email as clientEmail, s.title as scheduleTitle")
             ->first();
@@ -522,7 +529,13 @@ class AnisystemMediaController extends Controller
 
     public function mapDestroy(Request $request)
     {
-        return $this->softRemove('as_schedule_map_saves', (int) $request->query('id'), 'Map removed.');
+        $id = (int) $request->query('id');
+        $res = $this->softRemove('as_schedule_map_saves', $id, 'Map removed.');
+        // Off every lot and season that used it, as anee's own delete does.
+        DB::table('as_schedule_lots')->where('mapSaveId', $id)->update(['mapSaveId' => null]);
+        DB::table('as_schedule_map_links')->where('saveId', $id)->delete();
+
+        return $res;
     }
 
     // =====================================================================

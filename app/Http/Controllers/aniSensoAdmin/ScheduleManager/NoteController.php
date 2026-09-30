@@ -75,9 +75,7 @@ class NoteController extends BaseScheduleController
         // Which saved map belongs to which note, read once. A map chip should
         // open the map, and the map is a save — the picture on the note is
         // only its likeness.
-        $mapSaves = DB::table('as_schedule_map_saves')
-            ->where('scheduleId', $schedule->id)
-            ->where('deleteStatus', 1)
+        $mapSaves = \App\Support\AnisystemMaps::forSeason($schedule)
             ->whereNotNull('noteId')
             ->get(['id', 'title', 'noteId'])
             ->keyBy('noteId')
