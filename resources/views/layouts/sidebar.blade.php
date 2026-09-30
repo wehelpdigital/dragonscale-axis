@@ -143,6 +143,12 @@
                                 <span key="t-anisenso-landing">Landing page</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-site-pages*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-site-pages.index') }}" class="waves-effect {{ request()->is('anisenso-site-pages*') ? 'active' : '' }}">
+                                <i class="bx bx-customize"></i>
+                                <span key="t-anisenso-site-pages">Website pages</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-seo*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-seo.index') }}" class="waves-effect {{ request()->is('anisenso-seo*') ? 'active' : '' }}">
                                 <i class="bx bx-search-alt"></i>

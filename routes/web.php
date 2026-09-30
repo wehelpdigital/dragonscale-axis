@@ -488,6 +488,19 @@ Route::get('/anisenso-orders-one', [App\Http\Controllers\aniSensoAdmin\Anisystem
 Route::get('/anisenso-orders-file', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'file'])->name('anisenso-orders.file')->middleware('auth');
 Route::post('/anisenso-orders-act', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'act'])->name('anisenso-orders.act')->middleware('auth');
 Route::post('/anisenso-orders-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemOrdersController::class, 'saveSettings'])->name('anisenso-orders.settings')->middleware('auth');
+// AniSystem > Website pages: anee.io's guides, crop problems, blog and feature
+// pages (the shared as_site_pages table), edited in a block builder whose
+// preview is anee.io itself.
+Route::get('/anisenso-site-pages', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'index'])->name('anisenso-site-pages.index')->middleware('auth');
+Route::post('/anisenso-site-pages', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'store'])->name('anisenso-site-pages.store')->middleware('auth');
+Route::get('/anisenso-site-pages-build', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'build'])->name('anisenso-site-pages.build')->middleware('auth');
+Route::get('/anisenso-site-pages-data', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'data'])->name('anisenso-site-pages.data')->middleware('auth');
+Route::get('/anisenso-site-pages-token', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'previewToken'])->name('anisenso-site-pages.token')->middleware('auth');
+Route::post('/anisenso-site-pages-save', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'save'])->name('anisenso-site-pages.save')->middleware('auth');
+Route::post('/anisenso-site-pages-upload', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'upload'])->name('anisenso-site-pages.upload')->middleware('auth');
+Route::post('/anisenso-site-pages-toggle', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'toggle'])->name('anisenso-site-pages.toggle')->middleware('auth');
+Route::post('/anisenso-site-pages-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'destroy'])->name('anisenso-site-pages.destroy')->middleware('auth');
+Route::post('/anisenso-site-pages-reset', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'reset'])->name('anisenso-site-pages.reset')->middleware('auth');
 // What the technician has actually been answering: every client thread, the
 // personal ones and the Collab Room's team sessions, read-only.
 Route::get('/anisenso-ai-conversations-data', [App\Http\Controllers\aniSensoAdmin\AnisystemAiConversationsController::class, 'data'])->name('anisenso-ai-conversations.data')->middleware('auth');
