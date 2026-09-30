@@ -7,7 +7,10 @@ use App\Support\AniSensoTechnician;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use App\Support\AnisystemMedia;
 
 /**
  * The season's map, as something to draw on rather than something to list.
@@ -207,20 +210,27 @@ class MapController extends BaseScheduleController
     }
 
     /**
-     * File what is on the canvas under a name.
+     * File what is on the canvas, the three ways anee offers (2026-09-30):
      *
-     * Writes into a save that was named, or mints a new one. The picture the
-     * farmer app also files is not made here: it composes one in the browser
-     * from imagery it has already drawn, and the console's shelf redraws its
-     * cards from the shapes in the row, which survive a wiped disk anyway.
+     *   plain  just the map, named, reopenable from Maps. Nothing in Notes.
+     *   map    the map, and its picture filed as a note in the grower's own
+     *          notes (their Global Notes), tied to the map by noteId.
+     *   image  only the picture, as a note in this season's notebook.
+     *
+     * The picture is the one the browser composed (imagery, shapes and
+     * measurements); it is kept on this app's public disk under the "mm:"
+     * prefix anee reads its files by.
      */
     public function saveMap(Request $request)
     {
         $schedule = $this->scheduleFromRequest($request);
 
         $validator = Validator::make($request->all(), [
+            'mode' => 'nullable|in:plain,map,image',
             'saveId' => 'nullable|integer',
             'title' => 'nullable|string|max:180',
+            'description' => 'nullable|string|max:2000',
+            'image' => 'nullable|string',
         ]);
         if ($validator->fails()) {
             return $this->jsonFail($validator->errors()->first(), 422);
@@ -239,6 +249,35 @@ class MapController extends BaseScheduleController
         }
 
         $title = trim((string) $request->input('title')) ?: 'Map';
+        $mode = (string) ($request->input('mode') ?: 'plain');
+        // The autosave writes the shapes back into the open map and files
+        // nothing: a note per autosave would bury the notebook.
+        if ($request->boolean('quiet')) {
+            $mode = 'plain';
+        }
+        $owner = (int) ($schedule->anisystemUserId ?? 0);
+
+        // The picture, when this save files one.
+        $picture = null;
+        if ($mode !== 'plain') {
+            $binary = $this->pngFrom((string) $request->input('image', ''));
+            if ($binary !== null && strlen($binary) <= 12_000_000) {
+                $picture = 'anisystem/maps/' . $schedule->id . '/' . ($mode === 'map' ? 'map-' : 'mapimg-') . Str::random(24) . '.png';
+                Storage::disk('public')->put($picture, $binary);
+            }
+            if ($mode === 'image' && $picture === null) {
+                return $this->jsonFail('The picture of the map did not arrive, so there is nothing to file. Try again.', 422);
+            }
+        }
+        $description = trim((string) $request->input('description'));
+
+        // "Save as image note": a picture in the season's notebook, no map file.
+        if ($mode === 'image') {
+            $noteId = $this->fileNote($schedule->id, $owner ?: null, $title, $description !== '' ? $description : null, 'image', $picture);
+
+            return $this->jsonOk('Saved to the season\'s notebook as an image note.', ['data' => ['noteId' => $noteId]]);
+        }
+
         $payload = [
             'title' => mb_substr($title, 0, 180),
             'objects' => json_encode($objects),
@@ -270,7 +309,52 @@ class MapController extends BaseScheduleController
         }
         \App\Support\AnisystemMaps::link($id, (int) $schedule->id);
 
-        return $this->jsonOk('Map saved.', ['data' => ['id' => $id, 'title' => $title, 'shapes' => count($objects)]]);
+        // "Save map to notes": its picture goes to the grower's own notes (the
+        // season's notebook on an admin-owned schedule), and the map knows
+        // which note is its picture, as anee's do.
+        if ($mode === 'map') {
+            $noteId = $owner > 0
+                ? $this->fileNote(0, $owner, $title, $description, 'map', $picture)
+                : $this->fileNote($schedule->id, null, $title, $description, 'map', $picture);
+            DB::table('as_schedule_map_saves')->where('id', $id)->update(['noteId' => $noteId]);
+        }
+
+        return $this->jsonOk(
+            $existing ? 'Saved over “' . mb_substr($title, 0, 60) . '”.'
+                : ($mode === 'map' ? 'Map saved, and its picture is in the notes.' : 'Map saved.'),
+            ['data' => ['id' => $id, 'saveId' => $id, 'title' => $title, 'shapes' => count($objects)]]
+        );
+    }
+
+    /** A note carrying a map's picture. Returns its id. */
+    private function fileNote(int $bucket, ?int $userId, string $title, ?string $words, string $type, ?string $picture): int
+    {
+        $body = $type === 'map'
+            ? trim(($words ? $words . "\n\n" : '') . 'Saved map, tap View map to open it.')
+            : $words;
+
+        return (int) DB::table('as_schedule_notes')->insertGetId([
+            'croppingScheduleId' => $bucket,
+            'userId' => $userId,
+            'title' => mb_substr($title, 0, 180),
+            'body' => $body !== null && $body !== '' ? '<p>' . nl2br(e($body)) . '</p>' : null,
+            'media' => json_encode($picture ? [['type' => $type, 'path' => AnisystemMedia::REMOTE_PREFIX . $picture, 'poster' => null]] : []),
+            'sortOrder' => 0,
+            'deleteStatus' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /** The bytes behind a data URL, or null if it is not a PNG one. */
+    private function pngFrom(string $dataUrl): ?string
+    {
+        if (! preg_match('~^data:image/png;base64,~i', $dataUrl)) {
+            return null;
+        }
+        $binary = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1), true);
+
+        return ($binary === false || $binary === '') ? null : $binary;
     }
 
     /**
