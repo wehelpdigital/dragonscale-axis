@@ -322,6 +322,7 @@ Route::get('/anisenso-schedule-manager-map-saves', [App\Http\Controllers\aniSens
 Route::post('/anisenso-schedule-manager-map-save', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'saveMap'])->name('anisenso-schedule-manager.map.save')->middleware('auth');
 Route::post('/anisenso-schedule-manager-map-load', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'loadSave'])->name('anisenso-schedule-manager.map.load')->middleware('auth');
 Route::get('/anisenso-schedule-manager-map-basemap', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'basemap'])->name('anisenso-schedule-manager.map.basemap')->middleware('auth');
+Route::get('/anisenso-schedule-manager-map-places', [App\Http\Controllers\aniSensoAdmin\ScheduleManager\MapController::class, 'places'])->name('anisenso-schedule-manager.map.places')->middleware(['auth', 'throttle:30,1']);
 
 Route::get('/anisenso-schedule-manager-records-maps',              [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'maps'])->name('anisenso-schedule-manager.records.maps')->middleware('auth');
 Route::get('/anisenso-schedule-manager-records-map-one',           [App\Http\Controllers\aniSensoAdmin\ScheduleManager\ClientRecordController::class, 'mapShow'])->name('anisenso-schedule-manager.records.map.show')->middleware('auth');

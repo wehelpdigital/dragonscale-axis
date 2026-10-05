@@ -44,6 +44,17 @@ class MapController extends BaseScheduleController
     /** A canvas holds this many shapes; past it the map stops being a map. */
     private const MAX_SHAPES = 2000;
 
+    /**
+     * The search box: places by name (App\Support\PlaceSearch, OpenStreetMap
+     * asked from here). Once per Find, never per keystroke.
+     */
+    public function places(Request $request)
+    {
+        $words = mb_substr(trim((string) $request->query('q', '')), 0, 120);
+
+        return $this->jsonOk('OK', ['data' => ['places' => \App\Support\PlaceSearch::find($words)]]);
+    }
+
     public function objects(Request $request)
     {
         $schedule = $this->scheduleFromRequest($request);
