@@ -502,6 +502,13 @@ Route::post('/anisenso-site-pages-upload', [App\Http\Controllers\aniSensoAdmin\A
 Route::post('/anisenso-site-pages-write', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'write'])->name('anisenso-site-pages.write')->middleware('auth');
 Route::get('/anisenso-site-pages-write-state', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'writeState'])->name('anisenso-site-pages.write-state')->middleware('auth');
 Route::get('/anisenso-site-pages-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'keywords'])->name('anisenso-site-pages.keywords')->middleware('auth');
+// Latest in Agriculture: the RSS feeds anee.io's farm news roundups read, and their log.
+Route::get('/anisenso-news-feeds', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'index'])->name('anisenso-news-feeds.index')->middleware('auth');
+Route::post('/anisenso-news-feeds', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'store'])->name('anisenso-news-feeds.store')->middleware('auth');
+Route::post('/anisenso-news-feeds-update', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'update'])->name('anisenso-news-feeds.update')->middleware('auth');
+Route::post('/anisenso-news-feeds-delete', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'destroy'])->name('anisenso-news-feeds.destroy')->middleware('auth');
+Route::post('/anisenso-news-feeds-settings', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'settings'])->name('anisenso-news-feeds.settings')->middleware('auth');
+Route::post('/anisenso-news-feeds-run', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'run'])->name('anisenso-news-feeds.run')->middleware('auth');
 // SEO keywords (as_seo_keywords): the list anee.io writes toward, grown here.
 Route::get('/anisenso-seo-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoKeywordsController::class, 'index'])->name('anisenso-seo-keywords.index')->middleware('auth');
 Route::post('/anisenso-seo-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoKeywordsController::class, 'store'])->name('anisenso-seo-keywords.store')->middleware('auth');

@@ -35,7 +35,8 @@ class AnisystemSitePagesController extends Controller
         'pests' => 'Crop pests',
         'diseases' => 'Crop diseases',
         'weeds' => 'Weeds and grasses',
-        'blog' => 'Blog',
+        // The blog's name since 2026-10-07 (the address stays /blog).
+        'blog' => 'Latest in Agriculture',
         'features' => 'Features',
         // Try and Ask Anee's answers, written by anee.io at /question/{slug}.
         'questions' => "Farmers' questions",
