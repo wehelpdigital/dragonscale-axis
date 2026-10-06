@@ -47,7 +47,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                 <div>
                     <h4 class="card-title mb-1">anee.io's guides, blog and feature pages</h4>
-                    <p class="text-secondary mb-0">Every page of the public Philippine site's crop guides, crop problems, blog and feature pages. Open one to edit it in the drag and drop builder; the preview beside it is anee.io itself.</p>
+                    <p class="text-secondary mb-0">Every page of the public Philippine site's crop guides, crop pests, crop diseases, weeds, blog and feature pages. Open one to edit it in the drag and drop builder; the preview beside it is anee.io itself.</p>
                 </div>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#spNew"><i class="bx bx-plus"></i> New page</button>
             </div>

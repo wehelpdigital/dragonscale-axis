@@ -333,7 +333,7 @@
     let PAGE = null, PREVIEW = @json($preview), sel = -1, dirty = false, shut = new Set();
 
     // ---------- the addresses every link field can pick from ----------
-    const URLS = ['/', '/features', '/pricing', '/about', '/tutorial', '/contact', '/signup', '/crops', '/problems', '/blog'];
+    const URLS = ['/', '/features', '/pricing', '/about', '/tutorial', '/contact', '/signup', '/crops', '/problems', '/pests', '/diseases', '/weeds', '/blog'];
 
     // ---------- fields per kind ----------
     const inp = (i, k, v, ph = '', attrs = '') => `<input class="form-control form-control-sm" data-i="${i}" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph)}" ${attrs}>`;

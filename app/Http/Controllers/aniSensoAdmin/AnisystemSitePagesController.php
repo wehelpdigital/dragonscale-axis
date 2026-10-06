@@ -12,7 +12,8 @@ use Illuminate\Support\Str;
 
 /**
  * AniSystem > Website pages (2026-10-01): anee.io's public guides, crop
- * problems, blog and feature pages, and the block builder that edits them.
+ * pests, crop diseases, weeds, blog and feature pages, and the block builder
+ * that edits them.
  *
  * The pages live in the shared `as_site_pages` table; anee.io draws them
  * (App\Support\SitePages over there). A page is its settings (address, title,
@@ -29,7 +30,11 @@ class AnisystemSitePagesController extends Controller
 {
     public const SECTIONS = [
         'crops' => 'Crop guides',
-        'problems' => 'Crop problems',
+        // One "Crop problems" section until 2026-10-06; anee.io's /problems is
+        // now only the door to these three.
+        'pests' => 'Crop pests',
+        'diseases' => 'Crop diseases',
+        'weeds' => 'Weeds and grasses',
         'blog' => 'Blog',
         'features' => 'Features',
         // Try and Ask Anee's answers, written by anee.io at /question/{slug}.
