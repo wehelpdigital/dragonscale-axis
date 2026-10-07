@@ -88,6 +88,7 @@
             'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['The weather & 3 steps', 2],
             'costs' => ['Fuel & fertilizer', 2],
             'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null],
+            'demo' => ['Try it: a season in ten seconds', null], 'space' => ['New this season', null],
             'pillars' => ['Feature pillars', 4], 'more' => ['Everything in one app', null], 'testimonials' => ['Testimonials', 5],
             'faq' => ['Questions (FAQ)', 6], 'closer' => ['The closer', 7],
             'tracking' => ['Ad tracking', null], 'signups' => ['Signups from ads', null],
@@ -355,6 +356,41 @@
                     <template data-tpl="pillars">@include('aniSensoAdmin.landing.row-pillar', ['k' => '__K__', 'p' => ['kicker' => '', 'title' => '', 'text' => '', 'bullets' => [], 'image' => 'board', 'plan' => '', 'upload' => '', 'frame' => 'phone'], 'shots' => $shots, 'base' => $base])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="pillars"><i class="bx bx-plus"></i> Add a pillar</button>
                 </div></div>
+
+                {{-- ===== Try it: a season in ten seconds (2026-10-07) ===== --}}
+                @isset($page['demo'])
+                <div class="card lp-sec" id="sec-demo"><div class="card-body">
+                    <h4 class="card-title">Try it: a season in ten seconds</h4>
+                    <p class="lp-lead">The visitor picks a crop and a planting day and watches a sample season land on its days. The tasks themselves are anee.io's; these are the words around them. Wrap words in *stars* to color them.</p>
+                    <div class="row g-3">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'demo[kicker]', 'label' => 'Small line', 'value' => $page['demo']['kicker'], 'default' => $d['demo']['kicker'] ?? '', 'col' => 'col-md-4'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'demo[headline]', 'label' => 'Headline', 'value' => $page['demo']['headline'], 'default' => $d['demo']['headline'] ?? '', 'col' => 'col-md-8'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'demo[sub]', 'label' => 'Line under it', 'value' => $page['demo']['sub'], 'default' => $d['demo']['sub'] ?? '', 'type' => 'textarea', 'rows' => 2])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'demo[cta]', 'label' => 'Button', 'value' => $page['demo']['cta'], 'default' => $d['demo']['cta'] ?? '', 'col' => 'col-md-5'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'demo[note]', 'label' => 'The note under the sample', 'value' => $page['demo']['note'], 'default' => $d['demo']['note'] ?? '', 'col' => 'col-md-7'])
+                    </div>
+                </div></div>
+                @endisset
+
+                {{-- ===== New this season (2026-10-07) ===== --}}
+                @isset($page['space'])
+                <div class="card lp-sec" id="sec-space"><div class="card-body">
+                    <h4 class="card-title">New this season</h4>
+                    <p class="lp-lead">The new tools on a dark band, each with its real screen from the app.</p>
+                    <div class="row g-3 mb-2">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'space[kicker]', 'label' => 'Small line', 'value' => $page['space']['kicker'], 'default' => $d['space']['kicker'] ?? '', 'col' => 'col-md-4'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'space[headline]', 'label' => 'Headline', 'value' => $page['space']['headline'], 'default' => $d['space']['headline'] ?? '', 'col' => 'col-md-8'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'space[sub]', 'label' => 'Line under it', 'value' => $page['space']['sub'], 'default' => $d['space']['sub'] ?? '', 'type' => 'textarea', 'rows' => 2])
+                    </div>
+                    <div class="lp-list" data-list="space" data-max="6">
+                        @foreach ($page['space']['items'] as $i => $t)
+                            @include('aniSensoAdmin.landing.row-newtool', ['k' => 's' . $i, 't' => $t])
+                        @endforeach
+                    </div>
+                    <template data-tpl="space">@include('aniSensoAdmin.landing.row-newtool', ['k' => '__K__', 't' => ['title' => '', 'text' => '', 'image' => 'sky']])</template>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="space"><i class="bx bx-plus"></i> Add a tool</button>
+                </div></div>
+                @endisset
 
                 {{-- ===== Everything in one app ===== --}}
                 <div class="card lp-sec" id="sec-more"><div class="card-body">

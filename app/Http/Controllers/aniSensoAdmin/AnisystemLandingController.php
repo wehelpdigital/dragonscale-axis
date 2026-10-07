@@ -211,6 +211,24 @@ class AnisystemLandingController extends Controller
                     'text' => $this->text($request, "precision.items.$k.text"),
                 ]),
             ],
+            // Try it and New this season (2026-10-07): anee.io's defaults name them.
+            'demo' => [
+                'kicker' => $this->text($request, 'demo.kicker'),
+                'headline' => $this->text($request, 'demo.headline'),
+                'sub' => $this->text($request, 'demo.sub'),
+                'cta' => $this->text($request, 'demo.cta', 80),
+                'note' => $this->text($request, 'demo.note'),
+            ],
+            'space' => [
+                'kicker' => $this->text($request, 'space.kicker'),
+                'headline' => $this->text($request, 'space.headline'),
+                'sub' => $this->text($request, 'space.sub'),
+                'items' => $this->rows($request, 'space.items', fn ($k) => [
+                    'title' => $this->text($request, "space.items.$k.title"),
+                    'text' => $this->text($request, "space.items.$k.text"),
+                    'image' => in_array((string) $request->input("space.items.$k.image"), ['satellite', 'sky', 'npk', 'finder', 'stash'], true) ? (string) $request->input("space.items.$k.image") : 'sky',
+                ]),
+            ],
             'more' => [
                 'headline' => $this->text($request, 'more.headline'),
                 'sub' => $this->text($request, 'more.sub'),
