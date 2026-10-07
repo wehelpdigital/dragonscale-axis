@@ -96,6 +96,11 @@ class AnisystemAiSettingsController extends Controller
         'compare' => 'Comparison analysis',
         'realign' => 'Realign by Anee (growth stage)',
         'builder' => 'Protocol Builder review (Anee reads a protocol the farmer wrote)',
+        'satellite' => 'Satellite Analysis (Sentinel-2 and Sentinel-1 read of a drawn field, searches the web)',
+        'skyweather' => 'Satellite Weather (clouds, storm tracks and the forecast, read against a lot)',
+        'npk' => 'NPK Plus, analyzed by Anee (a fertilizer calculation, searches the web)',
+        'npkplan' => 'NPK Plus season check (Activities, per lot)',
+        'npkproto' => 'NPK Plus protocol check (Protocol Builder)',
     ];
 
     /**
@@ -112,6 +117,7 @@ class AnisystemAiSettingsController extends Controller
 
     public const PRICE_DEFAULTS = [
         'wtp' => 100, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60, 'builder' => 100,
+        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60,
     ];
 
     private function priceList($packs): array
