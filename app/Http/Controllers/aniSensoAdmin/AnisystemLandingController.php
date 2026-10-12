@@ -211,6 +211,13 @@ class AnisystemLandingController extends Controller
                     'text' => $this->text($request, "precision.items.$k.text"),
                 ]),
             ],
+            // Anee Auto (2026-10-13): the words around anee.io's own section.
+            'auto' => [
+                'kicker' => $this->text($request, 'auto.kicker'),
+                'headline' => $this->text($request, 'auto.headline'),
+                'sub' => $this->text($request, 'auto.sub'),
+                'cta' => $this->text($request, 'auto.cta', 80),
+            ],
             // Try it and New this season (2026-10-07): anee.io's defaults name them.
             'demo' => [
                 'kicker' => $this->text($request, 'demo.kicker'),
@@ -229,17 +236,20 @@ class AnisystemLandingController extends Controller
                     'image' => in_array((string) $request->input("space.items.$k.image"), ['satellite', 'sky', 'npk', 'finder', 'stash'], true) ? (string) $request->input("space.items.$k.image") : 'sky',
                 ]),
             ],
+            // Since 2026-10-13 anee.io lists the tools itself (How It Works),
+            // so its defaults have no tiles; they are kept only while it does.
             'more' => [
                 'headline' => $this->text($request, 'more.headline'),
                 'sub' => $this->text($request, 'more.sub'),
                 'image' => $this->picture($request, 'more.image'),
+            ] + (isset($defaults['more']['items']) ? [
                 'items' => $this->rows($request, 'more.items', fn ($k) => [
                     'group' => $this->text($request, "more.items.$k.group", 40),
                     'icon' => $this->text($request, "more.items.$k.icon", 16),
                     'title' => $this->text($request, "more.items.$k.title"),
                     'text' => $this->text($request, "more.items.$k.text"),
                 ]),
-            ],
+            ] : []),
             'testimonials' => [
                 'headline' => $this->text($request, 'testimonials.headline'),
                 'items' => array_values(array_filter(

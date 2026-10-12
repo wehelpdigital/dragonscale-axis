@@ -87,7 +87,7 @@
             'meta' => ['Title & link preview', null],
             'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['The weather & 3 steps', 2],
             'costs' => ['Fuel & fertilizer', 2],
-            'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null],
+            'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null], 'auto' => ['Anee Auto', null],
             'demo' => ['Try it: a season in ten seconds', null], 'space' => ['New this season', null],
             'pillars' => ['Feature pillars', 4], 'more' => ['Everything in one app', null], 'testimonials' => ['Testimonials', 5],
             'faq' => ['Questions (FAQ)', 6], 'closer' => ['The closer', 7],
@@ -357,6 +357,20 @@
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="pillars"><i class="bx bx-plus"></i> Add a pillar</button>
                 </div></div>
 
+                {{-- ===== Anee Auto (2026-10-13) ===== --}}
+                @isset($page['auto'])
+                <div class="card lp-sec" id="sec-auto"><div class="card-body">
+                    <h4 class="card-title">Anee Auto</h4>
+                    <p class="lp-lead">The easiest way: the farmer answers once and Anee plans the season. The five steps, the chips and the phone with Anee's faces are anee.io's own (the same section as on its homepage); these are the words around them. No price is shown here. Wrap words in *stars* to color them.</p>
+                    <div class="row g-3">
+                        @include('aniSensoAdmin.landing.field', ['name' => 'auto[kicker]', 'label' => 'Small line', 'value' => $page['auto']['kicker'], 'default' => $d['auto']['kicker'] ?? '', 'col' => 'col-md-5'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'auto[cta]', 'label' => 'Button', 'value' => $page['auto']['cta'], 'default' => $d['auto']['cta'] ?? '', 'col' => 'col-md-7'])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'auto[headline]', 'label' => 'Headline', 'value' => $page['auto']['headline'], 'default' => $d['auto']['headline'] ?? ''])
+                        @include('aniSensoAdmin.landing.field', ['name' => 'auto[sub]', 'label' => 'Line under it', 'value' => $page['auto']['sub'], 'default' => $d['auto']['sub'] ?? '', 'type' => 'textarea', 'rows' => 2])
+                    </div>
+                </div></div>
+                @endisset
+
                 {{-- ===== Try it: a season in ten seconds (2026-10-07) ===== --}}
                 @isset($page['demo'])
                 <div class="card lp-sec" id="sec-demo"><div class="card-body">
@@ -395,7 +409,11 @@
                 {{-- ===== Everything in one app ===== --}}
                 <div class="card lp-sec" id="sec-more"><div class="card-body">
                     <h4 class="card-title">Everything in one app</h4>
+                    @isset($page['more']['items'])
                     <p class="lp-lead">Every tool the farm gets, in groups (Plan, Grow, Manage, Measure), beside a phone showing the season's modules. Tiles with the same group sit together under its name, in the order below.</p>
+                    @else
+                    <p class="lp-lead">Every tool, by the step of the season it serves, beside a phone showing the season's modules. The tools are listed by anee.io itself, with the icons they wear in the app, so a new tool joins the page on its own. Here: the headline (<code>{tools}</code> says how many), the line under it and the phone.</p>
+                    @endisset
                     <div class="row g-3 mb-2">
                         @include('aniSensoAdmin.landing.field', ['name' => 'more[headline]', 'label' => 'Headline', 'value' => $page['more']['headline'], 'default' => $d['more']['headline']])
                         @isset($page['more']['sub'])
@@ -407,6 +425,7 @@
                             </div>
                         @endisset
                     </div>
+                    @isset($page['more']['items'])
                     <div class="lp-list" data-list="more" data-max="24">
                         @foreach ($page['more']['items'] as $i => $t)
                             @include('aniSensoAdmin.landing.row-tile', ['k' => 'm' . $i, 't' => $t])
@@ -414,6 +433,7 @@
                     </div>
                     <template data-tpl="more">@include('aniSensoAdmin.landing.row-tile', ['k' => '__K__', 't' => ['group' => '', 'icon' => '', 'title' => '', 'text' => '']])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="more"><i class="bx bx-plus"></i> Add a tile</button>
+                    @endisset
                 </div></div>
 
                 {{-- ===== 5. Testimonials ===== --}}
