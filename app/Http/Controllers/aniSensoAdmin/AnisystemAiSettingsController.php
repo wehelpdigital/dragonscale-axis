@@ -102,6 +102,7 @@ class AnisystemAiSettingsController extends Controller
         'npkplan' => 'NPK Plus season check (Activities, per lot)',
         'npkproto' => 'NPK Plus protocol check (Protocol Builder)',
         'auto' => 'Anee Auto, per lot (a whole season planned and kept on track by Anee)',
+        'skypass' => 'Satellite Weather, a week pass (anee.io never sells it below what a week costs the house, about 27 today)',
     ];
 
     /**
@@ -118,7 +119,7 @@ class AnisystemAiSettingsController extends Controller
 
     public const PRICE_DEFAULTS = [
         'wtp' => 100, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60, 'builder' => 100,
-        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60, 'auto' => 1000,
+        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60, 'auto' => 1000, 'skypass' => 30,
     ];
 
     private function priceList($packs): array
