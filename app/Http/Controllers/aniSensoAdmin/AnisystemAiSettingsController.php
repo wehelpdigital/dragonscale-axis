@@ -101,6 +101,7 @@ class AnisystemAiSettingsController extends Controller
         'npk' => 'NPK Plus, analyzed by Anee (a fertilizer calculation, searches the web)',
         'npkplan' => 'NPK Plus season check (Activities, per lot)',
         'npkproto' => 'NPK Plus protocol check (Protocol Builder)',
+        'auto' => 'Anee Auto, per lot (a whole season planned and kept on track by Anee)',
     ];
 
     /**
@@ -117,7 +118,7 @@ class AnisystemAiSettingsController extends Controller
 
     public const PRICE_DEFAULTS = [
         'wtp' => 100, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60, 'builder' => 100,
-        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60,
+        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60, 'auto' => 1000,
     ];
 
     private function priceList($packs): array
