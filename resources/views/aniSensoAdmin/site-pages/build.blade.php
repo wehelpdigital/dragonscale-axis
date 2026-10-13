@@ -370,7 +370,9 @@
                 return `<div class="d-flex gap-2 align-items-start flex-wrap"><img class="thumb" src="${esc(img(b.src))}" alt="">
                     <div class="flex-grow-1 d-grid gap-1" style="min-width:12rem"><div class="input-group input-group-sm">${inp(i, 'src', b.src, '/images/site/... or a full address')}
                     <button class="btn btn-outline-primary" type="button" data-up="${i}"><i class="bx bx-upload"></i></button></div>
-                    ${inp(i, 'alt', b.alt, 'Alt text: what it shows')}${inp(i, 'caption', b.caption, 'Caption (optional)')}</div></div>`;
+                    ${inp(i, 'alt', b.alt, 'Alt text: what it shows')}${inp(i, 'caption', b.caption, 'Caption (optional)')}
+                    <select class="form-select form-select-sm" style="width:auto" data-i="${i}" data-k="style">
+                    ${[['', 'Full width'], ['small', 'Small, centered']].concat(b.style === 'news' ? [['news', 'News photo']] : []).map(([v, l]) => `<option value="${v}" ${(b.style || '') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>`;
             case 'quote':
                 return `${area(i, 'text', b.text, 3)}${inp(i, 'cite', b.cite, 'Who said it (optional)')}`;
             case 'faq':

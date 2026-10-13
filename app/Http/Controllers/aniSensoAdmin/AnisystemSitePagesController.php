@@ -459,6 +459,10 @@ class AnisystemSitePagesController extends Controller
                     $k['src'] = $str($b['src'] ?? ($b['url'] ?? ''), 500);
                     $k['alt'] = $str($b['alt'] ?? '', 250);
                     $k['caption'] = $str($b['caption'] ?? '', 400);
+                    // How wide it shows on anee.io: full (no style), small and centered, or a news photo.
+                    if (in_array($b['style'] ?? '', ['small', 'news'], true)) {
+                        $k['style'] = $b['style'];
+                    }
                     break;
                 case 'quote':
                     $k['text'] = $str($b['text'] ?? '', 2000);
