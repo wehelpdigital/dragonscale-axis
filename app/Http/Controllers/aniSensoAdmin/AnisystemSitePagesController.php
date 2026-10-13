@@ -38,6 +38,7 @@ class AnisystemSitePagesController extends Controller
         'land-preparation' => 'Land preparation',
         // One page per rice variety, from PhilRice's seed database (2026-10-13).
         'rice-varieties' => 'Rice varieties',
+        'crop-varieties' => 'Crop varieties',
         // The blog's name since 2026-10-07 (the address stays /blog).
         'blog' => 'Latest in Agriculture',
         'features' => 'Features',
