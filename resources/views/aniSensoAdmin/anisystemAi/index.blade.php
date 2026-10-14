@@ -378,6 +378,29 @@
             </div>
         </div>
 
+        {{-- ADD-ONS (2026-10-14): the field helpers pack (Weed Control Helper,
+             Pest Finder, Disease Finder, Variety Finder), locked on Libre and
+             opened for a year by a small purchase through the same hand paid
+             checkout. Saved to the shelf as `addons.fieldpack.php` and
+             `addons.fieldpack.usd`; anee.io reads them on the next page. --}}
+        <div class="card" id="addonCard">
+            <div class="card-body">
+                <h5 class="card-title mb-1">Add-ons</h5>
+                <p class="text-secondary mb-3">The field helpers pack opens the Weed Control Helper, the Pest Finder, the Disease Finder and the Variety Finder for a year on the free plan (Libre). Every plan above Libre already has them. Orders come in under AniSystem &gt; Orders like any plan.</p>
+                <form id="addonForm" class="row g-2 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label font-size-12 mb-1">Field helpers, one year (₱)</label>
+                        <input type="number" class="form-control form-control-sm" name="fieldpack[php]" value="{{ $addons['fieldpack']['php'] }}" min="1" step="1" style="max-width:9rem">
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label font-size-12 mb-1">Outside the Philippines ($)</label>
+                        <input type="number" class="form-control form-control-sm" name="fieldpack[usd]" value="{{ $addons['fieldpack']['usd'] }}" min="0.5" step="0.01" style="max-width:9rem">
+                    </div>
+                    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Save add-on prices</button></div>
+                </form>
+            </div>
+        </div>
+
         {{-- THE INTERNATIONAL FACE: what anee.io charges outside the
              Philippines, in US dollars, and where the money goes (PayPal).
              Saved to the shared shelf (as_site_settings `prices.usd` and
@@ -695,6 +718,17 @@ $(function () {
             url: "{{ route('anisenso-ai-settings.prices') }}",
             method: 'POST',
             data: { _token: "{{ csrf_token() }}", prices: prices },
+            success: function (res) { toastr.success(res.message); },
+            error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Could not save.'); },
+        });
+    });
+
+    $('#addonForm').on('submit', function (e) {
+        e.preventDefault();
+        $.ajax({
+            url: "{{ route('anisenso-ai-settings.addons') }}",
+            method: 'POST',
+            data: $(this).serialize() + '&_token=' + encodeURIComponent("{{ csrf_token() }}"),
             success: function (res) { toastr.success(res.message); },
             error: function (xhr) { toastr.error(xhr.responseJSON?.message || 'Could not save.'); },
         });

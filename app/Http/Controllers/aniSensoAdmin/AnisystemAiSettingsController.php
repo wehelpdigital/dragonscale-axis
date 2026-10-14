@@ -75,8 +75,14 @@ class AnisystemAiSettingsController extends Controller
         } catch (\Throwable $e) {
             $paypal = [];
         }
+        $addons = ['fieldpack' => ['php' => 50, 'usd' => 1]];
+        try {
+            $addons['fieldpack']['php'] = (float) AsSiteSetting::get('addons.fieldpack.php', 50);
+            $addons['fieldpack']['usd'] = (float) AsSiteSetting::get('addons.fieldpack.usd', 1);
+        } catch (\Throwable $e) {
+        }
 
-        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics', 'plans', 'usd', 'paypal'))
+        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics', 'plans', 'usd', 'paypal', 'addons'))
             ->with('secretConfigured', AiKeyCipher::available());
     }
 
@@ -104,6 +110,7 @@ class AnisystemAiSettingsController extends Controller
         'auto' => 'Anee Auto, per lot (a whole season planned and kept on track by Anee)',
         'skypass' => 'Satellite Weather, a week pass (anee.io never sells it below what a week costs the house, about 27 today)',
         'lcc' => 'LCC Checker (Anee reads rice leaf photos against the leaf color chart)',
+        'landprep' => 'Land Prep Planner (Anee plans land and seed preparation per lot, around the crew)',
     ];
 
     /**
@@ -120,7 +127,7 @@ class AnisystemAiSettingsController extends Controller
 
     public const PRICE_DEFAULTS = [
         'wtp' => 100, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60, 'builder' => 100,
-        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60, 'auto' => 1000, 'skypass' => 30, 'lcc' => 30,
+        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60, 'auto' => 1000, 'skypass' => 30, 'lcc' => 30, 'landprep' => 60,
     ];
 
     private function priceList($packs): array
@@ -195,6 +202,26 @@ class AnisystemAiSettingsController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => "Anee's price list saved. anee.io reads it on the next run."]);
+    }
+
+    /** Save the add-on prices anee.io sells (the field helpers pack, a year). */
+    public function saveAddons(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fieldpack.php' => 'required|numeric|min:1|max:100000',
+            'fieldpack.usd' => 'required|numeric|min:0.5|max:10000',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+        }
+        try {
+            AsSiteSetting::put('addons.fieldpack.php', (string) round((float) $request->input('fieldpack.php'), 2));
+            AsSiteSetting::put('addons.fieldpack.usd', (string) round((float) $request->input('fieldpack.usd'), 2));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Could not save: ' . $e->getMessage()], 422);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Add-on prices saved. anee.io reads them on the next page.']);
     }
 
     /**
