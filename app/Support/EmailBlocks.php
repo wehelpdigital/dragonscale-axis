@@ -199,7 +199,7 @@ class EmailBlocks
             . '<tr><td align="center" style="padding:28px 12px 32px;">'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">'
             . '<tr><td bgcolor="#2B3A1C" style="background:#2B3A1C;border-radius:18px 18px 0 0;padding:22px 32px;">'
-            . '<img src="https://anee.io/images/logo-white.png?v=anee" width="138" height="21" alt="anee.io" style="display:block;border:0;"></td></tr>'
+            . '<img src="https://anee.io/images/logo-white.png?v=anee2" width="143" height="22" alt="anee.io" style="display:block;border:0;"></td></tr>'
             . '<tr><td bgcolor="#ffffff" style="background:#ffffff;border-radius:0 0 18px 18px;padding:30px 32px 18px;'
             . 'font-family:' . $font . ';font-size:16px;line-height:1.6;color:#1f2a17;">' . $inner . '</td></tr>'
             . '<tr><td align="center" style="padding:18px 24px 0;font-family:' . $font . ';font-size:12px;color:#6f7a64;">'
