@@ -7,6 +7,7 @@ use App\Models\AnisystemUser;
 use App\Models\AsAiSetting;
 use App\Models\AsSiteSetting;
 use App\Support\AiHouseCost;
+use App\Support\AiPricingModel;
 use App\Services\AniSenso\CommunityAiAnswerService;
 use App\Support\AiKeyCipher;
 use App\Support\AnisystemMedia;
@@ -82,7 +83,15 @@ class AnisystemAiSettingsController extends Controller
         } catch (\Throwable $e) {
         }
 
-        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics', 'plans', 'usd', 'paypal', 'addons'))
+        // The pricing engine (2026-10-15): its numbers, the margin table, what the runs really cost.
+        try {
+            $pricing = $this->pricingEngine($prices, $settings);
+        } catch (\Throwable $e) {
+            Log::warning('AniSystem AI pricing engine table failed: ' . $e->getMessage());
+            $pricing = null;
+        }
+
+        return view('aniSensoAdmin.anisystemAi.index', compact('settings', 'packs', 'usage', 'creditsSold', 'prices', 'economics', 'plans', 'usd', 'paypal', 'addons', 'pricing'))
             ->with('secretConfigured', AiKeyCipher::available());
     }
 
@@ -108,7 +117,7 @@ class AnisystemAiSettingsController extends Controller
         'npkplan' => 'NPK Plus season check (Activities, per lot)',
         'npkproto' => 'NPK Plus protocol check (Protocol Builder)',
         'auto' => 'Anee Auto, per lot (a whole season planned and kept on track by Anee)',
-        'skypass' => 'Satellite Weather, a week pass (anee.io never sells it below what a week costs the house, about 27 today)',
+        'skypass' => 'Satellite Weather, a week pass (never sold under the pricing engine quote for a week)',
         'lcc' => 'LCC Checker (Anee reads rice leaf photos against the leaf color chart)',
         'landprep' => 'Land Prep Planner (Anee plans land and seed preparation per lot, around the crew)',
     ];
@@ -499,6 +508,180 @@ class AnisystemAiSettingsController extends Controller
             // An avatar nobody points at any more is litter, not a failure.
             Log::warning('Old AI avatar could not be removed: '.$e->getMessage());
         }
+    }
+
+    /**
+     * The pricing engine for the owner (anee's App\Support\AiPricing, read
+     * through its twin App\Support\AiPricingModel): the settings, every way
+     * a credit is bought, each tool's cost model with its price at 1, 5, 20
+     * and 50 units against today's flat price, what the runs of the last 90
+     * days really cost and earned (as_ai_usage), and the metered chat.
+     */
+    private function pricingEngine(array $prices, AsAiSetting $ai): array
+    {
+        $s = AiPricingModel::settings();
+        $provider = (string) $ai->provider;
+        $model = (string) $ai->effectiveModel();
+        $channels = AiPricingModel::channels();
+        $ppc = AiPricingModel::pesoPerCredit($channels);
+        [$pin, $pout, $fee] = AiPricingModel::modelRates($provider, $model);
+
+        // What the runs of the last 90 days really cost, per kind (successful runs only: a failed run writes no row).
+        $measured = [];
+        $rows = DB::table('as_ai_usage')->where('created_at', '>=', now()->subDays(90))->get(['kind', 'provider', 'model', 'tokensIn', 'tokensOut', 'searched', 'credits']);
+        foreach ($rows->groupBy('kind') as $kind => $group) {
+            $costs = [];
+            $margins = [];
+            $under = 0;
+            foreach ($group as $r) {
+                $c = AiPricingModel::runCost($r->provider, $r->model, (int) $r->tokensIn, (int) $r->tokensOut, (bool) $r->searched);
+                $costs[] = $c;
+                if ((float) $r->credits > 0 && $c > 0) {
+                    $m = (float) $r->credits * $ppc / $c;
+                    $margins[] = $m;
+                    $under += $m < $s['minMargin'] ? 1 : 0;
+                }
+            }
+            sort($costs);
+            sort($margins);
+            $pick = fn (array $a, float $q) => $a ? $a[(int) floor($q * (count($a) - 1))] : null;
+            $measured[$kind] = [
+                'runs' => count($costs), 'median' => $pick($costs, 0.5), 'p90' => $pick($costs, 0.9),
+                'charged' => $group->where('credits', '>', 0)->avg('credits'),
+                'marginMedian' => $pick($margins, 0.5), 'marginLow' => $margins ? $margins[0] : null, 'under' => $under,
+                'searched' => (int) $group->sum('searched'),
+            ];
+        }
+
+        $kinds = [];
+        $order = array_unique(array_merge(array_keys(self::PRICE_KINDS), array_keys($s['kinds'])));
+        foreach ($order as $kind) {
+            $k = AiPricingModel::kind($kind);
+            if (! $k) {
+                continue;
+            }
+            $flatOne = (int) ($prices[$kind] ?? 0);
+            $sizes = [1];
+            if ($k['unit'] !== '') {
+                $sizes = [];
+                foreach ([1, 5, 20, 50] as $n) {
+                    $sizes[] = max((int) $k['min'], min((int) $k['max'] ?: 999, $n));
+                }
+                $sizes = array_values(array_unique($sizes));
+            }
+            $typical = AiPricingModel::quote($kind, [], $flatOne, $provider, $model, $ppc);
+            $kinds[$kind] = [
+                'name' => self::PRICE_KINDS[$kind] ?? AiPricingModel::NAMES[$kind] ?? $kind,
+                'unit' => $k['unit'], 'unitWords' => AiPricingModel::UNIT_WORDS[$k['unit']] ?? [$k['unit'], $k['unit'] . 's'],
+                'model' => $k, 'flat' => $flatOne, 'perUnitPrice' => ! empty($k['perUnitPrice']),
+                'typical' => $typical,
+                'sizes' => array_map(fn ($n) => ['units' => $n] + AiPricingModel::quote($kind, ['units' => $n], $flatOne, $provider, $model, $ppc), $sizes),
+                // The extra blocks a run may add (Land Prep's variety lookup, When to Plant's named variety), priced at one unit.
+                'opts' => array_map(fn ($opt) => AiPricingModel::quote($kind, ['units' => 1, $opt => true], $flatOne, $provider, $model, $ppc),
+                    array_combine(array_keys((array) $k['opts']), array_keys((array) $k['opts']))),
+                'measured' => $measured[$kind] ?? null,
+            ];
+        }
+
+        // The metered chat: what a thousand tokens sell for at the floor over what they cost, and the last 90 days.
+        $costInK = $pin / 1000 * $s['usdRate'];
+        $costOutK = $pout / 1000 * $s['usdRate'];
+        $chatRows = DB::table('anisystem_ai_messages')->where('deleteStatus', 1)->where('role', 'assistant')->where('created_at', '>=', now()->subDays(90))
+            ->selectRaw('COUNT(*) as answers, COALESCE(SUM(tokensIn),0) as tin, COALESCE(SUM(tokensOut),0) as tout, COALESCE(SUM(creditsCharged),0) as credits')->first();
+        $chatCost = AiPricingModel::runCost($provider, $model, (int) $chatRows->tin, (int) $chatRows->tout, false);
+        $chat = [
+            'perInputK' => (float) $ai->creditsPerInputK, 'perOutputK' => (float) $ai->creditsPerOutputK, 'perImage' => (float) $ai->creditsPerImage,
+            'inMargin' => $costInK > 0 ? (float) $ai->creditsPerInputK * $ppc / $costInK : null,
+            'outMargin' => $costOutK > 0 ? (float) $ai->creditsPerOutputK * $ppc / $costOutK : null,
+            'okInputK' => ceil($s['minMargin'] * $costInK / $ppc * 10) / 10, 'okOutputK' => ceil($s['minMargin'] * $costOutK / $ppc * 10) / 10,
+            'answers' => (int) $chatRows->answers, 'tokensIn' => (int) $chatRows->tin, 'tokensOut' => (int) $chatRows->tout, 'credits' => (float) $chatRows->credits,
+            'cost' => $chatCost, 'margin' => $chatCost > 0 ? (float) $chatRows->credits * $ppc / $chatCost : null,
+        ];
+
+        return [
+            'settings' => $s, 'defaults' => AiPricingModel::DEFAULTS, 'channels' => $channels, 'ppc' => $ppc, 'ppcAbroad' => AiPricingModel::pesoPerCreditAbroad($channels),
+            'provider' => $provider, 'model' => $model, 'rates' => ['in' => $pin, 'out' => $pout, 'search' => $fee], 'family' => AiPricingModel::familyRates($provider, $model),
+            'kinds' => $kinds, 'chat' => $chat,
+            'skypassOpens' => AiPricingModel::skypassOpens(), 'editable' => AiPricingModel::EDITABLE,
+        ];
+    }
+
+    /**
+     * Save the pricing engine's numbers to the shelf anee.io prices by
+     * (as_site_settings `ai.pricing`). Only what differs from the defaults
+     * is kept, so a default anee.io improves later still reaches the owner.
+     */
+    public function savePricing(Request $request)
+    {
+        $rules = [
+            'on' => 'required|boolean',
+            'target' => 'required|numeric|min:1|max:50',
+            'minMargin' => 'required|numeric|min:1|max:50',
+            'maxMargin' => 'required|numeric|min:1|max:100',
+            'pesoPerCredit' => 'nullable|numeric|min:0.01|max:100',
+            'usdRate' => 'required|numeric|min:1|max:1000',
+            'prices' => 'nullable|array',
+            'prices.*' => 'nullable|numeric|min:0|max:100000',
+            'kinds' => 'nullable|array',
+            'kinds.*' => 'array',
+            'kinds.*.*' => 'nullable|numeric|min:0|max:10000000',
+        ];
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+        }
+        if ((float) $request->input('target') < (float) $request->input('minMargin')) {
+            return response()->json(['success' => false, 'message' => 'The target margin cannot sit under the floor.'], 422);
+        }
+        $out = $this->pricingDiff($request);
+        try {
+            AsSiteSetting::put(AiPricingModel::KEY, json_encode($out));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Could not save: ' . $e->getMessage()], 422);
+        }
+        AiPricingModel::forget();
+
+        return response()->json(['success' => true, 'message' => 'Pricing engine saved. anee.io quotes by it on the next run.']);
+    }
+
+    /** What the form says that differs from the defaults: the JSON the shelf keeps. */
+    private function pricingDiff(Request $request): array
+    {
+        $d = AiPricingModel::DEFAULTS;
+        $out = ['on' => $request->boolean('on')];
+        foreach (['target', 'minMargin', 'maxMargin', 'usdRate'] as $k) {
+            $v = round((float) $request->input($k), 4);
+            if ($v != (float) $d[$k]) {
+                $out[$k] = $v;
+            }
+        }
+        if ($request->filled('pesoPerCredit')) {
+            $out['pesoPerCredit'] = round((float) $request->input('pesoPerCredit'), 4);
+        }
+        foreach (array_keys($d['prices']) as $k) {
+            $v = $request->input('prices.' . $k);
+            if ($v !== null && $v !== '' && is_numeric($v) && ($d['prices'][$k] === null || (float) $v != (float) $d['prices'][$k])) {
+                $out['prices'][$k] = (float) $v;
+            }
+        }
+        foreach ((array) $request->input('kinds', []) as $kind => $row) {
+            if (! isset($d['kinds'][$kind]) || ! is_array($row)) {
+                continue;
+            }
+            $base = $d['kinds'][$kind] + ['min' => 1, 'free' => 1, 'units' => 1, 'max' => 1, 'baseIn' => 0, 'baseOut' => 0, 'unitIn' => 0, 'unitOut' => 0, 'outCap' => 0,
+                'search' => 0, 'om' => 0, 'omUnit' => 0, 'maps' => 0, 'mapsUnit' => 0, 'mail' => 0, 'ee' => 0, 'usd' => 0, 'unitUsd' => 0, 'useObserve' => 0, 'useAsk' => 0];
+            foreach (AiPricingModel::EDITABLE as $f) {
+                if ($f === 'units' && ($base['unit'] ?? '') === '') {
+                    continue;   // a one size tool has no size to set
+                }
+                $v = $row[$f] ?? null;
+                if ($v !== null && $v !== '' && is_numeric($v) && (float) $v != (float) $base[$f]) {
+                    $out['kinds'][$kind][$f] = (float) $v;
+                }
+            }
+        }
+
+        return $out;
     }
 
     /**

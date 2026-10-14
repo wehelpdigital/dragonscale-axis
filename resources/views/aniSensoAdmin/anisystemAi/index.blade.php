@@ -63,6 +63,11 @@
                 <i class="bx bx-purchase-tag me-1"></i> Anee's price list
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#aiPricingTab" role="tab">
+                <i class="bx bx-line-chart me-1"></i> Pricing engine
+            </a>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -363,7 +368,7 @@
                                     <td class="text-nowrap">{{ $e['houseCost'] !== null ? '₱' . number_format($e['houseCost'], 2) : '—' }}</td>
                                     <td>
                                         @if ($e['margin'] !== null)
-                                            <span class="badge {{ $e['margin'] >= 4 ? 'bg-success' : ($e['margin'] >= 2 ? 'bg-warning text-dark' : 'bg-danger') }}">{{ number_format($e['margin'], 1) }}×</span>
+                                            <span class="badge {{ $e['margin'] < 6 ? 'bg-danger' : ($e['margin'] > 10 ? 'bg-info' : 'bg-success') }}">{{ number_format($e['margin'], 1) }}×</span>
                                         @else
                                             <span class="text-muted">no runs yet</span>
                                         @endif
@@ -487,6 +492,8 @@
             </div>
         </div>
     </div>{{-- /#aiPricesTab --}}
+
+    @include('aniSensoAdmin.anisystemAi.pricing')
     </div>{{-- /.tab-content --}}
 
     {{-- One thread, turn by turn. --}}
