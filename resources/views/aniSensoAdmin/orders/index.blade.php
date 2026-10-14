@@ -409,7 +409,7 @@
             c.hidden = false;
             if (act === 'approve') {
                 c.className = 'btn btn-success';
-                c.textContent = current.kind === 'plan' ? 'Yes, approve: start the plan and tell the buyer' : 'Yes, approve: add the credits and tell the buyer';
+                c.textContent = current.kind === 'plan' ? 'Yes, approve: start the plan and tell the buyer' : (current.kind === 'addon' ? 'Yes, approve: open the field helpers for a year and tell the buyer' : 'Yes, approve: add the credits and tell the buyer');
             } else {
                 $id('odReasonLabel').textContent = act === 'revoke' ? 'Why is it revoked? (the buyer is told)' : 'Why is it rejected? (the buyer is told)';
                 $id('odReason').classList.add('is-on');
