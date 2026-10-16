@@ -391,7 +391,7 @@
         <div class="card" id="addonCard">
             <div class="card-body">
                 <h5 class="card-title mb-1">Add-ons</h5>
-                <p class="text-secondary mb-3">The field helpers pack opens the Weed Control Helper, the Pest Finder, the Disease Finder and the Variety Finder for a month on the free plan (Libre). Every plan above Libre already has them. Orders come in under AniSystem &gt; Orders like any plan.</p>
+                <p class="text-secondary mb-3">The field helpers pack opens the Weed Control Helper, the Pest Finder, the Disease Finder, the Nutrient Deficiency Finder and the Variety Finder for a month on the free plan (Libre). Every plan above Libre already has them. Orders come in under AniSystem &gt; Orders like any plan.</p>
                 <form id="addonForm" class="row g-2 align-items-end">
                     <div class="col-auto">
                         <label class="form-label font-size-12 mb-1">Field helpers, one month (₱)</label>

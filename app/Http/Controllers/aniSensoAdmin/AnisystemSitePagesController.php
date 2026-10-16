@@ -36,6 +36,8 @@ class AnisystemSitePagesController extends Controller
         'diseases' => 'Crop diseases',
         'weeds' => 'Weeds and grasses',
         'land-preparation' => 'Land preparation',
+        // One page per crop and one per nutrient (anee.io's /nutrient-deficiencies, 2026-10-16).
+        'nutrient-deficiencies' => 'Nutrient deficiencies',
         // One page per rice variety, from PhilRice's seed database (2026-10-13).
         'rice-varieties' => 'Rice varieties',
         'crop-varieties' => 'Crop varieties',
