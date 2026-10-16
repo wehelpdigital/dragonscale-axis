@@ -44,8 +44,8 @@ final class AiPricingModel
         'target' => 5.0,
         'minMargin' => 4.0,
         'maxMargin' => 6.0,
-        // Today's flat prices as a floor under the engine (the rule until 2026-10-16).
-        'flatFloor' => false,
+        // The owner's price list as the floor under the engine (anee.io's AiPricing twin, 2026-10-16).
+        'flatFloor' => true,
         'pesoPerCredit' => null,
         'usdRate' => 58.0,
         'prices' => [
@@ -80,7 +80,7 @@ final class AiPricingModel
             'autoAsk' => ['unit' => '', 'baseIn' => 12000, 'baseOut' => 2500],
             'skypass' => ['unit' => 'open', 'free' => 0, 'units' => 14, 'max' => 40, 'mapsUnit' => 1, 'unitUsd' => 0.0017],
             'lcc' => ['unit' => 'leaf', 'free' => 10, 'units' => 10, 'max' => 12, 'baseIn' => 4500, 'baseOut' => 3600, 'unitOut' => 150, 'outCap' => 5048],
-            'landprep' => ['unit' => 'lot', 'free' => 1, 'units' => 1, 'max' => 12, 'baseIn' => 7000, 'baseOut' => 4500, 'unitIn' => 400, 'unitOut' => 250, 'outCap' => 8048, 'om' => 3,
+            'landprep' => ['unit' => 'lot', 'free' => 1, 'units' => 1, 'max' => 12, 'perUnitPrice' => true, 'baseIn' => 7000, 'baseOut' => 4500, 'unitIn' => 400, 'unitOut' => 250, 'outCap' => 8048, 'om' => 3,
                 'opts' => ['research' => ['in' => 2600, 'out' => 3800, 'search' => 1]]],
         ],
     ];

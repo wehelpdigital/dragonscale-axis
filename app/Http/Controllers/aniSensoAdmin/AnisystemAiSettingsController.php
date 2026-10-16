@@ -103,6 +103,7 @@ class AnisystemAiSettingsController extends Controller
      */
     public const PRICE_KINDS = [
         'wtp' => 'When to Plant analysis',
+        'wtpVariety' => 'When to Plant analysis with a named variety',
         'what' => 'What to Plant analysis',
         'variety' => 'Variety Ranking (searches the web)',
         'protocol' => 'Crop Protocol Analysis (season plan by growth stage, searches the web)',
@@ -119,7 +120,7 @@ class AnisystemAiSettingsController extends Controller
         'auto' => 'Anee Auto, per lot (a whole season planned and kept on track by Anee)',
         'skypass' => 'Satellite Weather, a week pass (never sold under the pricing engine quote for a week)',
         'lcc' => 'LCC Checker (Anee reads rice leaf photos against the leaf color chart)',
-        'landprep' => 'Land Prep Planner (Anee plans land and seed preparation per lot, around the crew)',
+        'landprep' => 'Land Prep Planner, per lot (Anee plans land and seed preparation per lot, around the crew)',
     ];
 
     /**
@@ -134,9 +135,10 @@ class AnisystemAiSettingsController extends Controller
         'rate' => 58,
     ];
 
+    // The owner's price list of 2026-10-16 (anee.io's AiPrices::DEFAULTS twin).
     public const PRICE_DEFAULTS = [
-        'wtp' => 100, 'what' => 100, 'variety' => 120, 'protocol' => 150, 'season' => 300, 'sofar' => 200, 'compare' => 30, 'realign' => 60, 'builder' => 100,
-        'satellite' => 120, 'skyweather' => 60, 'npk' => 60, 'npkplan' => 60, 'npkproto' => 60, 'auto' => 1000, 'skypass' => 30, 'lcc' => 30, 'landprep' => 60,
+        'wtp' => 100, 'wtpVariety' => 150, 'what' => 50, 'variety' => 100, 'protocol' => 150, 'season' => 100, 'sofar' => 50, 'compare' => 30, 'realign' => 30, 'builder' => 100,
+        'satellite' => 100, 'skyweather' => 20, 'npk' => 80, 'npkplan' => 25, 'npkproto' => 20, 'auto' => 1000, 'skypass' => 50, 'lcc' => 30, 'landprep' => 50,
     ];
 
     private function priceList($packs): array
