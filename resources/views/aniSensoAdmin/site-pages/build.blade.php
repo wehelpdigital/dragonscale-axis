@@ -365,7 +365,9 @@
             case 'callout':
                 return `<div class="d-flex gap-2"><select class="form-select form-select-sm" style="width:8rem" data-i="${i}" data-k="tone">
                     ${['tip', 'warn', 'info'].map((t) => `<option value="${t}" ${b.tone === t ? 'selected' : ''}>${{ tip: 'Tip', warn: 'Warning', info: 'Note' }[t]}</option>`).join('')}</select>
-                    ${inp(i, 'title', b.title, 'Title')}</div>${area(i, 'text', b.text, 3)}`;
+                    ${inp(i, 'title', b.title, 'Title')}</div>${area(i, 'text', b.text, 3)}
+                    <label class="mt-2">Taglish (optional). When filled, anee.io shows English and Taglish as two tabs in the card, Taglish first. Tagalog words keep their own hyphen (mag-ani).</label>
+                    ${area(i, 'textTl', b.textTl || '', 3, 'The same words in Taglish')}`;
             case 'image':
                 return `<div class="d-flex gap-2 align-items-start flex-wrap"><img class="thumb" src="${esc(img(b.src))}" alt="">
                     <div class="flex-grow-1 d-grid gap-1" style="min-width:12rem"><div class="input-group input-group-sm">${inp(i, 'src', b.src, '/images/site/... or a full address')}
@@ -753,7 +755,9 @@
             const tr = S.filter((s) => TRANS.some((t) => new RegExp('(^|[^a-z])' + t + '([^a-z]|$)').test(s.toLowerCase()))).length;
             add(S.length && tr / S.length < 0.3 ? 'ok' : 'good', 'Transition words in ' + tr + ' of ' + S.length + ' sentences', '30 percent at least.');
         }
-        const all = [P.title, P.metaTitle, P.metaDescription, P.excerpt, JSON.stringify(B.map((b) => { const c = Object.assign({}, b); delete c.url; delete c.src; return c; }))].join(' ').toLowerCase()
+        // A callout's Taglish (textTl) is checked too, but a Tagalog word's own hyphen (mag-ani) is its spelling, not a dash.
+        const tlWords = B.map((b) => b.textTl || '').join(' ').replace(/([A-Za-zÀ-ÿñÑ])-(?=[A-Za-zÀ-ÿñÑ])/g, '$1');
+        const all = [P.title, P.metaTitle, P.metaDescription, P.excerpt, tlWords, JSON.stringify(B.map((b) => { const c = Object.assign({}, b); delete c.url; delete c.src; delete c.textTl; return c; }))].join(' ').toLowerCase()
             .replace(/\]\([^)]*\)/g, ']').replace(/"url":"[^"]*"/g, '').replace(/https?:\/\/\S+/g, '');
         const found = BANNED.filter((w) => new RegExp('(^|[^a-z])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z]|$)').test(all));
         add(found.length ? 'bad' : 'good', found.length ? 'Banned words: ' + found.join(', ') : 'No banned words');

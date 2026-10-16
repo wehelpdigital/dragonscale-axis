@@ -460,6 +460,11 @@ class AnisystemSitePagesController extends Controller
                     $k['tone'] = in_array($b['tone'] ?? '', ['tip', 'warn', 'info'], true) ? $b['tone'] : 'tip';
                     $k['title'] = $str($b['title'] ?? '', 200);
                     $k['text'] = $str($b['text'] ?? '', 4000);
+                    // The same words in Taglish (2026-10-17): anee.io shows English and Taglish as two
+                    // tabs in the card (a news story's "so what"). Kept only when there is one.
+                    if (($tl = $str($b['textTl'] ?? '', 4000)) !== '') {
+                        $k['textTl'] = $tl;
+                    }
                     break;
                 case 'image':
                     $k['src'] = $str($b['src'] ?? ($b['url'] ?? ''), 500);
@@ -499,8 +504,9 @@ class AnisystemSitePagesController extends Controller
     private static function words(?string $excerpt, array $blocks): int
     {
         $text = (string) $excerpt;
+        // A callout's Taglish tab (textTl) is the same card again: the page is counted in English.
         array_walk_recursive($blocks, function ($v, $k) use (&$text) {
-            if (is_string($v) && ! in_array($k, ['type', 'url', 'src', 'tone'], true)) {
+            if (is_string($v) && ! in_array($k, ['type', 'url', 'src', 'tone', 'textTl'], true)) {
                 $text .= ' ' . $v;
             }
         });
