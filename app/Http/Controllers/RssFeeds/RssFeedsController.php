@@ -30,16 +30,11 @@ use Illuminate\Support\Str;
  */
 class RssFeedsController extends Controller
 {
+    /** The Feeds page: every feed, a feed's sections right under it. */
     public function index(RssBundleOutput $output)
     {
         $sources = RssSource::active()->orderBy('sourceName')->get();
-        $counts = RssItem::where('delete_status', 'active')
-            ->selectRaw('sourceId, count(*) as total, sum(case when created_at >= ? then 1 else 0 end) as fresh', [now()->subDay()])
-            ->groupBy('sourceId')->get()->keyBy('sourceId');
-        $sources->each(function (RssSource $s) use ($counts) {
-            $s->setAttribute('itemTotal', (int) ($counts[$s->id]->total ?? 0));
-            $s->setAttribute('itemFresh', (int) ($counts[$s->id]->fresh ?? 0));
-        });
+        $counts = $this->storyCounts();
 
         $bundles = RssBundle::active()->combined()->with(['sources' => fn ($q) => $q->active()])->orderBy('bundleName')->get();
         $compilations = RssBundle::active()->compilations()->with(['members' => fn ($q) => $q->active()])
@@ -65,12 +60,6 @@ class RssFeedsController extends Controller
         ];
 
         // What the edit forms are filled with.
-        $sourceForms = $sources->mapWithKeys(fn (RssSource $s) => [$s->id => [
-            'sourceName' => $s->sourceName, 'sourceType' => $s->sourceType, 'sourceUrl' => $s->sourceUrl, 'searchQuery' => $s->searchQuery,
-            'settings' => $s->sourceSettings ?: new \stdClass(), 'includeKeywords' => $s->includeKeywords, 'excludeKeywords' => $s->excludeKeywords,
-            'refreshMinutes' => $s->refreshMinutes, 'fetchDetails' => $s->fetchDetails,
-            'bundleIds' => $bundles->filter(fn ($b) => $b->sources->contains('id', $s->id))->pluck('id')->values(),
-        ]]);
         $bundleForms = $bundles->mapWithKeys(fn (RssBundle $b) => [$b->id => [
             'bundleName' => $b->bundleName, 'bundleDescription' => $b->bundleDescription, 'includeKeywords' => $b->includeKeywords,
             'excludeKeywords' => $b->excludeKeywords, 'maxItems' => $b->maxItems, 'maxAgeDays' => $b->maxAgeDays,
@@ -80,15 +69,55 @@ class RssFeedsController extends Controller
             'bundleName' => $c->bundleName, 'usedFor' => $c->usedFor, 'bundleDescription' => $c->bundleDescription,
             'maxItems' => $c->maxItems, 'maxAgeDays' => $c->maxAgeDays, 'memberIds' => $c->members->pluck('id')->values(),
         ]]);
+        $cron = $this->cronStatus();
 
-        // Automatic reading: the scheduler, or a cron service calling the cron address.
-        $cron = [
+        return view('rss-feeds.index', compact('sources', 'bundles', 'compilations', 'standalone', 'stats', 'bundleForms', 'compilationForms', 'cron'));
+    }
+
+    /** The Sources page: where the stories come from, and how they are read on their own. */
+    public function sources()
+    {
+        $sources = RssSource::active()->orderBy('sourceName')->get();
+        $counts = $this->storyCounts();
+        $sources->each(function (RssSource $s) use ($counts) {
+            $s->setAttribute('itemTotal', (int) ($counts[$s->id]->total ?? 0));
+            $s->setAttribute('itemFresh', (int) ($counts[$s->id]->fresh ?? 0));
+        });
+        // The feeds a source can be put in from its form.
+        $bundles = RssBundle::active()->combined()->with(['sources' => fn ($q) => $q->active()])->orderBy('bundleName')->get();
+
+        $stats = [
+            'sources' => $sources->count(),
+            'items' => (int) $counts->sum('total'),
+            'fresh' => (int) $counts->sum('fresh'),
+        ];
+        $sourceForms = $sources->mapWithKeys(fn (RssSource $s) => [$s->id => [
+            'sourceName' => $s->sourceName, 'sourceType' => $s->sourceType, 'sourceUrl' => $s->sourceUrl, 'searchQuery' => $s->searchQuery,
+            'settings' => $s->sourceSettings ?: new \stdClass(), 'includeKeywords' => $s->includeKeywords, 'excludeKeywords' => $s->excludeKeywords,
+            'refreshMinutes' => $s->refreshMinutes, 'fetchDetails' => $s->fetchDetails,
+            'bundleIds' => $bundles->filter(fn ($b) => $b->sources->contains('id', $s->id))->pluck('id')->values(),
+        ]]);
+        $cron = $this->cronStatus();
+
+        return view('rss-feeds.sources', compact('sources', 'bundles', 'stats', 'sourceForms', 'cron'));
+    }
+
+    /** Stories kept per source, and how many came in the last day. */
+    private function storyCounts()
+    {
+        return RssItem::where('delete_status', 'active')
+            ->selectRaw('sourceId, count(*) as total, sum(case when created_at >= ? then 1 else 0 end) as fresh', [now()->subDay()])
+            ->groupBy('sourceId')->get()->keyBy('sourceId');
+    }
+
+    /** Automatic reading: the scheduler, or a cron service calling the cron address. */
+    private function cronStatus(): array
+    {
+        return [
             'url' => route('rss.cron', ['key' => RssSetting::cronKey()]),
             'lastRunAt' => RssSetting::lastRunAt(),
             'lastRunBy' => RssSetting::getValue('lastRunBy'),
         ];
-
-        return view('rss-feeds.index', compact('sources', 'bundles', 'compilations', 'standalone', 'stats', 'sourceForms', 'bundleForms', 'compilationForms', 'cron'));
     }
 
     /** Replaces the cron address's key; the old address stops working. */

@@ -673,11 +673,30 @@
                 <li class="menu-title">─</li>
 
                 <!-- RSS Feeds Navigation -->
+                @php
+                    // A source's preview belongs under Sources; everything else on these pages under Feeds.
+                    $rssSourcesPage = request()->routeIs('rss-feeds.sources') || (request()->routeIs('rss-feeds.preview') && request()->filled('source'));
+                    $rssFeedsPage = request()->is('rss-feeds*') && ! $rssSourcesPage;
+                @endphp
                 <li class="{{ request()->is('rss-feeds*') ? 'mm-active' : '' }}">
-                    <a href="{{ route('rss-feeds') }}" class="waves-effect {{ request()->is('rss-feeds*') ? 'active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('rss-feeds*') ? 'mm-active' : '' }}">
                         <i class="bx bx-rss"></i>
                         <span key="t-rss-feeds">RSS Feeds</span>
                     </a>
+                    <ul class="sub-menu {{ request()->is('rss-feeds*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('rss-feeds*') ? 'true' : 'false' }}">
+                        <li class="{{ $rssFeedsPage ? 'mm-active' : '' }}">
+                            <a href="{{ route('rss-feeds') }}" class="waves-effect {{ $rssFeedsPage ? 'active' : '' }}">
+                                <i class="bx bx-collection"></i>
+                                <span key="t-rss-feeds-feeds">Feeds</span>
+                            </a>
+                        </li>
+                        <li class="{{ $rssSourcesPage ? 'mm-active' : '' }}">
+                            <a href="{{ route('rss-feeds.sources') }}" class="waves-effect {{ $rssSourcesPage ? 'active' : '' }}">
+                                <i class="bx bx-news"></i>
+                                <span key="t-rss-feeds-sources">Sources</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
 
                 <!-- Divider -->

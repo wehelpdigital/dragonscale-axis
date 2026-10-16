@@ -1273,6 +1273,7 @@ Route::post('/resort-guru-blocks-update-image', [App\Http\Controllers\resortGuru
 
 // RSS Feeds: DS AXIS's own RSS.app (sources, combined feeds, and their public addresses)
 Route::get('/rss-feeds', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'index'])->name('rss-feeds')->middleware('auth');
+Route::get('/rss-feeds-sources', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'sources'])->name('rss-feeds.sources')->middleware('auth');
 Route::get('/rss-feeds-preview', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'preview'])->name('rss-feeds.preview')->middleware('auth');
 Route::post('/rss-feeds-source', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'storeSource'])->name('rss-feeds.source.store')->middleware('auth');
 Route::post('/rss-feeds-source-test', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'testSource'])->name('rss-feeds.source.test')->middleware('auth');

@@ -25,7 +25,7 @@
 
 @section('content')
     @component('components.breadcrumb')
-        @slot('li_1') RSS Feeds @endslot
+        @slot('li_1') {{ $source ? 'RSS Feeds · Sources' : 'RSS Feeds · Feeds' }} @endslot
         @slot('title') {{ $bundle ? $bundle->bundleName : $source->sourceName }} @endslot
     @endcomponent
 
@@ -45,7 +45,7 @@
                             @endif
                         </p>
                     </div>
-                    <a href="{{ route('rss-feeds') }}" class="btn btn-light btn-sm"><i class="bx bx-arrow-back me-1"></i>RSS Feeds</a>
+                    <a href="{{ $source ? route('rss-feeds.sources') : route('rss-feeds') }}" class="btn btn-light btn-sm"><i class="bx bx-arrow-back me-1"></i>{{ $source ? 'Sources' : 'Feeds' }}</a>
                 </div>
 
                 @if ($items->isEmpty())
