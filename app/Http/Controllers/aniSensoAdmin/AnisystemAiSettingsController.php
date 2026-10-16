@@ -106,7 +106,9 @@ class AnisystemAiSettingsController extends Controller
         'wtpVariety' => 'When to Plant analysis with a named variety',
         'what' => 'What to Plant analysis',
         'variety' => 'Variety Ranking (searches the web)',
-        'protocol' => 'Crop Protocol Analysis (season plan by growth stage, searches the web)',
+        'protocol' => 'Crop Protocol Analysis, one lot (season plan by growth stage, searches the web)',
+        'protocolLot' => 'Crop Protocol Analysis, each lot after the first',
+        'protocolCase' => 'Crop Protocol Analysis, each more crop or variety Anee reads up on',
         'season' => 'Anee Season Report',
         'sofar' => 'Analyze So Far report',
         'compare' => 'Comparison analysis',
@@ -138,7 +140,7 @@ class AnisystemAiSettingsController extends Controller
 
     // The owner's price list of 2026-10-16 (anee.io's AiPrices::DEFAULTS twin).
     public const PRICE_DEFAULTS = [
-        'wtp' => 100, 'wtpVariety' => 150, 'what' => 50, 'variety' => 100, 'protocol' => 150, 'season' => 100, 'sofar' => 50, 'compare' => 30, 'realign' => 30, 'builder' => 100,
+        'wtp' => 100, 'wtpVariety' => 150, 'what' => 50, 'variety' => 100, 'protocol' => 150, 'protocolLot' => 40, 'protocolCase' => 70, 'season' => 100, 'sofar' => 50, 'compare' => 30, 'realign' => 30, 'builder' => 100,
         'satellite' => 100, 'skyweather' => 20, 'npk' => 80, 'npkplan' => 25, 'npkproto' => 20, 'auto' => 1000, 'skypass' => 50, 'lcc' => 30, 'landprep' => 50, 'compat' => 80,
     ];
 
