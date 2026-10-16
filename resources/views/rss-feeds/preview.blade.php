@@ -37,11 +37,11 @@
                         <h4 class="card-title mb-1 text-dark">{{ $bundle ? 'What the feed shows now' : 'Every story this source gave' }}</h4>
                         <p class="text-secondary small mb-0">
                             @if ($bundle && $bundle->isCompilation())
-                                {{ $items->count() }} {{ \Illuminate\Support\Str::plural('story', $items->count()) }} in {{ count($groups) }} sections, in the order the feed serves them. A story two combined feeds both show is listed in both sections.
+                                {{ $items->count() }} {{ \Illuminate\Support\Str::plural('story', $items->count()) }} in {{ count($groups) }} sections, in the order the feed serves them. A story two sections both show is listed in both.
                             @elseif ($bundle)
                                 {{ $items->count() }} {{ \Illuminate\Support\Str::plural('story', $items->count()) }}, newest first, exactly as the RSS address serves them.
                             @else
-                                The latest {{ $items->count() }}, newest first. Faded ones are left out by this source's filter; hidden ones are left out of every combined feed.
+                                The latest {{ $items->count() }}, newest first. Faded ones are left out by this source's filter; hidden ones are left out of every feed.
                             @endif
                         </p>
                     </div>
@@ -85,7 +85,7 @@
                                 @if ($item->itemSummary)<div class="sum text-dark">{{ $item->itemSummary }}</div>@endif
                             </div>
                             <div class="flex-none">
-                                <button type="button" class="btn btn-sm {{ $hidden ? 'btn-soft-success' : 'btn-soft-secondary' }} rfp-hide" data-url="{{ route('rss-feeds.item.hide', $item->id) }}" data-hide="{{ $hidden ? 0 : 1 }}" title="{{ $hidden ? 'Show it again' : 'Hide it from every combined feed' }}">
+                                <button type="button" class="btn btn-sm {{ $hidden ? 'btn-soft-success' : 'btn-soft-secondary' }} rfp-hide" data-url="{{ route('rss-feeds.item.hide', $item->id) }}" data-hide="{{ $hidden ? 0 : 1 }}" title="{{ $hidden ? 'Show it again' : 'Hide it from every feed' }}">
                                     <i class="bx {{ $hidden ? 'bx-show' : 'bx-hide' }}"></i>
                                 </button>
                             </div>
@@ -106,8 +106,8 @@
                     <p class="small text-dark mb-1">Shows at most <b>{{ $bundle->maxItems }}</b> stories from the last <b>{{ $bundle->maxAgeDays }}</b> {{ \Illuminate\Support\Str::plural('day', $bundle->maxAgeDays) }}.</p>
                     @if ($bundle->isCompilation())
                         @if ($bundle->usedFor)<p class="small text-secondary mb-1"><b class="text-dark">Used for:</b> {{ $bundle->usedFor }}</p>@endif
-                        <h6 class="text-dark mt-3">Combined feeds</h6>
-                        <p class="small text-secondary mb-2">Each story is tagged with the ones it came from, as an RSS category.</p>
+                        <h6 class="text-dark mt-3">Sections</h6>
+                        <p class="small text-secondary mb-2">Each story is tagged with its section, as an RSS category.</p>
                         <ul class="list-unstyled mb-0 small">
                             @foreach ($bundle->members as $m)
                                 <li class="mb-1"><a href="{{ route('rss-feeds.preview', ['bundle' => $m->id]) }}">{{ $m->bundleName }}</a>{!! $m->isActive ? '' : ' <span class="text-secondary">· paused, left out</span>' !!}</li>

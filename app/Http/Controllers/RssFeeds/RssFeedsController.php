@@ -49,12 +49,16 @@ class RssFeedsController extends Controller
             $b->setAttribute('shownCount', $shown->count());
             $b->setAttribute('newestAt', $shown->first()?->publishedAt);
         });
-        // Grouped by what they are used for; one without a use is "Not in use yet".
-        $compilationGroups = $compilations->groupBy(fn (RssBundle $c) => $c->usedFor ?: 'Not in use yet');
+        // One list of feeds: each feed with sections, its sections right under it
+        // (the same rows as the feeds they are), then the feeds that are no
+        // one's section. A feed that is a section of two shows under both.
+        $byId = $bundles->keyBy('id');
+        $compilations->each(fn (RssBundle $c) => $c->setAttribute('sections', $c->members->map(fn ($m) => $byId[$m->id] ?? null)->filter()->values()));
+        $inSections = $compilations->flatMap(fn (RssBundle $c) => $c->sections->pluck('id'))->unique()->all();
+        $standalone = $bundles->reject(fn (RssBundle $b) => in_array($b->id, $inSections, true))->values();
 
         $stats = [
-            'compilations' => $compilations->count(),
-            'bundles' => $bundles->count(),
+            'feeds' => $bundles->count() + $compilations->count(),
             'sources' => $sources->count(),
             'items' => (int) $counts->sum('total'),
             'fresh' => (int) $counts->sum('fresh'),
@@ -84,7 +88,7 @@ class RssFeedsController extends Controller
             'lastRunBy' => RssSetting::getValue('lastRunBy'),
         ];
 
-        return view('rss-feeds.index', compact('sources', 'bundles', 'compilationGroups', 'stats', 'sourceForms', 'bundleForms', 'compilationForms', 'cron'));
+        return view('rss-feeds.index', compact('sources', 'bundles', 'compilations', 'standalone', 'stats', 'sourceForms', 'bundleForms', 'compilationForms', 'cron'));
     }
 
     /** Replaces the cron address's key; the old address stops working. */
@@ -168,7 +172,7 @@ class RssFeedsController extends Controller
         $source->bundles()->detach();
         RssRefresher::touch();
 
-        return response()->json(['success' => true, 'message' => 'Source deleted. Its stories no longer show in any combined feed.']);
+        return response()->json(['success' => true, 'message' => 'Source deleted. Its stories no longer show in any feed.']);
     }
 
     public function toggleSource(Request $request, $id)
@@ -180,7 +184,7 @@ class RssFeedsController extends Controller
         $source->update(['isActive' => $request->boolean('isActive')]);
         RssRefresher::touch();
 
-        return response()->json(['success' => true, 'message' => $source->isActive ? 'Source turned on.' : 'Source paused. Its stories are left out of the combined feeds.']);
+        return response()->json(['success' => true, 'message' => $source->isActive ? 'Source turned on.' : 'Source paused. Its stories are left out of the feeds.']);
     }
 
     public function refreshSource($id, RssRefresher $refresher)
@@ -292,7 +296,7 @@ class RssFeedsController extends Controller
         ];
     }
 
-    /** Puts the source in exactly the combined feeds ticked in its form. */
+    /** Puts the source in exactly the feeds ticked in its form. */
     private function syncSourceBundles(RssSource $source, array $bundleIds): void
     {
         $wanted = RssBundle::active()->combined()->whereIn('id', array_map('intval', $bundleIds))->pluck('id')->all();
@@ -313,14 +317,14 @@ class RssFeedsController extends Controller
         $bundle->sources()->sync($data['sourceIds']);
         RssRefresher::touch();
 
-        return response()->json(['success' => true, 'message' => 'Combined feed created.', 'data' => ['id' => $bundle->id, 'url' => $bundle->outputUrl()]]);
+        return response()->json(['success' => true, 'message' => 'Feed created.', 'data' => ['id' => $bundle->id, 'url' => $bundle->outputUrl()]]);
     }
 
     public function updateBundle(Request $request, $id)
     {
         $bundle = RssBundle::active()->combined()->find($id);
         if (! $bundle) {
-            return response()->json(['success' => false, 'message' => 'Combined feed not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Feed not found'], 404);
         }
         $data = $this->validatedBundle($request);
         if ($data instanceof \Illuminate\Http\JsonResponse) {
@@ -331,7 +335,7 @@ class RssFeedsController extends Controller
         $bundle->touch();
         RssRefresher::touch();
 
-        return response()->json(['success' => true, 'message' => 'Combined feed saved.']);
+        return response()->json(['success' => true, 'message' => 'Feed saved.']);
     }
 
     public function storeCompilation(Request $request)
@@ -343,14 +347,14 @@ class RssFeedsController extends Controller
         $compilation = RssBundle::create($data['bundle'] + ['bundleType' => 'compilation', 'usersId' => Auth::id(), 'isActive' => true, 'delete_status' => 'active']);
         $compilation->members()->sync(self::ordered($data['memberIds']));
 
-        return response()->json(['success' => true, 'message' => 'Compilation created.', 'data' => ['id' => $compilation->id, 'url' => $compilation->outputUrl()]]);
+        return response()->json(['success' => true, 'message' => 'Feed with sections created.', 'data' => ['id' => $compilation->id, 'url' => $compilation->outputUrl()]]);
     }
 
     public function updateCompilation(Request $request, $id)
     {
         $compilation = RssBundle::active()->compilations()->find($id);
         if (! $compilation) {
-            return response()->json(['success' => false, 'message' => 'Compilation not found'], 404);
+            return response()->json(['success' => false, 'message' => 'Feed not found'], 404);
         }
         $data = $this->validatedCompilation($request);
         if ($data instanceof \Illuminate\Http\JsonResponse) {
@@ -360,7 +364,7 @@ class RssFeedsController extends Controller
         $compilation->members()->sync(self::ordered($data['memberIds']));
         $compilation->touch();
 
-        return response()->json(['success' => true, 'message' => 'Compilation saved.']);
+        return response()->json(['success' => true, 'message' => 'Feed saved.']);
     }
 
     public function destroyBundle($id)
@@ -370,11 +374,11 @@ class RssFeedsController extends Controller
             return response()->json(['success' => false, 'message' => 'Feed not found'], 404);
         }
         $bundle->update(['delete_status' => 'deleted', 'isActive' => false]);
-        // A deleted combined feed leaves every compilation it was in.
+        // A deleted feed stops being a section of any other feed.
         $bundle->partOfCompilations()->detach();
         RssRefresher::touch();
 
-        return response()->json(['success' => true, 'message' => ($bundle->isCompilation() ? 'Compilation' : 'Combined feed') . ' deleted. Its address now answers 404.']);
+        return response()->json(['success' => true, 'message' => 'Feed deleted. Its address now answers 404.']);
     }
 
     public function toggleBundle(Request $request, $id)
@@ -385,10 +389,9 @@ class RssFeedsController extends Controller
         }
         $bundle->update(['isActive' => $request->boolean('isActive')]);
         RssRefresher::touch();
-        $what = $bundle->isCompilation() ? 'Compilation' : 'Combined feed';
 
-        return response()->json(['success' => true, 'message' => $bundle->isActive ? $what . ' is live again.'
-            : $what . ' paused. Its address answers 404 until it is turned back on' . ($bundle->isCompilation() ? '.' : ', and compilations leave it out.')]);
+        return response()->json(['success' => true, 'message' => $bundle->isActive ? 'Feed is live again.'
+            : 'Feed paused. Its address answers 404 until it is turned back on' . ($bundle->isCompilation() ? '.' : ', and feeds that have it as a section leave it out.')]);
     }
 
     /** Reads every source of a combined feed (or of a compilation's combined feeds) now. */
@@ -431,7 +434,7 @@ class RssFeedsController extends Controller
             'maxItems' => 'required|integer|min:5|max:200',
             'maxAgeDays' => 'required|integer|min:1|max:60',
         ], [
-            'bundleName.required' => 'Give the combined feed a name.',
+            'bundleName.required' => 'Give the feed a name.',
             'sourceIds.required' => 'Tick at least one source.',
             'sourceIds.min' => 'Tick at least one source.',
         ]);
@@ -473,9 +476,9 @@ class RssFeedsController extends Controller
             'maxItems' => 'required|integer|min:5|max:300',
             'maxAgeDays' => 'required|integer|min:1|max:60',
         ], [
-            'bundleName.required' => 'Give the compilation a name.',
-            'memberIds.required' => 'Tick at least one combined feed.',
-            'memberIds.min' => 'Tick at least one combined feed.',
+            'bundleName.required' => 'Give the feed a name.',
+            'memberIds.required' => 'Tick at least one feed to be a section.',
+            'memberIds.min' => 'Tick at least one feed to be a section.',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
@@ -486,7 +489,7 @@ class RssFeedsController extends Controller
         $valid = RssBundle::active()->combined()->whereIn('id', $asked)->pluck('id')->all();
         $memberIds = array_values(array_filter($asked, fn ($id) => in_array($id, $valid, true)));
         if (! $memberIds) {
-            return response()->json(['success' => false, 'message' => 'Tick at least one combined feed.', 'errors' => ['memberIds' => ['Tick at least one combined feed.']]], 422);
+            return response()->json(['success' => false, 'message' => 'Tick at least one feed to be a section.', 'errors' => ['memberIds' => ['Tick at least one feed to be a section.']]], 422);
         }
 
         return [
@@ -505,7 +508,7 @@ class RssFeedsController extends Controller
     // Stories
     // ------------------------------------------------------------------
 
-    /** Hides a story from every combined feed, or brings it back. */
+    /** Hides a story from every feed, or brings it back. */
     public function hideItem(Request $request, $id)
     {
         $item = RssItem::find($id);
@@ -516,6 +519,6 @@ class RssFeedsController extends Controller
         $item->update(['delete_status' => $hide ? 'deleted' : 'active']);
         RssRefresher::touch();
 
-        return response()->json(['success' => true, 'message' => $hide ? 'Story hidden from every combined feed.' : 'Story shown again.']);
+        return response()->json(['success' => true, 'message' => $hide ? 'Story hidden from every feed.' : 'Story shown again.']);
     }
 }

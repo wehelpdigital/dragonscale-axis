@@ -839,6 +839,8 @@ The following views are Skote template demos and should NOT be modified:
 
 **Flow**: `rss:refresh` runs every 5 minutes and reads the sources that are due (each has `refreshMinutes`). When the scheduler is not running, a cron service can call `/rss-cron?key=...` (key in `axis_rss_settings`, `RssSetting`); it answers at once and reads after the response. The admin page shows the last automatic read. Combined feeds are public at `/rss/{bundleToken}.xml` (`RssOutputController`, no login). The same address gives browsers a page (`rss-feeds.public`, stories laid out by section; told apart by `Sec-Fetch-Dest: document`, or an `Accept` led by text/html over plain http) and everything else the RSS; `?raw=1` forces the RSS. A compilation's RSS is grouped by section in `memberOrder`. Admin page: `/rss-feeds`.
 
+**Wording on screen**: both kinds are just "feeds": a feed *from sources* (`combined`) or a feed *with sections* (`compilation`). The admin page shows one Feeds list, each feed with sections followed by its sections (`rss-feeds._feed-row`). Don't bring back separate "Compilations"/"Combined feeds" lists: the user found them redundant.
+
 **Scoping**: Shared by all admins (company infrastructure read by anee.io's news roundup); `usersId` records who added a row.
 
 ---
