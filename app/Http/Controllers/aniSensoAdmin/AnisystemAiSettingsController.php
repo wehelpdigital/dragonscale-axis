@@ -76,10 +76,10 @@ class AnisystemAiSettingsController extends Controller
         } catch (\Throwable $e) {
             $paypal = [];
         }
-        $addons = ['fieldpack' => ['php' => 50, 'usd' => 1]];
+        $addons = ['fieldpack' => ['php' => 20, 'usd' => 0.5]];
         try {
-            $addons['fieldpack']['php'] = (float) AsSiteSetting::get('addons.fieldpack.php', 50);
-            $addons['fieldpack']['usd'] = (float) AsSiteSetting::get('addons.fieldpack.usd', 1);
+            $addons['fieldpack']['php'] = (float) AsSiteSetting::get('addons.fieldpack.php', 20);
+            $addons['fieldpack']['usd'] = (float) AsSiteSetting::get('addons.fieldpack.usd', 0.5);
         } catch (\Throwable $e) {
         }
 
@@ -213,7 +213,7 @@ class AnisystemAiSettingsController extends Controller
         return response()->json(['success' => true, 'message' => "Anee's price list saved. anee.io reads it on the next run."]);
     }
 
-    /** Save the add-on prices anee.io sells (the field helpers pack, a year). */
+    /** Save the add-on prices anee.io sells (the field helpers pack, a month since 2026-10-16). */
     public function saveAddons(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -615,6 +615,7 @@ class AnisystemAiSettingsController extends Controller
     {
         $rules = [
             'on' => 'required|boolean',
+            'flatFloor' => 'nullable|boolean',
             'target' => 'required|numeric|min:1|max:50',
             'minMargin' => 'required|numeric|min:1|max:50',
             'maxMargin' => 'required|numeric|min:1|max:100',
@@ -649,6 +650,9 @@ class AnisystemAiSettingsController extends Controller
     {
         $d = AiPricingModel::DEFAULTS;
         $out = ['on' => $request->boolean('on')];
+        if ($request->boolean('flatFloor') !== (bool) $d['flatFloor']) {
+            $out['flatFloor'] = $request->boolean('flatFloor');
+        }
         foreach (['target', 'minMargin', 'maxMargin', 'usdRate'] as $k) {
             $v = round((float) $request->input($k), 4);
             if ($v != (float) $d[$k]) {

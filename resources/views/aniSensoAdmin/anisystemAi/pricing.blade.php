@@ -62,7 +62,7 @@
     <div class="card">
         <div class="card-body">
             <h5 class="card-title mb-1">How every price keeps its margin</h5>
-            <p class="text-secondary mb-3">Each paid tool is priced from what one run really costs the house at the 90th percentile, a heavy run and not the average: Anee's tokens in and out, her web searches, and the other services (Open-Meteo weather, Google map loads, mail). The price is the target margin times that cost, counted in credits at the cheapest a credit is sold, rounded up to fives and tens. Today's flat price on the price list is the floor, so the engine never lowers a price by itself. Where a price already earns over the ceiling it is marked here for you to decide. A real run that comes in under the floor is written to anee.io's log. Farmers never see any of this, only the price.</p>
+            <p class="text-secondary mb-3">Each paid tool is priced from what one run really costs the house at the 90th percentile, a heavy run and not the average: Anee's tokens in and out, her web searches, and the other services (Open-Meteo weather, Google map loads, mail). The price is the target margin times that cost, counted in credits at the cheapest a credit is sold, rounded up to fives and tens. Since 2026-10-16 the target is 5x between a 4x floor and a 6x ceiling, and the engine sets the price itself, under today's flat price too. Switch on "Flat prices are a floor" to go back to the old rule, where the engine never lowered a price. A real run that comes in under the floor is written to anee.io's log. Farmers never see any of this, only the price.</p>
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-auto">
                     <div class="form-check form-switch mb-1">
@@ -70,6 +70,13 @@
                         <label class="form-check-label fw-semibold" for="peOn">Engine on</label>
                     </div>
                     <div class="pe-sub">Off: every tool sells at its flat price</div>
+                </div>
+                <div class="col-auto">
+                    <div class="form-check form-switch mb-1">
+                        <input class="form-check-input" type="checkbox" id="peFloor" {{ ! empty($S['flatFloor']) ? 'checked' : '' }}>
+                        <label class="form-check-label fw-semibold" for="peFloor">Flat prices are a floor</label>
+                    </div>
+                    <div class="pe-sub">Off: the engine may price under the flat price</div>
                 </div>
                 <div class="col-auto">
                     <label class="form-label font-size-12 mb-1">Target margin (x)</label>
@@ -308,7 +315,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function read() {
         const s = {
             on: $('#peOn').checked,
-            target: numOr($('#peTarget').value, 8), minMargin: numOr($('#peMin').value, 6), maxMargin: numOr($('#peMax').value, 10),
+            flatFloor: $('#peFloor').checked,
+            target: numOr($('#peTarget').value, 5), minMargin: numOr($('#peMin').value, 4), maxMargin: numOr($('#peMax').value, 6),
             pesoPerCredit: $('#pePpc').value === '' ? null : numOr($('#pePpc').value, null), usdRate: numOr($('#peRate').value, 58),
             prices: {}, kinds: {},
         };
@@ -350,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const k = kindOf(s, kind), c = cost(s, kind, size), ppc = s.pesoPerCredit || PE.ppc;
         const flat = (PE.flat[kind] || 0) * (k.perUnitPrice ? c.units : 1);
         const engine = c.costPhp > 0 ? friendly(Math.ceil(s.target * c.costPhp / ppc - 1e-9)) : 0;
-        const credits = s.on ? Math.max(flat, engine) : flat;
+        const credits = !s.on ? flat : (s.flatFloor ? Math.max(flat, engine) : (engine > 0 ? engine : flat));
         return { units: c.units, costPhp: c.costPhp, flat, credits, margin: c.costPhp > 0 ? credits * ppc / c.costPhp : null, flatMargin: c.costPhp > 0 ? flat * ppc / c.costPhp : null };
     }
     function badge(s, m) {
@@ -388,6 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#peDefaults').addEventListener('click', () => {
         const d = PE.defaults;
         $('#peOn').checked = !!d.on;
+        $('#peFloor').checked = !!d.flatFloor;
         $('#peTarget').value = d.target; $('#peMin').value = d.minMargin; $('#peMax').value = d.maxMargin; $('#pePpc').value = ''; $('#peRate').value = d.usdRate;
         $$('.js-pe-price').forEach((el) => { const v = d.prices[el.dataset.key]; el.value = v === null ? '' : v; });
         $$('.js-pe-field').forEach((el) => { const v = (d.kinds[el.dataset.kind] || {})[el.dataset.field]; el.value = v === undefined ? 0 : v; });
@@ -398,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const s = read(), btn = $('#peSave');
-        const body = { on: s.on ? 1 : 0, target: s.target, minMargin: s.minMargin, maxMargin: s.maxMargin, pesoPerCredit: s.pesoPerCredit, usdRate: s.usdRate, prices: {}, kinds: {} };
+        const body = { on: s.on ? 1 : 0, flatFloor: s.flatFloor ? 1 : 0, target: s.target, minMargin: s.minMargin, maxMargin: s.maxMargin, pesoPerCredit: s.pesoPerCredit, usdRate: s.usdRate, prices: {}, kinds: {} };
         Object.keys(s.prices).forEach((k) => { if (s.prices[k] !== null) body.prices[k] = s.prices[k]; });
         $$('.js-pe-field').forEach((el) => { (body.kinds[el.dataset.kind] ||= {})[el.dataset.field] = el.value === '' ? 0 : numOr(el.value, 0); });
         btn.disabled = true;

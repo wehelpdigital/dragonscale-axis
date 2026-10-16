@@ -333,7 +333,7 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                     <div>
                         <h5 class="card-title mb-1">Anee's price list</h5>
-                        <p class="text-secondary mb-0">The analyses that are not metered: one flat price, in credits, said before the run and charged exactly. The chat is metered by the rates on the Settings tab. Under each price: what the runs of the last 30 days actually cost the house, from the provider's list prices (₱{{ number_format(\App\Support\AiHouseCost::PHP_PER_USD, 0) }} per dollar) — and the margin, at the cheapest pack's rate per credit. A healthy analysis earns its tokens several times over; a margin near 1× means the price is too low.</p>
+                        <p class="text-secondary mb-0">The analyses that are not metered: one flat price, in credits, said before the run and charged exactly. Since 2026-10-16 the Pricing engine tab sets the price a farmer pays (4x to 6x what a run costs); these flat prices count only while the engine is off, or when its "Flat prices are a floor" switch is on. The chat is metered by the rates on the Settings tab. Under each price: what the runs of the last 30 days actually cost the house, from the provider's list prices (₱{{ number_format(\App\Support\AiHouseCost::PHP_PER_USD, 0) }} per dollar) — and the margin, at the cheapest pack's rate per credit. A healthy analysis earns its tokens several times over; a margin near 1× means the price is too low.</p>
                     </div>
                 </div>
                 <form id="pricesForm">
@@ -391,10 +391,10 @@
         <div class="card" id="addonCard">
             <div class="card-body">
                 <h5 class="card-title mb-1">Add-ons</h5>
-                <p class="text-secondary mb-3">The field helpers pack opens the Weed Control Helper, the Pest Finder, the Disease Finder and the Variety Finder for a year on the free plan (Libre). Every plan above Libre already has them. Orders come in under AniSystem &gt; Orders like any plan.</p>
+                <p class="text-secondary mb-3">The field helpers pack opens the Weed Control Helper, the Pest Finder, the Disease Finder and the Variety Finder for a month on the free plan (Libre). Every plan above Libre already has them. Orders come in under AniSystem &gt; Orders like any plan.</p>
                 <form id="addonForm" class="row g-2 align-items-end">
                     <div class="col-auto">
-                        <label class="form-label font-size-12 mb-1">Field helpers, one year (₱)</label>
+                        <label class="form-label font-size-12 mb-1">Field helpers, one month (₱)</label>
                         <input type="number" class="form-control form-control-sm" name="fieldpack[php]" value="{{ $addons['fieldpack']['php'] }}" min="1" step="1" style="max-width:9rem">
                     </div>
                     <div class="col-auto">

@@ -17,8 +17,10 @@ use Illuminate\Support\Facades\Schema;
  * tokens in and out (a base plus an amount per unit of the job's size),
  * web search queries, and the other services (Open-Meteo, Google map loads,
  * mail, Earth Engine), at list prices times the peso rate. The price is
- * max(today's flat price, friendly(target x cost / the cheapest peso a
- * credit sells for)), so the engine never lowers a price on its own.
+ * friendly(target x cost / the cheapest peso a credit sells for). With
+ * flatFloor on, today's flat price is a floor under it (the rule until
+ * 2026-10-16); off, the default since the owner lowered the margin to 4x to
+ * 6x, the engine sets every price that has a cost model.
  */
 final class AiPricingModel
 {
@@ -38,9 +40,12 @@ final class AiPricingModel
 
     public const DEFAULTS = [
         'on' => true,
-        'target' => 8.0,
-        'minMargin' => 6.0,
-        'maxMargin' => 10.0,
+        // 4x to 6x since 2026-10-16 (was 8x in 6x to 10x).
+        'target' => 5.0,
+        'minMargin' => 4.0,
+        'maxMargin' => 6.0,
+        // Today's flat prices as a floor under the engine (the rule until 2026-10-16).
+        'flatFloor' => false,
         'pesoPerCredit' => null,
         'usdRate' => 58.0,
         'prices' => [
@@ -113,6 +118,9 @@ final class AiPricingModel
         if (is_array($set)) {
             if (array_key_exists('on', $set)) {
                 $out['on'] = (bool) $set['on'];
+            }
+            if (array_key_exists('flatFloor', $set)) {
+                $out['flatFloor'] = (bool) $set['flatFloor'];
             }
             foreach (['target', 'minMargin', 'maxMargin', 'usdRate'] as $k) {
                 if (isset($set[$k]) && is_numeric($set[$k]) && (float) $set[$k] > 0) {
@@ -335,7 +343,7 @@ final class AiPricingModel
         $ppc ??= self::pesoPerCredit();
         $flat = $flatOne * (! empty($k['perUnitPrice']) ? $c['units'] : 1);
         $engine = $c['costPhp'] > 0 ? self::friendly((int) ceil($s['target'] * $c['costPhp'] / $ppc - 1e-9)) : 0;
-        $credits = $s['on'] ? max($flat, $engine) : $flat;
+        $credits = ! $s['on'] ? $flat : (! empty($s['flatFloor']) ? max($flat, $engine) : ($engine > 0 ? $engine : $flat));
 
         return $c + ['credits' => (int) $credits, 'flat' => (int) $flat, 'engine' => $engine,
             'margin' => $c['costPhp'] > 0 ? round($credits * $ppc / $c['costPhp'], 2) : 0.0,
