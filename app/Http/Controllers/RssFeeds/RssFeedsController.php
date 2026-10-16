@@ -5,6 +5,7 @@ namespace App\Http\Controllers\RssFeeds;
 use App\Http\Controllers\Controller;
 use App\Models\RssBundle;
 use App\Models\RssItem;
+use App\Models\RssSetting;
 use App\Models\RssSource;
 use App\Services\RssFeeds\RssBundleOutput;
 use App\Services\RssFeeds\RssHtml;
@@ -76,7 +77,23 @@ class RssFeedsController extends Controller
             'maxItems' => $c->maxItems, 'maxAgeDays' => $c->maxAgeDays, 'memberIds' => $c->members->pluck('id')->values(),
         ]]);
 
-        return view('rss-feeds.index', compact('sources', 'bundles', 'compilationGroups', 'stats', 'sourceForms', 'bundleForms', 'compilationForms'));
+        // Automatic reading: the scheduler, or a cron service calling the cron address.
+        $cron = [
+            'url' => route('rss.cron', ['key' => RssSetting::cronKey()]),
+            'lastRunAt' => RssSetting::lastRunAt(),
+            'lastRunBy' => RssSetting::getValue('lastRunBy'),
+        ];
+
+        return view('rss-feeds.index', compact('sources', 'bundles', 'compilationGroups', 'stats', 'sourceForms', 'bundleForms', 'compilationForms', 'cron'));
+    }
+
+    /** Replaces the cron address's key; the old address stops working. */
+    public function newCronKey()
+    {
+        RssSetting::newCronKey();
+
+        return response()->json(['success' => true, 'message' => 'New cron address made. Give it to your cron service; the old one no longer works.',
+            'data' => ['url' => route('rss.cron', ['key' => RssSetting::cronKey()])]]);
     }
 
     /** The stories a feed shows, or everything one source gave. */

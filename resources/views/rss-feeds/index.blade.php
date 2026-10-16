@@ -53,6 +53,27 @@
             <div class="col-12 col-xl"><div class="stat"><b>{{ number_format($stats['fresh']) }}</b><span>new stories in the last 24 hours</span></div></div>
         </div>
 
+        {{-- Automatic reading --}}
+        @php $running = $cron['lastRunAt'] && $cron['lastRunAt']->gt(now()->subMinutes(30)); @endphp
+        <div class="card"><div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                <div style="max-width: 46rem;">
+                    <h5 class="card-title mb-1 text-dark"><i class="bx {{ $running ? 'bx-check-circle text-success' : 'bx-error text-warning' }} me-1"></i>Automatic reading</h5>
+                    @if ($running)
+                        <p class="small text-secondary mb-0">The sources are being read on their own: last run <span class="text-dark">{{ $cron['lastRunAt']->diffForHumans() }}</span>, by {{ $cron['lastRunBy'] === 'cron' ? 'the cron address below' : "the app's scheduler" }}.</p>
+                    @else
+                        <p class="small text-dark mb-1">Nothing has read the sources on its own {{ $cron['lastRunAt'] ? 'since ' . $cron['lastRunAt']->diffForHumans() : 'yet' }}, so the feeds only catch up when someone opens them.</p>
+                        <p class="small text-secondary mb-0">The app's scheduler is not running on the server. Either switch it on in Laravel Cloud, or give the address below to a cron service (for example cron-job.org, which is free) and have it call every 5 minutes. Calling it often is safe: each source is still read only when its own interval has passed.</p>
+                    @endif
+                </div>
+                <div class="addr flex-grow-1" style="max-width: 34rem;">
+                    <code id="rfCronUrl" title="{{ $cron['url'] }}">{{ $cron['url'] }}</code>
+                    <button type="button" class="btn btn-light btn-sm rf-copy" id="rfCronCopy" data-url="{{ $cron['url'] }}" title="Copy the cron address"><i class="bx bx-copy"></i></button>
+                    <button type="button" class="btn btn-light btn-sm" id="rfCronKey" title="Make a new address (the old one stops working)"><i class="bx bx-key"></i></button>
+                </div>
+            </div>
+        </div></div>
+
         {{-- Compilations --}}
         <div class="card"><div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -692,6 +713,21 @@
                 showErrors($bForm, $('#bundleError'), xhr);
                 $('#bfSourcesError').text(xhr.responseJSON?.errors?.sourceIds?.[0] || '');
             })
+            .always(() => busy($btn, false));
+    });
+
+    // ---------------- Cron address ----------------
+    $('#rfCronKey').on('click', function () {
+        if (!confirm('Make a new cron address? The current one stops working, so the cron service must be given the new one.')) return;
+        const $btn = $(this);
+        busy($btn, true, '');
+        $.post(@json(route('rss-feeds.cron-key')))
+            .done((res) => {
+                $('#rfCronUrl').text(res.data.url).attr('title', res.data.url);
+                $('#rfCronCopy').data('url', res.data.url);
+                toastr.success(res.message, 'New address');
+            })
+            .fail((xhr) => fail(xhr, 'A new address could not be made.'))
             .always(() => busy($btn, false));
     });
 

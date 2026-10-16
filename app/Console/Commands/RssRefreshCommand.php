@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\RssSetting;
 use App\Models\RssSource;
 use App\Services\RssFeeds\RssRefresher;
 use Illuminate\Console\Command;
@@ -43,6 +44,7 @@ class RssRefreshCommand extends Command
         if (! $refresher->refreshDue($deadline, (bool) $this->option('all'), $report)) {
             $this->line('No source is due.');
         }
+        RssSetting::ranBy('scheduler');
 
         return self::SUCCESS;
     }

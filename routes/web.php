@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Auth::routes(['verify' => true]);
+// No public sign-up: an account made at /register could open every admin page,
+// since `auth` is the only gate. Admins are added under Admin Users.
+Auth::routes(['verify' => true, 'register' => false]);
 
 // Uploads live on a mounted volume, and the public/storage symlink cannot
 // follow a mount that only exists at boot. Files that are there are served by
@@ -1286,8 +1288,11 @@ Route::post('/rss-feeds-bundle/{id}/refresh', [App\Http\Controllers\RssFeeds\Rss
 Route::post('/rss-feeds-compilation', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'storeCompilation'])->name('rss-feeds.compilation.store')->middleware('auth');
 Route::put('/rss-feeds-compilation/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'updateCompilation'])->whereNumber('id')->name('rss-feeds.compilation.update')->middleware('auth');
 Route::post('/rss-feeds-item/{id}/hide', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'hideItem'])->whereNumber('id')->name('rss-feeds.item.hide')->middleware('auth');
+Route::post('/rss-feeds-cron-key', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'newCronKey'])->name('rss-feeds.cron-key')->middleware('auth');
 // Public: a combined feed's address (no login, like an RSS.app address)
 Route::get('/rss/{token}.xml', [App\Http\Controllers\RssFeeds\RssOutputController::class, 'show'])->where('token', '[A-Za-z0-9]{8,32}')->name('rss.output');
+// Public: the cron address a cron service calls when the scheduler is not running (secret key)
+Route::get('/rss-cron', [App\Http\Controllers\RssFeeds\RssOutputController::class, 'cron'])->name('rss.cron');
 
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');
