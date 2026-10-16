@@ -29,6 +29,21 @@
     #rf tr.rf-group td { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-secondary-color); padding-top: 1.1rem; }
     #rf .rf-new-menu { min-width: 19rem; }
     #rf .rf-new-menu .dropdown-item { white-space: normal; padding-top: .5rem; padding-bottom: .5rem; }
+    /* A feed's sections fold away: each cell's content is a grid row that goes from 1fr to 0fr
+       (a table row itself cannot animate its height), while the cell's padding and border close
+       with it. Rows go one after another (--i), so the list unrolls rather than jumps. */
+    #rf .rf-cell { display: grid; grid-template-rows: 1fr; opacity: 1;
+        transition: grid-template-rows .35s cubic-bezier(.4, 0, .2, 1), opacity .25s ease; transition-delay: calc((var(--i, 1) - 1) * 35ms); }
+    #rf .rf-cell-in { min-height: 0; overflow: hidden; }
+    #rf tr.rf-section td { transition: padding .35s cubic-bezier(.4, 0, .2, 1), border-bottom-width .35s ease; transition-delay: calc((var(--i, 1) - 1) * 35ms); }
+    #rf tr.rf-section.is-collapsed td { padding-top: 0; padding-bottom: 0; border-bottom-width: 0; }
+    #rf tr.rf-section.is-collapsed .rf-cell { grid-template-rows: 0fr; opacity: 0; }
+    #rf tr.no-anim td, #rf tr.no-anim .rf-cell { transition: none !important; }
+    #rf .rf-sections-toggle i { display: inline-block; transition: transform .35s cubic-bezier(.4, 0, .2, 1); }
+    #rf .rf-sections-toggle[aria-expanded="false"] i { transform: rotate(-90deg); }
+    @media (prefers-reduced-motion: reduce) {
+        #rf .rf-cell, #rf tr.rf-section td, #rf .rf-sections-toggle i { transition: none !important; }
+    }
     .rf-type-help { font-size: .78rem; }
     .rf-test { max-height: 22rem; overflow: auto; border: 1px solid var(--bs-border-color); border-radius: .6rem; }
     .rf-test .rf-row { display: flex; gap: .6rem; padding: .55rem .7rem; border-bottom: 1px solid var(--bs-border-color); }
@@ -108,7 +123,10 @@
                                 <div class="fw-semibold text-dark"><i class="bx bx-collection text-primary me-1"></i>{{ $c->bundleName }}</div>
                                 @if ($c->usedFor)<span class="badge bg-primary-subtle text-primary mt-1">for {{ $c->usedFor }}</span>@endif
                                 @if ($c->bundleDescription)<div class="small text-secondary mt-1">{{ $c->bundleDescription }}</div>@endif
-                                <div class="small text-secondary mt-1">{{ $c->sections->count() }} {{ \Illuminate\Support\Str::plural('section', $c->sections->count()) }}, listed below it</div>
+                                <button type="button" class="btn btn-sm btn-soft-primary rf-sections-toggle mt-2" data-parent="{{ $c->id }}" aria-expanded="true" title="Show or hide its sections">
+                                    <i class="bx bx-chevron-down"></i>
+                                    <span class="rf-toggle-label" data-shown="Hide the {{ $c->sections->count() }} {{ \Illuminate\Support\Str::plural('section', $c->sections->count()) }}" data-hidden="Show the {{ $c->sections->count() }} {{ \Illuminate\Support\Str::plural('section', $c->sections->count()) }}">Hide the {{ $c->sections->count() }} {{ \Illuminate\Support\Str::plural('section', $c->sections->count()) }}</span>
+                                </button>
                             </td>
                             <td class="text-center">
                                 <span class="text-dark">{{ $c->shownCount }}</span>
@@ -135,14 +153,14 @@
                             </td>
                         </tr>
                         @foreach ($c->sections as $i => $b)
-                            @include('rss-feeds._feed-row', ['b' => $b, 'sectionNo' => $i + 1, 'uid' => $c->id . '-' . $b->id])
+                            @include('rss-feeds._feed-row', ['b' => $b, 'sectionNo' => $i + 1, 'parentId' => $c->id, 'uid' => $c->id . '-' . $b->id])
                         @endforeach
                     @endforeach
                     @if ($compilations->isNotEmpty() && $standalone->isNotEmpty())
                         <tr class="rf-group"><td colspan="5">Feeds that are not a section</td></tr>
                     @endif
                     @foreach ($standalone as $b)
-                        @include('rss-feeds._feed-row', ['b' => $b, 'sectionNo' => null, 'uid' => '0-' . $b->id])
+                        @include('rss-feeds._feed-row', ['b' => $b, 'sectionNo' => null, 'parentId' => null, 'uid' => '0-' . $b->id])
                     @endforeach
                     @if ($compilations->isEmpty() && $standalone->isEmpty())
                         <tr><td colspan="5" class="text-center py-4">
@@ -734,6 +752,31 @@
                 $('#cfMembersError').text(xhr.responseJSON?.errors?.memberIds?.[0] || '');
             })
             .always(() => busy($btn, false));
+    });
+
+    // ---------------- A feed's sections: show / hide ----------------
+    // Open or folded is remembered per feed in this browser (a convenience only).
+    function setSections(btn, open, animate) {
+        const rows = document.querySelectorAll('#rf tr.rf-section[data-parent="' + btn.dataset.parent + '"]');
+        if (!animate) rows.forEach((r) => r.classList.add('no-anim'));
+        rows.forEach((r) => {
+            r.classList.toggle('is-collapsed', !open);
+            r.inert = !open;
+        });
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        const label = btn.querySelector('.rf-toggle-label');
+        label.textContent = open ? label.dataset.shown : label.dataset.hidden;
+        if (!animate) requestAnimationFrame(() => requestAnimationFrame(() => rows.forEach((r) => r.classList.remove('no-anim'))));
+    }
+    document.querySelectorAll('.rf-sections-toggle').forEach((btn) => {
+        let open = true;
+        try { open = localStorage.getItem('rf.sections.' + btn.dataset.parent) !== '0'; } catch (_) {}
+        setSections(btn, open, false);
+        btn.addEventListener('click', () => {
+            const next = btn.getAttribute('aria-expanded') !== 'true';
+            setSections(btn, next, true);
+            try { localStorage.setItem('rf.sections.' + btn.dataset.parent, next ? '1' : '0'); } catch (_) {}
+        });
     });
 
     // ---------------- Shared ----------------
