@@ -46,11 +46,73 @@
 
     <div id="rf">
         <div class="row g-3 mb-3">
-            <div class="col-sm-6 col-xl-3"><div class="stat"><b>{{ number_format($stats['bundles']) }}</b><span>combined feeds</span></div></div>
-            <div class="col-sm-6 col-xl-3"><div class="stat"><b>{{ number_format($stats['sources']) }}</b><span>sources</span></div></div>
-            <div class="col-sm-6 col-xl-3"><div class="stat"><b>{{ number_format($stats['items']) }}</b><span>stories kept (last {{ \App\Services\RssFeeds\RssRefresher::KEEP_DAYS }} days)</span></div></div>
-            <div class="col-sm-6 col-xl-3"><div class="stat"><b>{{ number_format($stats['fresh']) }}</b><span>new stories in the last 24 hours</span></div></div>
+            <div class="col-6 col-xl"><div class="stat"><b>{{ number_format($stats['compilations']) }}</b><span>compilations</span></div></div>
+            <div class="col-6 col-xl"><div class="stat"><b>{{ number_format($stats['bundles']) }}</b><span>combined feeds</span></div></div>
+            <div class="col-6 col-xl"><div class="stat"><b>{{ number_format($stats['sources']) }}</b><span>sources</span></div></div>
+            <div class="col-6 col-xl"><div class="stat"><b>{{ number_format($stats['items']) }}</b><span>stories kept (last {{ \App\Services\RssFeeds\RssRefresher::KEEP_DAYS }} days)</span></div></div>
+            <div class="col-12 col-xl"><div class="stat"><b>{{ number_format($stats['fresh']) }}</b><span>new stories in the last 24 hours</span></div></div>
         </div>
+
+        {{-- Compilations --}}
+        <div class="card"><div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                <div>
+                    <h4 class="card-title mb-1 text-dark">Compilations</h4>
+                    <p class="text-secondary mb-0 small">One RSS address for several combined feeds, grouped by what it is used for. Every story keeps the names of the combined feeds it came from (as RSS categories), so whatever reads it can still sort the stories by topic.</p>
+                </div>
+                <button type="button" class="btn btn-primary" id="rfNewCompilation" {{ $bundles->isEmpty() ? 'disabled' : '' }}><i class="bx bx-plus me-1"></i>New compilation</button>
+            </div>
+            @forelse ($compilationGroups as $usedFor => $group)
+                <h6 class="text-dark mt-2 mb-2"><i class="bx bx-purchase-tag-alt me-1 text-secondary"></i>{{ $usedFor }}</h6>
+                <div class="table-responsive mb-2">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Compilation</th><th class="text-center" style="min-width: 7.5rem;">Stories shown</th><th>RSS address</th><th class="text-center">On</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach ($group as $c)
+                            <tr class="{{ $c->isActive ? '' : 'is-off' }}">
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ $c->bundleName }}</div>
+                                    @if ($c->bundleDescription)<div class="small text-secondary">{{ $c->bundleDescription }}</div>@endif
+                                    <div class="mt-1">
+                                        @foreach ($c->members as $m)<span class="chip">{{ $m->bundleName }}{{ $m->isActive ? '' : ' (paused)' }}</span>@endforeach
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="text-dark">{{ $c->shownCount }}</span>
+                                    <div class="small text-secondary">of {{ $c->maxItems }}, {{ $c->maxAgeDays }} {{ \Illuminate\Support\Str::plural('day', $c->maxAgeDays) }}</div>
+                                    @if ($c->newestAt)<div class="small text-secondary">newest {{ $c->newestAt->diffForHumans() }}</div>@endif
+                                </td>
+                                <td>
+                                    <div class="addr">
+                                        <code title="{{ $c->outputUrl() }}">{{ $c->outputUrl() }}</code>
+                                        <button type="button" class="btn btn-light btn-sm rf-copy" data-url="{{ $c->outputUrl() }}" title="Copy the address"><i class="bx bx-copy"></i></button>
+                                        <a class="btn btn-light btn-sm" href="{{ $c->outputUrl() }}" target="_blank" rel="noopener" title="Open the RSS"><i class="bx bx-link-external"></i></a>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d-inline-block m-0">
+                                        <input class="form-check-input rf-toggle" type="checkbox" data-url="{{ route('rss-feeds.bundle.toggle', $c->id) }}" {{ $c->isActive ? 'checked' : '' }} title="Serve this compilation">
+                                    </div>
+                                </td>
+                                <td class="text-end actions">
+                                    <a class="btn btn-soft-primary btn-sm" href="{{ route('rss-feeds.preview', ['bundle' => $c->id]) }}" title="See the stories"><i class="bx bx-show"></i></a>
+                                    <button type="button" class="btn btn-soft-success btn-sm rf-refresh" data-url="{{ route('rss-feeds.bundle.refresh', $c->id) }}" title="Read all its sources now"><i class="bx bx-refresh"></i></button>
+                                    <button type="button" class="btn btn-soft-secondary btn-sm rf-edit-compilation" data-id="{{ $c->id }}" title="Edit"><i class="bx bx-edit"></i></button>
+                                    <button type="button" class="btn btn-soft-danger btn-sm rf-delete" data-url="{{ route('rss-feeds.bundle.destroy', $c->id) }}" data-name="{{ $c->bundleName }}" data-what="compilation" title="Delete"><i class="bx bx-trash"></i></button>
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @empty
+                <div class="text-center py-4">
+                    <i class="bx bx-collection text-secondary" style="font-size: 2.2rem;"></i>
+                    <p class="text-dark mt-2 mb-1">No compilation yet.</p>
+                    <small class="text-secondary">Put combined feeds together under one address with "New compilation".</small>
+                </div>
+            @endforelse
+        </div></div>
 
         {{-- Combined feeds --}}
         <div class="card"><div class="card-body">
@@ -375,6 +437,68 @@
         </div>
     </div>
 
+    {{-- Compilation form --}}
+    <div class="modal fade" id="compilationModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form class="modal-content" id="compilationForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title text-dark"><i class="bx bx-collection me-2"></i><span id="compilationModalTitle">New compilation</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" id="compilationError"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="cfName">Name <span class="text-danger">*</span></label>
+                            <input class="form-control" id="cfName" name="bundleName" maxlength="190" placeholder="e.g. All farm news">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="cfUsedFor">Used for</label>
+                            <input class="form-control" id="cfUsedFor" name="usedFor" maxlength="190" list="cfUsedForList" placeholder="e.g. anee.io Latest in Agriculture">
+                            <datalist id="cfUsedForList">
+                                @foreach ($compilationGroups->keys()->reject(fn ($k) => $k === 'Not in use yet') as $use)<option value="{{ $use }}">@endforeach
+                            </datalist>
+                            <div class="invalid-feedback"></div>
+                            <div class="form-text text-body-secondary">Compilations with the same use are listed together.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="cfDesc">Description <span class="text-secondary small">optional</span></label>
+                            <input class="form-control" id="cfDesc" name="bundleDescription" maxlength="500" placeholder="Shown as the feed's description">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Combined feeds <span class="text-danger">*</span></label>
+                            <div class="rf-sources">
+                                @foreach ($bundles as $b)
+                                    <div class="form-check my-1">
+                                        <input class="form-check-input cf-member" type="checkbox" name="memberIds[]" value="{{ $b->id }}" id="cfM{{ $b->id }}">
+                                        <label class="form-check-label" for="cfM{{ $b->id }}"><span class="text-dark">{{ $b->bundleName }}</span> <small class="text-secondary">· {{ $b->sources->count() }} {{ \Illuminate\Support\Str::plural('source', $b->sources->count()) }}{{ $b->isActive ? '' : ' · paused' }}</small></label>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="invalid-feedback d-block" id="cfMembersError"></div>
+                            <div class="form-text text-body-secondary">Each combined feed keeps its own sources and filters; the compilation shows what they show, merged, each story once.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="cfMax">Show at most</label>
+                            <div class="input-group"><input class="form-control" id="cfMax" name="maxItems" type="number" min="5" max="300" value="150"><span class="input-group-text">stories</span></div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="cfAge">From the last</label>
+                            <div class="input-group"><input class="form-control" id="cfAge" name="maxAgeDays" type="number" min="1" max="60" value="7"><span class="input-group-text">days</span></div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="compilationSaveBtn"><i class="bx bx-save me-1"></i>Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Delete --}}
     <div class="modal fade" id="deleteModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
@@ -404,16 +528,20 @@
 
     const SOURCES = @json($sourceForms);
     const BUNDLES = @json($bundleForms);
+    const COMPILATIONS = @json($compilationForms);
     const URLS = {
         sourceStore: @json(route('rss-feeds.source.store')),
         sourceTest: @json(route('rss-feeds.source.test')),
         sourceUpdate: @json(url('/rss-feeds-source')) + '/',
         bundleStore: @json(route('rss-feeds.bundle.store')),
         bundleUpdate: @json(url('/rss-feeds-bundle')) + '/',
+        compilationStore: @json(route('rss-feeds.compilation.store')),
+        compilationUpdate: @json(url('/rss-feeds-compilation')) + '/',
     };
     const DELETE_NOTES = {
         'source': 'Its stories leave every combined feed it was in.',
-        'combined feed': 'Its RSS address stops working, so anything reading it gets nothing.',
+        'combined feed': 'Its RSS address stops working, so anything reading it gets nothing, and it leaves every compilation it was in.',
+        'compilation': 'Its RSS address stops working. The combined feeds in it are not touched.',
     };
 
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -559,6 +687,45 @@
             .fail((xhr) => {
                 showErrors($bForm, $('#bundleError'), xhr);
                 $('#bfSourcesError').text(xhr.responseJSON?.errors?.sourceIds?.[0] || '');
+            })
+            .always(() => busy($btn, false));
+    });
+
+    // ---------------- Compilations ----------------
+    const $cModal = $('#compilationModal');
+    const $cForm = $('#compilationForm');
+    let editingCompilation = null;
+
+    function openCompilation(id) {
+        editingCompilation = id || null;
+        const c = id ? COMPILATIONS[id] : null;
+        $cForm[0].reset();
+        $cForm.find('.is-invalid').removeClass('is-invalid');
+        $('#compilationError').addClass('d-none');
+        $('#cfMembersError').text('');
+        $('#compilationModalTitle').text(c ? 'Edit ' + c.bundleName : 'New compilation');
+        $('#cfName').val(c?.bundleName || '');
+        $('#cfUsedFor').val(c?.usedFor || '');
+        $('#cfDesc').val(c?.bundleDescription || '');
+        $('#cfMax').val(c?.maxItems || 150);
+        $('#cfAge').val(c?.maxAgeDays || 7);
+        // A new compilation starts with every combined feed ticked.
+        $('.cf-member').each(function () { $(this).prop('checked', c ? c.memberIds.includes(Number(this.value)) : true); });
+        $cModal.modal('show');
+    }
+    $('#rfNewCompilation').on('click', () => openCompilation(null));
+    $('.rf-edit-compilation').on('click', function () { openCompilation($(this).data('id')); });
+
+    $cForm.on('submit', function (e) {
+        e.preventDefault();
+        const $btn = $('#compilationSaveBtn');
+        busy($btn, true, 'Saving...');
+        const data = $cForm.serialize() + (editingCompilation ? '&_method=PUT' : '');
+        $.post(editingCompilation ? URLS.compilationUpdate + editingCompilation : URLS.compilationStore, data)
+            .done((res) => { $cModal.modal('hide'); toastr.success(res.message, 'Saved'); setTimeout(() => location.reload(), 600); })
+            .fail((xhr) => {
+                showErrors($cForm, $('#compilationError'), xhr);
+                $('#cfMembersError').text(xhr.responseJSON?.errors?.memberIds?.[0] || '');
             })
             .always(() => busy($btn, false));
     });

@@ -28,7 +28,7 @@ class RssOutputController extends Controller
 
         $xml = $output->cachedXml($bundle);
 
-        $stale = $bundle->sources()->active()->where('isActive', true)->get()->filter->isStale();
+        $stale = $bundle->liveSources()->filter->isStale()->sortBy(fn ($s) => $s->lastFetchedAt?->getTimestamp() ?? 0);
         if ($stale->isNotEmpty()) {
             app()->terminating(function () use ($stale) {
                 @set_time_limit(150);

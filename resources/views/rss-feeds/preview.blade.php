@@ -62,6 +62,9 @@
                                 @if ($source && ! $item->passes) · <span class="text-danger">left out by the filter</span>@endif
                                 @if ($hidden) · <span class="badge bg-secondary">hidden</span>@endif
                             </div>
+                            @if ($item->categories)
+                                <div class="mb-1">@foreach ($item->categories as $category)<span class="badge bg-primary-subtle text-primary me-1">{{ $category }}</span>@endforeach</div>
+                            @endif
                             @if ($item->itemSummary)<div class="sum text-dark">{{ $item->itemSummary }}</div>@endif
                         </div>
                         <div class="flex-none">
@@ -89,14 +92,25 @@
                         <a class="btn btn-light btn-sm" href="{{ $bundle->outputUrl() }}" target="_blank" rel="noopener" title="Open the RSS"><i class="bx bx-link-external"></i></a>
                     </div>
                     <p class="small text-dark mb-1">Shows at most <b>{{ $bundle->maxItems }}</b> stories from the last <b>{{ $bundle->maxAgeDays }}</b> {{ \Illuminate\Support\Str::plural('day', $bundle->maxAgeDays) }}.</p>
-                    @if ($bundle->includeKeywords)<p class="small text-secondary mb-1"><b class="text-dark">Only:</b> {{ $bundle->includeKeywords }}</p>@endif
-                    @if ($bundle->excludeKeywords)<p class="small text-secondary mb-1"><b class="text-dark">Never:</b> {{ $bundle->excludeKeywords }}</p>@endif
-                    <h6 class="text-dark mt-3">Sources</h6>
-                    <ul class="list-unstyled mb-0 small">
-                        @foreach ($bundle->sources as $s)
-                            <li class="mb-1"><a href="{{ route('rss-feeds.preview', ['source' => $s->id]) }}">{{ $s->sourceName }}</a> <span class="text-secondary">· {{ $s->typeLabel() }}{{ $s->isActive ? '' : ' · paused' }}</span></li>
-                        @endforeach
-                    </ul>
+                    @if ($bundle->isCompilation())
+                        @if ($bundle->usedFor)<p class="small text-secondary mb-1"><b class="text-dark">Used for:</b> {{ $bundle->usedFor }}</p>@endif
+                        <h6 class="text-dark mt-3">Combined feeds</h6>
+                        <p class="small text-secondary mb-2">Each story is tagged with the ones it came from, as an RSS category.</p>
+                        <ul class="list-unstyled mb-0 small">
+                            @foreach ($bundle->members as $m)
+                                <li class="mb-1"><a href="{{ route('rss-feeds.preview', ['bundle' => $m->id]) }}">{{ $m->bundleName }}</a>{!! $m->isActive ? '' : ' <span class="text-secondary">· paused, left out</span>' !!}</li>
+                            @endforeach
+                        </ul>
+                    @else
+                        @if ($bundle->includeKeywords)<p class="small text-secondary mb-1"><b class="text-dark">Only:</b> {{ $bundle->includeKeywords }}</p>@endif
+                        @if ($bundle->excludeKeywords)<p class="small text-secondary mb-1"><b class="text-dark">Never:</b> {{ $bundle->excludeKeywords }}</p>@endif
+                        <h6 class="text-dark mt-3">Sources</h6>
+                        <ul class="list-unstyled mb-0 small">
+                            @foreach ($bundle->sources as $s)
+                                <li class="mb-1"><a href="{{ route('rss-feeds.preview', ['source' => $s->id]) }}">{{ $s->sourceName }}</a> <span class="text-secondary">· {{ $s->typeLabel() }}{{ $s->isActive ? '' : ' · paused' }}</span></li>
+                            @endforeach
+                        </ul>
+                    @endif
                 @else
                     <h5 class="card-title text-dark">{{ $source->sourceName }}</h5>
                     <p class="small text-secondary mb-2">{{ $source->typeLabel() }} · <span class="text-break">{{ $source->target() }}</span></p>

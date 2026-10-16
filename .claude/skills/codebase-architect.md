@@ -831,9 +831,9 @@ The following views are Skote template demos and should NOT be modified:
 
 ### 10.4 RSS Feeds Module (cross-venture, DS AXIS's own RSS.app)
 
-**Tables**: `axis_rss_sources`, `axis_rss_items`, `axis_rss_bundles`, `axis_rss_bundle_sources`
+**Tables**: `axis_rss_sources`, `axis_rss_items`, `axis_rss_bundles`, `axis_rss_bundle_sources`, `axis_rss_bundle_members`
 
-**Key Models**: `RssSource` (types: `rss`, `google_news`, `webpage`, `page_watch`), `RssItem`, `RssBundle` (a "combined feed")
+**Key Models**: `RssSource` (types: `rss`, `google_news`, `webpage`, `page_watch`), `RssItem`, `RssBundle` (`bundleType` `combined` = a combined feed of sources; `compilation` = a feed of combined feeds, grouped by `usedFor`, each story tagged with its combined feeds as `<category>`)
 
 **Services** (`app/Services/RssFeeds/`): `RssSourceReader` (reads a source, turns Google News links into publisher links), `RssRefresher` (keeps new stories, fills pictures/summaries from article pages), `RssBundleOutput` (filters + RSS 2.0 output in RSS.app's shape), `RssHttp` (every fetch; refuses private addresses), `RssHtml`, `RssKeywordFilter` (whole-word keywords, `farm*` prefixes)
 

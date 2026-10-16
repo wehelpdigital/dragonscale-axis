@@ -2,13 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * A combined feed (RSS Feeds module): the stories of several sources, filtered
- * and newest first, served as one RSS address at /rss/{bundleToken}.xml, the
- * way RSS.app serves a bundle. The token is random so the address cannot be
- * guessed; it is the only key the public route takes.
+ * A feed served at /rss/{bundleToken}.xml (RSS Feeds module), the way RSS.app
+ * serves a bundle. Two kinds, by bundleType:
+ *
+ *   combined     the stories of several sources, through its own keyword
+ *                filter, newest first
+ *   compilation  the stories of several combined feeds, each story tagged
+ *                with the combined feeds it came from; named for what it is
+ *                used for (usedFor), so feeds can be grouped by their use
+ *
+ * The token is random so the address cannot be guessed; it is the only key
+ * the public route takes.
  */
 class RssBundle extends BaseModel
 {
@@ -19,6 +27,8 @@ class RssBundle extends BaseModel
         'bundleName',
         'bundleDescription',
         'bundleToken',
+        'bundleType',
+        'usedFor',
         'includeKeywords',
         'excludeKeywords',
         'maxItems',
@@ -66,9 +76,50 @@ class RssBundle extends BaseModel
         return $query->where('usersId', $userId);
     }
 
+    public function scopeCombined($query)
+    {
+        return $query->where('bundleType', 'combined');
+    }
+
+    public function scopeCompilations($query)
+    {
+        return $query->where('bundleType', 'compilation');
+    }
+
+    public function isCompilation(): bool
+    {
+        return $this->bundleType === 'compilation';
+    }
+
     public function sources()
     {
         return $this->belongsToMany(RssSource::class, 'axis_rss_bundle_sources', 'bundleId', 'sourceId')->withTimestamps();
+    }
+
+    /** A compilation's combined feeds. */
+    public function members()
+    {
+        return $this->belongsToMany(RssBundle::class, 'axis_rss_bundle_members', 'bundleId', 'memberBundleId')->withTimestamps();
+    }
+
+    /** The compilations a combined feed is part of. */
+    public function partOfCompilations()
+    {
+        return $this->belongsToMany(RssBundle::class, 'axis_rss_bundle_members', 'memberBundleId', 'bundleId')->withTimestamps();
+    }
+
+    /** The live sources the feed reads: its own, or its combined feeds' for a compilation. */
+    public function liveSources(): Collection
+    {
+        if (! $this->isCompilation()) {
+            return $this->sources()->active()->where('isActive', true)->get();
+        }
+
+        return RssSource::active()->where('isActive', true)
+            ->whereIn('id', function ($q) {
+                $q->select('sourceId')->from('axis_rss_bundle_sources')
+                    ->whereIn('bundleId', $this->members()->active()->where('isActive', true)->pluck('axis_rss_bundles.id'));
+            })->get();
     }
 
     public function outputUrl(): string

@@ -8,21 +8,29 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * What a combined feed shows, and the RSS document that shows it.
+ * What a feed shows, and the RSS document that shows it.
  *
- * The stories of the feed's sources, newest first, within maxAgeDays, through
- * each source's own filter and then the feed's, one per story (by linkHash),
- * up to maxItems.
+ * A combined feed: the stories of its sources, newest first, within
+ * maxAgeDays, through each source's own filter and then the feed's, one per
+ * story (by linkHash), up to maxItems.
+ *
+ * A compilation: what each of its combined feeds shows, merged, newest first,
+ * within its own maxAgeDays and maxItems. A story two combined feeds both
+ * show appears once, with both their names in `categories`.
  *
  * The document is written the way RSS.app writes its feeds (RSS 2.0, the
  * picture in <media:content> and again at the top of <description>,
  * the publisher in <dc:creator>), so anything that read an RSS.app address
- * reads this one the same way, anee.io's news roundup included.
+ * reads this one the same way, anee.io's news roundup included. A
+ * compilation's stories also carry <category>, one per combined feed.
  */
 class RssBundleOutput
 {
     public function items(RssBundle $bundle): Collection
     {
+        if ($bundle->isCompilation()) {
+            return $this->compiled($bundle);
+        }
         $sources = $bundle->sources()->active()->where('isActive', true)->get()->keyBy('id');
         if ($sources->isEmpty()) {
             return collect();
@@ -55,7 +63,32 @@ class RssBundleOutput
         return $out;
     }
 
-    /** The feed's RSS, cached until a story or the feed changes (5 minutes at most). */
+    private function compiled(RssBundle $compilation): Collection
+    {
+        $since = now()->subDays(max(1, $compilation->maxAgeDays));
+        $byLink = [];
+        foreach ($compilation->members()->active()->combined()->where('isActive', true)->orderBy('bundleName')->get() as $member) {
+            foreach ($this->items($member) as $item) {
+                if ($item->publishedAt && $item->publishedAt->lt($since)) {
+                    continue;
+                }
+                if (isset($byLink[$item->linkHash])) {
+                    $byLink[$item->linkHash]->setAttribute('categories', [...$byLink[$item->linkHash]->categories, $member->bundleName]);
+
+                    continue;
+                }
+                $item->setAttribute('categories', [$member->bundleName]);
+                $byLink[$item->linkHash] = $item;
+            }
+        }
+
+        return collect(array_values($byLink))
+            ->sortByDesc(fn (RssItem $i) => [$i->publishedAt?->getTimestamp() ?? 0, $i->id])
+            ->take(max(1, $compilation->maxItems))
+            ->values();
+    }
+
+    /** The feed's RSS, cached until a story or a feed changes (5 minutes at most). */
     public function cachedXml(RssBundle $bundle): string
     {
         $key = 'rss-out-' . $bundle->id . '-' . $bundle->updated_at?->getTimestamp() . '-' . RssRefresher::version();
@@ -98,6 +131,9 @@ class RssBundleOutput
             $w->endElement();
             if ($item->itemPublisher) {
                 $w->writeElement('dc:creator', $item->itemPublisher);
+            }
+            foreach ((array) $item->categories as $category) {
+                $w->writeElement('category', $category);
             }
             $w->writeElement('pubDate', ($item->publishedAt ?? $item->created_at)->toRssString());
             $w->writeElement('description', $this->description($item));

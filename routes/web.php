@@ -1283,6 +1283,8 @@ Route::put('/rss-feeds-bundle/{id}', [App\Http\Controllers\RssFeeds\RssFeedsCont
 Route::delete('/rss-feeds-bundle/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'destroyBundle'])->whereNumber('id')->name('rss-feeds.bundle.destroy')->middleware('auth');
 Route::post('/rss-feeds-bundle/{id}/toggle', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'toggleBundle'])->whereNumber('id')->name('rss-feeds.bundle.toggle')->middleware('auth');
 Route::post('/rss-feeds-bundle/{id}/refresh', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'refreshBundle'])->whereNumber('id')->name('rss-feeds.bundle.refresh')->middleware('auth');
+Route::post('/rss-feeds-compilation', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'storeCompilation'])->name('rss-feeds.compilation.store')->middleware('auth');
+Route::put('/rss-feeds-compilation/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'updateCompilation'])->whereNumber('id')->name('rss-feeds.compilation.update')->middleware('auth');
 Route::post('/rss-feeds-item/{id}/hide', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'hideItem'])->whereNumber('id')->name('rss-feeds.item.hide')->middleware('auth');
 // Public: a combined feed's address (no login, like an RSS.app address)
 Route::get('/rss/{token}.xml', [App\Http\Controllers\RssFeeds\RssOutputController::class, 'show'])->where('token', '[A-Za-z0-9]{8,32}')->name('rss.output');

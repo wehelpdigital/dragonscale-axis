@@ -237,6 +237,11 @@ class RssSourceReader
             if (! $filter->passes($item['title'])) {
                 continue;
             }
+            // A site: search also finds tag, category and section pages, which are not stories.
+            $headline = trim(preg_replace('/\s+[-–|]\s+[^-–|]+$/u', '', (string) $item['title']));
+            if (mb_strlen($headline) < 20 || preg_match('/^(tags?|categor(y|ies)|topics?|authors?|archives?|section)\s*:/iu', $headline)) {
+                continue;
+            }
             if ($decoded >= $this->decodeLimit || microtime(true) > $deadline) {
                 $waiting++;
 
