@@ -818,7 +818,7 @@ $courses = AsCourse::where('deleteStatus', 'true')
 - `axis_rss_items`: one story per source, unique (`sourceId`, `guidHash`); `linkHash` (canonical link) dedupes a story across sources; `detailsFetchedAt` null = picture/summary not looked up yet; `delete_status='deleted'` hides a story from every combined feed; rows older than 45 days are pruned
 - `axis_rss_bundles`: a combined feed; `bundleToken` (unique, random) is its public address `/rss/{bundleToken}.xml`; own keyword filters, `maxItems`, `maxAgeDays`
 - `axis_rss_bundle_sources`: pivot, unique (`bundleId`, `sourceId`)
-- `axis_rss_bundles.bundleType` enum(`combined`, `compilation`) + `usedFor`; `axis_rss_bundle_members` (`bundleId` = compilation, `memberBundleId` = combined feed, unique pair). Only combined feeds can be members, so compilations cannot loop
+- `axis_rss_bundles.bundleType` enum(`combined`, `compilation`) + `usedFor`; `axis_rss_bundle_members` (`bundleId` = compilation, `memberBundleId` = combined feed, `memberOrder` = its section's place, unique pair). Only combined feeds can be members, so compilations cannot loop
 - Not user-scoped: every admin manages every feed; `usersId` (nullable) is only the creator
 ```php
 $sources = RssSource::active()->where('isActive', true)->get();

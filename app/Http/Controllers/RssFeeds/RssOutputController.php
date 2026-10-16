@@ -6,10 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\RssBundle;
 use App\Services\RssFeeds\RssBundleOutput;
 use App\Services\RssFeeds\RssRefresher;
+use Illuminate\Http\Request;
 
 /**
- * The public address of a combined feed: /rss/{token}.xml, no login, the way
- * an RSS.app address works.
+ * The public address of a feed: /rss/{token}.xml, no login, the way an
+ * RSS.app address works.
+ *
+ * Two answers at one address. A person who opens it in a browser gets a page
+ * (the stories laid out by section, rss-feeds.public); everything else (an
+ * app, a feed reader, anee.io) gets the RSS. The browser is told apart by
+ * Sec-Fetch-Dest: document, which browsers send for a page they navigate to
+ * and HTTP clients never send (over plain http, a first choice of text/html).
+ * ?raw=1 always gives the RSS. The page is never stored by a shared cache
+ * (no-store), so a reader can never be handed it.
  *
  * When the feed's sources are long overdue (the scheduler is not running),
  * the stories on hand are sent first and the overdue sources are read after
@@ -19,14 +28,19 @@ use App\Services\RssFeeds\RssRefresher;
  */
 class RssOutputController extends Controller
 {
-    public function show(string $token, RssBundleOutput $output)
+    public function show(Request $request, string $token, RssBundleOutput $output)
     {
         $bundle = RssBundle::active()->where('bundleToken', $token)->where('isActive', true)->first();
         if (! $bundle) {
             abort(404);
         }
 
-        $xml = $output->cachedXml($bundle);
+        // Browsers send Sec-Fetch-Dest only over https; over plain http, a browser
+        // is the client whose first choice is text/html (feed readers ask for RSS).
+        $dest = $request->header('Sec-Fetch-Dest');
+        $page = ! $request->boolean('raw')
+            && ($dest !== null ? $dest === 'document' : str_starts_with(strtolower((string) $request->header('Accept')), 'text/html'));
+        $body = $page ? $output->cachedPage($bundle) : $output->cachedXml($bundle);
 
         $stale = $bundle->liveSources()->filter->isStale()->sortBy(fn ($s) => $s->lastFetchedAt?->getTimestamp() ?? 0);
         if ($stale->isNotEmpty()) {
@@ -44,10 +58,11 @@ class RssOutputController extends Controller
             });
         }
 
-        return response($xml, 200, [
-            'Content-Type' => 'application/rss+xml; charset=UTF-8',
-            'Content-Length' => (string) strlen($xml),
-            'Cache-Control' => 'public, max-age=300',
+        return response($body, 200, [
+            'Content-Type' => $page ? 'text/html; charset=UTF-8' : 'application/rss+xml; charset=UTF-8',
+            'Content-Length' => (string) strlen($body),
+            'Cache-Control' => $page ? 'no-store' : 'public, max-age=300',
+            'Vary' => 'Sec-Fetch-Dest',
             'X-Robots-Tag' => 'noindex',
         ]);
     }

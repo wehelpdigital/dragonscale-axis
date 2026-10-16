@@ -63,11 +63,18 @@ class RssBundleOutput
         return $out;
     }
 
+    /**
+     * A compilation's stories, section by section: the newest maxItems of all
+     * its combined feeds, then grouped under the first combined feed (in the
+     * compilation's order) that shows them, newest first within each.
+     */
     private function compiled(RssBundle $compilation): Collection
     {
         $since = now()->subDays(max(1, $compilation->maxAgeDays));
+        $order = [];
         $byLink = [];
-        foreach ($compilation->members()->active()->combined()->where('isActive', true)->orderBy('bundleName')->get() as $member) {
+        foreach ($this->members($compilation) as $member) {
+            $order[$member->bundleName] = count($order);
             foreach ($this->items($member) as $item) {
                 if ($item->publishedAt && $item->publishedAt->lt($since)) {
                     continue;
@@ -81,11 +88,60 @@ class RssBundleOutput
                 $byLink[$item->linkHash] = $item;
             }
         }
+        $newest = fn (RssItem $a, RssItem $b) => [$b->publishedAt?->getTimestamp() ?? 0, $b->id] <=> [$a->publishedAt?->getTimestamp() ?? 0, $a->id];
+        $items = array_values($byLink);
+        usort($items, $newest);
+        $items = array_slice($items, 0, max(1, $compilation->maxItems));
+        usort($items, fn (RssItem $a, RssItem $b) => ($order[$a->categories[0]] <=> $order[$b->categories[0]]) ?: $newest($a, $b));
 
-        return collect(array_values($byLink))
-            ->sortByDesc(fn (RssItem $i) => [$i->publishedAt?->getTimestamp() ?? 0, $i->id])
-            ->take(max(1, $compilation->maxItems))
-            ->values();
+        return collect($items);
+    }
+
+    private function members(RssBundle $compilation): Collection
+    {
+        return $compilation->members()->active()->combined()->where('isActive', true)->get();
+    }
+
+    /**
+     * The feed's stories as sections for a person to read: one per combined
+     * feed for a compilation (a story is listed under every combined feed that
+     * shows it), or a single section for a combined feed.
+     *
+     * @return array<int, array{name: string, url: string, items: Collection}>
+     */
+    public function sections(RssBundle $bundle, Collection $items): array
+    {
+        if (! $bundle->isCompilation()) {
+            return [['name' => $bundle->bundleName, 'url' => $bundle->outputUrl(), 'items' => $items]];
+        }
+        $sections = [];
+        foreach ($this->members($bundle) as $member) {
+            $sections[] = [
+                'name' => $member->bundleName,
+                'url' => $member->outputUrl(),
+                'items' => $items->filter(fn (RssItem $i) => in_array($member->bundleName, (array) $i->categories, true))
+                    ->sortByDesc(fn (RssItem $i) => [$i->publishedAt?->getTimestamp() ?? 0, $i->id])->values(),
+            ];
+        }
+
+        return $sections;
+    }
+
+    /** The page a browser is shown at the feed's address, cached like the RSS. */
+    public function cachedPage(RssBundle $bundle): string
+    {
+        $key = 'rss-page-' . $bundle->id . '-' . $bundle->updated_at?->getTimestamp() . '-' . RssRefresher::version();
+
+        return Cache::remember($key, 300, function () use ($bundle) {
+            $items = $this->items($bundle);
+
+            return view('rss-feeds.public', [
+                'bundle' => $bundle,
+                'sections' => $this->sections($bundle, $items),
+                'total' => $items->count(),
+                'newestAt' => $items->max('publishedAt'),
+            ])->render();
+        });
     }
 
     /** The feed's RSS, cached until a story or a feed changes (5 minutes at most). */

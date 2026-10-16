@@ -467,12 +467,16 @@
                             <input class="form-control" id="cfDesc" name="bundleDescription" maxlength="500" placeholder="Shown as the feed's description">
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Combined feeds <span class="text-danger">*</span></label>
-                            <div class="rf-sources">
+                            <label class="form-label">Combined feeds, in the order of the sections <span class="text-danger">*</span></label>
+                            <div class="rf-sources" id="cfMembers">
                                 @foreach ($bundles as $b)
-                                    <div class="form-check my-1">
-                                        <input class="form-check-input cf-member" type="checkbox" name="memberIds[]" value="{{ $b->id }}" id="cfM{{ $b->id }}">
-                                        <label class="form-check-label" for="cfM{{ $b->id }}"><span class="text-dark">{{ $b->bundleName }}</span> <small class="text-secondary">· {{ $b->sources->count() }} {{ \Illuminate\Support\Str::plural('source', $b->sources->count()) }}{{ $b->isActive ? '' : ' · paused' }}</small></label>
+                                    <div class="cf-row d-flex align-items-center gap-2 py-1" data-id="{{ $b->id }}">
+                                        <div class="form-check m-0 flex-grow-1">
+                                            <input class="form-check-input cf-member" type="checkbox" name="memberIds[]" value="{{ $b->id }}" id="cfM{{ $b->id }}">
+                                            <label class="form-check-label" for="cfM{{ $b->id }}"><span class="text-dark">{{ $b->bundleName }}</span> <small class="text-secondary">· {{ $b->sources->count() }} {{ \Illuminate\Support\Str::plural('source', $b->sources->count()) }}{{ $b->isActive ? '' : ' · paused' }}</small></label>
+                                        </div>
+                                        <button type="button" class="btn btn-light btn-sm cf-up" title="Move up"><i class="bx bx-chevron-up"></i></button>
+                                        <button type="button" class="btn btn-light btn-sm cf-down" title="Move down"><i class="bx bx-chevron-down"></i></button>
                                     </div>
                                 @endforeach
                             </div>
@@ -709,12 +713,21 @@
         $('#cfDesc').val(c?.bundleDescription || '');
         $('#cfMax').val(c?.maxItems || 150);
         $('#cfAge').val(c?.maxAgeDays || 7);
-        // A new compilation starts with every combined feed ticked.
+        // A new compilation starts with every combined feed ticked. The rows are put in the
+        // compilation's section order, the ones it does not use after them.
+        const $list = $('#cfMembers');
+        const rank = (id) => { const i = c ? c.memberIds.indexOf(Number(id)) : -1; return i === -1 ? 1000 : i; };
+        $list.children('.cf-row').sort((a, b) => rank(a.dataset.id) - rank(b.dataset.id)).appendTo($list);
         $('.cf-member').each(function () { $(this).prop('checked', c ? c.memberIds.includes(Number(this.value)) : true); });
         $cModal.modal('show');
     }
     $('#rfNewCompilation').on('click', () => openCompilation(null));
     $('.rf-edit-compilation').on('click', function () { openCompilation($(this).data('id')); });
+    // Moving a row moves its section: memberIds[] is sent in the order of the rows.
+    $('#cfMembers').on('click', '.cf-up, .cf-down', function () {
+        const $row = $(this).closest('.cf-row');
+        if ($(this).hasClass('cf-up')) { $row.prev('.cf-row').before($row); } else { $row.next('.cf-row').after($row); }
+    });
 
     $cForm.on('submit', function (e) {
         e.preventDefault();

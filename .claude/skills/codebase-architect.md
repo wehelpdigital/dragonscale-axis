@@ -837,7 +837,7 @@ The following views are Skote template demos and should NOT be modified:
 
 **Services** (`app/Services/RssFeeds/`): `RssSourceReader` (reads a source, turns Google News links into publisher links), `RssRefresher` (keeps new stories, fills pictures/summaries from article pages), `RssBundleOutput` (filters + RSS 2.0 output in RSS.app's shape), `RssHttp` (every fetch; refuses private addresses), `RssHtml`, `RssKeywordFilter` (whole-word keywords, `farm*` prefixes)
 
-**Flow**: `rss:refresh` runs every 5 minutes and reads the sources that are due (each has `refreshMinutes`). Combined feeds are public at `/rss/{bundleToken}.xml` (`RssOutputController`, no login). Admin page: `/rss-feeds`.
+**Flow**: `rss:refresh` runs every 5 minutes and reads the sources that are due (each has `refreshMinutes`). Combined feeds are public at `/rss/{bundleToken}.xml` (`RssOutputController`, no login). The same address gives browsers a page (`rss-feeds.public`, stories laid out by section; told apart by `Sec-Fetch-Dest: document`, or an `Accept` led by text/html over plain http) and everything else the RSS; `?raw=1` forces the RSS. A compilation's RSS is grouped by section in `memberOrder`. Admin page: `/rss-feeds`.
 
 **Scoping**: Shared by all admins (company infrastructure read by anee.io's news roundup); `usersId` records who added a row.
 

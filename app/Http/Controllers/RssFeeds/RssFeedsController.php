@@ -41,7 +41,7 @@ class RssFeedsController extends Controller
         });
 
         $bundles = RssBundle::active()->combined()->with(['sources' => fn ($q) => $q->active()])->orderBy('bundleName')->get();
-        $compilations = RssBundle::active()->compilations()->with(['members' => fn ($q) => $q->active()->orderBy('bundleName')])
+        $compilations = RssBundle::active()->compilations()->with(['members' => fn ($q) => $q->active()])
             ->orderBy('usedFor')->orderBy('bundleName')->get();
         $bundles->concat($compilations)->each(function (RssBundle $b) use ($output) {
             $shown = $output->items($b);
@@ -83,10 +83,14 @@ class RssFeedsController extends Controller
     public function preview(Request $request, RssBundleOutput $output)
     {
         if ($request->filled('bundle')) {
-            $bundle = RssBundle::active()->with(['sources' => fn ($q) => $q->active(), 'members' => fn ($q) => $q->active()->orderBy('bundleName')])
+            $bundle = RssBundle::active()->with(['sources' => fn ($q) => $q->active(), 'members' => fn ($q) => $q->active()])
                 ->findOrFail((int) $request->bundle);
 
-            return view('rss-feeds.preview', ['bundle' => $bundle, 'source' => null, 'items' => $output->items($bundle)]);
+            $items = $output->items($bundle);
+            // A compilation is read section by section; a combined feed is one list.
+            $groups = $bundle->isCompilation() ? $output->sections($bundle, $items) : [['name' => null, 'url' => null, 'items' => $items]];
+
+            return view('rss-feeds.preview', ['bundle' => $bundle, 'source' => null, 'items' => $items, 'groups' => $groups]);
         }
 
         $source = RssSource::active()->findOrFail((int) $request->source);
@@ -94,7 +98,7 @@ class RssFeedsController extends Controller
         $items = RssItem::where('sourceId', $source->id)->orderByDesc('publishedAt')->orderByDesc('id')->limit(150)->get()
             ->each(fn (RssItem $i) => $i->setAttribute('passes', $filter->passes($i->itemTitle, $i->itemSummary)));
 
-        return view('rss-feeds.preview', ['bundle' => null, 'source' => $source, 'items' => $items]);
+        return view('rss-feeds.preview', ['bundle' => null, 'source' => $source, 'items' => $items, 'groups' => [['name' => null, 'url' => null, 'items' => $items]]]);
     }
 
     // ------------------------------------------------------------------
@@ -320,7 +324,7 @@ class RssFeedsController extends Controller
             return $data;
         }
         $compilation = RssBundle::create($data['bundle'] + ['bundleType' => 'compilation', 'usersId' => Auth::id(), 'isActive' => true, 'delete_status' => 'active']);
-        $compilation->members()->sync($data['memberIds']);
+        $compilation->members()->sync(self::ordered($data['memberIds']));
 
         return response()->json(['success' => true, 'message' => 'Compilation created.', 'data' => ['id' => $compilation->id, 'url' => $compilation->outputUrl()]]);
     }
@@ -336,7 +340,7 @@ class RssFeedsController extends Controller
             return $data;
         }
         $compilation->update($data['bundle']);
-        $compilation->members()->sync($data['memberIds']);
+        $compilation->members()->sync(self::ordered($data['memberIds']));
         $compilation->touch();
 
         return response()->json(['success' => true, 'message' => 'Compilation saved.']);
@@ -435,6 +439,12 @@ class RssFeedsController extends Controller
         ];
     }
 
+    /** Member ids as a sync() list that stores their order. */
+    private static function ordered(array $ids): array
+    {
+        return collect(array_values($ids))->mapWithKeys(fn ($id, $i) => [$id => ['memberOrder' => $i]])->all();
+    }
+
     private function validatedCompilation(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -453,8 +463,11 @@ class RssFeedsController extends Controller
         if ($validator->fails()) {
             return response()->json(['success' => false, 'message' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
         }
-        // Only combined feeds go in: a compilation inside a compilation could loop.
-        $memberIds = RssBundle::active()->combined()->whereIn('id', array_map('intval', (array) $request->input('memberIds')))->pluck('id')->all();
+        // Only combined feeds go in (a compilation inside a compilation could loop),
+        // kept in the order sent: it is the order of the compilation's sections.
+        $asked = array_values(array_unique(array_map('intval', (array) $request->input('memberIds'))));
+        $valid = RssBundle::active()->combined()->whereIn('id', $asked)->pluck('id')->all();
+        $memberIds = array_values(array_filter($asked, fn ($id) => in_array($id, $valid, true)));
         if (! $memberIds) {
             return response()->json(['success' => false, 'message' => 'Tick at least one combined feed.', 'errors' => ['memberIds' => ['Tick at least one combined feed.']]], 422);
         }

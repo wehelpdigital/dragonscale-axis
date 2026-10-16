@@ -96,10 +96,12 @@ class RssBundle extends BaseModel
         return $this->belongsToMany(RssSource::class, 'axis_rss_bundle_sources', 'bundleId', 'sourceId')->withTimestamps();
     }
 
-    /** A compilation's combined feeds. */
+    /** A compilation's combined feeds, in the order its sections are served. */
     public function members()
     {
-        return $this->belongsToMany(RssBundle::class, 'axis_rss_bundle_members', 'bundleId', 'memberBundleId')->withTimestamps();
+        return $this->belongsToMany(RssBundle::class, 'axis_rss_bundle_members', 'bundleId', 'memberBundleId')
+            ->withPivot('memberOrder')->withTimestamps()
+            ->orderBy('axis_rss_bundle_members.memberOrder')->orderBy('axis_rss_bundles.bundleName');
     }
 
     /** The compilations a combined feed is part of. */
