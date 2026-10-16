@@ -383,26 +383,15 @@
             </div>
         </div>
 
-        {{-- ADD-ONS (2026-10-14): the field helpers pack (Weed Control Helper,
-             Pest Finder, Disease Finder, Variety Finder), locked on Libre and
-             opened for a year by a small purchase through the same hand paid
-             checkout. Saved to the shelf as `addons.fieldpack.php` and
-             `addons.fieldpack.usd`; anee.io reads them on the next page. --}}
+        {{-- ADD-ONS: none for now. The field helpers add-on (2026-10-14, ₱20 a
+             month) was retired on 2026-10-18 (the owner: "put it all in the
+             libre plus"): the field helpers come with Libre + Anee and every
+             plan above it, and anee.io no longer sells addon:fieldpack. The
+             shelf keys addons.fieldpack.* are left unread. --}}
         <div class="card" id="addonCard">
             <div class="card-body">
                 <h5 class="card-title mb-1">Add-ons</h5>
-                <p class="text-secondary mb-3">The field helpers pack opens the Weed Control Helper, the Pest Finder, the Disease Finder, the Nutrient Deficiency Finder and the Variety Finder for a month on the free plan (Libre). Every plan above Libre already has them. Orders come in under AniSystem &gt; Orders like any plan.</p>
-                <form id="addonForm" class="row g-2 align-items-end">
-                    <div class="col-auto">
-                        <label class="form-label font-size-12 mb-1">Field helpers, one month (₱)</label>
-                        <input type="number" class="form-control form-control-sm" name="fieldpack[php]" value="{{ $addons['fieldpack']['php'] }}" min="1" step="1" style="max-width:9rem">
-                    </div>
-                    <div class="col-auto">
-                        <label class="form-label font-size-12 mb-1">Outside the Philippines ($)</label>
-                        <input type="number" class="form-control form-control-sm" name="fieldpack[usd]" value="{{ $addons['fieldpack']['usd'] }}" min="0.5" step="0.01" style="max-width:9rem">
-                    </div>
-                    <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Save add-on prices</button></div>
-                </form>
+                <p class="text-secondary mb-0">None for now. The field helpers (Weed Control Helper, Pest Finder, Disease Finder, Nutrient Deficiency Finder, Variety Finder and Compatibility Checker) are locked on Libre and come with Libre + Anee and every plan above it. The monthly add-on is no longer sold.</p>
             </div>
         </div>
 
