@@ -829,6 +829,18 @@ The following views are Skote template demos and should NOT be modified:
 
 **Ordering**: Uses `chapterOrder` and `topicsOrder` for drag-and-drop sorting
 
+### 10.4 RSS Feeds Module (cross-venture, DS AXIS's own RSS.app)
+
+**Tables**: `axis_rss_sources`, `axis_rss_items`, `axis_rss_bundles`, `axis_rss_bundle_sources`
+
+**Key Models**: `RssSource` (types: `rss`, `google_news`, `webpage`, `page_watch`), `RssItem`, `RssBundle` (a "combined feed")
+
+**Services** (`app/Services/RssFeeds/`): `RssSourceReader` (reads a source, turns Google News links into publisher links), `RssRefresher` (keeps new stories, fills pictures/summaries from article pages), `RssBundleOutput` (filters + RSS 2.0 output in RSS.app's shape), `RssHttp` (every fetch; refuses private addresses), `RssHtml`, `RssKeywordFilter` (whole-word keywords, `farm*` prefixes)
+
+**Flow**: `rss:refresh` runs every 5 minutes and reads the sources that are due (each has `refreshMinutes`). Combined feeds are public at `/rss/{bundleToken}.xml` (`RssOutputController`, no login). Admin page: `/rss-feeds`.
+
+**Scoping**: Shared by all admins (company infrastructure read by anee.io's news roundup); `usersId` records who added a row.
+
 ---
 
 ## 11. Quick Reference Checklist

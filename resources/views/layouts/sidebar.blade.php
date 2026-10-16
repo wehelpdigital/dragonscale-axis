@@ -672,6 +672,17 @@
                 <!-- Divider -->
                 <li class="menu-title">─</li>
 
+                <!-- RSS Feeds Navigation -->
+                <li class="{{ request()->is('rss-feeds*') ? 'mm-active' : '' }}">
+                    <a href="{{ route('rss-feeds') }}" class="waves-effect {{ request()->is('rss-feeds*') ? 'active' : '' }}">
+                        <i class="bx bx-rss"></i>
+                        <span key="t-rss-feeds">RSS Feeds</span>
+                    </a>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
                 <!-- APIs Navigation -->
                 <li class="{{ request()->is('api-docs*') ? 'mm-active' : '' }}">
                     <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('api-docs*') ? 'mm-active' : '' }}">

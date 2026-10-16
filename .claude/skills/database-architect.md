@@ -813,6 +813,16 @@ $courses = AsCourse::where('deleteStatus', 'true')
     ->get();
 ```
 
+**RSS Feeds Module (`axis_rss_*`, 2026-10-16)**
+- `axis_rss_sources`: one source; `sourceType` enum(`rss`, `google_news`, `webpage`, `page_watch`), `sourceUrl` or `searchQuery`, `sourceSettings` JSON, `includeKeywords`/`excludeKeywords`, `refreshMinutes`, `isActive`, last-read status columns, `delete_status`
+- `axis_rss_items`: one story per source, unique (`sourceId`, `guidHash`); `linkHash` (canonical link) dedupes a story across sources; `detailsFetchedAt` null = picture/summary not looked up yet; `delete_status='deleted'` hides a story from every combined feed; rows older than 45 days are pruned
+- `axis_rss_bundles`: a combined feed; `bundleToken` (unique, random) is its public address `/rss/{bundleToken}.xml`; own keyword filters, `maxItems`, `maxAgeDays`
+- `axis_rss_bundle_sources`: pivot, unique (`bundleId`, `sourceId`)
+- Not user-scoped: every admin manages every feed; `usersId` (nullable) is only the creator
+```php
+$sources = RssSource::active()->where('isActive', true)->get();
+```
+
 ---
 
 ## 8. Performance Considerations

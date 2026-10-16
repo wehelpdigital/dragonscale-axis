@@ -40,6 +40,8 @@ class Kernel extends ConsoleKernel
          * notifyLastSentDate, written the moment the rows are made so a run
          * that dies mid-send cannot post everybody a second copy. */
         $schedule->command('anisystem:mail-run --limit=50')->everyTenMinutes()->withoutOverlapping();
+        // RSS Feeds: each source keeps its own interval; this only asks who is due.
+        $schedule->command('rss:refresh')->everyFiveMinutes()->withoutOverlapping(10);
         $schedule->command('outreach:process-queue')->everyMinute()->withoutOverlapping();
         $schedule->command('outreach:fetch-replies')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('outreach:scrape-grids --limit=3')->everyTwoMinutes()->withoutOverlapping();

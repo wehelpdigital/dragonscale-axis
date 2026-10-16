@@ -1269,5 +1269,23 @@ Route::post('/resort-guru-blocks-upload-media', [App\Http\Controllers\resortGuru
 Route::get('/resort-guru-blocks-media-list', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'mediaList'])->name('resort-guru-blocks.media-list')->middleware('auth');
 Route::post('/resort-guru-blocks-update-image', [App\Http\Controllers\resortGuruAdmin\RgBlocksController::class, 'updateImage'])->name('resort-guru-blocks.update-image')->middleware('auth');
 
+// RSS Feeds: DS AXIS's own RSS.app (sources, combined feeds, and their public addresses)
+Route::get('/rss-feeds', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'index'])->name('rss-feeds')->middleware('auth');
+Route::get('/rss-feeds-preview', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'preview'])->name('rss-feeds.preview')->middleware('auth');
+Route::post('/rss-feeds-source', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'storeSource'])->name('rss-feeds.source.store')->middleware('auth');
+Route::post('/rss-feeds-source-test', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'testSource'])->name('rss-feeds.source.test')->middleware('auth');
+Route::put('/rss-feeds-source/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'updateSource'])->whereNumber('id')->name('rss-feeds.source.update')->middleware('auth');
+Route::delete('/rss-feeds-source/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'destroySource'])->whereNumber('id')->name('rss-feeds.source.destroy')->middleware('auth');
+Route::post('/rss-feeds-source/{id}/toggle', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'toggleSource'])->whereNumber('id')->name('rss-feeds.source.toggle')->middleware('auth');
+Route::post('/rss-feeds-source/{id}/refresh', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'refreshSource'])->whereNumber('id')->name('rss-feeds.source.refresh')->middleware('auth');
+Route::post('/rss-feeds-bundle', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'storeBundle'])->name('rss-feeds.bundle.store')->middleware('auth');
+Route::put('/rss-feeds-bundle/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'updateBundle'])->whereNumber('id')->name('rss-feeds.bundle.update')->middleware('auth');
+Route::delete('/rss-feeds-bundle/{id}', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'destroyBundle'])->whereNumber('id')->name('rss-feeds.bundle.destroy')->middleware('auth');
+Route::post('/rss-feeds-bundle/{id}/toggle', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'toggleBundle'])->whereNumber('id')->name('rss-feeds.bundle.toggle')->middleware('auth');
+Route::post('/rss-feeds-bundle/{id}/refresh', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'refreshBundle'])->whereNumber('id')->name('rss-feeds.bundle.refresh')->middleware('auth');
+Route::post('/rss-feeds-item/{id}/hide', [App\Http\Controllers\RssFeeds\RssFeedsController::class, 'hideItem'])->whereNumber('id')->name('rss-feeds.item.hide')->middleware('auth');
+// Public: a combined feed's address (no login, like an RSS.app address)
+Route::get('/rss/{token}.xml', [App\Http\Controllers\RssFeeds\RssOutputController::class, 'show'])->where('token', '[A-Za-z0-9]{8,32}')->name('rss.output');
+
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');
