@@ -116,6 +116,12 @@
                                 <span key="t-anisenso-ai-settings">AniSystem AI</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-learned*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-learned.index') }}" class="waves-effect {{ request()->is('anisenso-learned*') ? 'active' : '' }}">
+                                <i class="bx bx-book-bookmark"></i>
+                                <span key="t-anisenso-learned">Learned by Anee</span>
+                            </a>
+                        </li>
                         {{-- The guide behind "Check this for a complete guide" in
                              Anee's chats: a How-to Guide page, opened straight
                              in the block builder. --}}

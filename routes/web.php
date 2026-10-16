@@ -479,6 +479,15 @@ Route::get('/anisenso-ads-edit', [App\Http\Controllers\aniSensoAdmin\AnisystemAd
 Route::put('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'update'])->name('anisenso-ads.update')->middleware('auth');
 Route::delete('/anisenso-ads', [App\Http\Controllers\aniSensoAdmin\AnisystemAdsController::class, 'destroy'])->name('anisenso-ads.destroy')->middleware('auth');
 // AniSystem > Search indexing: whether search engines may index anee.io's public site.
+// What Anee looked up online and anee.io kept (2026-10-18, learn once): the varieties and the products, to see, correct, review and retire.
+Route::get('/anisenso-learned', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'index'])->name('anisenso-learned.index')->middleware('auth');
+Route::get('/anisenso-learned-variety', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'variety'])->name('anisenso-learned.variety')->middleware('auth');
+Route::post('/anisenso-learned-variety', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'saveVariety'])->name('anisenso-learned.variety.save')->middleware('auth');
+Route::post('/anisenso-learned-variety-act', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'actVariety'])->name('anisenso-learned.variety.act')->middleware('auth');
+Route::get('/anisenso-learned-product', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'product'])->name('anisenso-learned.product')->middleware('auth');
+Route::post('/anisenso-learned-product', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'saveProduct'])->name('anisenso-learned.product.save')->middleware('auth');
+Route::post('/anisenso-learned-product-act', [App\Http\Controllers\aniSensoAdmin\AnisystemLearnedController::class, 'actProduct'])->name('anisenso-learned.product.act')->middleware('auth');
+
 Route::get('/anisenso-seo', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoController::class, 'index'])->name('anisenso-seo.index')->middleware('auth');
 Route::post('/anisenso-seo', [App\Http\Controllers\aniSensoAdmin\AnisystemSeoController::class, 'save'])->name('anisenso-seo.save')->middleware('auth');
 // anee.io's ads landing page (/start): every word and picture, edited here.
