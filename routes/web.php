@@ -505,6 +505,9 @@ Route::post('/anisenso-site-pages-write', [App\Http\Controllers\aniSensoAdmin\An
 Route::get('/anisenso-site-pages-write-state', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'writeState'])->name('anisenso-site-pages.write-state')->middleware('auth');
 Route::get('/anisenso-site-pages-keywords', [App\Http\Controllers\aniSensoAdmin\AnisystemSitePagesController::class, 'keywords'])->name('anisenso-site-pages.keywords')->middleware('auth');
 // Latest in Agriculture: the RSS feeds anee.io's farm news roundups read, and their log.
+// AniSystem > Newsletter (2026-10-17): anee.io's newsletter kit, its questions passed to anee.io with the shared token.
+Route::get('/anisenso-newsletter', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsletterController::class, 'index'])->name('anisenso-newsletter.index')->middleware('auth');
+Route::match(['get', 'post'], '/anisenso-newsletter-api/{path}', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsletterController::class, 'api'])->where('path', '.*')->name('anisenso-newsletter.api')->middleware('auth');
 Route::get('/anisenso-news-feeds', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'index'])->name('anisenso-news-feeds.index')->middleware('auth');
 Route::post('/anisenso-news-feeds', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'store'])->name('anisenso-news-feeds.store')->middleware('auth');
 Route::post('/anisenso-news-feeds-update', [App\Http\Controllers\aniSensoAdmin\AnisystemNewsFeedsController::class, 'update'])->name('anisenso-news-feeds.update')->middleware('auth');

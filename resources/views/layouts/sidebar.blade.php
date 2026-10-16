@@ -155,6 +155,12 @@
                                 <span key="t-anisenso-news-feeds">Latest in Agriculture</span>
                             </a>
                         </li>
+                        <li class="{{ request()->is('anisenso-newsletter*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('anisenso-newsletter.index') }}" class="waves-effect {{ request()->is('anisenso-newsletter*') ? 'active' : '' }}">
+                                <i class="bx bx-envelope"></i>
+                                <span key="t-anisenso-newsletter">Newsletter</span>
+                            </a>
+                        </li>
                         <li class="{{ request()->is('anisenso-seo-keywords*') ? 'mm-active' : '' }}">
                             <a href="{{ route('anisenso-seo-keywords.index') }}" class="waves-effect {{ request()->is('anisenso-seo-keywords*') ? 'active' : '' }}">
                                 <i class="bx bx-purchase-tag-alt"></i>
