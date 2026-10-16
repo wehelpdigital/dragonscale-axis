@@ -4,14 +4,10 @@
 
 @section('css')
     {{-- The screen is anee.io's own newsletter kit, the same one its admin
-         panel mounts: one module, two homes (2026-10-17). --}}
+         panel mounts: one module, two homes (2026-10-17). Its two files are
+         fetched by this app and served from its own address (kit()). --}}
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ $aneeBase }}/nl-kit/nl.css?v={{ $kitVersion }}">
-    <style>
-        /* The kit carries its own colors; give it a light ground in dark mode too. */
-        #nlk { background: #f4f6f0; border-radius: 1.1rem; padding: 1rem; }
-        @media (max-width: 640px) { #nlk { padding: .6rem; border-radius: .8rem; } }
-    </style>
+    <link rel="stylesheet" href="{{ route('anisenso-newsletter.kit', 'nl.css') }}?v={{ $kitVersion }}">
 @endsection
 
 @section('content')
@@ -22,7 +18,7 @@
     @endcomponent
 
     @unless ($linked)
-        <div class="alert alert-warning">This app is not linked to anee.io yet (ANISYSTEM_URL and ANISYSTEM_MEDIA_TOKEN), so the newsletter cannot load.</div>
+        <div class="alert alert-warning">This app is not linked to anee.io yet (ANISYSTEM_MEDIA_TOKEN is not set), so the newsletter cannot load its emails.</div>
     @endunless
 
     <div id="nlk"></div>
@@ -30,18 +26,21 @@
 
 @section('script')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
-    <script src="{{ $aneeBase }}/nl-kit/nl.js?v={{ $kitVersion }}"></script>
+    <script src="{{ route('anisenso-newsletter.kit', 'nl.js') }}?v={{ $kitVersion }}"></script>
     <script>
         (function () {
             const el = document.getElementById('nlk');
             if (!window.NLK) {
-                el.innerHTML = '<div class="alert alert-danger">The newsletter screen did not load from anee.io. Check that anee.io is up, then reload.</div>';
+                const why = window.NLK_ERROR || 'The newsletter screen did not load.';
+                el.innerHTML = '<div class="alert alert-danger"></div>';
+                el.firstChild.textContent = why + ' Reload the page in a minute; if it stays, check that anee.io is up.';
                 return;
             }
             window.NLK.mount(el, {
                 api: @json(url('/anisenso-newsletter-api') . '/'),
                 csrf: @json(csrf_token()),
                 userEmail: @json((string) (auth()->user()->email ?? '')),
+                framed: true,
             });
         })();
     </script>
