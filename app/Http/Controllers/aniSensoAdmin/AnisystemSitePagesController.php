@@ -38,6 +38,8 @@ class AnisystemSitePagesController extends Controller
         'land-preparation' => 'Land preparation',
         // One page per crop and one per nutrient (anee.io's /nutrient-deficiencies, 2026-10-16).
         'nutrient-deficiencies' => 'Nutrient deficiencies',
+        // How traditional farmers plant each crop (anee.io's /how-to-plant, 2026-10-19).
+        'how-to-plant' => 'How to plant',
         // One page per rice variety, from PhilRice's seed database (2026-10-13).
         'rice-varieties' => 'Rice varieties',
         'crop-varieties' => 'Crop varieties',
@@ -450,7 +452,13 @@ class AnisystemSitePagesController extends Controller
                     $k['items'] = array_values(array_filter(array_map(fn ($x) => $str($x, 2000), (array) ($b['items'] ?? [])), 'strlen'));
                     break;
                 case 'steps':
-                    $k['items'] = array_values(array_filter(array_map(fn ($x) => ['title' => $str($x['title'] ?? '', 200), 'text' => $str($x['text'] ?? '', 4000)], array_filter((array) ($b['items'] ?? []), 'is_array')), fn ($x) => $x['title'] !== '' || $x['text'] !== ''));
+                    // A step done in parts (anee.io's How to Plant pages, 2026-10-19) keeps them: the builder shows the
+                    // step's own title and text, and a save never drops the numbered parts under it.
+                    $k['items'] = array_values(array_filter(array_map(fn ($x) => ['title' => $str($x['title'] ?? '', 200), 'text' => $str($x['text'] ?? '', 4000)]
+                        + (! empty($x['parts']) && is_array($x['parts']) ? ['parts' => array_values(array_filter(array_map(fn ($pt) => is_array($pt) ? array_filter([
+                            'title' => $str($pt['title'] ?? '', 200), 'text' => $str($pt['text'] ?? '', 2000), 'time' => $str($pt['time'] ?? '', 120),
+                        ], 'strlen') : [], $x['parts']), fn ($pt) => ($pt['title'] ?? '') !== ''))] : []),
+                        array_filter((array) ($b['items'] ?? []), 'is_array')), fn ($x) => $x['title'] !== '' || $x['text'] !== ''));
                     break;
                 case 'table':
                     $k['caption'] = $str($b['caption'] ?? '', 300);
