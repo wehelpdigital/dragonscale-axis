@@ -124,6 +124,7 @@ class AnisystemAiSettingsController extends Controller
         'lcc' => 'LCC Checker (Anee reads rice leaf photos against the leaf color chart)',
         'landprep' => 'Land Prep Planner, per lot (Anee plans land and seed preparation per lot, around the crew)',
         'compat' => 'Compatibility Checker, the online check (Anee looks up the products the book lacks; a flat price for one product or six)',
+        'fitcheck' => 'A plan put into a season that already has work (Anee checks it against the board and the crew, and places it)',
     ];
 
     /**
@@ -141,7 +142,7 @@ class AnisystemAiSettingsController extends Controller
     // The owner's price list of 2026-10-16 (anee.io's AiPrices::DEFAULTS twin).
     public const PRICE_DEFAULTS = [
         'wtp' => 100, 'wtpVariety' => 150, 'what' => 50, 'variety' => 100, 'protocol' => 150, 'protocolLot' => 40, 'protocolCase' => 70, 'season' => 100, 'sofar' => 50, 'compare' => 30, 'realign' => 30, 'builder' => 100,
-        'satellite' => 100, 'skyweather' => 20, 'npk' => 80, 'npkplan' => 25, 'npkproto' => 20, 'auto' => 1000, 'skypass' => 50, 'lcc' => 30, 'landprep' => 50, 'compat' => 80,
+        'satellite' => 100, 'skyweather' => 20, 'npk' => 80, 'npkplan' => 25, 'npkproto' => 20, 'auto' => 1000, 'skypass' => 50, 'lcc' => 30, 'landprep' => 50, 'compat' => 80, 'fitcheck' => 25,
     ];
 
     private function priceList($packs): array

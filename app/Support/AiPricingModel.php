@@ -90,6 +90,8 @@ final class AiPricingModel
                 'opts' => ['research' => ['in' => 2600, 'out' => 3800, 'search' => 1]]],
             // 2026-10-18: the Compatibility Checker's online check (anee.io AiPricing twin): one size, a flat 80 whatever the count.
             'compat' => ['unit' => '', 'baseIn' => 9000, 'baseOut' => 8000, 'search' => 1],
+            // 2026-10-22: a plan into a season with work (anee.io AiPricing twin): one ask, a unit is a task read.
+            'fitcheck' => ['unit' => 'task', 'free' => 40, 'units' => 60, 'max' => 600, 'baseIn' => 9000, 'baseOut' => 4000, 'unitIn' => 110, 'unitOut' => 30, 'outCap' => 18048],
         ],
     ];
 
