@@ -476,6 +476,67 @@
                 <!-- Divider -->
                 <li class="menu-title">─</li>
 
+                <!-- Games Navigation: one sub-menu per game (Salpakan Tactics! first) -->
+                @php
+                    // A player's own page belongs under Players.
+                    $gsPlayersPage = request()->is('games-salpakan-players*');
+                @endphp
+                <li class="{{ request()->is('games-*') ? 'mm-active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('games-*') ? 'mm-active' : '' }}">
+                        <i class="bx bx-joystick"></i>
+                        <span key="t-games">Games</span>
+                    </a>
+                    <ul class="sub-menu {{ request()->is('games-*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('games-*') ? 'true' : 'false' }}">
+                        <li class="{{ request()->is('games-salpakan*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('games-salpakan*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-crown"></i>
+                                <span key="t-games-salpakan">Salpakan Tactics!</span>
+                            </a>
+                            <ul class="sub-menu {{ request()->is('games-salpakan*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('games-salpakan*') ? 'true' : 'false' }}">
+                                <li class="{{ $gsPlayersPage ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-salpakan-players.index') }}" class="waves-effect {{ $gsPlayersPage ? 'active' : '' }}">
+                                        <i class="bx bx-group"></i>
+                                        <span key="t-games-salpakan-players">Players</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('games-salpakan-usage*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-salpakan-usage.index') }}" class="waves-effect {{ request()->is('games-salpakan-usage*') ? 'active' : '' }}">
+                                        <i class="bx bx-history"></i>
+                                        <span key="t-games-salpakan-usage">Usage History</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('games-salpakan-inactive*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-salpakan-inactive.index') }}" class="waves-effect {{ request()->is('games-salpakan-inactive*') ? 'active' : '' }}">
+                                        <i class="bx bx-user-x"></i>
+                                        <span key="t-games-salpakan-inactive">Inactive Players</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('games-salpakan-sales*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-salpakan-sales.index') }}" class="waves-effect {{ request()->is('games-salpakan-sales*') ? 'active' : '' }}">
+                                        <i class="bx bx-cart"></i>
+                                        <span key="t-games-salpakan-sales">Sales &amp; Orders</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('games-salpakan-reports*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-salpakan-reports.index') }}" class="waves-effect {{ request()->is('games-salpakan-reports*') ? 'active' : '' }}">
+                                        <i class="bx bx-line-chart"></i>
+                                        <span key="t-games-salpakan-reports">Reports</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('games-salpakan-settings*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-salpakan-settings.index') }}" class="waves-effect {{ request()->is('games-salpakan-settings*') ? 'active' : '' }}">
+                                        <i class="bx bx-cog"></i>
+                                        <span key="t-games-salpakan-settings">Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
                 <!-- E-commerce Navigation -->
                 <li class="{{ request()->is('ecom-*') ? 'mm-active' : '' }}">
                     <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ecom-*') ? 'mm-active' : '' }}">

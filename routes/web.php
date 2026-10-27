@@ -1304,5 +1304,34 @@ Route::get('/rss/{token}.xml', [App\Http\Controllers\RssFeeds\RssOutputControlle
 // Public: the cron address a cron service calls when the scheduler is not running (secret key)
 Route::get('/rss-cron', [App\Http\Controllers\RssFeeds\RssOutputController::class, 'cron'])->name('rss.cron');
 
+// ==================== GAMES MODULE ====================
+// The games Dragon Scale publishes. Salpakan Tactics! (game key "salpakan"):
+// its players, their play, its sales and its analytics codes, kept in step
+// with the game server by games:sync every 15 minutes. Single-level URLs, ids
+// after the question mark, like the rest of the admin.
+Route::get('/games-salpakan-players', [App\Http\Controllers\Games\SalpakanPlayersController::class, 'index'])->name('games-salpakan-players.index')->middleware('auth');
+Route::get('/games-salpakan-players-data', [App\Http\Controllers\Games\SalpakanPlayersController::class, 'data'])->name('games-salpakan-players.data')->middleware('auth');
+Route::get('/games-salpakan-players-export', [App\Http\Controllers\Games\SalpakanPlayersController::class, 'export'])->name('games-salpakan-players.export')->middleware('auth');
+Route::get('/games-salpakan-players-show', [App\Http\Controllers\Games\SalpakanPlayersController::class, 'show'])->name('games-salpakan-players.show')->middleware('auth');
+Route::get('/games-salpakan-usage', [App\Http\Controllers\Games\SalpakanUsageController::class, 'index'])->name('games-salpakan-usage.index')->middleware('auth');
+Route::get('/games-salpakan-usage-data', [App\Http\Controllers\Games\SalpakanUsageController::class, 'data'])->name('games-salpakan-usage.data')->middleware('auth');
+Route::get('/games-salpakan-inactive', [App\Http\Controllers\Games\SalpakanUsageController::class, 'inactive'])->name('games-salpakan-inactive.index')->middleware('auth');
+Route::get('/games-salpakan-inactive-data', [App\Http\Controllers\Games\SalpakanUsageController::class, 'inactiveData'])->name('games-salpakan-inactive.data')->middleware('auth');
+Route::get('/games-salpakan-inactive-export', [App\Http\Controllers\Games\SalpakanUsageController::class, 'inactiveExport'])->name('games-salpakan-inactive.export')->middleware('auth');
+Route::get('/games-salpakan-sales', [App\Http\Controllers\Games\SalpakanSalesController::class, 'index'])->name('games-salpakan-sales.index')->middleware('auth');
+Route::get('/games-salpakan-sales-data', [App\Http\Controllers\Games\SalpakanSalesController::class, 'data'])->name('games-salpakan-sales.data')->middleware('auth');
+Route::get('/games-salpakan-sales-totals', [App\Http\Controllers\Games\SalpakanSalesController::class, 'totals'])->name('games-salpakan-sales.totals')->middleware('auth');
+Route::get('/games-salpakan-sales-export', [App\Http\Controllers\Games\SalpakanSalesController::class, 'export'])->name('games-salpakan-sales.export')->middleware('auth');
+Route::get('/games-salpakan-reports', [App\Http\Controllers\Games\SalpakanReportsController::class, 'index'])->name('games-salpakan-reports.index')->middleware('auth');
+Route::get('/games-salpakan-reports-sales', [App\Http\Controllers\Games\SalpakanReportsController::class, 'sales'])->name('games-salpakan-reports.sales')->middleware('auth');
+Route::get('/games-salpakan-reports-usage', [App\Http\Controllers\Games\SalpakanReportsController::class, 'usage'])->name('games-salpakan-reports.usage')->middleware('auth');
+Route::get('/games-salpakan-reports-location', [App\Http\Controllers\Games\SalpakanReportsController::class, 'location'])->name('games-salpakan-reports.location')->middleware('auth');
+Route::get('/games-salpakan-settings', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'index'])->name('games-salpakan-settings.index')->middleware('auth');
+Route::post('/games-salpakan-settings-analytics', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'saveAnalytics'])->name('games-salpakan-settings.analytics')->middleware('auth');
+Route::post('/games-salpakan-settings-analytics-refresh', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'refreshAnalytics'])->name('games-salpakan-settings.analytics-refresh')->middleware('auth');
+Route::post('/games-salpakan-settings-sync', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'syncNow'])->name('games-salpakan-settings.sync')->middleware('auth');
+Route::post('/games-salpakan-settings-rate', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'saveRate'])->name('games-salpakan-settings.rate')->middleware('auth');
+Route::post('/games-salpakan-settings-acumbamail-retry', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'retryAcumbamail'])->name('games-salpakan-settings.acumbamail-retry')->middleware('auth');
+
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');
