@@ -55,4 +55,24 @@ return [
         'token' => env('ANISYSTEM_MEDIA_TOKEN', ''),
     ],
 
+    /*
+     * Acumbamail (email marketing). The key is the account's auth token from
+     * acumbamail.com/apidoc; empty means nobody is added to any list and the
+     * Games settings page says so. Lists are chosen per use (config/games.php).
+     *
+     *   double_optin  1 = Acumbamail emails each new subscriber to confirm first
+     *   per_run       most subscribers one sync adds, so a backlog drains in steps
+     *   pause_ms      wait between two calls, to stay under the API's rate limit
+     *   max_attempts  a subscriber the API keeps refusing is left alone after this
+     */
+    'acumbamail' => [
+        'key' => env('ACUMBAMAIL_API_KEY'),
+        'url' => rtrim((string) env('ACUMBAMAIL_API_URL', 'https://acumbamail.com/api/1'), '/'),
+        'double_optin' => (int) env('ACUMBAMAIL_DOUBLE_OPTIN', 0),
+        'per_run' => (int) env('ACUMBAMAIL_PER_RUN', 100),
+        'pause_ms' => (int) env('ACUMBAMAIL_PAUSE_MS', 250),
+        'max_attempts' => 5,
+        'timeout' => 15,
+    ],
+
 ];

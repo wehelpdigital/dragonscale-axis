@@ -42,6 +42,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('anisystem:mail-run --limit=50')->everyTenMinutes()->withoutOverlapping();
         // RSS Feeds: each source keeps its own interval; this only asks who is due.
         $schedule->command('rss:refresh')->everyFiveMinutes()->withoutOverlapping(10);
+        // Games: Salpakan Tactics! players, activity and orders from the game
+        // server, its sales into /ecom-orders, its players into Acumbamail. Each
+        // step keeps its own cursor, so a run cut short at 12 minutes loses nothing.
+        $schedule->command('games:sync salpakan --seconds=720 --by=scheduler')->everyFifteenMinutes()->withoutOverlapping(30);
         $schedule->command('outreach:process-queue')->everyMinute()->withoutOverlapping();
         $schedule->command('outreach:fetch-replies')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('outreach:scrape-grids --limit=3')->everyTwoMinutes()->withoutOverlapping();
