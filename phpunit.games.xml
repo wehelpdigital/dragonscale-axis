@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The Games module's tests, on a throwaway in-memory SQLite database.
+
+        vendor/bin/phpunit -c phpunit.games.xml
+
+    Never point these at .env's database: it is the production one. Every value
+    below is forced over .env, the MySQL connection is aimed at an address that
+    does not exist, and the tests' base class (tests/Feature/Games/GamesTestCase)
+    refuses to run unless the connection really is SQLite in memory. The game
+    server and Acumbamail are faked (Http::fake); a request to anything else
+    fails the test.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Games">
+            <directory suffix="Test.php">./tests/Feature/Games</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <server name="APP_ENV" value="testing" force="true"/>
+        <server name="DB_CONNECTION" value="sqlite" force="true"/>
+        <server name="DB_DATABASE" value=":memory:" force="true"/>
+        <server name="DB_HOST" value="no-database.invalid" force="true"/>
+        <server name="DB_PORT" value="1" force="true"/>
+        <server name="DB_USERNAME" value="nobody" force="true"/>
+        <server name="DB_PASSWORD" value="none" force="true"/>
+        <server name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <server name="CACHE_DRIVER" value="array" force="true"/>
+        <server name="SESSION_DRIVER" value="array" force="true"/>
+        <server name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <server name="MAIL_MAILER" value="array" force="true"/>
+        <server name="LOG_CHANNEL" value="null" force="true"/>
+        <server name="SALPAKAN_API_URL" value="https://salpakan.test" force="true"/>
+        <server name="SALPAKAN_SYNC_TOKEN" value="test-sync-token" force="true"/>
+        <server name="ACUMBAMAIL_API_KEY" value="test-acumbamail-key" force="true"/>
+        <server name="ACUMBAMAIL_SALPAKAN_LIST_ID" value="1571430" force="true"/>
+        <server name="ACUMBAMAIL_PAUSE_MS" value="0" force="true"/>
+        <server name="SALPAKAN_USD_TO_PHP_RATE" value="58" force="true"/>
+    </php>
+</phpunit>
