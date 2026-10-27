@@ -24,6 +24,9 @@ class FakeGameServer
 
     public array $orders = [];
 
+    /** Accounts deleted in the game: ['player_id' => int, 'deleted_at' => ISO time]. */
+    public array $deletions = [];
+
     public array $analytics = [
         'enabled' => true,
         'meta_pixel_id' => '',
@@ -64,6 +67,7 @@ class FakeGameServer
             'players' => $this->page($this->updatedSince($this->players, $query), $query, 'id'),
             'orders' => $this->page($this->updatedSince($this->orders, $query), $query, 'order_id'),
             'activity' => $this->page($this->activitySince($query), $query, null),
+            'deletions' => $this->page($this->deletedSince($query), $query, null),
             'analytics' => $request->method() === 'PUT' ? $this->putAnalytics($body) : Http::response(['data' => $this->analytics]),
             default => Http::response(['message' => 'Not found.'], 404),
         };
@@ -152,6 +156,18 @@ class FakeGameServer
             return [Carbon::parse($a['updated_at'])->getTimestamp(), $a['id'] ?? $a['order_id']]
                 <=> [Carbon::parse($b['updated_at'])->getTimestamp(), $b['id'] ?? $b['order_id']];
         });
+
+        return array_values($rows);
+    }
+
+    private function deletedSince(array $query): array
+    {
+        $rows = $this->deletions;
+        if (! empty($query['since'])) {
+            $since = Carbon::parse($query['since']);
+            $rows = array_filter($rows, fn ($row) => Carbon::parse($row['deleted_at'])->gte($since));
+        }
+        usort($rows, fn ($a, $b) => [Carbon::parse($a['deleted_at'])->getTimestamp(), $a['player_id']] <=> [Carbon::parse($b['deleted_at'])->getTimestamp(), $b['player_id']]);
 
         return array_values($rows);
     }

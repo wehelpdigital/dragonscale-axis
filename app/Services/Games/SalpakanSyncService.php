@@ -43,7 +43,7 @@ class SalpakanSyncService
     public const GAME = 'salpakan';
 
     /** The data types that need the game server. */
-    private const REMOTE = ['players', 'activity', 'orders', 'analytics'];
+    private const REMOTE = ['players', 'activity', 'orders', 'deletions', 'analytics'];
 
     /** The analytics fields kept locally. Secrets never are: only whether the game holds one. */
     public const ANALYTICS_FIELDS = [
@@ -133,6 +133,7 @@ class SalpakanSyncService
                         'players' => $this->syncPlayers($state, $deadline),
                         'activity' => $this->syncActivity($state, $deadline),
                         'orders' => $this->syncOrders($state, $deadline),
+                        'deletions' => $this->syncDeletions($state, $deadline),
                         'ecom' => $this->syncEcom($deadline),
                         'acumbamail' => $this->syncAcumbamail($deadline),
                         'analytics' => $this->syncAnalytics(),
@@ -227,9 +228,13 @@ class SalpakanSyncService
                 continue;
             }
             $id = (int) $row['id'];
+            $newest = $this->newer($newest, $row['updated_at'] ?? null);
             $attributes = $this->playerAttributes($row);
 
             $player = $existing->get($id);
+            if ($player && $player->delete_status === 'deleted') {
+                continue;  // They deleted their account in the game: never brought back.
+            }
             if (! $player) {
                 $player = new GamePlayer([
                     'gameKey' => self::GAME,
@@ -254,8 +259,6 @@ class SalpakanSyncService
                 $player->save();
             }
             $existing->put($id, $player);
-
-            $newest = $this->newer($newest, $row['updated_at'] ?? null);
         }
 
         return [$newest, $ids, $new];
@@ -485,6 +488,69 @@ class SalpakanSyncService
     // /ecom-orders
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // Deleted accounts
+    // ------------------------------------------------------------------
+
+    /**
+     * Accounts players deleted in the game (its /deletions list): each one is forgotten here too
+     * (forgetPlayer), and the next Acumbamail step takes them off the mailing list.
+     */
+    private function syncDeletions(GameSyncState $state, float $deadline): array
+    {
+        $since = $this->startingPoint($state);
+        $count = 0;
+        $forgotten = 0;
+
+        $done = $this->walkUpdated($state, $since, $deadline,
+            fn (?string $since, int $page) => $this->api->deletions($since, $page, $this->perPage()),
+            function (array $rows) use (&$count, &$forgotten) {
+                $newest = null;
+                foreach ($rows as $row) {
+                    if (! is_array($row) || ! is_numeric($row['player_id'] ?? null)) {
+                        continue;
+                    }
+                    $count++;
+                    $newest = $this->newer($newest, $row['deleted_at'] ?? null);
+                    $forgotten += $this->forgetPlayer((int) $row['player_id']);
+                }
+
+                return $newest;
+            }
+        );
+
+        $message = number_format($count) . ' deleted ' . ($count === 1 ? 'account' : 'accounts') . ' fetched, ' . number_format($forgotten) . ' forgotten here.';
+
+        return $this->outcome($done, $count, $message);
+    }
+
+    /**
+     * A player who deleted their account in the game: their name, email and town are wiped and
+     * they leave the players list and the usage reports. Their orders stay as sales, under no one's
+     * name. On the mailing list they wait for the Acumbamail step to take them off. 1 when the player
+     * was here.
+     */
+    private function forgetPlayer(int $remoteId): int
+    {
+        $player = GamePlayer::forGame(self::GAME)->where('remotePlayerId', $remoteId)->first();
+        if (! $player || $player->delete_status === 'deleted') {
+            return 0;  // Never here, or already forgotten (the walk overlaps the last run).
+        }
+        $onList = $player->acumbamailSubscribedAt && ! $player->acumbamailUnsubscribedAt && $player->acumbamailEmail;
+        $player->forceFill([
+            'username' => null,
+            'email' => null,
+            'region' => null,
+            'city' => null,
+            'delete_status' => 'deleted',
+            'acumbamailStatus' => $onList ? 'pending' : 'skipped',
+            'acumbamailMessage' => $onList ? 'Account deleted in the game: to be taken off the list.' : 'Account deleted in the game.',
+        ])->save();
+        GamePlayerActivity::query()->where('gameKey', self::GAME)->where('remotePlayerId', $remoteId)->update(['delete_status' => 'deleted']);
+
+        return 1;
+    }
+
     private function syncEcom(float $deadline): array
     {
         $rate = $this->usdToPhpRate();
@@ -563,7 +629,12 @@ class SalpakanSyncService
         $pauseMs = max(0, (int) config('services.acumbamail.pause_ms', 250));
         $maxAttempts = max(1, (int) config('services.acumbamail.max_attempts', 5));
 
-        $players = GamePlayer::forGame(self::GAME)->active()
+        $players = GamePlayer::forGame(self::GAME)
+            ->where(function ($q) {
+                // Deleted accounts still on the list wait here to be taken off it.
+                $q->where('delete_status', 'active')
+                    ->orWhere(fn ($d) => $d->where('delete_status', 'deleted')->whereNotNull('acumbamailEmail'));
+            })
             ->where(function ($q) use ($maxAttempts) {
                 $q->where('acumbamailStatus', 'pending')
                     ->orWhere(function ($w) use ($maxAttempts) {
@@ -621,12 +692,13 @@ class SalpakanSyncService
                     $added++;
                 } else {
                     $this->acumbamail->unsubscribeSubscriber($listId, (string) $player->acumbamailEmail);
+                    $deleted = $player->delete_status === 'deleted';
                     $player->forceFill([
                         'acumbamailStatus' => 'unsubscribed',
                         'acumbamailUnsubscribedAt' => now(),
                         'acumbamailTriedAt' => now(),
-                        'acumbamailMessage' => 'Opted out of marketing in the game, so taken off the list.',
-                    ])->save();
+                        'acumbamailMessage' => $deleted ? 'Account deleted in the game, so taken off the list.' : 'Opted out of marketing in the game, so taken off the list.',
+                    ] + ($deleted ? ['acumbamailEmail' => null, 'acumbamailSubscriberId' => null] : []))->save();
                     $removed++;
                 }
             } catch (AcumbamailException $e) {
@@ -669,6 +741,9 @@ class SalpakanSyncService
         $email = trim((string) $player->email);
         $onList = $player->acumbamailSubscribedAt && ! $player->acumbamailUnsubscribedAt && $player->acumbamailEmail;
 
+        if ($player->delete_status === 'deleted') {
+            return $onList ? ['unsubscribe', null] : ['skip', 'Account deleted in the game.'];
+        }
         if ($player->marketingOptOut) {
             return $onList ? ['unsubscribe', null] : ['skip', 'Opted out of marketing in the game.'];
         }

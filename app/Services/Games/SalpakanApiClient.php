@@ -58,6 +58,12 @@ class SalpakanApiClient
         return $this->list('/orders', ['updated_since' => $updatedSince, 'page' => $page, 'per_page' => $perPage]);
     }
 
+    /** Accounts players deleted in the game since $since (all when null), oldest first: player_id, deleted_at. */
+    public function deletions(?string $since, int $page, int $perPage): array
+    {
+        return $this->list('/deletions', ['since' => $since, 'page' => $page, 'per_page' => $perPage]);
+    }
+
     /** The game's analytics codes; secrets come back only as has_* flags. */
     public function analytics(): array
     {

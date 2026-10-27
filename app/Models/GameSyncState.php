@@ -15,6 +15,7 @@ class GameSyncState extends BaseModel
         'players' => 'Players',
         'activity' => 'Daily activity',
         'orders' => 'Orders',
+        'deletions' => 'Deleted accounts',
         'ecom' => 'Logged to /ecom-orders',
         'acumbamail' => 'Acumbamail',
         'analytics' => 'Analytics codes',
