@@ -372,6 +372,7 @@ Agents communicate through:
 | E-commerce | `ecom_*` | `Controllers/Ecommerce/` | `ecommerce/` |
 | Ani-Senso | `as_*` | `Controllers/aniSensoAdmin/` | `aniSensoAdmin/` |
 | Access/Tags | `axis_*`, `clients_*` | Various | Various |
+| Games (Salpakan Tactics! first; rows keyed by `gameKey`) | `games_*` | `Controllers/Games/` | `games/{game}/` |
 | New Venture | `{prefix}_*` | `Controllers/{Venture}/` | `{venture}/` |
 
 ### 6.2 Naming Conventions

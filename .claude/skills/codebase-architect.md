@@ -71,6 +71,7 @@ DS AXIS is the **main centralized admin system** for Dragon Scale Web Company. I
 | **Ani-Senso Courses** | Ani-Senso Academy | Educational content, memberships | `as_*` | `App\Http\Controllers\aniSensoAdmin\*` |
 | **Access & Memberships** | Cross-Venture | Access tags, triggers, client management | `axis_tags`, `clients_*` | Various |
 | **Affiliates** | Cross-Venture | Affiliate tracking (planned expansion) | `ecom_affiliates` | `App\Http\Controllers\Ecommerce\*` |
+| **Games** | Dragon Scale games (Salpakan Tactics! first) | Players, play, sales and analytics codes synced from each game server | `games_*` (rows keyed by `gameKey`) | `App\Http\Controllers\Games\*` |
 | **User Management** | Core DS AXIS | Admin user accounts | `users` | `App\Http\Controllers\UsersController` |
 
 ### 1.4 Growth & Evolution Principles
@@ -101,6 +102,7 @@ ds-axis/  (btc-check folder - legacy name)
 │   │   │   │   ├── DiscountsController.php
 │   │   │   │   └── TriggersController.php
 │   │   │   ├── Api/                     # API endpoints
+│   │   │   ├── Games/                   # Games module (Salpakan* controllers)
 │   │   │   ├── Crypto*Controller.php    # Crypto-related features
 │   │   │   └── [Core controllers]
 │   │   └── Middleware/
@@ -110,6 +112,7 @@ ds-axis/  (btc-check folder - legacy name)
 │       ├── IncomeLogger.php             # Income logging
 │       ├── Ecom*.php                    # E-commerce models
 │       ├── As*.php                      # Ani-Senso models
+│       ├── Game*.php                    # Games models (games_* tables)
 │       └── User.php
 ├── resources/
 │   └── views/
@@ -840,6 +843,34 @@ The following views are Skote template demos and should NOT be modified:
 **Flow**: `rss:refresh` runs every 5 minutes and reads the sources that are due (each has `refreshMinutes`). When the scheduler is not running, a cron service can call `/rss-cron?key=...` (key in `axis_rss_settings`, `RssSetting`); it answers at once and reads after the response. The admin page shows the last automatic read. Combined feeds are public at `/rss/{bundleToken}.xml` (`RssOutputController`, no login). The same address gives browsers a page (`rss-feeds.public`, stories laid out by section; told apart by `Sec-Fetch-Dest: document`, or an `Accept` led by text/html over plain http) and everything else the RSS; `?raw=1` forces the RSS. A compilation's RSS is grouped by section in `memberOrder`. Admin pages (sidebar RSS Feeds > Feeds / Sources): `/rss-feeds` (feeds) and `/rss-feeds-sources` (sources and automatic reading); shared bits are partials `rss-feeds/_styles`, `_delete-modal`, `_script-helpers`, `_script-shared`.
 
 **Wording on screen**: both kinds are just "feeds": a feed *from sources* (`combined`) or a feed *with sections* (`compilation`). The admin page shows one Feeds list, each feed with sections followed by its sections (`rss-feeds._feed-row`). Don't bring back separate "Compilations"/"Combined feeds" lists: the user found them redundant.
+
+### 10.5 Games Module (Salpakan Tactics!, 2026-10-27)
+
+**Purpose**: The games Dragon Scale publishes. AXIS mirrors each game's players, daily play and real-money orders from the game server, logs the sales into `/ecom-orders`, adds players to Acumbamail, and edits the game's analytics codes. The first game is **Salpakan Tactics!**, game key `salpakan`; every `games_*` row carries `gameKey`, so a second game is a new `config/games.php` entry plus its own pages, not new tables.
+
+**Tables**: `games_players`, `games_player_activity`, `games_orders`, `games_sync_states`, `games_settings` (see database-architect)
+
+**Models** (`app/Models/`, all extend `BaseModel`, `delete_status` + `scopeActive()`, `scopeForGame($gameKey)` instead of `forUser`, since the data is shared by every admin): `GamePlayer` (scopes `inactiveFor($days)`, `reachable()`; `isRealEmail()` treats `@steam.invalid` as no email), `GamePlayerActivity`, `GameOrder` (scope `counted()` = completed and not a store test purchase; `money($cents, $currency)`), `GameSyncState` (`for($game, $type)`, `markRunning/markDone/markFailed/markSkipped`), `GameSetting` (key/value per game: `getValue/setValue/getJson/setJson/getTime/touchTime`).
+
+**Services**:
+- `app/Services/Games/SalpakanApiClient` (+ `SalpakanApiException`): the game server's `/api/axis/v1` API (players, activity, orders, analytics GET/PUT), Bearer `SALPAKAN_SYNC_TOKEN`
+- `app/Services/Games/SalpakanSyncService`: the sync (`run($only, $seconds, $by)`), `pushAnalytics()`, `refreshAnalytics()`, `usdToPhpRate()`, `recomputeTotals()`
+- `app/Services/Games/GameEcomOrderLogger`: writes game orders into `ecom_orders` / `ecom_order_items` (+ processed `ecom_refund_requests` for refunds)
+- `app/Services/Acumbamail/AcumbamailClient` (+ `AcumbamailException`): `addSubscriber`, `unsubscribeSubscriber`; reusable by any venture
+
+**Command & schedule**: `games:sync {game=salpakan} {--only=} {--seconds=600} {--by=console}` (`app/Console/Commands/GamesSyncCommand`), scheduled in `App\Console\Kernel` every 15 minutes with `--seconds=720 --by=scheduler` and `withoutOverlapping(30)`.
+
+**Controllers** (`app/Http/Controllers/Games/`, all extend `SalpakanController`, which holds the shared filters, `period()`, `csv()` and `countries()`): `SalpakanPlayersController` (index, data, export, show), `SalpakanUsageController` (index, data, inactive, inactiveData, inactiveExport), `SalpakanSalesController` (index, data, totals, export), `SalpakanReportsController` (index, sales, usage, location — JSON for ApexCharts), `SalpakanSettingsController` (index, saveAnalytics, refreshAnalytics, syncNow, saveRate, retryAcumbamail).
+
+**Routes** (single-level URLs, ids after `?id=`, all `->middleware('auth')`, route names `games-salpakan-{page}.{action}`): `/games-salpakan-players` (+ `-data`, `-export`, `-show?id=`), `/games-salpakan-usage` (+ `-data`), `/games-salpakan-inactive` (+ `-data`, `-export`), `/games-salpakan-sales` (+ `-data`, `-totals`, `-export`), `/games-salpakan-reports` (+ `-sales`, `-usage`, `-location`), `/games-salpakan-settings` (+ POST `-analytics`, `-analytics-refresh`, `-sync`, `-rate`, `-acumbamail-retry`).
+
+**Views**: `resources/views/games/salpakan/` — `players`, `player`, `usage`, `inactive`, `sales`, `reports`, `settings`, shared partials `_styles` (stat tiles, DataTables CSS when `$tables`, includes `aniSensoAdmin.partials.dark`) and `_script-helpers` (toastr, `esc`, badges, `filterValues`). DataTables are server-side Yajra with `->escapeColumns([])`; every value is escaped in JS with `esc()`.
+
+**Sidebar**: top-level **Games** (`bx-joystick`, active on `games-*`) with a nested sub-menu per game; **Salpakan Tactics!** (`bx-crown`, `games-salpakan*`) lists Players, Usage History, Inactive Players, Sales & Orders, Reports, Settings. A new game adds its own nested sub-menu under Games.
+
+**Config & env**: `config/games.php` (`games.salpakan.*`: `api_url` = `SALPAKAN_API_URL`, `sync_token` = `SALPAKAN_SYNC_TOKEN`, `per_page`, `max_pages`, `overlap_seconds`, `activity_start`, `currency`, `usd_to_php_rate` = `SALPAKAN_USD_TO_PHP_RATE`, `acumbamail_list_id` = `ACUMBAMAIL_SALPAKAN_LIST_ID` (1571430), `ecom_order_prefix` `SAL`); `config/services.php` `acumbamail` (`key` = `ACUMBAMAIL_API_KEY`, `double_optin`, `per_run`, `pause_ms`, `max_attempts`). Secrets live only in the environment.
+
+**Tests**: `tests/Feature/Games/*` with their own `phpunit.games.xml` (in-memory SQLite, game server and Acumbamail faked with `Http::fake`, stray requests refused). `GamesTestCase` forces SQLite before anything connects and refuses to run otherwise, because `.env` points at the production database. Run: `vendor/bin/phpunit -c phpunit.games.xml`.
 
 **Scoping**: Shared by all admins (company infrastructure read by anee.io's news roundup); `usersId` records who added a row.
 

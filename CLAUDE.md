@@ -28,6 +28,7 @@ DS AXIS is the **main centralized admin system** for Dragon Scale Web Company. I
 | Ani-Senso Academy | Courses | Educational content, memberships |
 | Cross-Venture | CRM & Access | Client management, access tags, triggers |
 | Cross-Venture | Affiliates | Affiliate tracking (expanding) |
+| Dragon Scale Games | Games | Salpakan Tactics!: players, play, sales, analytics codes (synced from the game server) |
 | Future | New Ventures | System designed for continuous growth |
 
 **Key Understanding**: DS AXIS is the **ADMIN BACKEND**. Separate frontend systems will be built for customer-facing interfaces.
@@ -420,6 +421,9 @@ toastr.options = {
 | E-commerce | `ecom_` | `ecom_products`, `ecom_orders` |
 | Ani-Senso | `as_` | `as_courses`, `as_topics` |
 | Access/Tags | `axis_`, `clients_` | `axis_tags`, `clients_all_database` |
+| Games | `games_` (rows keyed by `gameKey`) | `games_players`, `games_orders` |
+
+**Testing warning**: `.env` points at the PRODUCTION database and `phpunit.xml` does not override it, so never run the default test suite. The Games module's tests have their own config on in-memory SQLite: `vendor/bin/phpunit -c phpunit.games.xml`.
 
 ---
 

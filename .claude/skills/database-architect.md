@@ -559,6 +559,68 @@ clients_access_login
 
 ---
 
+### 2.5b Games Module (`games_*`, 2026-10-27)
+
+Mirrors of each game server's data (Salpakan Tactics!, `gameKey = 'salpakan'`). Every row carries `gameKey`; rows are matched to the game by the game's own ids (`remotePlayerId`, `remoteOrderId`), never by this table's `id`. Shared by every admin: no `usersId`. Written only by `games:sync` (and the Settings page); never edited by hand. Times are stored in Asia/Manila like the rest of AXIS (the game sends UTC; the sync converts); `activityDate` is the game server's UTC day.
+
+```
+games_players
+├── id (PK, bigint unsigned)
+├── gameKey (varchar 40)               ← 'salpakan'
+├── remotePlayerId (bigint unsigned)   ← the game's player id; UNIQUE (gameKey, remotePlayerId)
+├── username, email (nullable; Steam placeholders end in @steam.invalid)
+├── signUpMethod ('password' | 'google' | 'steam')
+├── registeredAt, remoteUpdatedAt, lastActiveAt (datetime)
+├── lastPlatform ('web' | 'android' | 'ios' | 'windows' | 'linux' | 'mac')
+├── countryCode (char 2), country, region, city
+├── gamesPlayed, wins, losses, draws, elo, rankTier, rankName, xp, credits
+├── adFree, isBanned, marketingOptOut (boolean)
+├── purchasesCount, totalSpentCents      ← worked out from games_orders (completed, not test, game currency)
+├── acumbamailStatus enum('pending','subscribed','skipped','failed','unsubscribed')
+├── acumbamailEmail, acumbamailSubscriberId, acumbamailSubscribedAt, acumbamailUnsubscribedAt,
+│   acumbamailTriedAt, acumbamailAttempts, acumbamailMessage
+├── delete_status enum('active','deleted')
+└── created_at, updated_at
+
+games_player_activity                    ← one row per player per day played
+├── id, gameKey, remotePlayerId
+├── activityDate (date, UTC day)         ← UNIQUE (gameKey, remotePlayerId, activityDate) 'games_activity_player_day_unique'
+├── platform, sessions, matchesPlayed, matchesWon, minutesPlayed
+├── firstSeenAt, lastSeenAt (datetime)
+├── delete_status, created_at, updated_at
+
+games_orders                             ← every real-money order
+├── id, gameKey
+├── remoteOrderId (varchar 64, the game's UUID)   ← UNIQUE (gameKey, remoteOrderId)
+├── remotePlayerId
+├── store ('google_play' | 'steam'), orderKind ('item' | 'remove_ads')
+├── productId, itemSlug, itemName, itemCategory
+├── priceCents (int unsigned), currency (char 3)
+├── orderStatus enum('pending','completed','cancelled','refunded'), isTestPurchase (boolean)
+├── storeOrderId, orderedAt, completedAt, remoteUpdatedAt
+├── ecomOrderId (→ ecom_orders.id), ecomStatus (game status the ecom order last reflected),
+│   ecomLoggedAt, ecomPhpAmount (decimal 15,2), ecomRate (decimal 10,4), ecomError
+├── delete_status, created_at, updated_at
+
+games_sync_states                        ← UNIQUE (gameKey, dataType)
+├── id, gameKey, dataType ('players','activity','orders','ecom','acumbamail','analytics')
+├── cursorValue (players/orders: newest updated_at kept, ISO 8601 UTC; activity: next day to ask for, Y-m-d UTC)
+├── resumeCursor, resumePage           ← where an unfinished run carries on
+├── lastStatus enum('running','ok','partial','failed','skipped'), lastMessage, lastCount, remoteTotal, failCount
+├── lastRunAt, lastSuccessAt, delete_status, created_at, updated_at
+
+games_settings                           ← UNIQUE (gameKey, settingKey); key/value
+├── id, gameKey, settingKey, settingValue (text), created_at, updated_at
+    keys: analytics (JSON, never secrets), analyticsFetchedAt, analyticsPushedAt,
+          analyticsPushStatus, analyticsPushMessage, usdToPhpRate, lastRunAt, lastRunBy
+```
+
+**Model Mapping**: `GamePlayer` → `games_players`, `GamePlayerActivity` → `games_player_activity`, `GameOrder` → `games_orders`, `GameSyncState` → `games_sync_states`, `GameSetting` → `games_settings` (all extend `BaseModel`)
+
+**Writes into e-commerce**: completed/refunded, non-test game orders become `ecom_orders` rows (`orderNumber` = `SAL-{remoteOrderId}`, unique, so never twice; `usersId` 0 = "System"; `shippingStatus` `not_applicable`; `paymentMethod` `online_payment`; `paymentVerificationStatus` `not_required`; `created_at` = when paid) with one `ecom_order_items` row (`productStore` = "Salpakan Tactics!", `productType` `access`), an `ecom_order_audit_logs` entry, the store row in `ecom_product_stores` (made once), and for refunds a processed full `ecom_refund_requests` + `ecom_refund_items` pair.
+
+---
+
 ### 2.6 System/Legacy Tables
 
 ```
@@ -820,6 +882,15 @@ $courses = AsCourse::where('deleteStatus', 'true')
 - `axis_rss_bundle_sources`: pivot, unique (`bundleId`, `sourceId`)
 - `axis_rss_bundles.bundleType` enum(`combined`, `compilation`) + `usedFor`; `axis_rss_bundle_members` (`bundleId` = compilation, `memberBundleId` = combined feed, `memberOrder` = its section's place, unique pair). Only combined feeds can be members, so compilations cannot loop
 - Not user-scoped: every admin manages every feed; `usersId` (nullable) is only the creator
+
+**Games Module (`games_*`, 2026-10-27)** — see Section 2.5b
+- Scope by game, not by user: `GamePlayer::forGame('salpakan')->active()`
+- Join players to their activity/orders on (`gameKey`, `remotePlayerId`), not on `games_players.id`
+- Revenue = `GameOrder::forGame(...)->counted()` (completed, not a store test purchase), in the game's currency (`config('games.salpakan.currency')`, USD)
+- Reports group by `DATE(...)` in SQL and gather into weeks/months in PHP, so the same queries run on MySQL and SQLite (no `DATE_FORMAT`, no `||`)
+```php
+$inactive = GamePlayer::forGame('salpakan')->active()->inactiveFor(30)->reachable()->get();
+```
 ```php
 $sources = RssSource::active()->where('isActive', true)->get();
 ```

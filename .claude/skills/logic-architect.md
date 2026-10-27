@@ -17,6 +17,7 @@ DS AXIS serves as the **centralized admin backend** for Dragon Scale Web Company
 - **CRM & Client Management** (Cross-Venture)
 - **Access Control & Triggers** (Cross-Venture)
 - **Affiliates** (Cross-Venture, expanding)
+- **Games** (Salpakan Tactics!: players, play, sales and analytics codes synced from the game server; Section 8b)
 - **Future Ventures** (Designed for growth)
 
 ### 1.2 Skill System Architecture
@@ -483,6 +484,56 @@ This is the **core business logic** that runs periodically to check crypto price
 
 ---
 
+### 4.3 Salpakan Tactics! Game Server API (Games module)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│               SALPAKAN GAME SERVER — /api/axis/v1 (SalpakanApiClient)   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Base: SALPAKAN_API_URL (default games-of-the-generals-web-production-  │
+│        6zraos.laravel.cloud)                                            │
+│  Every call: Authorization: Bearer {SALPAKAN_SYNC_TOKEN},               │
+│              Accept: application/json; times ISO 8601 UTC               │
+│                                                                         │
+│  GET /players?updated_since=&page=&per_page=(≤500)                      │
+│  GET /orders?updated_since=&page=&per_page=                             │
+│      sorted updated_at, id; {"data": [...], "meta": {page, per_page,    │
+│      total, last_page}}                                                 │
+│  GET /activity?since=Y-m-d&page=&per_page=   one row per player per day │
+│  GET /analytics   PUT /analytics (any of enabled, meta_pixel_id,        │
+│      ga4_measurement_id, gtm_container_id, tiktok_pixel_id,             │
+│      google_ads_id, google_ads_label, ga4_api_secret, meta_access_token │
+│      — secrets write-only: value sets, "" clears, omitted keeps)        │
+│                                                                         │
+│  Errors → SalpakanApiException(status): 401 wrong/missing token (stops  │
+│  the other game-server steps of the run), 422 field errors (shown on    │
+│  Settings), 0 = unreachable (connection retried once).                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.4 Acumbamail API (email marketing)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  ACUMBAMAIL — AcumbamailClient                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│  POST https://acumbamail.com/api/1/{function}/  form data, with         │
+│       auth_token = ACUMBAMAIL_API_KEY (config services.acumbamail.key)  │
+│                                                                         │
+│  addSubscriber: list_id, merge_fields[email], double_optin              │
+│                 (ACUMBAMAIL_DOUBLE_OPTIN, default 0), update_subscriber │
+│                 = 1, complete_json = 1  → {"email", "id"}               │
+│  unsubscribeSubscriber: list_id, email                                  │
+│                                                                         │
+│  200/201 ok · 400 bad argument (that subscriber: counted, retried up to │
+│  max_attempts) · 401 wrong key (stop, report) · 429 too many calls      │
+│  (stop, next sync carries on) · per_run 100, pause_ms 250 between calls │
+│  Key not set → step "skipped", players stay pending, Settings says so.  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## 5. Notification System Flow
 
 ### 5.1 Email Notification Architecture
@@ -940,6 +991,47 @@ This is the **core business logic** that runs periodically to check crypto price
 
 ---
 
+## 8b. Games Module Flow (Salpakan Tactics!)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│     games:sync salpakan  (every 15 min; Settings > Sync now = 25 s)     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  SalpakanSyncService::run($only, $seconds, $by)  — cache lock, so two   │
+│  runs never overlap; every step's outcome → games_sync_states           │
+│                                                                         │
+│  1 players   from resumeCursor, else cursor − 120 s overlap; after each │
+│              page: upsert (by gameKey+remotePlayerId), cursor = newest  │
+│              updated_at, restart at page 1 from there (a row changed    │
+│              mid-run moves to the end instead of shifting a row past a  │
+│              page); a page of identical updated_at steps to page+1.     │
+│              Email or opt-out changed → acumbamailStatus back to pending│
+│  2 activity  since = min(cursor, yesterday UTC); pages walked, resume   │
+│              page kept; finished → cursor = yesterday (today still grows)│
+│  3 orders    like players (bulk upsert, ecom* columns untouched), then  │
+│              players' purchasesCount / totalSpentCents recomputed       │
+│  4 ecom      GameEcomOrderLogger: completed/refunded & not test & not   │
+│              yet logged → ecom order SAL-{order_id}; logged & status    │
+│              moved (ecomStatus ≠ orderStatus) → follow it               │
+│  5 acumbamail pending (+ failed under max_attempts), 100 per run:       │
+│              opted out & on list → unsubscribe; no email / @steam.invalid│
+│              / opted out / invalid → skipped; else addSubscriber once   │
+│  6 analytics GET /analytics → games_settings.analytics (no secrets)     │
+│                                                                         │
+│  401 from the game server → remaining game-server steps "Not tried";    │
+│  any other failure is recorded and the next step still runs. The       │
+│  command always exits 0; errors are logged with a [Games] prefix.       │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**/ecom-orders mapping (GameEcomOrderLogger)**: game `completed` → `complete`, `refunded` → `refunded` (plus a processed full `ecom_refund_requests`/`ecom_refund_items`, so the Sales Report and Dashboard net it out like a refund made in /ecom-refunds), `cancelled` → `cancelled`. Pending orders are not logged until they complete; orders cancelled before completing and store test purchases are never logged. Amount in pesos: price × the rate on Settings (else `SALPAKAN_USD_TO_PHP_RATE`, 58); the original price and rate go in `orderNotes`; a currency with no rate (not USD/PHP) is kept back with `games_orders.ecomError` and retried each sync. Customer = the player (username as first name, real email only), no shipping, `paymentMethod` online_payment, handled by "System" (`usersId` 0), store "Salpakan Tactics!" (made in `ecom_product_stores` the first time). Idempotent: the order number is unique in `ecom_orders`.
+
+**Analytics codes (Settings)**: validated in AXIS (G-…, GTM-…, AW-…, digits for Meta), then `PUT /analytics`; the game's answer is stored as the local copy with `analyticsPushStatus` accepted / rejected (422, field errors shown) / failed (401, unreachable). Secrets are sent only when typed (or "" when "remove" is ticked) and are never stored in AXIS.
+
+**Pages** (`App\Http\Controllers\Games\Salpakan*Controller`, read-only over `games_*`): Players (filters: search, sign-up method, country, platform, inactive N days, purchases, marketing, registered/active date ranges; CSV), player page (profile, activity chart + table by day, orders), Usage History (per player per day), Inactive Players (7/14/30/60+ days, "reachable" = real email and not opted out; CSV), Sales & Orders (filters, totals per currency, CSV, link to /ecom-orders), Reports (sales by day/week/month, store, category, top items; usage sign-ups, DAU/WAU/MAU, matches, platforms; location by country → region/city; ApexCharts), Settings.
+
+---
+
 ## 9. Data Flow Diagrams
 
 ### 9.1 Crypto Module Data Flow
@@ -1156,6 +1248,8 @@ $chapters = AsCourseChapter::where('asCoursesId', $courseId)
 |---------|---------|------------------|
 | CoinGecko API | BTC price data | Returns error array, logged |
 | User SMTP servers | Email notifications | Catches exception, logs error |
+| Salpakan Tactics! game server (`/api/axis/v1`) | Players, activity, orders, analytics codes | `SalpakanApiException`; step marked failed in `games_sync_states`, next sync carries on from its cursor |
+| Acumbamail API | Adds game players to list 1571430 (games_salpakan) | `AcumbamailException`; 400 counted per player, 401/429/unreachable stop the batch |
 
 ### 13.2 Internal Dependencies
 
@@ -1214,6 +1308,8 @@ Log::info("SMTP config: " . json_encode($notificationEmail->toArray()));
 | `ProductsController` | E-commerce product management | Full CRUD + variants, images, shipping |
 | `OrdersCustomAddController` | Order creation wizard | Multi-step order creation |
 | `AniSensoCourseController` | Course content management | Courses, chapters, topics, resources |
+| `Games\SalpakanSettingsController` | Salpakan analytics codes, sync status, Sync now, peso rate | `saveAnalytics()`, `syncNow()`, `saveRate()`, `retryAcumbamail()` |
+| `Games\SalpakanPlayersController` / `SalpakanUsageController` / `SalpakanSalesController` / `SalpakanReportsController` | Salpakan players, play, inactive segment, orders, reports (read-only) | `data()`, `export()`, `inactiveExport()`, `totals()`, `sales()`, `usage()`, `location()` |
 
 ### API Endpoints
 
@@ -1227,6 +1323,7 @@ Log::info("SMTP config: " . json_encode($notificationEmail->toArray()));
 | Schedule | Endpoint | Purpose |
 |----------|----------|---------|
 | Every 5 min | `/api/check-process?token=xxx` | Update prices, check thresholds |
+| Every 15 min | `games:sync salpakan --seconds=720 --by=scheduler` (App\Console\Kernel) | Salpakan Tactics! players, activity, orders → AXIS; sales → /ecom-orders; players → Acumbamail; analytics codes read back |
 
 ---
 
