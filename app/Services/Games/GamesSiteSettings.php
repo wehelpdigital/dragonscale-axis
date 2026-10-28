@@ -25,7 +25,7 @@ class GamesSiteSettings
     public const GAME = 'site';
 
     public const SITE_DEFAULTS = [
-        'siteName' => 'Dragon Scale Games',
+        'siteName' => 'DragonScaleGames',
         'tagline' => 'Games made to be played together.',
         'contactEmail' => '',
         'announcement' => '',
