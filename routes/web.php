@@ -1333,5 +1333,22 @@ Route::post('/games-salpakan-settings-sync', [App\Http\Controllers\Games\Salpaka
 Route::post('/games-salpakan-settings-rate', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'saveRate'])->name('games-salpakan-settings.rate')->middleware('auth');
 Route::post('/games-salpakan-settings-acumbamail-retry', [App\Http\Controllers\Games\SalpakanSettingsController::class, 'retryAcumbamail'])->name('games-salpakan-settings.acumbamail-retry')->middleware('auth');
 
+// Games > Website: the studio website (wehelpdigital/game-website) -- the games
+// it features, its settings, and the web checkout's payments (GCash, read by the
+// AI, approved here; the game server grants the item).
+Route::get('/games-site', [App\Http\Controllers\Games\GamesSiteController::class, 'index'])->name('games-site.index')->middleware('auth');
+Route::get('/games-site-edit', [App\Http\Controllers\Games\GamesSiteController::class, 'edit'])->name('games-site.edit')->middleware('auth');
+Route::post('/games-site-save', [App\Http\Controllers\Games\GamesSiteController::class, 'save'])->name('games-site.save')->middleware('auth');
+Route::post('/games-site-delete', [App\Http\Controllers\Games\GamesSiteController::class, 'destroy'])->name('games-site.delete')->middleware('auth');
+Route::post('/games-site-settings', [App\Http\Controllers\Games\GamesSiteController::class, 'saveSite'])->name('games-site.settings')->middleware('auth');
+Route::get('/games-payments', [App\Http\Controllers\Games\GamesPaymentsController::class, 'index'])->name('games-payments.index')->middleware('auth');
+Route::get('/games-payments-show', [App\Http\Controllers\Games\GamesPaymentsController::class, 'show'])->name('games-payments.show')->middleware('auth');
+Route::get('/games-payments-proof', [App\Http\Controllers\Games\GamesPaymentsController::class, 'proof'])->name('games-payments.proof')->middleware('auth');
+Route::post('/games-payments-approve', [App\Http\Controllers\Games\GamesPaymentsController::class, 'approve'])->name('games-payments.approve')->middleware('auth');
+Route::post('/games-payments-reject', [App\Http\Controllers\Games\GamesPaymentsController::class, 'reject'])->name('games-payments.reject')->middleware('auth');
+Route::post('/games-payments-recheck', [App\Http\Controllers\Games\GamesPaymentsController::class, 'recheck'])->name('games-payments.recheck')->middleware('auth');
+Route::post('/games-payments-deliver', [App\Http\Controllers\Games\GamesPaymentsController::class, 'deliver'])->name('games-payments.deliver')->middleware('auth');
+Route::post('/games-payments-settings', [App\Http\Controllers\Games\GamesPaymentsController::class, 'saveSettings'])->name('games-payments.settings')->middleware('auth');
+
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

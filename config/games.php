@@ -60,4 +60,24 @@ return [
         'ecom_order_prefix' => 'SAL',
     ],
 
+    /*
+    | The studio website (wehelpdigital/game-website): it features every game
+    | and carries the web checkout. It reads the games and settings from
+    | /api/games-site/v1 and sends the checkout's payments there, with this
+    | bearer token (the same value as the website's GAMES_SITE_TOKEN).
+    */
+    'site' => [
+        'token' => env('GAMES_SITE_TOKEN'),
+        'url' => rtrim((string) env('GAMES_SITE_URL', 'https://game-website-production-w4tfhu.laravel.cloud'), '/'),
+
+        // Receipts a buyer may upload: pictures only, this big at most (KB).
+        'proof_max_kb' => 8192,
+
+        // A checking that never finished is run again after this long (seconds).
+        'check_stale_seconds' => 180,
+
+        // How often a granted-but-not-delivered payment is tried again.
+        'fulfill_max_attempts' => 30,
+    ],
+
 ];

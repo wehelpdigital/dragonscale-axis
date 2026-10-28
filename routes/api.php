@@ -98,3 +98,15 @@ Route::get('/trigger-cron', [App\Http\Controllers\Ecommerce\TriggerTasksControll
  */
 Route::post('/anisystem/media', [App\Http\Controllers\Api\AnisystemMediaController::class, 'store']);
 Route::delete('/anisystem/media', [App\Http\Controllers\Api\AnisystemMediaController::class, 'destroy']);
+
+/*
+ * The studio website (wehelpdigital/game-website): the games it features and the
+ * web checkout's payments (Games > Website). Authenticated by its bearer token
+ * (GAMES_SITE_TOKEN) -- the caller is the website's server, never a browser.
+ */
+Route::middleware([App\Http\Middleware\GamesSiteToken::class, 'throttle:240,1'])->prefix('games-site/v1')->group(function () {
+    Route::get('/site', [App\Http\Controllers\Api\GamesSiteApiController::class, 'site']);
+    Route::post('/checkouts/{token}', [App\Http\Controllers\Api\GamesSiteApiController::class, 'open']);
+    Route::get('/checkouts/{token}', [App\Http\Controllers\Api\GamesSiteApiController::class, 'show']);
+    Route::post('/checkouts/{token}/gcash', [App\Http\Controllers\Api\GamesSiteApiController::class, 'gcash']);
+});

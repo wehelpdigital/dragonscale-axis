@@ -16,6 +16,7 @@ class GameOrder extends BaseModel
     public const STORES = [
         'google_play' => 'Google Play',
         'steam' => 'Steam',
+        'web' => 'Web (GCash)',
     ];
 
     public const KINDS = [

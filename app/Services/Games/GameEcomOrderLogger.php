@@ -144,7 +144,7 @@ class GameEcomOrderLogger
                 'netRevenue' => $peso['amount'],
                 'orderNotes' => $this->notes($order, $storeName, $peso['rate']),
                 'isPackage' => false,
-                'paymentMethod' => 'online_payment',
+                'paymentMethod' => $order->store === 'web' ? 'manual_gcash' : 'online_payment',
                 'paymentVerificationStatus' => 'not_required',
                 'paymentReferenceNumber' => $order->storeOrderId ? mb_substr($order->storeOrderId, 0, 100) : null,
                 'deleteStatus' => 1,

@@ -7,6 +7,7 @@ use App\Models\GamePlayer;
 use App\Models\GamePlayerActivity;
 use App\Models\GameSetting;
 use App\Models\GameSyncState;
+use App\Services\Games\SalpakanApiClient;
 use App\Services\Games\SalpakanSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -205,9 +206,19 @@ class SalpakanSettingsController extends SalpakanController
         $rate = $request->filled('usdToPhpRate') ? round((float) $request->input('usdToPhpRate'), 4) : null;
         GameSetting::setValue(self::GAME, 'usdToPhpRate', $rate);
 
+        // The web game prices in pesos at the same rate (and the website charges it).
+        $said = '';
+        try {
+            app(SalpakanApiClient::class)->updateSettings(['php_per_usd' => $rate ?? (float) config('games.salpakan.usd_to_php_rate', 58)]);
+            $said = ' The web game prices in pesos at this rate now.';
+        } catch (\Throwable $e) {  // Best effort: the rate is saved here either way.
+            Log::warning('Games: the game server did not take the peso rate: ' . $e->getMessage());
+            $said = ' The game server did not take it just now (' . $e->getMessage() . '); save again to send it.';
+        }
+
         return response()->json([
             'success' => true,
-            'message' => $rate ? 'Orders from now on are logged at ₱' . number_format($rate, 2) . ' per ' . $this->currency() . '.' : 'Back to the default rate.',
+            'message' => ($rate ? 'Orders from now on are logged at ₱' . number_format($rate, 2) . ' per ' . $this->currency() . '.' : 'Back to the default rate.') . $said,
         ]);
     }
 

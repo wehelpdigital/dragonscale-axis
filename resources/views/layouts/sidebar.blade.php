@@ -531,6 +531,26 @@
                                 </li>
                             </ul>
                         </li>
+                        <li class="{{ request()->is('games-site*', 'games-payments*') ? 'mm-active' : '' }}">
+                            <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('games-site*', 'games-payments*') ? 'mm-active' : '' }}">
+                                <i class="bx bx-globe"></i>
+                                <span key="t-games-site">Website</span>
+                            </a>
+                            <ul class="sub-menu {{ request()->is('games-site*', 'games-payments*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('games-site*', 'games-payments*') ? 'true' : 'false' }}">
+                                <li class="{{ request()->is('games-site*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-site.index') }}" class="waves-effect {{ request()->is('games-site*') ? 'active' : '' }}">
+                                        <i class="bx bx-grid-alt"></i>
+                                        <span key="t-games-site-games">Games &amp; Site</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->is('games-payments*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('games-payments.index') }}" class="waves-effect {{ request()->is('games-payments*') ? 'active' : '' }}">
+                                        <i class="bx bx-wallet"></i>
+                                        <span key="t-games-payments">Payments</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                     </ul>
                 </li>
 

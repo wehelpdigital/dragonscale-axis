@@ -46,6 +46,8 @@ class Kernel extends ConsoleKernel
         // server, its sales into /ecom-orders, its players into Acumbamail. Each
         // step keeps its own cursor, so a run cut short at 12 minutes loses nothing.
         $schedule->command('games:sync salpakan --seconds=720 --by=scheduler')->everyFifteenMinutes()->withoutOverlapping(30);
+        // Games > Website: the web checkout's receipts, approvals and expired links.
+        $schedule->command('games:payments')->everyMinute()->withoutOverlapping(10);
         $schedule->command('outreach:process-queue')->everyMinute()->withoutOverlapping();
         $schedule->command('outreach:fetch-replies')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('outreach:scrape-grids --limit=3')->everyTwoMinutes()->withoutOverlapping();

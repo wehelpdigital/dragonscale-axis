@@ -49,11 +49,20 @@ class FakeGameServer
     /** Body sent with the last PUT /analytics. */
     public ?array $lastPut = null;
 
+    /** Web orders by checkout token, as GET /checkouts/{token} answers them. */
+    public array $checkouts = [];
+
+    /** Bodies of every POST /checkouts/{token}/fulfill, by token. */
+    public array $fulfilled = [];
+
+    /** Body of the last PUT /settings. */
+    public ?array $settingsPut = null;
+
     public function handle(Request $request)
     {
         $path = trim(str_replace('/api/axis/v1', '', (string) parse_url($request->url(), PHP_URL_PATH)), '/');
         parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
-        $body = $request->method() === 'PUT' ? (json_decode((string) $request->body(), true) ?: []) : [];
+        $body = in_array($request->method(), ['PUT', 'POST'], true) ? (json_decode((string) $request->body(), true) ?: []) : [];
         $this->requests[] = ['method' => $request->method(), 'path' => $path, 'query' => $query, 'body' => $body];
 
         if (($request->header('Authorization')[0] ?? '') !== 'Bearer ' . self::TOKEN) {
@@ -61,6 +70,15 @@ class FakeGameServer
         }
         if (isset($this->failures[$path])) {
             return Http::response(['message' => 'Server error.'], $this->failures[$path]);
+        }
+
+        if (preg_match('#^checkouts/([^/]+)(/fulfill)?$#', $path, $m)) {
+            return $this->checkoutPath($m[1], ! empty($m[2]), $body);
+        }
+        if ($path === 'settings' && $request->method() === 'PUT') {
+            $this->settingsPut = $body;
+
+            return Http::response(['data' => ['php_per_usd' => (float) ($body['php_per_usd'] ?? 0)]]);
         }
 
         return match ($path) {
@@ -71,6 +89,49 @@ class FakeGameServer
             'analytics' => $request->method() === 'PUT' ? $this->putAnalytics($body) : Http::response(['data' => $this->analytics]),
             default => Http::response(['message' => 'Not found.'], 404),
         };
+    }
+
+    private function checkoutPath(string $token, bool $fulfill, array $body)
+    {
+        if (! isset($this->checkouts[$token])) {
+            return Http::response(['message' => 'There is no such order.'], 404);
+        }
+        if (! $fulfill) {
+            return Http::response(['data' => $this->checkouts[$token]]);
+        }
+        $already = $this->checkouts[$token]['status'] === 'completed';
+        $this->fulfilled[$token][] = $body;
+        $this->checkouts[$token]['status'] = 'completed';
+        $this->checkouts[$token]['payable'] = false;
+        $this->checkouts[$token]['payment_reference'] = $body['reference'] ?? null;
+
+        return Http::response(['already' => $already, 'data' => $this->checkouts[$token]]);
+    }
+
+    /** A web order the website can take payment for. */
+    public static function checkout(string $token, array $overrides = []): array
+    {
+        return array_merge([
+            'order_id' => '7a1c2f4e-1111-4b8a-9d55-' . substr(md5($token), 0, 12),
+            'status' => 'pending',
+            'payable' => true,
+            'player_id' => 42,
+            'username' => 'Gabriela',
+            'email' => 'gabriela@example.com',
+            'kind' => 'item',
+            'item_slug' => 'arena.lava_pit',
+            'item_name' => 'Lava Pit',
+            'item_category' => 'arena',
+            'item_rarity' => 'legendary',
+            'price_cents' => 500,
+            'currency' => 'USD',
+            'price_php' => 290,
+            'payment_method' => null,
+            'payment_reference' => null,
+            'created_at' => now()->subMinutes(5)->toIso8601String(),
+            'expires_at' => now()->addHours(47)->toIso8601String(),
+            'completed_at' => null,
+        ], $overrides);
     }
 
     /** Requests to one path. */

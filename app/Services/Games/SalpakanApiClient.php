@@ -79,6 +79,33 @@ class SalpakanApiClient
         return $this->dataOf($this->request('PUT', '/analytics', [], $values));
     }
 
+    /**
+     * A web order by its checkout token: status, payable, the player, the item,
+     * price_cents and price_php. A SalpakanApiException with status 404 when
+     * there is none.
+     */
+    public function checkout(string $token): array
+    {
+        return $this->dataOf($this->request('GET', '/checkouts/' . rawurlencode($token)));
+    }
+
+    /**
+     * The payment for a web order was checked: the game completes the order and
+     * grants the item, once. ['already' => bool, 'data' => the order].
+     */
+    public function fulfill(string $token, string $method, ?string $reference): array
+    {
+        $json = $this->request('POST', '/checkouts/' . rawurlencode($token) . '/fulfill', [], ['method' => $method, 'reference' => $reference]);
+
+        return ['already' => (bool) ($json['already'] ?? false), 'data' => $this->dataOf($json)];
+    }
+
+    /** Settings AXIS owns on the game server: php_per_usd (the peso rate of the web game's prices). */
+    public function updateSettings(array $values): array
+    {
+        return $this->dataOf($this->request('PUT', '/settings', [], $values));
+    }
+
     private function list(string $path, array $query): array
     {
         $json = $this->request('GET', $path, array_filter($query, fn ($v) => $v !== null && $v !== ''));
@@ -125,9 +152,11 @@ class SalpakanApiClient
                 // A dropped connection is tried once more; an answer is never repeated.
                 ->retry(2, 500, fn ($e) => $e instanceof ConnectionException, false);
 
-            $response = $method === 'PUT'
-                ? $pending->asJson()->put($url, $body ?? [])
-                : $pending->get($url, $query);
+            $response = match ($method) {
+                'PUT' => $pending->asJson()->put($url, $body ?? []),
+                'POST' => $pending->asJson()->post($url, $body ?? []),
+                default => $pending->get($url, $query),
+            };
         } catch (ConnectionException $e) {
             throw new SalpakanApiException('Could not reach the game server at ' . $this->baseUrl . ': ' . $e->getMessage(), 0);
         }

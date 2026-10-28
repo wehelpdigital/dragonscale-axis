@@ -137,6 +137,8 @@ abstract class GamesTestCase extends TestCase
         // This module's own tables, exactly as they will be made in production.
         $migration = require base_path('database/migrations/2026_10_27_100000_create_games_tables.php');
         $migration->up();
+        $site = require base_path('database/migrations/2026_10_28_120000_create_games_site_tables.php');
+        $site->up();
 
         Schema::create('users', function (Blueprint $table) {
             $table->id();
