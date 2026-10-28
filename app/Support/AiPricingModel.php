@@ -80,7 +80,10 @@ final class AiPricingModel
             'npk' => ['unit' => 'line', 'free' => 10, 'units' => 6, 'max' => 60, 'baseIn' => 7500, 'baseOut' => 6500, 'unitIn' => 50, 'unitOut' => 5, 'search' => 1],
             'npkplan' => ['unit' => 'lot', 'free' => 1, 'units' => 1, 'max' => 8, 'perUnitPrice' => true, 'baseIn' => 4500, 'baseOut' => 4500, 'unitIn' => 1400, 'unitOut' => 600, 'outCap' => 9048, 'om' => 2, 'omUnit' => 1],
             'npkproto' => ['unit' => 'task', 'free' => 10, 'units' => 6, 'max' => 120, 'baseIn' => 4000, 'baseOut' => 4000, 'unitIn' => 60, 'unitOut' => 40, 'outCap' => 8048],
-            'auto' => ['unit' => 'lot', 'free' => 1, 'units' => 1, 'max' => 20, 'perUnitPrice' => true, 'baseIn' => 35000, 'baseOut' => 45000, 'unitIn' => 13000, 'unitOut' => 24000,
+            // 2026-10-28, the season grew: each lot's plan may be written again before it is approved (up to three
+            // writes; one more at p90, +13K in and +24K out a lot) and its final season report comes with it
+            // (the 'season' kind, +9K in and +6K out a lot). Measured live the same day: one lot's calendar 8.8K in, 9.4K out.
+            'auto' => ['unit' => 'lot', 'free' => 1, 'units' => 1, 'max' => 20, 'perUnitPrice' => true, 'baseIn' => 57000, 'baseOut' => 75000, 'unitIn' => 35000, 'unitOut' => 54000,
                 'search' => 1, 'om' => 10, 'omUnit' => 2, 'maps' => 1, 'mail' => 150, 'useObserve' => 10, 'useAsk' => 30],
             'autoObserve' => ['unit' => '', 'baseIn' => 11000, 'baseOut' => 4500],
             'autoAsk' => ['unit' => '', 'baseIn' => 12000, 'baseOut' => 2500],
