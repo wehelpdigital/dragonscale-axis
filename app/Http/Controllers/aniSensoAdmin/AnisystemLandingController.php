@@ -162,6 +162,8 @@ class AnisystemLandingController extends Controller
                     'sub' => $this->text($request, "hero.chips.$k.sub"),
                 ], keepBlank: true),
             ],
+            // Anee's lines (2026-10-28): a speech bubble opening each section; only the keys anee.io's defaults have.
+            'says' => collect($defaults['says'] ?? [])->mapWithKeys(fn ($v, $k) => [$k => $this->text($request, "says.$k", 220)])->all(),
             'proof' => [
                 'lead' => $this->text($request, 'proof.lead'),
                 'items' => $this->lines($request, 'proof.items'),

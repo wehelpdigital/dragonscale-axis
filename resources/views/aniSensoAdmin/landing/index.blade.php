@@ -85,7 +85,7 @@
         $d = $defaults ?? [];
         $sections = [
             'meta' => ['Title & link preview', null],
-            'hero' => ['Hero', 1], 'proof' => ['Proof strip', 2], 'problem' => ['The weather & 3 steps', 2],
+            'hero' => ['Hero', 1], 'says' => ['Anee\'s lines', null], 'proof' => ['Proof strip', 2], 'problem' => ['The weather & 3 steps', 2],
             'costs' => ['Fuel & fertilizer', 2],
             'losses' => ['What guessing costs', null], 'precision' => ['Precision agriculture', null], 'auto' => ['Anee Auto', null],
             'demo' => ['Try it: a season in ten seconds', null], 'space' => ['New this season', null],
@@ -356,6 +356,21 @@
                     </div>
                     <template data-tpl="pillars">@include('aniSensoAdmin.landing.row-pillar', ['k' => '__K__', 'p' => ['kicker' => '', 'title' => '', 'text' => '', 'bullets' => [], 'image' => 'board', 'plan' => '', 'upload' => '', 'frame' => 'phone'], 'shots' => $shots, 'base' => $base])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="pillars"><i class="bx bx-plus"></i> Add a pillar</button>
+                </div></div>
+                @endisset
+
+                {{-- ===== Anee's lines (2026-10-28): the page as a talk with her ===== --}}
+                @isset($page['says'])
+                <div class="card lp-sec" id="sec-says"><div class="card-body">
+                    <h4 class="card-title">Anee's lines</h4>
+                    <p class="lp-lead">A speech bubble with Anee's face opens each section, so the page reads like a talk with her. It types in when the visitor reaches it. Keep each line short and plain, in her voice ("I", "you"). Wrap words in *stars* to color them. Empty a line to use the default; to hide a bubble, type a single dot.</p>
+                    <div class="row g-3">
+                        @foreach (['hero' => 'Hero, above the email box', 'problem' => 'Before the problems', 'losses' => 'Before what guessing costs', 'social' => 'Before the Facebook post', 'precision' => 'Before precision farming', 'auto' => 'Before Anee Auto', 'demo' => 'Before Try it', 'space' => 'Before New this season', 'more' => 'Before every tool', 'faq' => 'Before the questions', 'closer' => 'In the closer'] as $sk => $sl)
+                            @isset($page['says'][$sk])
+                                @include('aniSensoAdmin.landing.field', ['name' => "says[$sk]", 'label' => $sl, 'value' => $page['says'][$sk], 'default' => $d['says'][$sk] ?? '', 'col' => 'col-md-6', 'max' => 220])
+                            @endisset
+                        @endforeach
+                    </div>
                 </div></div>
                 @endisset
 
