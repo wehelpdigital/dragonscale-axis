@@ -39,6 +39,9 @@ class RssSourceReader
     /** Stories a news page (webpage source) gives per read, at most. */
     public int $pageLinkLimit = 40;
 
+    /** Set per feed read: the feed writes Manila time labelled as UTC. */
+    private bool $localTimes = false;
+
     public function read(RssSource $source, ?float $deadline = null, ?callable $isKnown = null): array
     {
         $deadline ??= microtime(true) + 60;
@@ -97,6 +100,7 @@ class RssSourceReader
         }
         $base = (string) $source->sourceUrl;
         $items = [];
+        $this->localTimes = false;
         $root = strtolower($xml->getName());
         if (! in_array($root, ['rss', 'feed', 'rdf'], true)) {
             throw new \RuntimeException('The address did not give an RSS or Atom feed.');
@@ -110,6 +114,7 @@ class RssSourceReader
             $channel = $root === 'rss' ? $xml->channel : $xml->children('http://purl.org/rss/1.0/')->channel;
             $publisher = $this->clean((string) ($channel->title ?? '')) ?: $source->sourceName;
             $list = $root === 'rss' ? $xml->channel->item : $xml->children('http://purl.org/rss/1.0/')->item;
+            $this->localTimes = $root === 'rss' && $this->writesLocalTimeAsUtc($channel, $list);
             foreach ($list as $item) {
                 $items[] = $this->rssItem($item, $publisher, $base);
             }
@@ -489,6 +494,39 @@ class RssSourceReader
         return trim((string) ($el->attributes()->{$name} ?? ''));
     }
 
+    /**
+     * Some newsrooms write Manila time and label it +0000 (Inquirer and Panay
+     * News do). Read as UTC, every story lands eight hours late, and the newest
+     * one later than the feed itself was built, which cannot be. So when the
+     * newest story is more than an hour after the feed's lastBuildDate, the
+     * whole feed's times are read as Manila time.
+     */
+    private function writesLocalTimeAsUtc(\SimpleXMLElement $channel, $list): bool
+    {
+        try {
+            $built = trim((string) ($channel->lastBuildDate ?: $channel->pubDate));
+            if ($built === '') {
+                return false;
+            }
+            $built = Carbon::parse($built);
+            $newest = null;
+            foreach ($list as $item) {
+                $raw = trim((string) $item->pubDate);
+                if ($raw !== '') {
+                    $d = Carbon::parse($raw);
+                    $newest = ! $newest || $d->gt($newest) ? $d : $newest;
+                }
+            }
+            if (! $newest || $newest->utcOffset() !== 0 || $newest->lte($built->copy()->addHour())) {
+                return false;
+            }
+            // Read as Manila time, the newest story must then fit before the build.
+            return $newest->copy()->shiftTimezone(config('app.timezone'))->lte($built->copy()->addHour());
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     private function date(string $value): ?Carbon
     {
         $value = trim($value);
@@ -500,8 +538,10 @@ class RssSourceReader
         } catch (\Throwable $e) {
             return null;
         }
-        // Some newsrooms write Manila time and label it +0000 (Inquirer does),
-        // which puts the story hours in the future. Read as Manila time, it fits.
+        if ($this->localTimes) {
+            return $date->shiftTimezone(config('app.timezone'))->timezone(config('app.timezone'));
+        }
+        // A single story dated hours ahead is most likely the same mistake.
         if ($date->gt(now()->addHour())) {
             $local = $date->copy()->shiftTimezone(config('app.timezone'));
             if ($local->lte(now()->addHour())) {
