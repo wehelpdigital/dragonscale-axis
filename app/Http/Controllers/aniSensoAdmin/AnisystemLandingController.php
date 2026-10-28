@@ -81,6 +81,22 @@ class AnisystemLandingController extends Controller
         '{solo}' => 'the Solo Farmer monthly price',
         '{cropResearch}' => '"Philippine rice" on the Philippine page, "published crop" on the other',
         '{pesoBasis}' => 'what the peso ranges assume (a palay hectare grossing ₱85,000–₱100,000), on the Philippine page only',
+        '{tools}' => 'how many tools anee.io has',
+        '{freeTools}' => 'how many of them are free on every plan',
+    ];
+
+    /**
+     * The tools a "New this season" card may show (2026-10-28): anee.io shows the tool's own phone screen of the app
+     * and the plan it comes with. Keys are How It Works' tool keys; keep them alike.
+     */
+    public const SPACE_TOOLS = [
+        'market' => 'Market Price Forecast', 'bilad' => 'Benta o Bilad Calculator', 'hatian' => 'Hatian Calculator',
+        'when' => 'When to Plant Analysis', 'what' => 'What to Plant Analysis', 'variety' => 'Variety Ranking',
+        'cropProtocol' => 'Crop Protocol Analysis', 'landprep' => 'Land Prep Planner', 'satellite' => 'Satellite Analysis',
+        'skyWeather' => 'Satellite Weather', 'weather' => 'Weather for your farm', 'npk' => 'NPK Plus Calculator',
+        'pestFinder' => 'Pest Finder', 'diseaseFinder' => 'Disease Finder', 'nutrientFinder' => 'Nutrient Deficiency Finder',
+        'weedHelper' => 'Weed Control Helper', 'compat' => 'Compatibility Checker', 'seedCount' => 'Seed Count and Distance Calculator',
+        'howToPlant' => 'How to Plant', 'stash' => 'The Stash', 'chat' => 'Chat with Anee', 'auto' => 'Anee Auto', 'profit' => 'Profit Report',
     ];
 
     public function index()
@@ -233,7 +249,7 @@ class AnisystemLandingController extends Controller
                 'items' => $this->rows($request, 'space.items', fn ($k) => [
                     'title' => $this->text($request, "space.items.$k.title"),
                     'text' => $this->text($request, "space.items.$k.text"),
-                    'image' => in_array((string) $request->input("space.items.$k.image"), ['satellite', 'sky', 'npk', 'finder', 'stash'], true) ? (string) $request->input("space.items.$k.image") : 'sky',
+                    'image' => array_key_exists((string) $request->input("space.items.$k.image"), self::SPACE_TOOLS) ? (string) $request->input("space.items.$k.image") : 'market',
                 ]),
             ],
             // Since 2026-10-13 anee.io lists the tools itself (How It Works),

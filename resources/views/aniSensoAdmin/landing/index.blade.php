@@ -344,7 +344,8 @@
                 </div></div>
                 @endisset
 
-                {{-- ===== 4. Pillars ===== --}}
+                {{-- ===== 4. Pillars (gone from anee.io's page since 2026-10-28; shown only while its defaults have them) ===== --}}
+                @isset($page['pillars'])
                 <div class="card lp-sec" id="sec-pillars"><div class="card-body">
                     <h4 class="card-title"><span class="n">4</span> Feature pillars</h4>
                     <p class="lp-lead">The big zigzag: a picture on one side, the benefit on the other. Three or four is right.</p>
@@ -356,6 +357,7 @@
                     <template data-tpl="pillars">@include('aniSensoAdmin.landing.row-pillar', ['k' => '__K__', 'p' => ['kicker' => '', 'title' => '', 'text' => '', 'bullets' => [], 'image' => 'board', 'plan' => '', 'upload' => '', 'frame' => 'phone'], 'shots' => $shots, 'base' => $base])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="pillars"><i class="bx bx-plus"></i> Add a pillar</button>
                 </div></div>
+                @endisset
 
                 {{-- ===== Anee Auto (2026-10-13) ===== --}}
                 @isset($page['auto'])
@@ -390,7 +392,7 @@
                 @isset($page['space'])
                 <div class="card lp-sec" id="sec-space"><div class="card-body">
                     <h4 class="card-title">New this season</h4>
-                    <p class="lp-lead">The new tools on a dark band, each with its real screen from the app.</p>
+                    <p class="lp-lead">The newest tools on a dark band, each with its real screen from the app and the plan it comes with. Pick the tool for each card; anee.io shows its screen.</p>
                     <div class="row g-3 mb-2">
                         @include('aniSensoAdmin.landing.field', ['name' => 'space[kicker]', 'label' => 'Small line', 'value' => $page['space']['kicker'], 'default' => $d['space']['kicker'] ?? '', 'col' => 'col-md-4'])
                         @include('aniSensoAdmin.landing.field', ['name' => 'space[headline]', 'label' => 'Headline', 'value' => $page['space']['headline'], 'default' => $d['space']['headline'] ?? '', 'col' => 'col-md-8'])
@@ -401,7 +403,7 @@
                             @include('aniSensoAdmin.landing.row-newtool', ['k' => 's' . $i, 't' => $t])
                         @endforeach
                     </div>
-                    <template data-tpl="space">@include('aniSensoAdmin.landing.row-newtool', ['k' => '__K__', 't' => ['title' => '', 'text' => '', 'image' => 'sky']])</template>
+                    <template data-tpl="space">@include('aniSensoAdmin.landing.row-newtool', ['k' => '__K__', 't' => ['title' => '', 'text' => '', 'image' => 'market']])</template>
                     <button type="button" class="btn btn-sm btn-outline-primary mt-2 lp-add" data-add="space"><i class="bx bx-plus"></i> Add a tool</button>
                 </div></div>
                 @endisset

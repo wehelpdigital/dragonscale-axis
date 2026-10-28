@@ -6,7 +6,7 @@
         <div class="col-md-3">
             <label class="form-label">Screen</label>
             <select name="space[items][{{ $k }}][image]" class="form-select">
-                @foreach (['satellite' => 'Satellite Analysis', 'sky' => 'Satellite Weather', 'npk' => 'NPK Plus', 'finder' => 'Pest Finder', 'stash' => 'The Stash'] as $v => $l)
+                @foreach (\App\Http\Controllers\aniSensoAdmin\AnisystemLandingController::SPACE_TOOLS as $v => $l)
                     <option value="{{ $v }}" @selected(($t['image'] ?? '') === $v)>{{ $l }}</option>
                 @endforeach
             </select>
