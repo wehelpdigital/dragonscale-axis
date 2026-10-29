@@ -97,6 +97,8 @@ final class AiPricingModel
             'compat' => ['unit' => '', 'baseIn' => 9000, 'baseOut' => 8000, 'search' => 1],
             // 2026-10-22: a plan into a season with work (anee.io AiPricing twin): one ask, a unit is a task read.
             'fitcheck' => ['unit' => 'task', 'free' => 40, 'units' => 60, 'max' => 600, 'baseIn' => 9000, 'baseOut' => 4000, 'unitIn' => 110, 'unitOut' => 30, 'outCap' => 18048],
+            // 2026-10-29: the Range Effect look up (anee.io AiPricing twin).
+            'effect' => ['unit' => '', 'baseIn' => 7000, 'baseOut' => 5000, 'search' => 1],
         ],
     ];
 

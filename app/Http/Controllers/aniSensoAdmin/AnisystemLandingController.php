@@ -95,7 +95,7 @@ class AnisystemLandingController extends Controller
         'cropProtocol' => 'Crop Protocol Analysis', 'landprep' => 'Land Prep Planner', 'satellite' => 'Satellite Analysis',
         'skyWeather' => 'Satellite Weather', 'weather' => 'Weather for your farm', 'npk' => 'NPK Plus Calculator',
         'pestFinder' => 'Pest Finder', 'diseaseFinder' => 'Disease Finder', 'nutrientFinder' => 'Nutrient Deficiency Finder',
-        'weedHelper' => 'Weed Control Helper', 'compat' => 'Compatibility Checker', 'seedCount' => 'Seed Count and Distance Calculator',
+        'weedHelper' => 'Weed Control Helper', 'compat' => 'Compatibility Checker', 'rangeEffect' => 'Range Effect calendar', 'seedCount' => 'Seed Count and Distance Calculator',
         'howToPlant' => 'How to Plant', 'stash' => 'The Stash', 'chat' => 'Chat with Anee', 'auto' => 'Anee Auto', 'profit' => 'Profit Report',
     ];
 
