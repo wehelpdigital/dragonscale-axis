@@ -59,9 +59,11 @@ class MapController extends BaseScheduleController
     {
         $schedule = $this->scheduleFromRequest($request);
 
+        // Oldest change first: the map stacks each shape over the ones before
+        // it, so the latest drawn or changed is on top (anee.io's twin, 2026-11-03).
         $rows = AsScheduleMapObject::active()
             ->where('scheduleId', $schedule->id)
-            ->orderBy('id')
+            ->orderBy('updated_at')->orderBy('id')
             ->limit(self::MAX_SHAPES)
             ->get();
 
@@ -247,9 +249,10 @@ class MapController extends BaseScheduleController
             return $this->jsonFail($validator->errors()->first(), 422);
         }
 
+        // In the order they stack on the map, so the picture shows what the screen does.
         $objects = AsScheduleMapObject::active()
             ->where('scheduleId', $schedule->id)
-            ->orderBy('id')
+            ->orderBy('updated_at')->orderBy('id')
             ->limit(self::MAX_SHAPES)
             ->get()
             ->map(fn ($o) => $o->shaped())
