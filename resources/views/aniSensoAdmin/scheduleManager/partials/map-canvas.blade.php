@@ -414,7 +414,7 @@
                 </button>
                 <button type="button" class="cmap-mrow" data-mtool="rect" data-short="Box">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1.5"/></svg>
-                    <span>Box — drag, sides + area</span>
+                    <span>Box — drag, sides + area, Select to turn</span>
                 </button>
                 <button type="button" class="cmap-mrow" data-mtool="area" data-short="Area">
                     <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 6-3 10H7L4 9l8-6z"/></svg>
@@ -515,13 +515,27 @@
                 </button>
             </div>
             <div class="sheet-body cmap-swatches" style="padding-bottom:1.1rem">
+                {{-- Fifteen colours and any other (2026-11-04, the owner: "add more
+                     colors"). Bright first, because they are drawn over a
+                     satellite picture of green fields. --}}
                 <button type="button" class="cmap-swatch is-active" data-mcolor="#f5c518" style="--c:#f5c518" aria-label="Yellow"></button>
-                <button type="button" class="cmap-swatch" data-mcolor="#ffffff" style="--c:#ffffff" aria-label="White"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#f97316" style="--c:#f97316" aria-label="Orange"></button>
                 <button type="button" class="cmap-swatch" data-mcolor="#ef4444" style="--c:#ef4444" aria-label="Red"></button>
-                <button type="button" class="cmap-swatch" data-mcolor="#22c55e" style="--c:#22c55e" aria-label="Green"></button>
-                <button type="button" class="cmap-swatch" data-mcolor="#3b82f6" style="--c:#3b82f6" aria-label="Blue"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#ec4899" style="--c:#ec4899" aria-label="Pink"></button>
                 <button type="button" class="cmap-swatch" data-mcolor="#a855f7" style="--c:#a855f7" aria-label="Purple"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#6366f1" style="--c:#6366f1" aria-label="Indigo"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#3b82f6" style="--c:#3b82f6" aria-label="Blue"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#0ea5e9" style="--c:#0ea5e9" aria-label="Sky blue"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#14b8a6" style="--c:#14b8a6" aria-label="Teal"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#22c55e" style="--c:#22c55e" aria-label="Green"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#84cc16" style="--c:#84cc16" aria-label="Lime"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#a16207" style="--c:#a16207" aria-label="Brown"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#9ca3af" style="--c:#9ca3af" aria-label="Grey"></button>
+                <button type="button" class="cmap-swatch" data-mcolor="#ffffff" style="--c:#ffffff" aria-label="White"></button>
                 <button type="button" class="cmap-swatch" data-mcolor="#111827" style="--c:#111827" aria-label="Black"></button>
+                <label class="cmap-swatch cmap-swatch-any" title="Any colour">
+                    <input type="color" id="cmapColorAny" value="#f5c518" aria-label="Choose any colour">
+                </label>
             </div>
         </div>
         <div class="sheet hidden" id="cmapSavesSheet" style="--sheet-width:26rem">
@@ -659,6 +673,12 @@
         @endif
         <button type="button" class="cmap-tool is-active" id="cmapLayer" title="Toggle map / satellite" aria-label="Toggle map or satellite view" aria-pressed="true">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg>
+        </button>
+        {{-- The pins away and back, for this screen only (see setPinsShown).
+             A way of reading the map, like the satellite beside it, so it is
+             there for anyone who can see the map, drawing or not. --}}
+        <button type="button" class="cmap-tool is-active" id="cmapPins" title="Hide the pins" aria-label="Hide the pins" aria-pressed="true">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/><path class="cmap-pins-x" stroke-linecap="round" d="M4 3.5l16 17"/></svg>
         </button>
         @if ($mapChrome !== 'lot' && true) {{-- an admin here always may: they own the season --}}
         <button type="button" class="cmap-tool cmap-danger" id="cmapClear" title="Clear the whole map for the team" aria-label="Clear the map for the team">
@@ -845,6 +865,10 @@
     .cmap-tool.is-active,
     [data-bs-theme="dark"] .cmap-tool.is-active { background: var(--color-brand-100); color: var(--color-brand-800); }
     .cmap-tool:disabled { opacity: .35; pointer-events: none; }
+    /* The pins button: a slash drawn through the pin while they are away. */
+    .cmap-pins-x { stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .28s cubic-bezier(.22,1,.36,1); }
+    #cmapPins:not(.is-active) .cmap-pins-x { stroke-dashoffset: 0; }
+    @media (prefers-reduced-motion: reduce) { .cmap-pins-x { transition: none; } }
     /* Waiting on a satellite, which on a phone under trees is a real wait. The
        pulse is on the icon rather than the button so the button keeps its shape
        in the row, and it overrides the :disabled dimming — a control that is
@@ -910,6 +934,10 @@
     .cmap-swatch { width: 2.1rem; height: 2.1rem; border-radius: 999px; background: var(--c);
         border: 2px solid rgb(0 0 0 / .08); transition: transform .15s ease, box-shadow .15s ease; }
     .cmap-swatch.is-active { box-shadow: 0 0 0 3px var(--color-white), 0 0 0 5px var(--color-brand-500); transform: scale(1.05); }
+    /* Any colour: the rainbow until one is picked, then that colour inside a rainbow ring. */
+    .cmap-swatch-any { position: relative; overflow: hidden; cursor: pointer;
+        background: radial-gradient(circle, var(--c, transparent) 0 46%, transparent 47%), conic-gradient(#ef4444, #f5c518, #22c55e, #0ea5e9, #6366f1, #ec4899, #ef4444); }
+    .cmap-swatch-any input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
     .cmap-finish { background: var(--color-brand-600); color: #fff; width: auto; padding: 0 .6rem; gap: .3rem; font-size: .78rem; font-weight: 800; }
     .cmap-finish:hover { background: var(--color-brand-700); color: #fff; }
     .cmap-danger { color: #dc2626; }
@@ -1159,6 +1187,8 @@
     const LOT_PIN_URL = null;   // only reached from inside the errand
 
     let map = null, proj = null, satOn = true;
+    // Whether the pins are away on this screen (see setPinsShown).
+    let pinsHidden = false, pinsFade = 0;
     let tool = 'pan', color = '#f5c518', width = 3;
     let tempPts = [], tempShape = null;
     /* Corners taken back off a shape that is still being tapped out, waiting
@@ -1445,9 +1475,10 @@
     function vertexPins(parts, o, pts, colorStr) {
         pts.forEach((p, i) => {
             const m = new (G().Marker)({
-                map, position: LL(p), draggable: true, crossOnDrag: false,
+                map: pinMap(), position: LL(p), draggable: true, crossOnDrag: false,
                 icon: pinIcon(colorStr, 1.2),
             });
+            m.__pin = true;
             m.addListener('drag', (ev) => {
                 const path = parts[0].getPath ? parts[0].getPath() : null;
                 if (path) path.setAt(i, ev.latLng);
@@ -1742,9 +1773,8 @@
                     { kind: o.kind, closed: false, segs, total: tot, pts });
             }
         } else if (o.kind === 'rect') {
-            const b = new (G().LatLngBounds)(LL(pts[0]), LL(pts[1]));
-            const sw = b.getSouthWest(), ne = b.getNorthEast();
-            const c = [[sw.lat(), sw.lng()], [sw.lat(), ne.lng()], [ne.lat(), ne.lng()], [ne.lat(), sw.lng()]];
+            // Its four corners as they stand, turned or upright (see ringOf).
+            const c = ringOf(o);
             parts.push(new (G().Polygon)({ ...style, paths: c.map(LL), fillColor: style.strokeColor, fillOpacity: .08 }));
             vertexPins(parts, o, c, style.strokeColor);
             const segs = segLabels(parts, c, true, mlabels);
@@ -1771,7 +1801,7 @@
                moving it, not deleting it and starting again. Its tip is the
                point, so what you grab is exactly what you placed. */
             const pm = new (G().Marker)({
-                map, position: LL(pts[0]), draggable: true, clickable: true,
+                map: pinMap(), position: LL(pts[0]), draggable: true, clickable: true,
                 /* The drawn pin, not a stroked symbol.
                  *
                  * labelOrigin puts the name ABOVE the head rather than
@@ -1799,6 +1829,7 @@
                 if (editing && editing.o.id === o.id) return;
                 commitPinMove(o, ev.latLng);
             });
+            pm.__pin = true;
             parts.push(pm);
         } else if (o.kind === 'text') {
             const tm = textMark(pts[0], o.label || '', 'cmap-txt-g', '#111827');
@@ -2088,6 +2119,47 @@
        and half-made shapes keep the stroked symbol below: those are controls,
        and a control should wear the colour it is drawing in. */
     const PIN_IMG = @json(asset('images/map-pin.png'));
+    /* THE PINS AWAY AND BACK (2026-11-04, the owner: "have a button to hide
+       the pins"). Every pin on the map answers to it: the teardrop on each
+       corner of a line, a path, a box or an area, and the pinned places. The
+       shapes, their names and their numbers stay where they are. It changes
+       this screen only: the team's maps, the saved file and its picture keep
+       every pin. A shape drawn or arriving while they are away arrives without
+       them, so the map never shows half its pins. They fade rather than blink,
+       from wherever a fade still running left them. */
+    const pinMap = () => (pinsHidden ? null : map);
+    function setPinsShown(on) {
+        pinsHidden = !on;
+        const btn = document.getElementById('cmapPins');
+        if (btn) {
+            const say = on ? 'Hide the pins' : 'Show the pins';
+            btn.classList.toggle('is-active', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            btn.title = say;
+            btn.setAttribute('aria-label', say);
+        }
+        if (!map) return;
+        const pins = [];
+        layers.forEach((parts) => parts.forEach((p) => { if (p.__pin) pins.push(p); }));
+        const run = ++pinsFade;
+        const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (calm) { pins.forEach((p) => { p.setOpacity(1); p.setMap(on ? map : null); }); return; }
+        const from = pins.map((p) => {
+            if (!p.getMap()) { p.setOpacity(0); if (on) p.setMap(map); return 0; }
+            const a = p.getOpacity();
+            return a == null ? 1 : a;
+        });
+        const t0 = performance.now(), D = 280;
+        const step = (now) => {
+            if (run !== pinsFade) return;
+            const k = Math.min(1, (now - t0) / D);
+            const e = 1 - Math.pow(1 - k, 3);
+            pins.forEach((p, i) => p.setOpacity(from[i] + ((on ? 1 : 0) - from[i]) * e));
+            if (k < 1) { requestAnimationFrame(step); return; }
+            if (!on) pins.forEach((p) => { p.setMap(null); p.setOpacity(1); });
+        };
+        requestAnimationFrame(step);
+    }
     const pinIcon = (c, sc) => ({ path: PIN, scale: sc || 1.35, anchor: new (G().Point)(12, 22),
         fillColor: c || color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5 });
     const ARROW_HEAD = (c) => ({ icon: { path: G().SymbolPath.FORWARD_CLOSED_ARROW, scale: 3.4,
@@ -2293,6 +2365,8 @@
         tool = t;
         clearTemp();
         cancelExtend();
+        // Pinning a place with the pins away would drop one nobody can see.
+        if (t === 'pin' && pinsHidden) setPinsShown(true);
         document.querySelectorAll('[data-mtool]').forEach((b) => b.classList.toggle('is-active', b.dataset.mtool === t));
         const row = document.querySelector('.cmap-mrow[data-mtool="' + t + '"]');
         const lab = document.getElementById('cmapToolLabel');
@@ -2709,6 +2783,8 @@
         }
         const pts = [];
         first.getPath().forEach((v) => pts.push([v.lat(), v.lng()]));
+        // A turned box moves as its four corners: its bounds would set it upright.
+        if (o.kind === 'rect' && (o.points || []).length >= 4) return pts.slice(0, 4);
         if (o.kind === 'rect') {
             const b = new (G().LatLngBounds)();
             pts.forEach((p) => b.extend(LL(p)));
@@ -2810,6 +2886,7 @@
         // bar, same Done — it is one more thing this shape can be dragged by,
         // not a second way of picking something up.
         if (o.kind === 'text') showSizeHandle(o, parts);
+        if (o.kind === 'rect') showTurnHandle(o, parts);
     }
     function endEdit() {
         if (!editing) return;
@@ -2826,6 +2903,7 @@
         editing = null;
         clearSelVertex();
         dropSizeHandle();
+        dropTurnHandle();
         const bar = document.getElementById('cmapEditBar');
         if (bar) bar.classList.add('hidden');
     }
@@ -2919,6 +2997,132 @@
         // every zoom, since its offset is only true in screen pixels.
         editing.listeners.push(mark.addListener('drag', placeSizeHandle));
         editing.listeners.push(map.addListener('idle', placeSizeHandle));
+    }
+    /* ---------- turning a box ----------
+     *
+     * (2026-11-04, the owner: "add a rotate functionality for the box shape".)
+     * A box in hand grows a second handle past the middle of its top side.
+     * Drag it round and the box turns about its own centre, corner pins,
+     * sides and numbers with it, then saves for the team on release, one undo
+     * step. The turning is done on the map's flat plane, where a right angle
+     * stays one, so the box is still a box at any angle. A turned box keeps
+     * its four corners as they stand; turned square again it goes back to
+     * the two corners of its bounds, the way every upright box is kept. It
+     * snaps square within 3 degrees, because straight is the angle wanted
+     * back most often and the hardest one to find with a thumb. While it
+     * turns, the handle says the angle. */
+    const TURN_GAP = 34, TURN_SNAP = 3 * Math.PI / 180;
+    let turnHandle = null, turnFor = null, turnDragging = false;
+    const worldOf = (q) => { const pr = map && map.getProjection(); return pr ? pr.fromLatLngToPoint(LL(q)) : null; };
+    const fromWorld = (x, y) => { const ll = map.getProjection().fromPointToLatLng(new (G().Point)(x, y)); return [ll.lat(), ll.lng()]; };
+    function ringNow(parts) {
+        const pts = [];
+        parts[0].getPath().forEach((v) => pts.push([v.lat(), v.lng()]));
+        return pts.slice(0, 4);
+    }
+    /** The box's centre and corners on the flat plane, and where its handle stands. */
+    function turnSpot(ring) {
+        if (ring.length < 4) return null;
+        const w = ring.map(worldOf);
+        if (w.some((p) => !p)) return null;
+        const cx = (w[0].x + w[1].x + w[2].x + w[3].x) / 4, cy = (w[0].y + w[1].y + w[2].y + w[3].y) / 4;
+        const mx = (w[2].x + w[3].x) / 2, my = (w[2].y + w[3].y) / 2;
+        const d = Math.hypot(mx - cx, my - cy);
+        if (!(d > 0)) return null;
+        // A thumb's width past the side at any zoom: the gap is screen pixels.
+        const gap = TURN_GAP / Math.pow(2, map.getZoom() || 0);
+        return { cx, cy, w, x: mx + (mx - cx) / d * gap, y: my + (my - cy) / d * gap };
+    }
+    function placeTurnHandle() {
+        // Never under the finger: the map settling would pull it away.
+        if (!turnHandle || !turnFor || turnDragging) return;
+        const s = turnSpot(ringNow(turnFor.parts));
+        if (s) turnHandle.setPosition(LL(fromWorld(s.x, s.y)));
+    }
+    function dropTurnHandle() {
+        if (turnHandle) { turnHandle.setMap(null); turnHandle = null; }
+        turnFor = null;
+        turnDragging = false;
+    }
+    function showTurnHandle(o, parts) {
+        dropTurnHandle();
+        const shape = parts && parts[0];
+        if (!shape || !shape.getPath || !map.getProjection()) return;
+        const s = turnSpot(ringNow(parts));
+        if (!s) return;
+        turnFor = { o, parts, spot: null, ring: null, square: false, turn: 0 };
+        turnHandle = new (G().Marker)({
+            map, position: LL(fromWorld(s.x, s.y)), draggable: true, crossOnDrag: false, zIndex: Z_LIVE,
+            title: 'Drag to turn this box',
+            icon: { path: G().SymbolPath.CIRCLE, scale: 14, fillColor: '#111827',
+                fillOpacity: .95, strokeColor: '#fff', strokeWeight: 2.5 },
+            label: handleFace('\u21bb', 16),
+        });
+        turnHandle.addListener('dragstart', () => {
+            if (!turnFor) return;
+            turnDragging = true;
+            turnFor.spot = turnSpot(ringNow(turnFor.parts));
+            turnFor.ring = null;
+        });
+        turnHandle.addListener('drag', (ev) => {
+            const f = turnFor, s = f && f.spot;
+            if (!s) return;
+            const p = map.getProjection().fromLatLngToPoint(ev.latLng);
+            let a = Math.atan2(p.y - s.cy, p.x - s.cx) - Math.atan2(s.y - s.cy, s.x - s.cx);
+            // The bottom side's heading, before and after: square is a multiple of a right angle.
+            const th0 = Math.atan2(s.w[1].y - s.w[0].y, s.w[1].x - s.w[0].x);
+            const q = Math.PI / 2, near = Math.round((th0 + a) / q) * q;
+            f.square = Math.abs(th0 + a - near) < TURN_SNAP;
+            if (f.square) a = near - th0;
+            const cos = Math.cos(a), sin = Math.sin(a);
+            f.ring = s.w.map((v) => {
+                const dx = v.x - s.cx, dy = v.y - s.cy;
+                return fromWorld(s.cx + dx * cos - dy * sin, s.cy + dx * sin + dy * cos);
+            });
+            f.turn = a;
+            f.parts[0].setPath(f.ring.map(LL));
+            f.parts.filter((m) => m.__pin).forEach((m, i) => { if (f.ring[i]) m.setPosition(LL(f.ring[i])); });
+            trackMeasure(f.o.id);
+            const deg = ((Math.round((th0 + a) * 180 / Math.PI) % 360) + 360) % 360;
+            turnHandle.setLabel(handleFace(deg + '\u00b0', 11));
+        });
+        turnHandle.addListener('dragend', () => {
+            turnDragging = false;
+            const f = turnFor;
+            if (!f) return;
+            turnHandle.setLabel(handleFace('\u21bb', 16));
+            const ring = f.ring, square = f.square, turned = Math.abs(f.turn) > 1e-9;
+            f.ring = null; f.turn = 0;
+            placeTurnHandle();
+            if (ring && turned) commitTurn(f.o, ring, square);
+        });
+        if (!editing) return;
+        // The handle follows the box when the box is dragged, and every zoom.
+        editing.listeners.push(shape.addListener('drag', placeTurnHandle));
+        editing.listeners.push(map.addListener('idle', placeTurnHandle));
+    }
+    async function commitTurn(o, ring, square) {
+        const cur = objIndex.get(o.id) || o;
+        let pts = ring;
+        if (square) {
+            const b = new (G().LatLngBounds)();
+            ring.forEach((p) => b.extend(LL(p)));
+            pts = [[b.getSouthWest().lat(), b.getSouthWest().lng()], [b.getNorthEast().lat(), b.getNorthEast().lng()]];
+        }
+        try {
+            const res = await api(`${URLS.update}?scheduleId=${SID}`, { method: 'POST', body: { id: o.id, points: pts } });
+            // Cleared or swapped for another map while the save was out: see scheduleSave.
+            if (!objIndex.has(o.id)) return;
+            pushHist({ type: 'update', id: o.id, before: cur.points, after: res.data.object.points });
+            endEdit();
+            dropObject(o.id);
+            renderObject(res.data.object);
+            beginEdit(res.data.object, layers.get(res.data.object.id));
+        } catch (e) {
+            if (window.toast) toast(e.message, 'error');
+            // Back the way it was: the screen should not show a turn nobody kept.
+            if (objIndex.has(o.id)) { endEdit(); dropObject(o.id); renderObject(cur); }
+        }
     }
     async function commitTextSize(o, px) {
         const cur = objIndex.get(o.id) || o;
@@ -3067,9 +3271,12 @@
         const r = el.getBoundingClientRect();
         return { x: e.clientX - r.left, y: e.clientY - r.top };
     };
-    /** A shape as the corners you can see — a box is two corners in the row. */
+    /** A shape as the corners you can see. An upright box is two corners in
+        the row, its bounds; a turned one keeps all four as they stand, in the
+        same order (bottom left, bottom right, top right, top left as drawn). */
     function ringOf(o) {
         if (o.kind !== 'rect' || (o.points || []).length < 2) return o.points || [];
+        if (o.points.length >= 4) return o.points.slice(0, 4);
         const b = new (G().LatLngBounds)(LL(o.points[0]), LL(o.points[1]));
         const sw = b.getSouthWest(), ne = b.getNorthEast();
         return [[sw.lat(), sw.lng()], [sw.lat(), ne.lng()], [ne.lat(), ne.lng()], [ne.lat(), sw.lng()]];
@@ -3701,13 +3908,7 @@
 
         [...objIndex.values()].forEach((o) => {
             const colour = o.color || '#f5c518';
-            const pts = o.kind === 'rect' && o.points.length >= 2
-                ? (() => {
-                    const b = new (g.LatLngBounds)(LL(o.points[0]), LL(o.points[1]));
-                    const sw = b.getSouthWest(), ne = b.getNorthEast();
-                    return [[sw.lat(), sw.lng()], [sw.lat(), ne.lng()], [ne.lat(), ne.lng()], [ne.lat(), sw.lng()]];
-                })()
-                : o.points;
+            const pts = o.kind === 'rect' ? ringOf(o) : o.points;
             const closed = (o.kind === 'rect' || o.kind === 'area');
 
             if (o.kind === 'text') { plate(pts[0], o); return; }
@@ -4332,12 +4533,12 @@
             stepHist(histRedo, histUndo);
         });
         document.getElementById('cmapColorBtn').addEventListener('click', () => window.openSheet?.('cmapColorSheet'));
-        document.querySelectorAll('#cmapColorSheet .cmap-swatch').forEach((b) => b.addEventListener('click', () => {
-            color = b.dataset.mcolor;
+        const pickColor = (c, b, close) => {
+            color = c;
             document.querySelectorAll('#cmapColorSheet .cmap-swatch').forEach((x) => x.classList.toggle('is-active', x === b));
             const dotEl = document.getElementById('cmapColorDot');
             if (dotEl) dotEl.style.background = color;
-            window.closeSheet?.('cmapColorSheet');
+            if (close) window.closeSheet?.('cmapColorSheet');
             // A half-drawn shape repaints on the spot, dots included — and the
             // badge, which is coloured to match the shape it belongs to.
             if (tempPts.length) {
@@ -4347,7 +4548,17 @@
                     fillOpacity: .95, strokeColor: '#fff', strokeWeight: 2,
                     labelOrigin: new (G().Point)(0, BADGE_DROP) });
             }
-        }));
+        };
+        document.querySelectorAll('#cmapColorSheet .cmap-swatch[data-mcolor]').forEach((b) => b.addEventListener('click', () => pickColor(b.dataset.mcolor, b, true)));
+        // Any colour: it follows the picker while it is open, and the sheet
+        // closes once the picker does.
+        const anyColor = document.getElementById('cmapColorAny');
+        if (anyColor) {
+            const any = anyColor.closest('.cmap-swatch');
+            const take = (close) => { any.style.setProperty('--c', anyColor.value); pickColor(anyColor.value, any, close); };
+            anyColor.addEventListener('input', () => take(false));
+            anyColor.addEventListener('change', () => take(true));
+        }
         document.getElementById('cmapSearchBtn').addEventListener('click', () => {
             window.openSheet?.('cmapSearchSheet');
             // Search means typing — focusing here is the point, not a nuisance.
@@ -4403,6 +4614,7 @@
             e.currentTarget.classList.toggle('is-active', satOn);
             e.currentTarget.setAttribute('aria-pressed', satOn ? 'true' : 'false');
         });
+        document.getElementById('cmapPins')?.addEventListener('click', () => setPinsShown(pinsHidden));
         document.getElementById('cmapFindMe')?.addEventListener('click', (e) => findMe(e.currentTarget));
         document.getElementById('cmapGps')?.addEventListener('click', (e) => toggleGps(e.currentTarget));
         document.getElementById('cmapClear')?.addEventListener('click', async () => {
