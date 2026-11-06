@@ -36,7 +36,7 @@ use App\Support\AnisystemMedia;
 class MapController extends BaseScheduleController
 {
     /** Every shape kind the client can draw. */
-    private const KINDS = 'pen,line,path,rect,area,text,arrow,pin';
+    private const KINDS = 'pen,line,path,rect,area,text,arrow,pin,sketch';
 
     /** The lettering a text shape may be set in. */
     private const FONTS = 'sans,serif,mono,round,slab';
