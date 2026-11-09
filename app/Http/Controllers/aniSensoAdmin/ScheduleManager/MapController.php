@@ -38,8 +38,12 @@ class MapController extends BaseScheduleController
     /** Every shape kind the client can draw. */
     private const KINDS = 'pen,line,path,rect,area,text,arrow,pin,sketch';
 
-    /** The lettering a text shape may be set in. */
-    private const FONTS = 'sans,serif,mono,round,slab';
+    /**
+     * The lettering a text shape may be set in: the keys the canvas offers,
+     * the same as anee.io's. This said round and slab, which the canvas never
+     * had, so choosing Narrow was refused (fixed 2026-11-09 with handwriting).
+     */
+    private const FONTS = 'sans,serif,cond,mono,hand';
 
     /** A canvas holds this many shapes; past it the map stops being a map. */
     private const MAX_SHAPES = 2000;
@@ -84,6 +88,8 @@ class MapController extends BaseScheduleController
             'points.*' => 'array|size:2',
             'label' => 'nullable|string|max:500',
             'font' => 'nullable|in:' . self::FONTS,
+            // How solid a closed shape's inside is, 0 to 100 (2026-11-09).
+            'fill' => 'nullable|integer|min:0|max:100',
         ]);
         if ($validator->fails()) {
             return $this->jsonFail($validator->errors()->first(), 422);
@@ -100,6 +106,7 @@ class MapController extends BaseScheduleController
             'color' => $request->input('color'),
             'width' => (int) $request->input('width', 3),
             'font' => $request->input('font'),
+            'fill' => $request->input('fill') === null ? null : (int) $request->input('fill'),
             'points' => json_encode($request->input('points')),
             'label' => $request->input('label'),
             'deleteStatus' => 1,
@@ -128,6 +135,7 @@ class MapController extends BaseScheduleController
             'font' => 'sometimes|nullable|in:' . self::FONTS,
             'width' => 'sometimes|integer|min:1|max:64',
             'color' => 'sometimes|nullable|string|max:16',
+            'fill' => 'sometimes|nullable|integer|min:0|max:100',
         ]);
         if ($validator->fails()) {
             return $this->jsonFail($validator->errors()->first(), 422);
@@ -151,6 +159,10 @@ class MapController extends BaseScheduleController
         }
         if ($request->has('width')) {
             $patch['width'] = (int) $request->input('width');
+        }
+        // Null puts back the light fill a shape had before it had its own (undo).
+        if ($request->has('fill')) {
+            $patch['fill'] = $request->input('fill') === null ? null : (int) $request->input('fill');
         }
         if (empty($patch)) {
             return $this->jsonFail('Nothing to change on that shape.', 422);
@@ -407,6 +419,7 @@ class MapController extends BaseScheduleController
                     // null is right for it: the client reads that as "an old
                     // label" and draws it the way it always drew.
                     'font' => $o['font'] ?? null,
+                    'fill' => isset($o['fill']) && is_numeric($o['fill']) ? max(0, min(100, (int) $o['fill'])) : null,
                     'points' => json_encode($o['points']),
                     'label' => $o['label'] ?? null,
                     'deleteStatus' => 1,

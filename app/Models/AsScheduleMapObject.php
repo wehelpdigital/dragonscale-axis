@@ -20,13 +20,14 @@ class AsScheduleMapObject extends Model
     protected $table = 'as_schedule_map_objects';
 
     protected $fillable = [
-        'scheduleId', 'userId', 'kind', 'color', 'width', 'font', 'points', 'label', 'deleteStatus',
+        'scheduleId', 'userId', 'kind', 'color', 'width', 'font', 'fill', 'points', 'label', 'deleteStatus',
     ];
 
     protected $casts = [
         'scheduleId' => 'integer',
         'userId' => 'integer',
         'width' => 'integer',
+        'fill' => 'integer',
         'deleteStatus' => 'integer',
     ];
 
@@ -45,6 +46,9 @@ class AsScheduleMapObject extends Model
             // Stroke thickness for every kind but text, where it is the type
             // size — and `font` is what says which of the two it is.
             'font' => $this->font,
+            // How solid a closed shape is, 0 to 100; null is the light fill
+            // every shape had before 2026-11-09 (the column is anee.io's).
+            'fill' => $this->fill,
             'points' => json_decode((string) $this->points, true) ?: [],
             'label' => $this->label,
             'userId' => (int) $this->userId,
