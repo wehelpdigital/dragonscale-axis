@@ -1350,5 +1350,33 @@ Route::post('/games-payments-recheck', [App\Http\Controllers\Games\GamesPayments
 Route::post('/games-payments-deliver', [App\Http\Controllers\Games\GamesPaymentsController::class, 'deliver'])->name('games-payments.deliver')->middleware('auth');
 Route::post('/games-payments-settings', [App\Http\Controllers\Games\GamesPaymentsController::class, 'saveSettings'])->name('games-payments.settings')->middleware('auth');
 
+// ==================== STREAMR MODULE ====================
+// Streamr (the livestream-selling SaaS): sales from /ecom-orders, its clients
+// (registry pushed by Streamr), payment reviews of Streamr orders (decided with
+// the existing /ecom-orders verify endpoint), the support desk and the link
+// status. Streamr is called through StreamrCallbacks (signed); it calls us at
+// /api/streamr/v1 (routes/api.php). Single-level URLs, ids after the "?".
+Route::get('/streamr-sales', [App\Http\Controllers\Streamr\StreamrSalesController::class, 'index'])->name('streamr-sales.index')->middleware('auth');
+Route::get('/streamr-sales-data', [App\Http\Controllers\Streamr\StreamrSalesController::class, 'data'])->name('streamr-sales.data')->middleware('auth');
+Route::get('/streamr-sales-export', [App\Http\Controllers\Streamr\StreamrSalesController::class, 'export'])->name('streamr-sales.export')->middleware('auth');
+Route::get('/streamr-clients', [App\Http\Controllers\Streamr\StreamrClientsController::class, 'index'])->name('streamr-clients.index')->middleware('auth');
+Route::get('/streamr-clients-data', [App\Http\Controllers\Streamr\StreamrClientsController::class, 'data'])->name('streamr-clients.data')->middleware('auth');
+Route::get('/streamr-clients-show', [App\Http\Controllers\Streamr\StreamrClientsController::class, 'show'])->name('streamr-clients.show')->middleware('auth');
+Route::get('/streamr-clients-export', [App\Http\Controllers\Streamr\StreamrClientsController::class, 'export'])->name('streamr-clients.export')->middleware('auth');
+Route::post('/streamr-clients-action', [App\Http\Controllers\Streamr\StreamrClientsController::class, 'action'])->name('streamr-clients.action')->middleware('auth');
+Route::post('/streamr-clients-refresh', [App\Http\Controllers\Streamr\StreamrClientsController::class, 'refresh'])->name('streamr-clients.refresh')->middleware('auth');
+Route::get('/streamr-payments', [App\Http\Controllers\Streamr\StreamrPaymentsController::class, 'index'])->name('streamr-payments.index')->middleware('auth');
+Route::get('/streamr-payments-data', [App\Http\Controllers\Streamr\StreamrPaymentsController::class, 'data'])->name('streamr-payments.data')->middleware('auth');
+Route::get('/streamr-payments-one', [App\Http\Controllers\Streamr\StreamrPaymentsController::class, 'one'])->name('streamr-payments.one')->middleware('auth');
+Route::post('/streamr-payments-settings', [App\Http\Controllers\Streamr\StreamrPaymentsController::class, 'saveSettings'])->name('streamr-payments.settings')->middleware('auth');
+Route::post('/streamr-payments-qr', [App\Http\Controllers\Streamr\StreamrPaymentsController::class, 'uploadQr'])->name('streamr-payments.qr')->middleware('auth');
+Route::get('/streamr-proofs', [App\Http\Controllers\Streamr\StreamrProofController::class, 'show'])->name('streamr-proofs.show')->middleware('auth');
+Route::get('/streamr-support', [App\Http\Controllers\Streamr\StreamrSupportController::class, 'index'])->name('streamr-support.index')->middleware('auth');
+Route::post('/streamr-support-reply', [App\Http\Controllers\Streamr\StreamrSupportController::class, 'reply'])->name('streamr-support.reply')->middleware('auth');
+Route::post('/streamr-support-status', [App\Http\Controllers\Streamr\StreamrSupportController::class, 'setStatus'])->name('streamr-support.status')->middleware('auth');
+Route::get('/streamr-health', [App\Http\Controllers\Streamr\StreamrHealthController::class, 'index'])->name('streamr-health.index')->middleware('auth');
+Route::post('/streamr-health-ping', [App\Http\Controllers\Streamr\StreamrHealthController::class, 'ping'])->name('streamr-health.ping')->middleware('auth');
+Route::post('/streamr-health-retry', [App\Http\Controllers\Streamr\StreamrHealthController::class, 'retryAction'])->name('streamr-health.retry')->middleware('auth');
+
 // Catch-all route - must be last
 Route::get('{any}', [App\Http\Controllers\HomeController::class, 'index'])->name('index');

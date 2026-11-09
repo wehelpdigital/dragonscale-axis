@@ -110,3 +110,33 @@ Route::middleware([App\Http\Middleware\GamesSiteToken::class, 'throttle:240,1'])
     Route::get('/checkouts/{token}', [App\Http\Controllers\Api\GamesSiteApiController::class, 'show']);
     Route::post('/checkouts/{token}/gcash', [App\Http\Controllers\Api\GamesSiteApiController::class, 'gcash']);
 });
+
+/*
+ * Streamr (wehelpdigital/streamr) — the livestream-selling SaaS. Called by
+ * Streamr only: Authorization: Bearer STREAMR_API_TOKEN + X-Streamr-Timestamp
+ * + X-Streamr-Signature (StreamrApiToken). 503 until the token is set.
+ * Its own 120/min counter ("streamr" prefix), never shared with games-site's.
+ */
+Route::middleware([App\Http\Middleware\StreamrApiToken::class, 'throttle:120,1,streamr'])
+    ->withoutMiddleware('throttle:api')
+    ->prefix('streamr/v1')->name('streamr-api.')->group(function () {
+        Route::get('/ping', [App\Http\Controllers\Api\StreamrApiController::class, 'ping'])->name('ping');
+        Route::get('/config', [App\Http\Controllers\Api\StreamrApiController::class, 'config'])->name('config');
+        Route::post('/orders', [App\Http\Controllers\Api\StreamrApiController::class, 'createOrder'])->name('orders.store');
+        Route::get('/orders', [App\Http\Controllers\Api\StreamrApiController::class, 'orders'])->name('orders.index');
+        Route::get('/orders/{number}', [App\Http\Controllers\Api\StreamrApiController::class, 'order'])->name('orders.show')
+            ->where('number', 'STR-[0-9]{8}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4,6}');
+        Route::post('/orders/{number}/proofs', [App\Http\Controllers\Api\StreamrApiController::class, 'addProof'])->name('orders.proofs')
+            ->where('number', 'STR-[0-9]{8}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4,6}');
+        Route::post('/orders/{number}/ai-check', [App\Http\Controllers\Api\StreamrApiController::class, 'aiCheck'])->name('orders.ai-check')
+            ->where('number', 'STR-[0-9]{8}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4,6}');
+        Route::get('/references/check', [App\Http\Controllers\Api\StreamrApiController::class, 'references'])->name('references');
+        Route::put('/clients/{streamrUserId}', [App\Http\Controllers\Api\StreamrApiController::class, 'upsertClient'])->name('clients.upsert')
+            ->where('streamrUserId', '[0-9]+');
+        Route::post('/support/tickets', [App\Http\Controllers\Api\StreamrApiController::class, 'supportTicket'])->name('support.tickets');
+        Route::post('/support/tickets/{uuid}/messages', [App\Http\Controllers\Api\StreamrApiController::class, 'supportMessage'])->name('support.messages')
+            ->where('uuid', '[0-9a-fA-F-]{36}');
+        Route::put('/support/tickets/{uuid}/status', [App\Http\Controllers\Api\StreamrApiController::class, 'supportStatus'])->name('support.status')
+            ->where('uuid', '[0-9a-fA-F-]{36}');
+        Route::get('/support/updates', [App\Http\Controllers\Api\StreamrApiController::class, 'supportUpdates'])->name('support.updates');
+    });

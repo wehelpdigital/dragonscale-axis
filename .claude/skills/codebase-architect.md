@@ -72,6 +72,7 @@ DS AXIS is the **main centralized admin system** for Dragon Scale Web Company. I
 | **Access & Memberships** | Cross-Venture | Access tags, triggers, client management | `axis_tags`, `clients_*` | Various |
 | **Affiliates** | Cross-Venture | Affiliate tracking (planned expansion) | `ecom_affiliates` | `App\Http\Controllers\Ecommerce\*` |
 | **Games** | Dragon Scale games (Salpakan Tactics! first) | Players, play, sales and analytics codes synced from each game server | `games_*` (rows keyed by `gameKey`) | `App\Http\Controllers\Games\*` |
+| **Streamr** | Streamr (livestream-selling SaaS, its own app) | Sales in /ecom-orders, client registry, payment reviews, support desk, link status — a signed API both ways | `streamr_*` | `App\Http\Controllers\Streamr\*`, `Api\StreamrApiController` |
 | **User Management** | Core DS AXIS | Admin user accounts | `users` | `App\Http\Controllers\UsersController` |
 
 ### 1.4 Growth & Evolution Principles
@@ -873,6 +874,24 @@ The following views are Skote template demos and should NOT be modified:
 **Tests**: `tests/Feature/Games/*` with their own `phpunit.games.xml` (in-memory SQLite, game server and Acumbamail faked with `Http::fake`, stray requests refused). `GamesTestCase` forces SQLite before anything connects and refuses to run otherwise, because `.env` points at the production database. Run: `vendor/bin/phpunit -c phpunit.games.xml`.
 
 **Scoping**: Shared by all admins (company infrastructure read by anee.io's news roundup); `usersId` records who added a row.
+
+### 10.6 Streamr Module (2026-11-20)
+
+**Purpose**: Streamr (wehelpdigital/streamr) is a separate SaaS with its own database; it never reads this one. It calls AXIS at `/api/streamr/v1` and AXIS calls it at `{STREAMR_APP_URL}/api/mother/*`, both signed with one shared secret. Streamr's plan and credit purchases land in `/ecom-orders` (store **"Streamr"**, order numbers `STR-YYYYMMDD-XXXX`); payment reviews, client actions and support are done in AXIS and applied by Streamr.
+
+**Tables**: `streamr_clients`, `streamr_client_actions`, `streamr_orders`, `streamr_payment_proofs`, `streamr_desk_tickets`, `streamr_desk_messages`, `streamr_settings`, `streamr_api_requests` (one migration, `2026_11_20_100000_create_streamr_module_tables.php`, `hasTable` guards; see database-architect §2.5c). Models `App\Models\Streamr*` (extend `BaseModel`, `delete_status` + `scopeActive()`).
+
+**API** (`routes/api.php`, `App\Http\Middleware\StreamrApiToken` + `throttle:120,1,streamr` — its own counter, the group's `throttle:api` excluded): `GET ping`, `GET config`, `POST orders` (multipart `payload` + `proof`, or JSON), `GET orders?numbers[]=`, `GET orders/{number}`, `POST orders/{number}/proofs`, `POST orders/{number}/ai-check`, `GET references/check`, `PUT clients/{streamrUserId}`, `POST support/tickets`, `POST support/tickets/{uuid}/messages`, `PUT support/tickets/{uuid}/status`, `GET support/updates`. Envelope `{success, data}` / `{success: false, error: {code, message, fields?}}`. Signature: `App\Services\Streamr\StreamrSignature` (HMAC-SHA256 of `"{timestamp}.{canonical}"`; canonical = raw JSON body, the multipart `payload` field, or `"{METHOD} {path}?{sorted query}"` for GET).
+
+**Services** (`app/Services/Streamr/`): `StreamrOrderWriter` (ecom rows + proof bytes + AI notes; auto-approved → verified with invoice, query-builder updates so no self-doorbell), `StreamrAiNotes`, `StreamrOrderState`, `StreamrReferenceChecker`, `StreamrClientRegistry`, `StreamrDesk`, `StreamrCallbacks` (signed calls to Streamr, never throw), `StreamrOrderHookService`, `StreamrConfigBuilder`, `StreamrSettings`, `StreamrSales`, `StreamrBadges`, `StreamrApiLog`, `StreamrTime`, `StreamrApiException`.
+
+**Order hook**: `App\Observers\StreamrEcomOrderObserver` (registered in `EventServiceProvider::boot()`) — on `EcomOrder` `updated` when `orderStatus` / `paymentVerificationStatus` / `deleteStatus` changed; returns at once unless the number starts `STR-` (no query for any other venture); then a signed `POST /api/mother/orders/changed` after the response. Every path that saves an order rings (verify, reject, status, refund, revert, delete); nothing in it can break the save.
+
+**Pages** (`App\Http\Controllers\Streamr\*`, all `->middleware('auth')`, single-segment URLs, ids after `?`): `/streamr-sales` (+ `-data`, `-export`), `/streamr-clients` (+ `-data`, `-show`, `-export`, POST `-action`, `-refresh`), `/streamr-payments` (+ `-data`, `-one`, POST `-settings`, `-qr`), `/streamr-proofs?order=&n=` (receipt bytes, signed-in only, `private, no-store`), `/streamr-support` (+ POST `-reply`, `-status`), `/streamr-health` (+ POST `-ping`, `-retry`). Verify/Reject in Payment reviews call the existing `PUT /ecom-order-payments/{paymentId}/verify`. Views `resources/views/streamr/` (`_styles`, `_script-helpers`, partials for the modals). Sidebar block **Streamr** after Games (badges: payments to review + unread tickets, `StreamrBadges`, cached 60 s, zeros on any error).
+
+**Config & env**: `config/streamr.php` — `STREAMR_APP_URL`, `STREAMR_API_TOKEN` (shared secret = Streamr's `MOTHER_API_TOKEN`; empty → the API answers 503 and nothing is sent), `STREAMR_STORE_NAME` (default `Streamr`, a permanent match key — never rename), `STREAMR_STORE_ID` (optional). Secrets live only in the environment.
+
+**Tests**: `tests/Feature/Streamr/*` with `phpunit.streamr.xml` (in-memory SQLite, the real migration, Streamr faked with `Http::fake`, stray requests refused). `StreamrTestCase` refuses to run on anything but SQLite in memory. Run: `vendor/bin/phpunit -c phpunit.streamr.xml`. Never the default suite, migrations or tinker against `.env` (production).
 
 ---
 

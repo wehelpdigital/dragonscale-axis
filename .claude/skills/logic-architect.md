@@ -18,6 +18,7 @@ DS AXIS serves as the **centralized admin backend** for Dragon Scale Web Company
 - **Access Control & Triggers** (Cross-Venture)
 - **Affiliates** (Cross-Venture, expanding)
 - **Games** (Salpakan Tactics!: players, play, sales and analytics codes synced from the game server; Section 8b)
+- **Streamr** (the livestream-selling SaaS: its purchases in /ecom-orders, client registry, payment reviews, support desk; a signed API both ways; Section 8c)
 - **Future Ventures** (Designed for growth)
 
 ### 1.2 Skill System Architecture
@@ -1032,6 +1033,47 @@ This is the **core business logic** that runs periodically to check crypto price
 
 ---
 
+## 8c. Streamr Module Flow
+
+Streamr is a separate app with its own database. Every call between it and AXIS carries `Authorization: Bearer {secret}`, `X-Streamr-Timestamp` (±300 s) and `X-Streamr-Signature` = hex HMAC-SHA256(secret, `"{timestamp}.{canonical}"`) — `App\Services\Streamr\StreamrSignature`, the twin of Streamr's own class.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ A purchase (Streamr → AXIS)                                             │
+│  Streamr reads the receipt with its AI, then POST /api/streamr/v1/orders│
+│  (payload + receipt) → StreamrOrderWriter, one transaction:             │
+│    store "Streamr" (made once), CRM client, ecom_orders (pending),      │
+│    ecom_order_items, ecom_order_payments (pending, AI lines in the      │
+│    notes, picture = /streamr-proofs?order=&n=), proof bytes, audit rows │
+│    auto-approved by Streamr → payment verified + invoice, order         │
+│    verified + complete (query-builder updates: no doorbell back)        │
+│  Same uuid again → the same answer (duplicate: true); a re-upload after │
+│  a rejection → POST /orders/{number}/proofs (≤ 3); a re-read →          │
+│  POST /orders/{number}/ai-check.                                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ A decision (AXIS → Streamr)                                             │
+│  An admin verifies/rejects (Streamr > Payment reviews or /ecom-orders — │
+│  the same OrdersController code), sets a status, refunds, reverts…      │
+│  → $order->save() → StreamrEcomOrderObserver (STR- orders only) →       │
+│  after the response a signed POST {STREAMR_APP_URL}/api/mother/orders/  │
+│  changed → Streamr re-reads GET /api/streamr/v1/orders/{number} and     │
+│  applies the plan/credits. Lost doorbell: Streamr's 5-minute sync.      │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Clients: Streamr pushes PUT /clients/{id} snapshots (newest wins). An   │
+│ action on Streamr > Clients is POSTed to /api/mother/clients/{id}/      │
+│ actions at once (15 s); Streamr applies it and returns the fresh        │
+│ snapshot. Logged in streamr_client_actions (Retry on failure).          │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Support: Streamr pushes tickets/messages/status changes; a reply or     │
+│ close/reopen here is stored (origin mother), rung to Streamr after the  │
+│ response, and also served by GET /support/updates?since={last id}.     │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Rules**: the store name "Streamr" (`STREAMR_STORE_NAME`) is the match key of the items — never rename it. Nothing about a Streamr client, plan or credit is decided in AXIS; Streamr applies everything and sends its own emails (no trigger flows for the Streamr store). Receipts are kept as DB blobs and streamed only to signed-in admins. With `STREAMR_API_TOKEN` empty the API answers 503 and nothing is sent.
+
+---
+
 ## 9. Data Flow Diagrams
 
 ### 9.1 Crypto Module Data Flow
@@ -1310,6 +1352,8 @@ Log::info("SMTP config: " . json_encode($notificationEmail->toArray()));
 | `AniSensoCourseController` | Course content management | Courses, chapters, topics, resources |
 | `Games\SalpakanSettingsController` | Salpakan analytics codes, sync status, Sync now, peso rate | `saveAnalytics()`, `syncNow()`, `saveRate()`, `retryAcumbamail()` |
 | `Games\SalpakanPlayersController` / `SalpakanUsageController` / `SalpakanSalesController` / `SalpakanReportsController` | Salpakan players, play, inactive segment, orders, reports (read-only) | `data()`, `export()`, `inactiveExport()`, `totals()`, `sales()`, `usage()`, `location()` |
+| `Api\StreamrApiController` | Streamr's API into AXIS (orders, state, references, clients, support) | `createOrder()`, `addProof()`, `aiCheck()`, `order()`, `orders()`, `upsertClient()`, `supportTicket()`, `supportUpdates()` |
+| `Streamr\StreamrPaymentsController` / `StreamrClientsController` / `StreamrSupportController` / `StreamrSalesController` / `StreamrHealthController` | Streamr payment reviews, clients + actions, support desk, sales, link status | `one()`, `action()`, `reply()`, `setStatus()`, `data()`, `export()`, `ping()`, `retryAction()` |
 
 ### API Endpoints
 
@@ -1317,6 +1361,7 @@ Log::info("SMTP config: " . json_encode($notificationEmail->toArray()));
 |----------|--------|---------|
 | `/api/check-process` | GET | Trigger crypto price check (cron) |
 | `/api/user` | GET | Get authenticated user (Sanctum) |
+| `/api/streamr/v1/*` | GET/POST/PUT | Streamr only (StreamrApiToken: bearer + timestamp + HMAC; 120/min) — see Section 8c |
 
 ### Cron Jobs (Expected)
 

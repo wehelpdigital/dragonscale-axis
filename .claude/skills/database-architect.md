@@ -619,6 +619,57 @@ games_settings                           ← UNIQUE (gameKey, settingKey); key/v
 
 **Writes into e-commerce**: completed/refunded, non-test game orders become `ecom_orders` rows (`orderNumber` = `SAL-{remoteOrderId}`, unique, so never twice; `usersId` 0 = "System"; `shippingStatus` `not_applicable`; `paymentMethod` `online_payment`; `paymentVerificationStatus` `not_required`; `created_at` = when paid) with one `ecom_order_items` row (`productStore` = "Salpakan Tactics!", `productType` `access`), an `ecom_order_audit_logs` entry, the store row in `ecom_product_stores` (made once), and for refunds a processed full `ecom_refund_requests` + `ecom_refund_items` pair.
 
+### 2.5c Streamr Module (`streamr_*`, 2026-11-20)
+
+Tables of the Streamr module (Streamr itself has its own database and never reads these; it calls `/api/streamr/v1`). One migration, `2026_11_20_100000_create_streamr_module_tables.php`, every create behind `hasTable`; `streamr_payment_proofs.bytes` is widened to LONGBLOB on MySQL/MariaDB only. Times are Asia/Manila wall-clock (Streamr sends ISO 8601 with an offset; `StreamrTime` converts). Shared by all admins: no `usersId`.
+
+```
+streamr_clients                          ← one row per Streamr user; the snapshot Streamr pushes (newest snapshotAt wins)
+├── id, streamrUserId (UNIQUE), email (index), firstName, lastName, phone, role, accountStatus
+├── storeId, storeName, storeHandle (index), storeUrl, customDomain
+├── planKey, planName, planPrice (15,2), subscriptionState ('active','grace','expired','suspended','none'),
+│   startsAt, expiresAt, graceUntil, isLifetime     ← INDEX (subscriptionState, expiresAt) streamr_clients_state_idx
+├── planCredits, purchasedCredits, availableCredits, planCycleEndsAt
+├── totalPaid, ordersCount, lastOrderNumber, livesCount, liveMinutes, leadsCount, productsCount, openTickets, notesCount, storageBytes
+├── recentNotes (json, ≤ 3), snapshot (json, the full snapshot), crmClientId (→ clients_all_database.id)
+├── registeredAt, lastLoginAt, lastLiveAt, snapshotAt, syncedAt
+└── delete_status enum, timestamps        ← INDEX (delete_status, registeredAt) streamr_clients_list_idx
+
+streamr_client_actions                   ← actions sent to Streamr from Streamr > Clients
+├── id, uuid (UNIQUE, the Idempotency-Key), streamrUserId, action, payload (json; payload.retry_of on a retry)
+├── requestedBy (users.id), requestedByName, status ('sent','applied','failed'), httpStatus, result (json), error
+└── durationMs, attempts, delete_status, timestamps
+
+streamr_orders                           ← Streamr's identity of each /ecom-orders order
+├── id, uuid (UNIQUE), orderNumber (UNIQUE, STR-…), ecomOrderId (UNIQUE → ecom_orders.id), streamrUserId
+├── kind ('plan','credits'), itemKey, sku, variantName, total, method ('manual_gcash','manual_maya','manual_bank')
+└── crmClientId, aiVerdict, aiScore, autoApproved, decidedBy ('ai','streamr_admin'), proofsCount, delete_status, timestamps
+
+streamr_payment_proofs                   ← each receipt sent (n = 1..3), UNIQUE (orderNumber, n)
+├── id, uuid (UNIQUE), streamrOrderId, orderNumber, n, ecomPaymentId (→ ecom_order_payments.id)
+├── kind ('image','pdf','ref'), name, mime, size, sha256 (index), bytes (LONGBLOB — never on a public disk)
+├── reference, refKey (normalised, index), aiVerdict, aiScore, aiReport (json + rechecks[]), aiCheckedAt
+└── submittedAt, delete_status, timestamps
+
+streamr_desk_tickets                     ← UNIQUE uuid, UNIQUE ticketNumber (SR-YYYY-NNNN, from Streamr)
+├── streamrUserId, clientName, clientEmail, storeName, subject, category, priority, status ('open','answered','closed')
+├── lastMessageAt, lastMessageBy, adminUnread, clientUnread, adminReadAt, statusChangedAt, statusChangedBy
+└── origin, delete_status, timestamps     ← INDEX (status, lastMessageAt)
+
+streamr_desk_messages                    ← id is the cursor of GET /support/updates
+├── uuid (UNIQUE), ticketId, ticketUuid, kind ('message','status'), authorType, authorId, authorName
+├── origin ('streamr','mother'), body (mediumtext), bodyFormat ('text','html'), attachments (json), isInternal, meta (json)
+└── pulledAt (mother rows: when Streamr received it), delete_status, timestamps
+
+streamr_settings                         ← UNIQUE settingKey; key "pay" (JSON). Never secrets.
+streamr_api_requests                     ← request log for Link status: direction, method, path, status, errorCode,
+                                           durationMs, requestId, idempotencyKey, ip, note, created_at (no bodies; 30 days)
+```
+
+**Model Mapping**: `StreamrClient`, `StreamrClientAction`, `StreamrOrder`, `StreamrPaymentProof`, `StreamrDeskTicket`, `StreamrDeskMessage`, `StreamrSetting`, `StreamrApiRequest` (all extend `BaseModel`).
+
+**Writes into e-commerce** (`StreamrOrderWriter`, per Streamr purchase): `ecom_orders` (`orderNumber` `STR-…`, `usersId` 0, `orderStatus` pending, `shippingStatus` `not_applicable`, `paymentMethod` `manual_gcash`/`manual_maya`/`manual_bank`, `paymentVerificationStatus` pending, `paymentScreenshot` NULL), one `ecom_order_items` row (`productStore` = "Streamr", `productType` `access`, `variantSku` `streamr:plan:…` / `streamr:pack:…`), one `ecom_order_payments` row (pending, `screenshot` = `streamr-proofs?order=…&n=…`, `verificationNotes` = the AI's reading), audit rows `order_created`, `payment_details_submitted`, `ai_receipt_check`, the CRM client (`clients_all_database`, by email) and the store row (made once). When Streamr approved it: the payment verified with an invoice number/token and the order verified + complete (guarded query-builder updates; audit `payment_verified` + `status_change`).
+
 ---
 
 ### 2.6 System/Legacy Tables

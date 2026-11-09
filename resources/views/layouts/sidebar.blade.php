@@ -557,6 +557,55 @@
                 <!-- Divider -->
                 <li class="menu-title">─</li>
 
+                <!-- Streamr Navigation: the livestream-selling SaaS (sales, clients, payment reviews, support, link) -->
+                @php
+                    $streamrBadges = \App\Services\Streamr\StreamrBadges::counts();
+                @endphp
+                <li class="{{ request()->is('streamr*') ? 'mm-active' : '' }}">
+                    <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('streamr*') ? 'mm-active' : '' }}">
+                        <i class="bx bx-video-recording"></i>
+                        <span key="t-streamr">Streamr</span>
+                        @if ($streamrBadges['total'] > 0)<span class="badge rounded-pill bg-danger float-end ms-auto me-2">{{ $streamrBadges['total'] }}</span>@endif
+                    </a>
+                    <ul class="sub-menu {{ request()->is('streamr*') ? 'mm-show' : '' }}" aria-expanded="{{ request()->is('streamr*') ? 'true' : 'false' }}">
+                        <li class="{{ request()->is('streamr-sales*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('streamr-sales.index') }}" class="waves-effect {{ request()->is('streamr-sales*') ? 'active' : '' }}">
+                                <i class="bx bx-line-chart"></i>
+                                <span key="t-streamr-sales">Sales dashboard</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('streamr-clients*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('streamr-clients.index') }}" class="waves-effect {{ request()->is('streamr-clients*') ? 'active' : '' }}">
+                                <i class="bx bx-group"></i>
+                                <span key="t-streamr-clients">Clients</span>
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('streamr-payments*', 'streamr-proofs*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('streamr-payments.index') }}" class="waves-effect {{ request()->is('streamr-payments*', 'streamr-proofs*') ? 'active' : '' }}">
+                                <i class="bx bx-receipt"></i>
+                                <span key="t-streamr-payments">Payment reviews</span>
+                                @if ($streamrBadges['reviews'] > 0)<span class="badge rounded-pill bg-danger float-end ms-auto">{{ $streamrBadges['reviews'] }}</span>@endif
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('streamr-support*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('streamr-support.index') }}" class="waves-effect {{ request()->is('streamr-support*') ? 'active' : '' }}">
+                                <i class="bx bx-help-circle"></i>
+                                <span key="t-streamr-support">Support</span>
+                                @if ($streamrBadges['support'] > 0)<span class="badge rounded-pill bg-danger float-end ms-auto">{{ $streamrBadges['support'] }}</span>@endif
+                            </a>
+                        </li>
+                        <li class="{{ request()->is('streamr-health*') ? 'mm-active' : '' }}">
+                            <a href="{{ route('streamr-health.index') }}" class="waves-effect {{ request()->is('streamr-health*') ? 'active' : '' }}">
+                                <i class="bx bx-pulse"></i>
+                                <span key="t-streamr-health">Link status</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Divider -->
+                <li class="menu-title">─</li>
+
                 <!-- E-commerce Navigation -->
                 <li class="{{ request()->is('ecom-*') ? 'mm-active' : '' }}">
                     <a href="javascript: void(0);" class="has-arrow waves-effect {{ request()->is('ecom-*') ? 'mm-active' : '' }}">

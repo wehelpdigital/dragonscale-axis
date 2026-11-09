@@ -28,5 +28,6 @@ class EventServiceProvider extends ServiceProvider
     public function boot()
     {
         //
+        \App\Models\EcomOrder::observe(\App\Observers\StreamrEcomOrderObserver::class);
     }
 }

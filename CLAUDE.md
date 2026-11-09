@@ -29,6 +29,7 @@ DS AXIS is the **main centralized admin system** for Dragon Scale Web Company. I
 | Cross-Venture | CRM & Access | Client management, access tags, triggers |
 | Cross-Venture | Affiliates | Affiliate tracking (expanding) |
 | Dragon Scale Games | Games | Salpakan Tactics!: players, play, sales, analytics codes (synced from the game server) |
+| Streamr | Streamr | The livestream-selling SaaS (its own app): sales in /ecom-orders, client registry, payment reviews, support desk, link status — linked by a signed API both ways |
 | Future | New Ventures | System designed for continuous growth |
 
 **Key Understanding**: DS AXIS is the **ADMIN BACKEND**. Separate frontend systems will be built for customer-facing interfaces.
@@ -422,8 +423,10 @@ toastr.options = {
 | Ani-Senso | `as_` | `as_courses`, `as_topics` |
 | Access/Tags | `axis_`, `clients_` | `axis_tags`, `clients_all_database` |
 | Games | `games_` (rows keyed by `gameKey`) | `games_players`, `games_orders` |
+| Streamr | `streamr_` (camelCase columns, `delete_status`) | `streamr_clients`, `streamr_orders` |
 
 **Testing warning**: `.env` points at the PRODUCTION database and `phpunit.xml` does not override it, so never run the default test suite. The Games module's tests have their own config on in-memory SQLite: `vendor/bin/phpunit -c phpunit.games.xml`.
+The Streamr module's tests likewise: `vendor/bin/phpunit -c phpunit.streamr.xml` (see codebase-architect §10.6).
 
 ---
 

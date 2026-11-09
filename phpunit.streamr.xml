@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The Streamr module's tests, on a throwaway in-memory SQLite database.
+
+        vendor/bin/phpunit -c phpunit.streamr.xml
+
+    Never point these at .env's database: it is the production one. Every value
+    below is forced over .env, the MySQL connection is aimed at an address that
+    does not exist, and the tests' base class (tests/Feature/Streamr/StreamrTestCase)
+    refuses to run unless the connection really is SQLite in memory. Streamr is
+    faked (Http::fake on streamr.test); a request to anything else fails the test.
+    The public disk is forced local and faked in the tests that use it.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Streamr">
+            <directory suffix="Test.php">./tests/Feature/Streamr</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <server name="APP_ENV" value="testing" force="true"/>
+        <server name="APP_URL" value="http://localhost" force="true"/>
+        <server name="DB_CONNECTION" value="sqlite" force="true"/>
+        <server name="DB_DATABASE" value=":memory:" force="true"/>
+        <server name="DB_HOST" value="no-database.invalid" force="true"/>
+        <server name="DB_PORT" value="1" force="true"/>
+        <server name="DB_USERNAME" value="nobody" force="true"/>
+        <server name="DB_PASSWORD" value="none" force="true"/>
+        <server name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <server name="CACHE_DRIVER" value="array" force="true"/>
+        <server name="SESSION_DRIVER" value="array" force="true"/>
+        <server name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <server name="MAIL_MAILER" value="array" force="true"/>
+        <server name="LOG_CHANNEL" value="null" force="true"/>
+        <server name="FILESYSTEM_DRIVER" value="local" force="true"/>
+        <server name="MEDIA_DISK" value="" force="true"/>
+        <server name="MEDIA_SIGNED_LINKS" value="" force="true"/>
+        <server name="APP_STORAGE_ROOT" value="" force="true"/>
+        <server name="RAILWAY_VOLUME_MOUNT_PATH" value="" force="true"/>
+        <server name="AWS_ACCESS_KEY_ID" value="none" force="true"/>
+        <server name="AWS_SECRET_ACCESS_KEY" value="none" force="true"/>
+        <server name="AWS_BUCKET" value="none" force="true"/>
+        <server name="AWS_URL" value="" force="true"/>
+        <server name="AWS_ENDPOINT" value="https://no-bucket.invalid" force="true"/>
+        <server name="STREAMR_APP_URL" value="https://streamr.test" force="true"/>
+        <server name="STREAMR_API_TOKEN" value="test-secret" force="true"/>
+        <server name="STREAMR_STORE_NAME" value="Streamr" force="true"/>
+        <server name="STREAMR_STORE_ID" value="" force="true"/>
+    </php>
+</phpunit>
