@@ -374,6 +374,60 @@ $(document).ready(function() {
         });
     });
 
+    // The pages they opened on anee.io before signing up (anee's as_visitor_journeys, 2026-11-16):
+    // where they came from, the first page, then every page in order, a new visit after half an hour away.
+    const JOURNEY_SHOWN = 15;
+    function journeyHtml(j) {
+        let h = '<h6 class="text-dark mb-2"><i class="bx bx-map-alt me-1"></i>How They Found anee.io</h6>';
+        if (!j) {
+            return h + '<p class="text-secondary">No record of the pages they read before signing up. It is kept for signups from Nov 16, 2026 on, on browsers that keep cookies.</p>';
+        }
+        const u = j.utm || {};
+        const ad = [u.source, u.medium, u.campaign].filter(Boolean).join(' · ');
+        const chip = function(t, cls) { return '<span class="badge ' + (cls || 'bg-light text-dark border') + ' me-1 mb-1 fw-normal">' + esc(t) + '</span>'; };
+        const choice = { read: 'went back to the guide', dashboard: 'went to the dashboard', home: 'went to the home page' }[j.choice];
+        h += '<div class="mb-2">' +
+            chip('First visit ' + (j.firstAt || '')) +
+            chip(j.referrer ? 'Came from ' + j.referrer : 'Typed it or came from a bookmark') +
+            (ad ? chip('Ad: ' + ad, 'bg-info-subtle text-info-emphasis') : '') +
+            (j.device ? chip(j.device) : '') +
+            chip(j.views + ' page' + (j.views === 1 ? '' : 's') + ' in ' + j.visits + ' visit' + (j.visits === 1 ? '' : 's')) +
+            (j.took ? chip('Signed up ' + j.took + ' after the first page', 'bg-success-subtle text-success-emphasis') : '') +
+            (j.method ? chip('With ' + (j.method === 'google' ? 'Google' : 'email')) : '') +
+            (j.confirmedAt ? chip('Email confirmed ' + j.confirmedAt, 'bg-success-subtle text-success-emphasis') : (j.signedUpAt ? chip('Email not confirmed yet', 'bg-warning-subtle text-warning-emphasis') : '')) +
+            (choice ? chip('Then ' + choice) : '') +
+            '</div>';
+        h += '<p class="mb-2"><small class="text-secondary">First page:</small> <span class="text-dark fw-semibold text-break">' + esc(j.landing || '') + '</span></p>';
+        const steps = j.steps || [];
+        let lastVisit = 1;
+        h += '<div class="table-responsive mb-1"><table class="table table-sm table-bordered align-middle mb-0 journey-table"><thead class="table-light"><tr><th style="width:9rem">When</th><th>Page</th><th style="width:9rem">From</th></tr></thead><tbody>';
+        steps.forEach(function(s, i) {
+            const fold = i >= JOURNEY_SHOWN ? ' class="d-none" data-jfold' : '';
+            if (s.visit !== lastVisit) {
+                lastVisit = s.visit;
+                h += '<tr' + fold + '><td colspan="3" class="text-uppercase small fw-bold text-secondary">Visit ' + s.visit + '</td></tr>';
+            }
+            if (s.event === 'signup') {
+                h += '<tr' + fold + ' class="table-success"><td><small>' + esc(s.at) + '</small></td><td colspan="2" class="fw-semibold">✓ ' + esc(s.title || 'Signed up') + '</td></tr>';
+                return;
+            }
+            h += '<tr' + fold + (s.after ? ' style="opacity:.6"' : '') + '><td><small>' + esc(s.at) + '</small></td>' +
+                '<td><div class="text-dark text-break">' + esc(s.title || s.path || '') + '</div><small class="text-secondary text-break">' + esc(s.path || '') + (s.after ? ' · after signing up' : '') + '</small></td>' +
+                '<td><small>' + esc(s.from || '') + '</small></td></tr>';
+        });
+        h += '</tbody></table></div>';
+        if (steps.length > JOURNEY_SHOWN) {
+            h += '<button type="button" class="btn btn-sm btn-outline-secondary mb-3" data-jmore>Show all ' + steps.length + ' steps</button>';
+        } else {
+            h += '<div class="mb-3"></div>';
+        }
+        return h;
+    }
+    $(document).on('click', '[data-jmore]', function() {
+        $('#clientDetailsBody [data-jfold]').removeClass('d-none');
+        $(this).remove();
+    });
+
     function renderClientDetails(data) {
         const c = data.client;
         let html = '';
@@ -386,6 +440,8 @@ $(document).ready(function() {
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Account Status</div>' + (c.status === 'disabled' ? '<span class="badge bg-danger">Disabled</span>' : '<span class="badge bg-success">Active</span>') + '</div>';
         html += '<div class="col-md-4 mb-2"><div class="client-detail-label">Registered</div><div class="text-dark">' + esc(c.registeredAt || '—') + '</div></div>';
         html += '</div>';
+
+        html += journeyHtml(data.journey);
 
         html += '<h6 class="text-dark mb-2"><i class="bx bx-receipt me-1"></i>Subscription History</h6>';
         if (!data.subscriptions.length) {

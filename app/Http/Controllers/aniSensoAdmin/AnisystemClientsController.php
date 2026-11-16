@@ -331,6 +331,8 @@ class AnisystemClientsController extends Controller
                     ],
                     'subscriptions' => $subscriptions,
                     'orders' => $orders,
+                    // The pages they opened on anee.io before signing up.
+                    'journey' => $this->journey((int) $client->id),
                 ]
             ]);
         } catch (\Exception $e) {
@@ -340,6 +342,65 @@ class AnisystemClientsController extends Controller
                 'message' => 'Error loading client details'
             ], 500);
         }
+    }
+
+    /**
+     * The road a client walked on anee.io before signing up: anee's as_visitor_journeys row for the account
+     * (2026-11-16, the owner: "can we track down the travel path of a user who registered ... maybe we can do that
+     * when checking the admin panel and or in the mother software as well"). Twin of anee's
+     * App\Support\VisitorJourney::present(): change both. Null when the account has none (signed up before
+     * 2026-11-16, or on a browser that keeps no cookies) or anee has not made the table yet.
+     */
+    private function journey(int $userId): ?array
+    {
+        try {
+            $row = DB::table('as_visitor_journeys')->where('userId', $userId)->orderByDesc('id')->first();
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (! $row) {
+            return null;
+        }
+        $tz = 'Asia/Manila';
+        $at = fn ($v) => $v ? Carbon::parse($v)->timezone($tz) : null;
+        $first = $at($row->firstAt);
+        $signed = $at($row->signedUpAt);
+        $steps = [];
+        $prev = null;
+        $visit = 1;
+        foreach (json_decode((string) $row->steps, true) ?: [] as $s) {
+            $when = Carbon::createFromTimestamp((int) ($s['t'] ?? 0))->timezone($tz);
+            // Half an hour without a page starts a new visit.
+            if ($prev && $when->diffInMinutes($prev, true) > 30) {
+                $visit++;
+            }
+            $steps[] = [
+                'at' => $when->format('M j, g:i A'),
+                'visit' => $visit,
+                'path' => isset($s['p']) ? $s['p'] . (! empty($s['q']) ? '?' . urldecode(http_build_query($s['q'])) : '') : null,
+                'title' => $s['n'] ?? null,
+                'from' => $s['r'] ?? null,
+                'event' => $s['e'] ?? null,
+                'after' => $signed && $when->gt($signed) && ($s['e'] ?? null) !== 'signup',
+            ];
+            $prev = $when;
+        }
+
+        return [
+            'firstAt' => $first?->format('M j, Y g:i A'),
+            'landing' => $row->landing,
+            'referrer' => $row->referrer,
+            'utm' => json_decode((string) $row->utm, true) ?: null,
+            'device' => $row->device,
+            'views' => (int) $row->views,
+            'visits' => $visit,
+            'signedUpAt' => $signed?->format('M j, Y g:i A'),
+            'method' => $row->method,
+            'confirmedAt' => $at($row->confirmedAt)?->format('M j, Y g:i A'),
+            'choice' => $row->choice,
+            'took' => $first && $signed ? $first->diffForHumans($signed, ['syntax' => Carbon::DIFF_ABSOLUTE, 'parts' => 2]) : null,
+            'steps' => $steps,
+        ];
     }
 
     /**
