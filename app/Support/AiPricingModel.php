@@ -89,7 +89,7 @@ final class AiPricingModel
                 'search' => 2, 'om' => 10, 'omUnit' => 2, 'maps' => 1, 'mail' => 150, 'useObserve' => 10, 'useAsk' => 30],
             'autoObserve' => ['unit' => '', 'baseIn' => 11000, 'baseOut' => 4500],
             'autoAsk' => ['unit' => '', 'baseIn' => 12000, 'baseOut' => 2500],
-            'skypass' => ['unit' => 'open', 'free' => 0, 'units' => 14, 'max' => 40, 'mapsUnit' => 1, 'unitUsd' => 0.0017],
+            // 'skypass' left 2026-11-18: Satellite Weather is part of anee.io's plans, no week pass to price.
             'lcc' => ['unit' => 'leaf', 'free' => 10, 'units' => 10, 'max' => 12, 'baseIn' => 4500, 'baseOut' => 3600, 'unitOut' => 150, 'outCap' => 5048],
             'landprep' => ['unit' => 'lot', 'free' => 1, 'units' => 1, 'max' => 12, 'perUnitPrice' => true, 'baseIn' => 7000, 'baseOut' => 4500, 'unitIn' => 400, 'unitOut' => 250, 'outCap' => 8048, 'om' => 3,
                 'opts' => ['research' => ['in' => 2600, 'out' => 3800, 'search' => 1]]],
