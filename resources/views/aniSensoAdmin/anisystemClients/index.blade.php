@@ -232,6 +232,9 @@ $(document).ready(function() {
                     let html = '<div class="fw-semibold text-dark">' + esc(data || '—') + '</div>';
                     if (row.accountStatus === 'disabled') {
                         html += '<span class="badge bg-danger" style="font-size:10px;">Account disabled</span>';
+                    } else if (row.accountStatus === 'pending') {
+                        // Signed up, never tapped the confirmation link: the registration is not finished (2026-11-19).
+                        html += '<span class="badge bg-warning text-dark" style="font-size:10px;" title="Signed up, email not confirmed yet">Registration not complete</span>';
                     }
                     return html;
                 }

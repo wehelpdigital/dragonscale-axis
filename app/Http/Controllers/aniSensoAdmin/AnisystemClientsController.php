@@ -150,7 +150,7 @@ class AnisystemClientsController extends Controller
                 return (int) ($client->scheduleCount ?? 0);
             })
             ->addColumn('accountStatus', function ($client) {
-                return $client->status; // active | disabled (anisystem_users.status)
+                return $client->status; // active | pending (email not confirmed: registration not complete) | disabled
             })
             ->addColumn('roles', function ($client) {
                 // Every registered account IS a user of the system — CLIENT is
