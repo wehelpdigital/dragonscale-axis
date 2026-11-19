@@ -230,6 +230,9 @@ $(document).ready(function() {
                 data: 'clientName', name: 'anisystem_users.firstName', orderable: false,
                 render: function(data, type, row) {
                     let html = '<div class="fw-semibold text-dark">' + esc(data || '—') + '</div>';
+                    // Farmer, student or other, asked at signup on anee.io (2026-11-19).
+                    const who = { farmer: 'Farmer', student: 'Student', other: 'Other' }[row.occupation];
+                    if (who) html += '<small class="text-muted d-block">' + esc(who) + '</small>';
                     if (row.accountStatus === 'disabled') {
                         html += '<span class="badge bg-danger" style="font-size:10px;">Account disabled</span>';
                     } else if (row.accountStatus === 'pending') {
