@@ -20,7 +20,7 @@ class AsScheduleMapObject extends Model
     protected $table = 'as_schedule_map_objects';
 
     protected $fillable = [
-        'scheduleId', 'userId', 'kind', 'color', 'width', 'font', 'fill', 'points', 'label', 'deleteStatus',
+        'scheduleId', 'userId', 'kind', 'color', 'width', 'font', 'fill', 'points', 'label', 'name', 'hidden', 'locked', 'deleteStatus',
     ];
 
     protected $casts = [
@@ -28,6 +28,8 @@ class AsScheduleMapObject extends Model
         'userId' => 'integer',
         'width' => 'integer',
         'fill' => 'integer',
+        'hidden' => 'boolean',
+        'locked' => 'boolean',
         'deleteStatus' => 'integer',
     ];
 
@@ -51,6 +53,12 @@ class AsScheduleMapObject extends Model
             'fill' => $this->fill,
             'points' => json_decode((string) $this->points, true) ?: [],
             'label' => $this->label,
+            // Its layer (2026-11-20, anee.io's columns): the Layers list's name, off the screen, locked.
+            'name' => $this->getAttribute('name'),
+            // getAttribute, not $this->hidden: inside the model that name is Eloquent's own list of fields kept
+            // out of JSON (an empty array), so it read false for every shape.
+            'hidden' => (bool) $this->getAttribute('hidden'),
+            'locked' => (bool) $this->getAttribute('locked'),
             'userId' => (int) $this->userId,
         ];
     }

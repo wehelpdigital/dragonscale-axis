@@ -90,6 +90,10 @@ class MapController extends BaseScheduleController
             'font' => 'nullable|in:' . self::FONTS,
             // How solid a closed shape's inside is, 0 to 100 (2026-11-09).
             'fill' => 'nullable|integer|min:0|max:100',
+            // Its layer (2026-11-20), for a shape put back by undo.
+            'name' => 'nullable|string|max:80',
+            'hidden' => 'sometimes|boolean',
+            'locked' => 'sometimes|boolean',
         ]);
         if ($validator->fails()) {
             return $this->jsonFail($validator->errors()->first(), 422);
@@ -109,6 +113,9 @@ class MapController extends BaseScheduleController
             'fill' => $request->input('fill') === null ? null : (int) $request->input('fill'),
             'points' => json_encode($request->input('points')),
             'label' => $request->input('label'),
+            'name' => trim((string) $request->input('name')) ?: null,
+            'hidden' => $request->boolean('hidden'),
+            'locked' => $request->boolean('locked'),
             'deleteStatus' => 1,
         ]);
 
@@ -136,6 +143,10 @@ class MapController extends BaseScheduleController
             'width' => 'sometimes|integer|min:1|max:64',
             'color' => 'sometimes|nullable|string|max:16',
             'fill' => 'sometimes|nullable|integer|min:0|max:100',
+            // The Layers list (2026-11-20): rename, hide or show, lock or unlock.
+            'name' => 'sometimes|nullable|string|max:80',
+            'hidden' => 'sometimes|boolean',
+            'locked' => 'sometimes|boolean',
         ]);
         if ($validator->fails()) {
             return $this->jsonFail($validator->errors()->first(), 422);
@@ -164,10 +175,24 @@ class MapController extends BaseScheduleController
         if ($request->has('fill')) {
             $patch['fill'] = $request->input('fill') === null ? null : (int) $request->input('fill');
         }
+        if ($request->has('name')) {
+            $patch['name'] = trim((string) $request->input('name')) ?: null;
+        }
+        if ($request->has('hidden')) {
+            $patch['hidden'] = $request->boolean('hidden');
+        }
+        if ($request->has('locked')) {
+            $patch['locked'] = $request->boolean('locked');
+        }
         if (empty($patch)) {
             return $this->jsonFail('Nothing to change on that shape.', 422);
         }
 
+        // Renaming, hiding or locking a layer is not a change to the shape, so its place in the stack (the
+        // newest change on top, by updated_at) stays where it was.
+        if (! array_diff(array_keys($patch), ['name', 'hidden', 'locked'])) {
+            $object->timestamps = false;
+        }
         $object->update($patch);
 
         return $this->jsonOk('OK', ['data' => ['object' => $object->fresh()->shaped()]]);
@@ -422,6 +447,10 @@ class MapController extends BaseScheduleController
                     'fill' => isset($o['fill']) && is_numeric($o['fill']) ? max(0, min(100, (int) $o['fill'])) : null,
                     'points' => json_encode($o['points']),
                     'label' => $o['label'] ?? null,
+                    // Saves from before layers have none: named by kind, shown, unlocked.
+                    'name' => isset($o['name']) && is_string($o['name']) && trim($o['name']) !== '' ? mb_substr(trim($o['name']), 0, 80) : null,
+                    'hidden' => ! empty($o['hidden']),
+                    'locked' => ! empty($o['locked']),
                     'deleteStatus' => 1,
                 ]);
             }
